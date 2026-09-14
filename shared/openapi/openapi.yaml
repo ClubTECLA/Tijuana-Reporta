@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info:
+  title: Tijuana Reporta API
+  version: 1.0.0
+
+paths:
+  /reportes/{reporteId}/comentarios:
+    post:
+      operationId: crearComentario
+      parameters:
+        - name: reporteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearComentarioRequest'
+      responses:
+        '201':
+          description: Comentario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comentario'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CrearComentarioRequest:
+      type: object
+      required: [comentario]
+      properties:
+        comentario:
+          type: string
+          minLength: 1
+          maxLength: 500
+
+    Comentario:
+      type: object
+      required: [id, reporte_id, user_id, comentario, created_at]
+      properties:
+        id: { type: integer }
+        reporte_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        comentario: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }

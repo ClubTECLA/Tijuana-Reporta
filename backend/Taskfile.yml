@@ -1,0 +1,31 @@
+version: '3'
+
+vars:
+  DATABASE_URL: '{{.DATABASE_URL | default "postgres://user:pass@localhost:5432/db?sslmode=disable"}}'
+
+tasks:
+  run:
+    desc: Levanta la API
+    cmds:
+      - go run ./cmd/api
+
+  generate:
+    desc: Genera código a partir de OpenAPI y SQL
+    cmds:
+      - oapi-codegen -config oapi-codegen-config.yaml ../shared/openapi/openapi.yaml
+      - sqlc generate
+
+  migrate-up:
+    desc: Aplica migraciones pendientes
+    cmds:
+      - migrate -path internal/database/migrations -database "{{.DATABASE_URL}}" up
+
+  migrate-down:
+    desc: Revierte la última migración
+    cmds:
+      - migrate -path internal/database/migrations -database "{{.DATABASE_URL}}" down 1
+
+  test:
+    desc: Corre los tests
+    cmds:
+      - go test ./... -v

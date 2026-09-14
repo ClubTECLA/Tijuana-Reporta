@@ -1,0 +1,39 @@
+#Secretos / entorno
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+#Go
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+*.out
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+.vite
+*.tsbuildinfo
+coverage/
+
+# Expo
+frontend-mobile/.expo/
+frontend-mobile/.expo-shared/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Docker
+docker-compose.override.yml

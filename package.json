@@ -1,0 +1,13 @@
+{
+    "name": "tijuana-reporta",
+    "private": true,
+    "packageManager": "pnpm@9.0.0",
+    "scripts": {
+        "generate:types": "openapi-typescript shared/openapi/openapi.yaml -o shared/types/api-types.ts",
+        "dev:web": "pnpm --filter @tijuana-reporta/frontend-web dev",
+        "dev:mobile": "pnpmn --filter @tijuana-reporta/frontend-mobile start"
+    },
+    "devDependencies": {
+        "openapi-typescript": "^7.0.0"
+    }
+}

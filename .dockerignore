@@ -1,0 +1,33 @@
+# Dependencias (se instalan dentro del contenedor)
+node_modules
+**/node_modules
+
+# Control de versiones
+.git
+.gitignore
+
+# Variables de entorno (nunca deben ir dentro de la imagen)
+.env
+.env.*
+!.env.example
+
+# Builds previos / artefactos
+dist
+build
+**/dist
+**/build
+
+# Go
+backend/bin
+
+# Mobile (Expo no se usa en Docker, no hace falta copiarlo)
+mobile
+mobile-app
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log
