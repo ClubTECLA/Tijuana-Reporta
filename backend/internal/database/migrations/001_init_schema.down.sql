@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS reportes_scores;
 DROP TABLE IF EXISTS reporte_tag_counts;
 DROP TABLE IF EXISTS incidente_tags;
 DROP TABLE IF EXISTS fotos_reportes;
-DROP TABLE IF EXISTS reporte_ubicacion;
+DROP TABLE IF EXISTS puntos_origen;
 DROP TABLE IF EXISTS location;
 DROP TABLE IF EXISTS reporte;
 DROP TYPE IF EXISTS estado;

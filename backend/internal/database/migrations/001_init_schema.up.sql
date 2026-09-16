@@ -62,7 +62,6 @@ CREATE TYPE estado AS ENUM ('Sin revisar', 'En revision', 'Arreglado', 'Expirado
 
 -- Tabla que mantiene todos los reportes creados.
 -- Nota: ya no incluye "peso" (vive solo en reportes_scores) ni "punto_origen"
--- (se reemplaza por la tabla reporte_ubicacion, mantenida vía trigger).
 CREATE TABLE reporte (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incidente_id INTEGER NOT NULL REFERENCES incidentes(id),
@@ -85,9 +84,9 @@ CREATE TABLE location (
 );
 
 -- Ubicación derivada (centroide) de cada reporte, mantenida por trigger vía incremental average.
--- Reemplaza la tabla puntos_origen: al vivir separada de "reporte", los updates frecuentes
+-- Al vivir separada de "reporte", los updates frecuentes
 -- de ubicación no reescriben la fila completa de reporte ni sus índices.
-CREATE TABLE reporte_ubicacion (
+CREATE TABLE puntos_origen (
     reporte_id UUID PRIMARY KEY REFERENCES reporte(id) ON DELETE CASCADE,
     latitude DECIMAL NOT NULL,
     longitude DECIMAL NOT NULL,
@@ -219,26 +218,26 @@ FOR EACH ROW EXECUTE FUNCTION update_tag_counts();
 -- TRIGGER: ubicación (centroide) del reporte, promedio incremental O(1)
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION update_reporte_ubicacion()
+CREATE OR REPLACE FUNCTION update_puntos_origen()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO reporte_ubicacion (reporte_id, latitude, longitude, sample_count, updated_at)
+    INSERT INTO puntos_origen (reporte_id, latitude, longitude, sample_count, updated_at)
     VALUES (NEW.reporte_id, NEW.latitude, NEW.longitude, 1, now())
     ON CONFLICT (reporte_id) DO UPDATE SET
-        latitude = (reporte_ubicacion.latitude * reporte_ubicacion.sample_count + NEW.latitude)
-                   / (reporte_ubicacion.sample_count + 1),
-        longitude = (reporte_ubicacion.longitude * reporte_ubicacion.sample_count + NEW.longitude)
-                    / (reporte_ubicacion.sample_count + 1),
-        sample_count = reporte_ubicacion.sample_count + 1,
+        latitude = (puntos_origen.latitude * puntos_origen.sample_count + NEW.latitude)
+                   / (puntos_origen.sample_count + 1),
+        longitude = (puntos_origen.longitude * puntos_origen.sample_count + NEW.longitude)
+                    / (puntos_origen.sample_count + 1),
+        sample_count = puntos_origen.sample_count + 1,
         updated_at = now();
 
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_update_reporte_ubicacion
+CREATE TRIGGER trg_update_puntos_origen
 AFTER INSERT ON location
-FOR EACH ROW EXECUTE FUNCTION update_reporte_ubicacion();
+FOR EACH ROW EXECUTE FUNCTION update_puntos_origen();
 
 -- ============================================================
 -- ÍNDICES ÚTILES
