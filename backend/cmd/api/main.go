@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -12,14 +14,14 @@ func main() {
 		port = "8080"
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+	r := gin.Default()
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	log.Printf("servidor escuchando en :%s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
