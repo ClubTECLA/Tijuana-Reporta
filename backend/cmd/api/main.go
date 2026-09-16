@@ -16,6 +16,7 @@ func main() {
 
 	r := gin.Default()
 
+	// Test for health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
