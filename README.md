@@ -83,6 +83,43 @@ Correr todo en Docker cada vez que cambias una línea de frontend es lento, así
    VITE_API_URL=http://localhost:8080/v1
    ```
 
+### Opción C: Desarrollo móvil (Expo)
+
+La app móvil **no corre en Docker** — Expo necesita comunicarse directamente con tu emulador o dispositivo físico. El backend sí puede estar en Docker.
+
+1. Levanta Postgres y el backend igual que en la Opción B:
+   ```bash
+   docker compose up postgres backend
+   ```
+
+2. Crea `frontend-mobile/.env.local` (ignorado por git) con la URL de tu API. **El valor depende de dónde corras la app:**
+
+   | Dónde corres la app | Qué host usar |
+   |---|---|
+   | Dispositivo físico (Expo Go) | La IP de tu PC en la red local, ej. `192.168.1.45` |
+   | Emulador de Android | `10.0.2.2` |
+   | Simulador de iOS | `localhost` |
+
+   Ejemplo para dispositivo físico:
+   ```
+   EXPO_PUBLIC_API_URL=http://192.168.1.45:8080/v1
+   ```
+
+   > Expo usa el prefijo `EXPO_PUBLIC_` (no `VITE_`) para exponer variables al código del cliente. En el código se leen con `process.env.EXPO_PUBLIC_API_URL`.
+
+3. Arranca Expo:
+   ```bash
+   cd frontend-mobile
+   pnpm install
+   pnpm start
+   ```
+
+**Problemas comunes:**
+
+- *La app no conecta con la API desde el celular:* tu PC y tu teléfono deben estar en la **misma red Wi-Fi**. Además, el Firewall de Windows a veces bloquea conexiones entrantes al puerto 8080 — puede que tengas que permitirlo manualmente.
+- *Funciona en el emulador pero no en el celular (o al revés):* revisa que estés usando el host correcto según la tabla de arriba. Es el error más común.
+- *Cambiaste el `.env.local` y no se refleja:* reinicia el servidor de Expo por completo (Ctrl+C y `pnpm start` de nuevo); las variables `EXPO_PUBLIC_` se leen al arrancar.
+
 ## Migraciones de base de datos
 
 ```bash
