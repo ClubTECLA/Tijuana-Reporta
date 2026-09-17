@@ -39,7 +39,7 @@ func main() {
 	//
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
-	strict := api.NewStrictHandlerWithOptions(api.NewServer(), nil, api.StrictGinServerOptions{
+	strict := api.NewStrictHandlerWithOptions(api.NewServer(pool), nil, api.StrictGinServerOptions{
 		RequestErrorHandlerFunc: func(c *gin.Context, err error) {
 			responderError(c, err, http.StatusBadRequest)
 		},
