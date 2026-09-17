@@ -1,6 +1,23 @@
 package: api
 generate:
   models: true
-  std-http-server: true
+  gin-server: true
+  strict-server: true
   embedded-spec: true
 output: internal/api/generated.go
+output-options:
+  # Un solo tipo UUID en todo el stack. Por defecto oapi-codegen usa
+  # openapi_types.UUID; lo mapeamos al mismo google/uuid que genera sqlc para
+  # las columnas uuid, así no hay conversiones entre la capa HTTP y la de datos.
+  # pgx/v5 sabe leer y escribir uuid.UUID de forma nativa.
+  type-mapping:
+    string:
+      formats:
+        uuid:
+          type: uuid.UUID
+
+# type-mapping solo define el nombre del tipo, no de dónde viene: sin esto
+# el generador deduce el import como "uuid" y el archivo no compila.
+additional-imports:
+  - alias: uuid
+    package: github.com/google/uuid
