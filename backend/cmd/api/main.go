@@ -1,21 +1,38 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/repository"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	config, err := config.Load()
+	// Cargar la configuración desde variables de entorno. Si falta alguna, el
+	// proceso termina aquí, al arrancar, y no a mitad de una petición.
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		log.Fatal(err)
 	}
 
-	port := config.APIPort
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("no se pudo conectar a la base de datos: %v", err)
+	}
+
+	repo := repository.NewComentarioRepository(pool)
+	svc := service.NewComentarioService(repo)
 
 	r := gin.Default()
 
@@ -32,7 +49,7 @@ func main() {
 	//
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
-	strict := api.NewStrictHandlerWithOptions(api.NewServer(), nil, api.StrictGinServerOptions{
+	strict := api.NewStrictHandlerWithOptions(api.NewServer(svc), nil, api.StrictGinServerOptions{
 		RequestErrorHandlerFunc: func(c *gin.Context, err error) {
 			responderError(c, err, http.StatusBadRequest)
 		},
@@ -53,19 +70,30 @@ func main() {
 	r.GET("/v1/openapi.json", func(c *gin.Context) {
 		spec, err := api.GetSpec()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			responderError(c, err, http.StatusInternalServerError)
 			return
 		}
 		c.JSON(http.StatusOK, spec)
 	})
 
-	log.Printf("servidor escuchando en :%s", port)
-	if err := r.Run(":" + port); err != nil {
+	// r.Run bloquea, así que todas las rutas deben registrarse antes de esta línea.
+	log.Printf("servidor escuchando en :%s", cfg.APIPort)
+	if err := r.Run(":" + cfg.APIPort); err != nil {
 		log.Fatal(err)
 	}
 }
 
 // responderError escribe el error con la forma de ErrorResponse del contrato.
+//
+// Los 4xx devuelven el mensaje tal cual (errores de validación, útiles para el
+// cliente). Los 5xx pueden traer texto de SQL, nombres de constraints o datos
+// de conexión, así que se registran en el log y al cliente se le da un mensaje
+// genérico.
 func responderError(c *gin.Context, err error, statusCode int) {
+	if statusCode >= http.StatusInternalServerError {
+		log.Printf("error %d en %s %s: %v", statusCode, c.Request.Method, c.Request.URL.Path, err)
+		c.JSON(statusCode, api.ErrorResponse{Message: "error interno del servidor"})
+		return
+	}
 	c.JSON(statusCode, api.ErrorResponse{Message: err.Error()})
 }

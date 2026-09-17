@@ -1,7 +1,7 @@
 package config
 
 import (
-	"errors"
+	"fmt"
 	"os"
 )
 
@@ -11,25 +11,24 @@ type Config struct {
 	JWTSecret   string
 }
 
-func Load() (*Config, error) {
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		return nil, errors.New("unable to connect to database")
+func Load() (Config, error) {
+	cfg := Config{
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		APIPort:     os.Getenv("API_PORT"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
-
-	apiPort := os.Getenv("API_PORT")
-	if apiPort == "" {
-		return nil, errors.New("unable to connect to API via port")
+	var missing []string
+	if cfg.DatabaseURL == "" {
+		missing = append(missing, "DATABASE_URL")
 	}
-
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		return nil, errors.New("unable to connect to API via JWT_SECRET")
+	if cfg.APIPort == "" {
+		missing = append(missing, "API_PORT")
 	}
-
-	return &Config{
-		DatabaseURL: dbURL,
-		APIPort:     apiPort,
-		JWTSecret:   jwtSecret,
-	}, nil
+	if cfg.JWTSecret == "" {
+		missing = append(missing, "JWT_SECRET")
+	}
+	if len(missing) > 0 {
+		return Config{}, fmt.Errorf("faltan variables de entorno: %v", missing)
+	}
+	return cfg, nil
 }
