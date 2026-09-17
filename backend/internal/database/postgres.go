@@ -3,12 +3,14 @@ package database
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func Connect(databaseURL string) (*pgxpool.Pool, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	config, err := pgxpool.ParseConfig(databaseURL)
 

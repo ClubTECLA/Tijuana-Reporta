@@ -20,7 +20,7 @@ func main() {
 	pool, err := database.Connect(cfg.DatabaseURL)
 
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatal("Failed to connect to database; check database configuration and connectivity")
 	}
 
 	defer pool.Close()
