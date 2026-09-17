@@ -26,7 +26,7 @@ type Tags struct {
 
 type Roles struct {
 	ID     int    `json:"id" db:"id"`
-	Nombre string `json:"nombre" db:"name"`
+	Nombre string `json:"nombre" db:"nombre"`
 }
 
 // / Users and authentication
@@ -68,7 +68,7 @@ type Reporte struct {
 	EstadoActual  Estado     `json:"estado_actual" db:"estado_actual"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
-	ExpiratedAt   *time.Time `json:"expirated_at" db:"expirated_at"`
+	ExpiredAt     *time.Time `json:"expired_at" db:"expired_at"`
 }
 
 type Location struct {

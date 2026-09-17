@@ -26,7 +26,7 @@ CREATE TABLE tags (
 -- Catálogo de roles del sistema.
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
+    nombre VARCHAR(255) UNIQUE NOT NULL
 );
 
 -- ============================================================
@@ -70,7 +70,7 @@ CREATE TABLE reporte (
     estado_actual estado NOT NULL DEFAULT 'Sin revisar',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    expirated_at TIMESTAMPTZ
+    expired_at TIMESTAMPTZ
 );
 
 -- Cada localización que ha reportado un usuario para un reporte (para calcular el centroide).
