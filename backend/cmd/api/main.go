@@ -3,17 +3,19 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	port := os.Getenv("API_PORT")
-	if port == "" {
-		port = "8080"
+	config, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
 	}
+
+	port := config.APIPort
 
 	r := gin.Default()
 
