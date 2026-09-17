@@ -3,17 +3,27 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	port := os.Getenv("API_PORT")
-	if port == "" {
-		port = "8080"
+	cfg, err := config.Load()
+
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	pool, err := database.Connect(cfg.DatabaseURL)
+
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	defer pool.Close()
 
 	r := gin.Default()
 
@@ -56,8 +66,8 @@ func main() {
 		c.JSON(http.StatusOK, spec)
 	})
 
-	log.Printf("servidor escuchando en :%s", port)
-	if err := r.Run(":" + port); err != nil {
+	log.Printf("servidor escuchando en :%s", cfg.Port)
+	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)
 	}
 }
