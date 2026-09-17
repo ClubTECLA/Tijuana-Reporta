@@ -10,12 +10,10 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<MapContainer />} />
           <Route path="/auth" element={<AuthPage />} />
         </Routes>
       </BrowserRouter>
-      <section className="h-screen w-screen overflow-hidden">
-        <MapContainer />
-      </section>
     </>
   )
 }
