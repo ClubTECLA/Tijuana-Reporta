@@ -1,4 +1,5 @@
 import MapContainer from './components/MapContainer'
+import ReportButtomSheet from './components/ReportButtomSheet'
 import './App.css'
 
 function App() {
@@ -7,6 +8,7 @@ function App() {
     <>
       <section id="map-container">
         <MapContainer />
+        <ReportButtomSheet isVisible={true} onClose={() => {}} />
       </section>
     </>
   )
