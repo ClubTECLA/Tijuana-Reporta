@@ -1,14 +1,11 @@
 import MapContainer from './components/MapContainer'
-import ReportButtomSheet from './components/ReportButtomSheet'
-import './App.css'
 
 function App() {
 
   return (
     <>
-      <section id="map-container">
+      <section className="h-screen w-screen overflow-hidden">
         <MapContainer />
-        <ReportButtomSheet isVisible={true} onClose={() => {}} />
       </section>
     </>
   )

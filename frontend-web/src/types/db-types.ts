@@ -21,11 +21,11 @@ export interface Roles {
 // Users and authentication
 export interface Users {
   id: string
-  email: string
-  phone: string
+  email: string | null
+  phone: string | null
   username: string
   rol_id: number
-  password_hash: string
+  password_hash: string | null
   created_at: string
   updated_at: string
 }

@@ -20,14 +20,14 @@ export default function ReportBottomSheetTesting ({ isVisible, onClose }: Report
 
   return (
     <BottomSheet isVisible={isVisible} onClose={onClose}>
-      <div className="report-sheet-header">
-        <h2>¿Qué ves?</h2>
-        <button type="button" className="report-sheet-close" onClick={onClose} aria-label="Close">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="m-0 text-xl text-[#252a31]">¿Qué ves?</h2>
+        <button type="button" className="border-0 bg-transparent px-2 py-1 text-[#68717d]" onClick={onClose} aria-label="Close">
           X
         </button>
       </div>
 
-      <div className="report-category-grid">
+      <div className="flex gap-4 overflow-x-auto py-4">
         {CATEGORIES.map((category) => {
           const isSelected = selected === category.id
 
@@ -35,13 +35,13 @@ export default function ReportBottomSheetTesting ({ isVisible, onClose }: Report
             <button
               type="button"
               key={category.id}
-              className={`report-category${isSelected ? ' report-category-selected' : ''}`}
+              className={`relative flex w-[100px] shrink-0 flex-col items-center gap-2 border-0 bg-transparent text-center ${isSelected ? 'font-bold text-[#252a31]' : 'text-[#68717d]'}`}
               onClick={() => setSelected(category.id)}
               aria-pressed={isSelected}
             >
-              <span className="report-category-circle" />
+              <span className={`block h-20 w-20 rounded-full ${isSelected ? 'bg-[#2f80ed]' : 'bg-[#f1f3f5]'}`} />
               <span>{category.label}</span>
-              {isSelected && <span className="report-category-check">✓</span>}
+              {isSelected && <span className="font-bold text-[#2f80ed]">✓</span>}
             </button>
           )
         })}
@@ -58,14 +58,14 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
 
   return (
     <BottomSheet isVisible={isVisible} onClose={onClose}>
-      <div className="report-sheet-header">
-        <h2>¿Qué ves?</h2>
-        <button type="button" className="report-sheet-close" onClick={onClose} aria-label="Close">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="m-0 text-xl text-[#252a31]">¿Qué ves?</h2>
+        <button type="button" className="border-0 bg-transparent px-2 py-1 text-[#68717d]" onClick={onClose} aria-label="Close">
           X
         </button>
       </div>
 
-      <div className="report-category-list">
+      <div className="grid">
         {CATEGORIES.map((category) => {
           const isSelected = selected === category.id
 
@@ -73,15 +73,15 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
             <button
               type="button"
               key={category.id}
-              className={`report-category-list-item${isSelected ? ' report-category-list-item-selected' : ''}`}
+              className={`flex items-center justify-between border-0 border-b border-[#e2e6eb] px-2 py-4 text-left text-[#252a31] ${isSelected ? 'rounded-lg bg-[#f1f3f5]' : 'bg-transparent'}`}
               onClick={() => setSelected(category.id)}
               aria-pressed={isSelected}
             >
-              <span className="report-category-list-label">
-                <span className="report-category-circle report-category-circle-small" />
+              <span className="flex items-center gap-4">
+                <span className={`block h-10 w-10 rounded-full ${isSelected ? 'bg-[#2f80ed]' : 'bg-[#f1f3f5]'}`} />
                 <span>{category.label}</span>
               </span>
-              {isSelected && <span className="report-category-check">✓</span>}
+              {isSelected && <span className="font-bold text-[#2f80ed]">✓</span>}
             </button>
           )
         })}
@@ -93,8 +93,8 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
 }
 
 const ReportLocation = () => (
-  <div className="report-location">
-    <span className="report-location-title">Ubicación del Reporte</span>
-    <span className="report-location-text">Blvd. Uabc 224</span>
+  <div className="mt-6 grid gap-1 rounded-lg bg-[#f1f3f5] p-4">
+    <span className="text-xs text-[#68717d]">Ubicación del Reporte</span>
+    <span className="text-base font-medium text-[#252a31]">Blvd. Uabc 224</span>
   </div>
 )

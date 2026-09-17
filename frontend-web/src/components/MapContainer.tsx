@@ -61,7 +61,7 @@ export default function MapContainer() {
   return (
     <div
       ref={mapContainerRef}
-      style={{ width: '100%', height: '100%' }}
+      className="h-full w-full"
     />
   );
 }
