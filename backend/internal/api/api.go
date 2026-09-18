@@ -28,6 +28,37 @@ func NewServer(db *pgxpool.Pool) *Server {
 var errNoImplementado = errors.New("endpoint no implementado todavía")
 
 func (s *Server) CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error) {
-	// request.ReporteId es uuid.UUID y request.Body ya viene deserializado.
+	return nil, errNoImplementado
+}
+
+func (s *Server) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) VerifyUser(ctx context.Context, request VerifyUserRequestObject) (VerifyUserResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) GetReportes(ctx context.Context, request GetReportesRequestObject) (GetReportesResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) GetReporte(ctx context.Context, request GetReporteRequestObject) (GetReporteResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) ApoyarReporte(ctx context.Context, request ApoyarReporteRequestObject) (ApoyarReporteResponseObject, error) {
+	return nil, errNoImplementado
+}
+
+func (s *Server) GetComentarios(ctx context.Context, request GetComentariosRequestObject) (GetComentariosResponseObject, error) {
 	return nil, errNoImplementado
 }
