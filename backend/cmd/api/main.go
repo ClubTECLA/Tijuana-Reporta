@@ -8,6 +8,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/repository"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -59,6 +60,7 @@ func main() {
 	api.RegisterHandlersWithOptions(r, strict, api.GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
+		Middlewares:  []api.MiddlewareFunc{middleware.Auth(cfg.JWTSecret)},
 	})
 
 	// El contrato, servido desde el propio binario, para que web y móvil puedan
@@ -72,7 +74,7 @@ func main() {
 		c.JSON(http.StatusOK, spec)
 	})
 
-	log.Printf("servidor escuchando en :%s", cfg.APIPort)
+	log.Printf("server listening on:%s", cfg.APIPort)
 	if err := r.Run(":" + cfg.APIPort); err != nil {
 		log.Fatal(err)
 	}
@@ -81,8 +83,8 @@ func main() {
 // responderError escribe el error con la forma de ErrorResponse del contrato.
 func responderError(c *gin.Context, err error, statusCode int) {
 	if statusCode >= http.StatusInternalServerError {
-		log.Printf("error %d en %s %s: %v", statusCode, c.Request.Method, c.Request.URL.Path, err)
-		c.JSON(statusCode, api.ErrorResponse{Message: "error interno del servidor"})
+		log.Printf("error %d in %s %s: %v", statusCode, c.Request.Method, c.Request.URL.Path, err)
+		c.JSON(statusCode, api.ErrorResponse{Message: "internal server error"})
 		return
 	}
 	c.JSON(statusCode, api.ErrorResponse{Message: err.Error()})
