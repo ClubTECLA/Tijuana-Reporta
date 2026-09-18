@@ -66,8 +66,8 @@ func main() {
 		c.JSON(http.StatusOK, spec)
 	})
 
-	log.Printf("servidor escuchando en :%s", cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
+	log.Printf("servidor escuchando en :%s", cfg.APIPort)
+	if err := r.Run(":" + cfg.APIPort); err != nil {
 		log.Fatal(err)
 	}
 }
