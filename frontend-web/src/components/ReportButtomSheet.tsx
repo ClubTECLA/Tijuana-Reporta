@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BottomSheet } from './BottomSheet'
+import  BottomSheet  from './BottomSheet'
 
 interface ReportBottomSheetProps {
   isVisible: boolean

@@ -6,7 +6,7 @@ interface BottomSheetProps {
   children: ReactNode
 }
 
-export const BottomSheet = ({ isVisible, onClose, children }: BottomSheetProps) => {
+export default function BottomSheet({ isVisible, onClose, children }: BottomSheetProps) {
   if (!isVisible) return null
 
   return (

@@ -107,7 +107,11 @@ La app móvil **no corre en Docker** — Expo necesita comunicarse directamente 
 
    > Expo usa el prefijo `EXPO_PUBLIC_` (no `VITE_`) para exponer variables al código del cliente. En el código se leen con `process.env.EXPO_PUBLIC_API_URL`.
 
-3. Arranca Expo:
+3. Para encontrar tu IP local:
+   - **Windows:** `ipconfig` → busca "Dirección IPv4" en tu adaptador de Wi-Fi
+   - **macOS / Linux:** `ifconfig` o `ip addr`
+
+4. Arranca Expo:
    ```bash
    cd frontend-mobile
    pnpm install
@@ -119,6 +123,51 @@ La app móvil **no corre en Docker** — Expo necesita comunicarse directamente 
 - *La app no conecta con la API desde el celular:* tu PC y tu teléfono deben estar en la **misma red Wi-Fi**. Además, el Firewall de Windows a veces bloquea conexiones entrantes al puerto 8080 — puede que tengas que permitirlo manualmente.
 - *Funciona en el emulador pero no en el celular (o al revés):* revisa que estés usando el host correcto según la tabla de arriba. Es el error más común.
 - *Cambiaste el `.env.local` y no se refleja:* reinicia el servidor de Expo por completo (Ctrl+C y `pnpm start` de nuevo); las variables `EXPO_PUBLIC_` se leen al arrancar.
+
+## Cómo trabajar en el proyecto
+
+Para evitar pisarse el trabajo entre compañeros y minimizar conflictos al fusionar cambios, sigue este flujo cada vez que vayas a trabajar en algo:
+
+1. **Antes de empezar a trabajar**, párate en la rama principal y trae los últimos cambios:
+   ```bash
+   git checkout main
+   git pull
+   ```
+
+2. **Crea una rama nueva** para lo que vayas a trabajar, con un nombre descriptivo (ej. `feature/login-google`, `fix/conexion-postgres`):
+   ```bash
+   git checkout -b feature/nombre-de-tu-tarea
+   ```
+
+3. Trabaja normalmente y ve haciendo commits pequeños y descriptivos conforme avances:
+   ```bash
+   git add .
+   git commit -m "Descripción clara de qué cambiaste"
+   ```
+
+4. **Antes de cada commit** (o al menos antes de subir tus cambios), trae los cambios más recientes de `main` a tu rama para detectar conflictos lo antes posible, no hasta el final:
+   ```bash
+   git checkout main
+   git pull
+   git checkout feature/nombre-de-tu-tarea
+   git merge main
+   ```
+   Si hay conflictos, resuélvelos aquí, en tu rama — es mucho más fácil que resolverlos hasta que quieras fusionar a `main`.
+
+5. **Sube tu rama** al repositorio remoto:
+   ```bash
+   git push -u origin feature/nombre-de-tu-tarea
+   ```
+   (Solo necesitas `-u origin nombre-rama` la primera vez que subes esa rama; después basta con `git push`.)
+
+6. **Abre un Pull Request en GitHub** hacia `main`, describe brevemente qué hiciste, y pide revisión a un compañero antes de fusionar.
+
+7. Una vez aprobado y fusionado el Pull Request, borra tu rama local (opcional, pero mantiene todo limpio):
+   ```bash
+   git checkout main
+   git pull
+   git branch -d feature/nombre-de-tu-tarea
+   ```
 
 ## Migraciones de base de datos
 

@@ -12,8 +12,16 @@ tasks:
   generate:
     desc: Genera código a partir de OpenAPI y SQL
     cmds:
-      - oapi-codegen -config oapi-codegen-config.yaml ../shared/openapi/openapi.yaml
+      # oapi-codegen está fijado como tool dependency en go.mod, así que sale
+      # con la versión correcta desde un clone limpio, sin instalarlo aparte.
+      - go tool oapi-codegen -config openapi-codegen-config.yaml ../shared/openapi/openapi.yaml
       - sqlc generate
+
+  generate-check:
+    desc: Falla si el código generado no está al día con el contrato
+    cmds:
+      - task: generate
+      - git diff --exit-code -- internal/api/generated.go internal/database/db
 
   migrate-up:
     desc: Aplica migraciones pendientes
