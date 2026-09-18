@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -17,13 +18,15 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	ctx := context.Background()
 	pool, err := database.Connect(cfg.DatabaseURL)
-
 	if err != nil {
-		log.Fatal("Failed to connect to database; check database configuration and connectivity")
+		log.Fatal(err)
 	}
-
 	defer pool.Close()
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("Failed to connect to database; check database configuration and connectivity: %v", err)
+	}
 
 	r := gin.Default()
 
@@ -74,5 +77,10 @@ func main() {
 
 // responderError escribe el error con la forma de ErrorResponse del contrato.
 func responderError(c *gin.Context, err error, statusCode int) {
+	if statusCode >= http.StatusInternalServerError {
+		log.Printf("error %d en %s %s: %v", statusCode, c.Request.Method, c.Request.URL.Path, err)
+		c.JSON(statusCode, api.ErrorResponse{Message: "error interno del servidor"})
+		return
+	}
 	c.JSON(statusCode, api.ErrorResponse{Message: err.Error()})
 }
