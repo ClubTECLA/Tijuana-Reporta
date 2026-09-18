@@ -31,7 +31,6 @@ func Load() (Config, error) {
 		missing = append(missing, "DATABASE_URL")
 	}
 	if cfg.APIPort == "" {
-		missing = append(missing, "API_PORT")
 		// Use default value
 		cfg.APIPort = "8080"
 	}
