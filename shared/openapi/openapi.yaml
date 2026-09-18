@@ -4,9 +4,191 @@ info:
   version: 1.0.0
 
 paths:
+  # --- AUTH ---
+  /auth/login:
+    post:
+      operationId: loginUser
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      operationId: registerUser
+      summary: Registrar nuevo usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/verify:
+    post:
+      operationId: verifyUser
+      summary: Verificar número (OTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOTPRequest'
+      responses:
+        '200':
+          description: Verificado exitosamente
+        '400':
+          description: OTP inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # --- REPORTES ---
+  /reportes:
+    get:
+      operationId: getReportes
+      summary: Obtener lista de reportes (para el mapa)
+      parameters:
+        - name: categoria
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de reportes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reporte'
+    post:
+      operationId: crearReporte
+      summary: Crear un nuevo reporte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearReporteRequest'
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reporte'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+  /reportes/{reporteId}:
+    get:
+      operationId: getReporte
+      summary: Ver detalle de un reporte
+      parameters:
+        - name: reporteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle del reporte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reporte'
+        '404':
+          description: Reporte no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # --- APOYOS Y COMENTARIOS ---
+  /reportes/{reporteId}/apoyar:
+    post:
+      operationId: apoyarReporte
+      summary: Dar "+1" o apoyar un reporte existente
+      parameters:
+        - name: reporteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Apoyo registrado
+        '404':
+          description: Reporte no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
   /reportes/{reporteId}/comentarios:
+    get:
+      operationId: getComentarios
+      summary: Obtener los comentarios de un reporte
+      parameters:
+        - name: reporteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de comentarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comentario'
     post:
       operationId: crearComentario
+      summary: Crear un comentario
       parameters:
         - name: reporteId
           in: path
@@ -33,17 +215,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
 
 components:
   schemas:
-    CrearComentarioRequest:
+    # --- MODELOS CORE ---
+    Usuario:
       type: object
-      required: [comentario]
+      required: [id, nombre, email]
       properties:
-        comentario:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        email: { type: string, format: email }
+        telefono: { type: string }
+
+    Reporte:
+      type: object
+      required: [id, titulo, categoria, tags, lat, lng, status, user_id, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        titulo: { type: string }
+        categoria: 
           type: string
-          minLength: 1
-          maxLength: 500
+          enum: [socavon, peligro, drenaje, luz, deslave, arbol, inundacion, servicios, otro]
+        tags: 
+          type: array
+          items:
+            type: string
+          description: "Etiquetas seleccionadas (ej. 'bache', 'profundo')"
+        lat: { type: number, format: float }
+        lng: { type: number, format: float }
+        direccion: { type: string }
+        image_url: { type: string }
+        status:
+          type: string
+          enum: [pendiente, en_proceso, resuelto]
+        upvotes: { type: integer, default: 0 }
+        user_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
 
     Comentario:
       type: object
@@ -55,8 +265,71 @@ components:
         comentario: { type: string }
         created_at: { type: string, format: date-time }
 
+    # --- REQUEST/RESPONSE SCHEMAS ---
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    RegisterRequest:
+      type: object
+      required: [nombre, email, password, telefono]
+      properties:
+        nombre: { type: string }
+        email: { type: string, format: email }
+        password: { type: string }
+        telefono: { type: string }
+        
+    VerifyOTPRequest:
+      type: object
+      required: [telefono, otp]
+      properties:
+        telefono: { type: string }
+        otp: { type: string }
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string }
+        user: { $ref: '#/components/schemas/Usuario' }
+
+    CrearReporteRequest:
+      type: object
+      required: [titulo, categoria, tags, lat, lng]
+      properties:
+        titulo: { type: string }
+        categoria: 
+          type: string
+          enum: [socavon, peligro, drenaje, luz, deslave, arbol, inundacion, servicios, otro]
+        tags: 
+          type: array
+          items:
+            type: string
+        lat: { type: number }
+        lng: { type: number }
+        direccion: { type: string }
+        image_base64: { type: string }
+
+    CrearComentarioRequest:
+      type: object
+      required: [comentario]
+      properties:
+        comentario:
+          type: string
+          minLength: 1
+          maxLength: 500
+
     ErrorResponse:
       type: object
       required: [message]
       properties:
         message: { type: string }
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
