@@ -8,6 +8,8 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/repository"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,7 +44,8 @@ func main() {
 	//
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
-	strict := api.NewStrictHandlerWithOptions(api.NewServer(pool), nil, api.StrictGinServerOptions{
+	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
+	strict := api.NewStrictHandlerWithOptions(api.NewServer(comentarios), nil, api.StrictGinServerOptions{
 		RequestErrorHandlerFunc: func(c *gin.Context, err error) {
 			responderError(c, err, http.StatusBadRequest)
 		},
