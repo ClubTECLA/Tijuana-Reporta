@@ -32,6 +32,8 @@ func Load() (Config, error) {
 	}
 	if cfg.APIPort == "" {
 		missing = append(missing, "API_PORT")
+		// Use default value
+		cfg.APIPort = "8080"
 	}
 	if cfg.JWTSecret == "" {
 		missing = append(missing, "JWT_SECRET")
@@ -41,12 +43,4 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func getEnvOrDefault(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-
-	return fallback
 }
