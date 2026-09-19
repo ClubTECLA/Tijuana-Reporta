@@ -21,7 +21,7 @@ export default function VerificarScreen() {
   const { mode, phone } = useLocalSearchParams<{ mode?: string; phone?: string }>();
   const isRecuperar = mode === 'recuperar';
 
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState<string[]>(['', '', '', '']);
   const [secondsLeft, setSecondsLeft] = useState(OTP_SECONDS);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function VerificarScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const canVerify = code.length === 4;
+  const canVerify = code.every((digit) => /^[0-9]$/.test(digit));
 
   const handleVerify = () => {
     if (isRecuperar) {
@@ -42,13 +42,13 @@ export default function VerificarScreen() {
   };
 
   return (
-    <AuthScreenShell title={isRecuperar ? 'Ingresa el codigo' : 'Crear cuenta'}>
+    <AuthScreenShell title={isRecuperar ? 'Ingresa el código' : 'Crear cuenta'}>
       {isRecuperar && <StepDots total={3} current={2} />}
 
-      <Text style={styles.subtitle}>Escribe el codigo de 4 digitos</Text>
+      <Text style={styles.subtitle}>Escribe el código de 4 dígitos</Text>
 
       <Text style={styles.sentTo}>
-        <Text style={styles.sentToMuted}>Codigo enviado a </Text>
+        <Text style={styles.sentToMuted}>Código enviado a </Text>
         {phone ? `+52 ${phone}` : '+52 664-XXX-XXXX'}
       </Text>
 
@@ -63,7 +63,7 @@ export default function VerificarScreen() {
       </View>
 
       <Text style={styles.attemptsLabel}>
-        Tienes 3 intentos. Despues hay que esperar 15 minutos para pedir otro codigo
+        Tienes 3 intentos. Después hay que esperar 15 minutos para pedir otro código
       </Text>
 
       <PrimaryButton label="Verificar" disabled={!canVerify} onPress={handleVerify} />

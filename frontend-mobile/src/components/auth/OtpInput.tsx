@@ -5,9 +5,14 @@ import { fontFamily } from '../../theme/typography';
 
 const LENGTH = 4;
 
+export const OTP_LENGTH = LENGTH;
+
 type Props = {
-  value: string;
-  onChange: (value: string) => void;
+  /** Arreglo de longitud fija (4), una posición por casilla — un string
+   * simple no sirve porque al unir los dígitos se pierde la posición de las
+   * casillas vacías en medio (ej. ['1','','3'] no es lo mismo que '13'). */
+  value: string[];
+  onChange: (value: string[]) => void;
 };
 
 export function OtpInput({ value, onChange }: Props) {
@@ -18,7 +23,7 @@ export function OtpInput({ value, onChange }: Props) {
     const clean = digit.replace(/[^0-9]/g, '').slice(-1);
     const next = digits.slice();
     next[index] = clean;
-    onChange(next.join(''));
+    onChange(next);
     if (clean && index < LENGTH - 1) {
       inputs.current[index + 1]?.focus();
     }

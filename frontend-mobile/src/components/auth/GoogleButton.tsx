@@ -8,8 +8,9 @@ type Props = {
 };
 
 /**
- * Solo UI por ahora: no hay flujo de OAuth conectado todavía (pendiente de
- * Client ID de Google Cloud y de que el backend tenga el endpoint de auth).
+ * `onPress` dispara el flujo real de expo-auth-session cuando hay un Client
+ * ID de Google configurado. Sigue sin conectarse a ningún backend — el
+ * endpoint de auth ahí no existe todavía.
  */
 export function GoogleButton({ onPress }: Props) {
   return (

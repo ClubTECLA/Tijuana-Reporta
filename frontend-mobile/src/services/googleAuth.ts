@@ -32,7 +32,12 @@ export function decodeGoogleIdToken(idToken: string): GoogleProfile | null {
     const payload = idToken.split('.')[1];
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-    const json = atob(padded);
+    // atob() da una string "binaria" (un char = un byte) — hay que pasarla a
+    // bytes reales y decodificarla como UTF-8, si no los nombres con acentos
+    // u otros caracteres no-ASCII salen corruptos.
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const json = new TextDecoder('utf-8').decode(bytes);
     return JSON.parse(json);
   } catch {
     return null;

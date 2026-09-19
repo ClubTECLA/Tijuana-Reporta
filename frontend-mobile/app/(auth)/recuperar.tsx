@@ -12,7 +12,7 @@ export default function RecuperarScreen() {
   return (
     <AuthScreenShell title="Recuperar contraseña">
       <TextField
-        label="Numero de celular"
+        label="Número de celular"
         placeholder="664-XXX-XXXX"
         value={phone}
         onChangeText={setPhone}
@@ -20,7 +20,7 @@ export default function RecuperarScreen() {
       />
 
       <PrimaryButton
-        label="Enviar codigo"
+        label="Enviar código"
         disabled={!phone}
         onPress={() =>
           router.push({ pathname: '/(auth)/verificar', params: { mode: 'recuperar', phone } })

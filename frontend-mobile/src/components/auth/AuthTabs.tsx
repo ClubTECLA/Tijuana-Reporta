@@ -12,7 +12,7 @@ type Props = {
 export function AuthTabs({ value, onChange }: Props) {
   return (
     <View style={styles.container}>
-      <Tab label="Iniciar sesion" active={value === 'login'} onPress={() => onChange('login')} />
+      <Tab label="Iniciar sesión" active={value === 'login'} onPress={() => onChange('login')} />
       <Tab label="Registrarse" active={value === 'signup'} onPress={() => onChange('signup')} />
     </View>
   );

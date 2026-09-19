@@ -17,20 +17,23 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsReady]);
 
-  if (!fontsLoaded) {
+  // Si las fuentes fallan en cargar, seguimos con las del sistema en vez de
+  // dejar la app trabada en la splash screen para siempre.
+  if (!fontsReady) {
     return null;
   }
 

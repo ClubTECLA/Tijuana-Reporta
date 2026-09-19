@@ -34,11 +34,12 @@ export default function AuthScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const canSubmitSignup = name && phone && password && confirmPassword && acceptedTerms;
+  const canSubmitSignup =
+    !!name && !!phone && !!password && password === confirmPassword && acceptedTerms;
   const canSubmitLogin = phone && password;
 
   return (
-    <AuthScreenShell title={tab === 'signup' ? 'Crear cuenta' : 'Iniciar Sesion'}>
+    <AuthScreenShell title={tab === 'signup' ? 'Crear cuenta' : 'Iniciar sesión'}>
       <AuthTabs value={tab} onChange={setTab} />
 
       {tab === 'signup' ? (
@@ -51,7 +52,7 @@ export default function AuthScreen() {
             autoCapitalize="words"
           />
           <TextField
-            label="Numero de celular"
+            label="Número de celular"
             placeholder="664-XXX-XXXX"
             value={phone}
             onChangeText={setPhone}
@@ -76,7 +77,7 @@ export default function AuthScreen() {
       ) : (
         <>
           <TextField
-            label="Numero de celular"
+            label="Número de celular"
             placeholder="664-XXX-XXXX"
             value={phone}
             onChangeText={setPhone}
@@ -95,10 +96,15 @@ export default function AuthScreen() {
           </View>
 
           <PrimaryButton
-            label="Iniciar sesion"
+            label="Iniciar sesión"
             showArrow={false}
             disabled={!canSubmitLogin}
-            onPress={() => {}}
+            onPress={() =>
+              Alert.alert(
+                'Inicio de sesión no disponible todavía',
+                'Esta pantalla es solo de diseño por ahora — el inicio de sesión con teléfono y contraseña se conecta cuando el backend tenga el endpoint de auth.'
+              )
+            }
           />
         </>
       )}
