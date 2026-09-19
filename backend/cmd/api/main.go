@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
@@ -27,11 +28,24 @@ func main() {
 		log.Fatal(err)
 	}
 	defer pool.Close()
+
+	// Timeout handling
+	deadlineSeconds := 10 * time.Second
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(deadlineSeconds))
+	defer cancel()
+
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to connect to database; check database configuration and connectivity: %v", err)
 	}
 
 	r := gin.Default()
+
+	// middleware.Auth agrega el userID al context.Context de la petición
+	// (c.Request.WithContext), no al propio *gin.Context. Sin este flag,
+	// (*gin.Context).Value() no consulta ese context.Context subyacente,
+	// así que UserIDFromContext siempre fallaría en los handlers strict
+	// (reciben el *gin.Context como context.Context).
+	r.ContextWithFallback = true
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
