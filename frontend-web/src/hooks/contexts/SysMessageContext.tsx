@@ -1,13 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 
 type SysMessageContextType = {
-    showMessage: (message: string, color?: 'red' | 'green', time?: number) => void;
+    showMessage: (message: string, color?: 'red' | 'green' | 'yellow', time?: number | null, title?:string) => void;
     setMessage: (message: string) => void;
     setMessageColor: (color: 'red' | 'green') => void;
     setShowTime: (ms: number) => void;
     setTypeMessage: (type: "float" | "inline") => void;
+    MessageInline: () => ReactNode;
+    cleanMessage: () => void;
 }
 
 const SysMessageContext = createContext<SysMessageContextType | null>(null);
@@ -17,32 +19,45 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
     const [message, setMessage] = useState('');
     const [ title, setTitle ] = useState('');
     const [messageColor, setMessageColor] = useState<'red' | 'green' | 'yellow'>('green');
-    const [showTime, setShowTime] = useState(3000);
+    const [showTime, setShowTime] = useState<number | null>(null);
     const [animate, setAnimate] = useState(false);
     const [ typeMessage, setTypeMessage ] = useState<"float" | "inline">("float");
 
-    const showMessage = useCallback((msg: string, color: 'red' | 'green' | 'yellow' = 'green', time = 3000, title?: string ) => {
+    const showMessage = useCallback((msg: string, color: 'red' | 'green' | 'yellow' = 'green', time: number | null = null, title?: string ) => {
         setMessage(msg);
         setMessageColor(color);
         setShowTime(time);
         if (title) {
             setTitle(title);
+        }else{
+            setTitle('');
         }
     }, []);
+
+    const cleanMessage = () => {
+        setMessage('');
+        setTitle('');
+        setAnimate(false);
+    }
 
     useEffect(() => {
         if (!message) return;
 
         const entryTimeout = setTimeout(() => setAnimate(true), 50);
 
-        const exitTimeout = setTimeout(() => {
-            setAnimate(false);
-            setTimeout(() => setMessage(""), 300);
-        }, showTime);
+        let exitTimeout = null;
+        if(showTime !== null){ 
+            exitTimeout = setTimeout(() => {
+                setAnimate(false);
+                setTimeout(() => setMessage(""), 300);
+            }, showTime);
+        }
 
         return () => {
             clearTimeout(entryTimeout);
-            clearTimeout(exitTimeout);
+            if(exitTimeout){
+                clearTimeout(exitTimeout);
+            }
         };
     }, [message, showTime]);
 
@@ -67,7 +82,11 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
             wrapper: "bg-yellow-50 border-yellow-200 text-yellow-800",
             icon: (
                 <svg className="w-5 h-5 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-.867.5L7.5 9h5l-633-3.5A1 1 0 0010 5z" clipRule="evenodd" />
+                    <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                    />
                 </svg>
             )
         }
@@ -83,6 +102,26 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
                 setMessageColor: setMessageColor as any, 
                 setShowTime, 
                 setTypeMessage,
+                cleanMessage,
+                MessageInline: () => {
+                    return (
+                        <>
+                            {message && typeMessage === "inline" && (
+                                <div className={`
+                                    flex flex-row items-center gap-3 px-5 py-3.5
+                                    border rounded-2xl 
+                                    ${currentStyle.wrapper}
+                                `}>
+                                    {currentStyle.icon}
+                                    <div className="flex flex-col">
+                                        <span className="text-md font-bold">{title}</span>
+                                        <span className="text-xs font-medium leading-snug">{message}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )
+                }
             }}>
             {children}
 
@@ -97,22 +136,10 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
                     ${animate? "top-25 opacity-100 scale-100" : "-top-10 opacity-0 scale-95"}
                 `}>
                     {currentStyle.icon}
-                    <span>{title}</span>
-                    <span className="text-sm font-medium leading-snug">{message}</span>
-                </div>
-            )}
-
-            {message && typeMessage === "inline" && (
-                <div className={`
-                    flex items-center gap-3 px-5 py-3.5
-                    border rounded-2xl shadow-xl shadow-zinc-200/50
-                    w-max max-w-[90vw]
-                    transition-all duration-300 ease-out font-sn-pro
-                    ${currentStyle.wrapper}
-                `}>
-                    {currentStyle.icon}
-                    <span>{title}</span>
-                    <span className="text-sm font-medium leading-snug">{message}</span>
+                    <div className="flex flex-col">
+                        <span className="text-md font-bold">{title}</span>
+                        <span className="text-xs font-medium leading-snug">{message}</span>
+                    </div>
                 </div>
             )}
         </SysMessageContext.Provider>
