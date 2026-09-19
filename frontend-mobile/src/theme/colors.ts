@@ -23,4 +23,13 @@ export const colors = {
   stepInactive: '#d6dfff',
 
   danger: '#d92d20',
+
+  surface: '#f1f5f9',
+  surfaceHover: '#e2e8f0',
+
+  statusPendiente: '#f59e0b',
+  statusEnProceso: '#3b82f6',
+  statusResuelto: '#22c55e',
+  successLight: '#dcfce7',
+  successText: '#166534',
 } as const;

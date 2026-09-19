@@ -48,7 +48,9 @@ export default function Bienvenida() {
               <Text style={styles.loginOutlineLabel}>Ya tengo cuenta</Text>
             </Pressable>
             {/* El mapa como invitado no está en el alcance de este flujo todavía. */}
-            <Text style={styles.guestLink}>Ver el mapa como invitado</Text>
+            <Pressable onPress={() => router.push('/(main)')}>
+              <Text style={styles.guestLink}>Ver el mapa como invitado</Text>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>
