@@ -60,17 +60,23 @@ func main() {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
-	strict := api.NewStrictHandlerWithOptions(api.NewServer(comentarios), nil, api.StrictGinServerOptions{
-		RequestErrorHandlerFunc: func(c *gin.Context, err error) {
-			responderError(c, err, http.StatusBadRequest)
-		},
-		HandlerErrorFunc: func(c *gin.Context, err error) {
-			responderError(c, err, http.StatusInternalServerError)
-		},
-		ResponseErrorHandlerFunc: func(c *gin.Context, err error) {
-			responderError(c, err, http.StatusInternalServerError)
-		},
-	})
+
+	strict := api.NewStrictHandlerWithOptions(
+		api.NewServer(api.Services{
+			Comentarios: comentarios,
+		}),
+		nil,
+		api.StrictGinServerOptions{
+			RequestErrorHandlerFunc: func(c *gin.Context, err error) {
+				responderError(c, err, http.StatusBadRequest)
+			},
+			HandlerErrorFunc: func(c *gin.Context, err error) {
+				responderError(c, err, http.StatusInternalServerError)
+			},
+			ResponseErrorHandlerFunc: func(c *gin.Context, err error) {
+				responderError(c, err, http.StatusInternalServerError)
+			},
+		})
 	api.RegisterHandlersWithOptions(r, strict, api.GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
