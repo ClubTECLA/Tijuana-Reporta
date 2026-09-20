@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.andreglez2000.frontendmobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -26,7 +27,14 @@
       "expo-router",
       "expo-font",
       "expo-splash-screen",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "@maplibre/maplibre-react-native"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8fa075e9-57a7-4ca0-867d-3f0cec1a11df"
+      }
+    }
   }
 }

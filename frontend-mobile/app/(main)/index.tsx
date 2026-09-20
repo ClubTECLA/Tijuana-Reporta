@@ -1,19 +1,31 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '../../src/theme/colors';
 import { fontFamily } from '../../src/theme/typography';
 import { mockReportes } from '../../src/mocks/reportes';
 import { CategoriaReporte, Reporte } from '../../src/types/api';
 import { IncidentCard } from '../../src/components/IncidentCard';
 
-const TIJUANA_REGION = {
-  latitude: 32.5149,
-  longitude: -117.0382,
-  latitudeDelta: 0.0922,
-  longitudeDelta: 0.0421,
+const MAP_STYLE = {
+  version: 8,
+  sources: {
+    openstreetmap: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'openstreetmap',
+      type: 'raster',
+      source: 'openstreetmap',
+    },
+  ],
 };
 
 const CATEGORIES: { id: CategoriaReporte | 'todos'; label: string }[] = [
@@ -59,16 +71,23 @@ export default function MainMap() {
   return (
     <View style={styles.container}>
       {/* Mapa a pantalla completa */}
-      <MapView
+      <MapLibreGL.Map
         style={styles.map}
-        initialRegion={TIJUANA_REGION}
-        showsUserLocation
-        showsMyLocationButton={false}
+        mapStyle={MAP_STYLE as any}
+        logo={false}
+        attribution={false}
       >
+        <MapLibreGL.Camera
+          initialViewState={{
+            center: [-117.0382, 32.5149],
+            zoom: 11,
+          }}
+        />
         {filteredReportes.map(reporte => (
-          <Marker
+          <MapLibreGL.Marker
             key={reporte.id}
-            coordinate={{ latitude: reporte.lat, longitude: reporte.lng }}
+            id={reporte.id}
+            lngLat={[reporte.lng, reporte.lat]}
             onPress={() => setSelectedReporte(reporte)}
           >
             {/* Marcador personalizado con emoji de la categoría */}
@@ -86,17 +105,24 @@ export default function MainMap() {
                 selectedReporte?.id === reporte.id && styles.markerTailSelected,
               ]} />
             </View>
-          </Marker>
+          </MapLibreGL.Marker>
         ))}
-      </MapView>
+      </MapLibreGL.Map>
 
       {/* Overlay superior: barra de búsqueda + filtros */}
       <SafeAreaView style={styles.overlay} edges={['top']}>
         {/* Barra de búsqueda */}
         <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Text style={styles.logoText}>📍 Tijuana Reporta</Text>
+          </View>
           <View style={styles.searchBar}>
             <Text style={styles.searchIcon}>🔍</Text>
-            <Text style={styles.searchText}>Buscar dirección...</Text>
+            <TextInput 
+              style={styles.searchText} 
+              placeholder="Buscar direccion..."
+              placeholderTextColor={colors.textMuted}
+            />
           </View>
         </View>
 
@@ -135,10 +161,10 @@ export default function MainMap() {
 
       {/* FAB - Botón Reportar */}
       <Pressable
-        style={({ pressed }) => [styles.reportButton, pressed && styles.reportButtonPressed]}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => router.push('/(main)/crear-reporte')}
       >
-        <Text style={styles.reportButtonText}>+ Reportar</Text>
+        <Text style={styles.fabIcon}>⚠️</Text>
       </Pressable>
 
       {/* IncidentCard - Bottom Sheet al seleccionar marcador */}
@@ -180,6 +206,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
+    gap: 12,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  logoText: {
+    fontFamily: fontFamily.bold,
+    fontSize: 20,
+    color: colors.headingDark,
+    textShadowColor: 'rgba(255,255,255,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   searchBar: {
     flexDirection: 'row',
@@ -298,27 +338,27 @@ const styles = StyleSheet.create({
   },
 
   // FAB
-  reportButton: {
+  fab: {
     position: 'absolute',
     bottom: 44,
-    alignSelf: 'center',
-    backgroundColor: colors.black,
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderRadius: 30,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
-  reportButtonPressed: {
+  fabPressed: {
     opacity: 0.85,
-    transform: [{ scale: 0.97 }],
+    transform: [{ scale: 0.95 }],
   },
-  reportButtonText: {
-    fontFamily: fontFamily.bold,
-    fontSize: 16,
-    color: colors.white,
+  fabIcon: {
+    fontSize: 28,
   },
 });

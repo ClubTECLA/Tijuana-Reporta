@@ -87,7 +87,7 @@ export const CategorySelector = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionLabel}>Categoría</Text>
+      <Text style={styles.sectionLabel}>¿Qué está pasando?</Text>
       <View style={styles.grid}>
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>

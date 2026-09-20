@@ -72,25 +72,30 @@ export default function CrearReporte() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Título */}
-        <FormField
-          label="Título"
-          value={form.titulo}
-          onChangeText={(text) => setField('titulo', text)}
-          placeholder="Título corto, ej. Bache en el carril derecho"
-          error={errors.titulo}
-        />
-
         {/* Descripción */}
-        <View style={styles.section}>
+        <View style={styles.sectionFirst}>
           <FormField
-            label="Descripción"
+            label="Descripción (opcional)"
             value={form.descripcion}
             onChangeText={(text) => setField('descripcion', text)}
-            placeholder="Cuéntanos qué pasa y desde cuándo..."
+            placeholder="Cuéntanos qué pasa y desde cuándo."
             multiline
             numberOfLines={4}
           />
+          {/* Filtros/Chips placeholder if needed later */}
+        </View>
+
+        {/* Foto placeholder */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Foto (toma o sube una foto)</Text>
+          <TouchableOpacity
+            style={styles.photoPlaceholder}
+            activeOpacity={0.7}
+            onPress={() => console.log('TODO: photo')}
+          >
+            <Text style={styles.photoEmoji}>📷</Text>
+            <Text style={styles.photoText}>Toca para tomar o subir una foto</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Categoría */}
@@ -104,7 +109,7 @@ export default function CrearReporte() {
 
         {/* Ubicación */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Ubicación</Text>
+          <Text style={styles.sectionLabel}>Ubicación (Actual)</Text>
           <UbicacionPicker
             lat={form.lat}
             lng={form.lng}
@@ -114,19 +119,6 @@ export default function CrearReporte() {
           {!!errors.ubicacion && (
             <Text style={styles.fieldError}>{errors.ubicacion}</Text>
           )}
-        </View>
-
-        {/* Foto placeholder */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Foto (opcional)</Text>
-          <TouchableOpacity
-            style={styles.photoPlaceholder}
-            activeOpacity={0.7}
-            onPress={() => console.log('TODO: photo')}
-          >
-            <Text style={styles.photoEmoji}>📷</Text>
-            <Text style={styles.photoText}>Agregar foto</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Submit button */}
@@ -139,7 +131,7 @@ export default function CrearReporte() {
           {isSubmitting ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.submitButtonText}>Reportar incidente</Text>
+            <Text style={styles.submitButtonText}>Enviar reporte</Text>
           )}
         </TouchableOpacity>
 
@@ -188,6 +180,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
+  },
+
+  sectionFirst: {
+    marginTop: 0,
   },
 
   section: {

@@ -7,8 +7,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Location from 'expo-location';
+// @ts-ignore
+import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '../theme/colors';
 import { fontFamily } from '../theme/typography';
+
+// Configure maplibre to use the style
 
 interface UbicacionPickerProps {
   lat: number | null;
@@ -101,27 +105,57 @@ export const UbicacionPicker = ({
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.capturedRow}>
-          <Text style={styles.pinIcon}>📍</Text>
-          <View style={styles.capturedText}>
-            <Text style={styles.addressText} numberOfLines={2}>
-              {address ?? 'Ubicación detectada'}
-            </Text>
-            <Text style={styles.coordsText}>
-              {lat!.toFixed(6)}, {lng!.toFixed(6)}
-            </Text>
+        <View style={styles.capturedContainer}>
+          <View style={styles.mapContainer}>
+            <MapLibreGL.MapView
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              styleURL="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+              pitchEnabled={false}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              compassEnabled={false}
+              logoEnabled={false}
+              attributionEnabled={false}
+            >
+              <MapLibreGL.Camera
+                centerCoordinate={[lng!, lat!]}
+                zoomLevel={15}
+                animationDuration={0}
+              />
+              <MapLibreGL.PointAnnotation
+                id="picked-location"
+                coordinate={[lng!, lat!]}
+              >
+                <View style={styles.annotationContainer}>
+                  <Text style={styles.annotationPin}>📍</Text>
+                </View>
+              </MapLibreGL.PointAnnotation>
+            </MapLibreGL.MapView>
           </View>
-          <TouchableOpacity
-            onPress={handleDetect}
-            disabled={loading}
-            activeOpacity={0.75}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Text style={styles.changeLink}>Cambiar</Text>
-            )}
-          </TouchableOpacity>
+
+          <View style={styles.capturedRow}>
+            <Text style={styles.pinIcon}>📍</Text>
+            <View style={styles.capturedText}>
+              <Text style={styles.addressText} numberOfLines={2}>
+                {address ?? 'Ubicación detectada'}
+              </Text>
+              <Text style={styles.coordsText}>
+                {lat!.toFixed(6)}, {lng!.toFixed(6)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleDetect}
+              disabled={loading}
+              activeOpacity={0.75}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.changeLink}>Cambiar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -172,6 +206,22 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: 13,
     color: colors.white,
+  },
+  capturedContainer: {
+    gap: 12,
+  },
+  mapContainer: {
+    height: 120,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceHover,
+  },
+  annotationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  annotationPin: {
+    fontSize: 24,
   },
   capturedRow: {
     flexDirection: 'row',

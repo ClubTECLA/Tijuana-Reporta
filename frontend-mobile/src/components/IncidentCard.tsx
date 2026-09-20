@@ -138,22 +138,26 @@ export function IncidentCard({
         {/* Separador */}
         <View style={styles.divider} />
 
-        {/* Acciones */}
+        {/* Acciones - Botones de ocurrencia */}
         <View style={styles.actions}>
           <Pressable
-            style={styles.apoyarBtn}
-            onPress={() => onApoyar?.(reporte.id)}
+            style={styles.btnYaNoOcurre}
+            onPress={() => {
+              // TODO: action for 'No está ahí'
+              onClose();
+            }}
           >
-            <Text style={styles.apoyarIcon}>👍</Text>
-            <Text style={styles.apoyarCount}>{reporte.upvotes}</Text>
-            <Text style={styles.apoyarLabel}>Apoyar</Text>
+            <Text style={styles.btnYaNoOcurreText}>No está ahí</Text>
           </Pressable>
 
           <Pressable
-            style={styles.detalleBtn}
-            onPress={() => onVerDetalle?.(reporte.id)}
+            style={styles.btnOcurre}
+            onPress={() => {
+              // TODO: action for 'Sigue ocurriendo'
+              onApoyar?.(reporte.id);
+            }}
           >
-            <Text style={styles.detalleBtnText}>Ver detalle →</Text>
+            <Text style={styles.btnOcurreText}>Sigue ocurriendo</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -289,42 +293,33 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
 
-  // Acciones
+  // Acciones (Botones-de-ocurrencia)
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  apoyarBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  btnYaNoOcurre: {
+    flex: 1,
     backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 20,
-    gap: 6,
+    alignItems: 'center',
   },
-  apoyarIcon: {
-    fontSize: 16,
-  },
-  apoyarCount: {
-    fontFamily: fontFamily.bold,
+  btnYaNoOcurreText: {
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
-    color: colors.headingDark,
+    color: colors.textMuted,
   },
-  apoyarLabel: {
-    fontFamily: fontFamily.medium,
-    fontSize: 14,
-    color: colors.headingDark,
-  },
-  detalleBtn: {
+  btnOcurre: {
     flex: 1,
     backgroundColor: colors.primary,
     paddingVertical: 12,
     borderRadius: 20,
     alignItems: 'center',
   },
-  detalleBtnText: {
+  btnOcurreText: {
     fontFamily: fontFamily.semiBold,
     fontSize: 14,
     color: colors.white,

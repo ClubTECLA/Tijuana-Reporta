@@ -80,10 +80,6 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
 
-    if (!form.titulo || form.titulo.trim().length < 10) {
-      newErrors.titulo = 'El título debe tener al menos 10 caracteres.';
-    }
-
     if (!form.categoria) {
       newErrors.categoria = 'Selecciona una categoría.';
     }
@@ -108,7 +104,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
     try {
       const nuevo = await crearReporte({
-        titulo: form.titulo.trim(),
+        titulo: 'Reporte generado desde App',
         categoria: form.categoria as CategoriaReporte,
         tags: [],
         lat: form.lat as number,
