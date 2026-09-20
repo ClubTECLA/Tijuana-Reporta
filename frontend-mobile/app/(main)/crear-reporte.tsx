@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useCrearReporte } from '../../src/hooks/useCrearReporte';
+import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { FormField } from '../../src/components/FormField';
 import { CategorySelector } from '../../src/components/CategorySelector';
 import { UbicacionPicker } from '../../src/components/UbicacionPicker';

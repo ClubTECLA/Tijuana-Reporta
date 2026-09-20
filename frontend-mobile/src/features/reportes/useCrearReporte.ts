@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { CategoriaReporte, Reporte } from '../types/api';
-import { crearReporte } from '../services/reportes';
+import type { CategoriaReporte, Reporte } from '@/types/api';
+import { useCrearReporteMutation } from './hooks';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,8 +54,8 @@ const INITIAL_FORM: FormState = {
 export function useCrearReporte(): UseCrearReporteReturn {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const crear = useCrearReporteMutation();
 
   const setField = <K extends keyof FormState>(
     key: K,
@@ -99,11 +99,10 @@ export function useCrearReporte(): UseCrearReporteReturn {
       return null;
     }
 
-    setIsSubmitting(true);
     setErrors({});
 
     try {
-      const nuevo = await crearReporte({
+      const nuevo = await crear.mutateAsync({
         titulo: 'Reporte generado desde App',
         categoria: form.categoria as CategoriaReporte,
         tags: [],
@@ -118,8 +117,6 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
       return null;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -132,7 +129,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
   return {
     form,
     errors,
-    isSubmitting,
+    isSubmitting: crear.isPending,
     submitSuccess,
     setField,
     setLocation,

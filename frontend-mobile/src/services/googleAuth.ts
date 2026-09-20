@@ -1,11 +1,12 @@
 import * as AuthSession from 'expo-auth-session';
+import { env } from '@/lib/env';
 
 /**
  * Web Client ID de Google Cloud Console (tipo "Web application"), necesario
  * para el login con Google vía Expo Go. Configúralo en .env.local:
  *   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=xxxxx.apps.googleusercontent.com
  */
-export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+export const GOOGLE_WEB_CLIENT_ID = env.googleWebClientId;
 
 export const isGoogleAuthConfigured = GOOGLE_WEB_CLIENT_ID.length > 0;
 
