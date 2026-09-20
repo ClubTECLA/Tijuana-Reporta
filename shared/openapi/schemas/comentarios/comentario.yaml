@@ -1,0 +1,16 @@
+type: object
+required: [id, reporte_id, user_id, comentario, created_at]
+properties:
+  id:
+    type: integer
+  reporte_id:
+    type: string
+    format: uuid
+  user_id:
+    type: string
+    format: uuid
+  comentario:
+    type: string
+  created_at:
+    type: string
+    format: date-time

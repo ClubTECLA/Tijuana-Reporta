@@ -1,0 +1,7 @@
+type: object
+required: [comentario]
+properties:
+  comentario:
+    type: string
+    minLength: 1
+    maxLength: 500
