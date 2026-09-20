@@ -28,7 +28,13 @@
       "expo-font",
       "expo-splash-screen",
       "expo-web-browser",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Tijuana Reporta usa tu ubicación para ubicar el incidente que reportas."
+        }
+      ]
     ],
     "extra": {
       "router": {},

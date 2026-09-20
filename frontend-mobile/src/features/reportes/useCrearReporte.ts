@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { tituloReporte } from './crear/categorias';
 import { useCrearReporteMutation } from './hooks';
@@ -56,6 +56,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const [errors, setErrors] = useState<FormErrors>({});
   const [creado, setCreado] = useState<Reporte | null>(null);
   const crear = useCrearReporteMutation();
+  const enviando = useRef(false);
 
   const setCategoria = (categoria: CategoriaReporte): void => {
     setForm((prev) => ({ ...prev, categoria }));
@@ -90,16 +91,21 @@ export function useCrearReporte(): UseCrearReporteReturn {
   };
 
   const submit = async (): Promise<Reporte | null> => {
-    const validationErrors = validate();
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return null;
-    }
-
-    setErrors({});
+    // Candado síncrono: `isPending` solo cambia tras el siguiente render, así
+    // que dos toques rápidos podrían lanzar dos envíos.
+    if (enviando.current) return null;
+    enviando.current = true;
 
     try {
+      const validationErrors = validate();
+
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        return null;
+      }
+
+      setErrors({});
+
       const categoria = form.categoria as CategoriaReporte;
       const nuevo = await crear.mutateAsync({
         titulo: tituloReporte(categoria, form.direccion),
@@ -116,6 +122,8 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
       return null;
+    } finally {
+      enviando.current = false;
     }
   };
 

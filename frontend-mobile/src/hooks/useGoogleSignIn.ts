@@ -14,10 +14,11 @@ type Options = {
 };
 
 /**
- * Flujo de "Continuar con Google" vía expo-auth-session (funciona en Expo
- * Go, sin dev build). No manda nada a ningún backend todavía — solo
- * autentica contra Google y decodifica el perfil (nombre/correo/foto) del
- * id_token en el cliente.
+ * Flujo de "Continuar con Google" vía expo-auth-session. Probarlo requiere el
+ * dev build (no Expo Go) con el esquema de la app registrado, porque el
+ * redirect de OAuth vuelve por ese esquema. No manda nada a ningún backend
+ * todavía — solo autentica contra Google y decodifica el perfil
+ * (nombre/correo/foto) del id_token en el cliente.
  */
 export function useGoogleSignIn({ onSuccess }: Options) {
   const [request, response, promptAsync] = AuthSession.useAuthRequest(

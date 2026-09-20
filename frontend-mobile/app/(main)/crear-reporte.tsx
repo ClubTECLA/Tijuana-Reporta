@@ -156,12 +156,13 @@ export default function CrearReporte() {
 
             {/* Foto */}
             <Text style={[styles.label, styles.seccionFoto]}>Foto (toma o sube una foto)</Text>
+            {/* TODO: habilitar con expo-image-picker (requiere reconstruir el dev client). */}
             <Pressable
-              style={styles.foto}
+              style={[styles.foto, styles.fotoDeshabilitada]}
+              disabled
               accessibilityRole="button"
-              accessibilityLabel="Tomar o subir una foto"
-              // TODO: elegir/tomar foto con expo-image-picker (requiere reconstruir el dev client).
-              onPress={() => undefined}
+              accessibilityLabel="Tomar o subir una foto (próximamente)"
+              accessibilityState={{ disabled: true }}
             >
               <CameraIcon />
             </Pressable>
@@ -354,6 +355,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.photoBackground,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  fotoDeshabilitada: {
+    opacity: 0.6,
   },
 
   // ── Etiquetas ────────────────────────────────────────────────────────────

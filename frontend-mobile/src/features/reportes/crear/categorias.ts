@@ -13,7 +13,9 @@ export const CATEGORIA_LABEL: Record<CategoriaReporte, string> = {
 };
 
 // Categorías que ofrece el diseño de "Reportar un incidente", en el orden del
-// Figma. Las cuatro primeras van en la hoja; "+ Ver mas" muestra todas.
+// Figma: 6 de las 9 de `CategoriaReporte` (el Figma no incluye peligro,
+// servicios ni otro en el picker). Las cuatro primeras van en la hoja y
+// "+ Ver mas" muestra estas seis.
 export const CATEGORIAS_PICKER: CategoriaReporte[] = [
   'inundacion',
   'deslave',

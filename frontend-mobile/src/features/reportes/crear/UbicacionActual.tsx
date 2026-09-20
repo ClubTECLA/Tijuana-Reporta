@@ -11,6 +11,8 @@ const MAP_HEIGHT = 94;
 const PIN_WIDTH = 27;
 const PIN_HEIGHT = 43;
 const GPS_TIMEOUT_MS = 8000;
+// Si no hay fix nuevo, solo se acepta una posición guardada de hace menos de 2 min.
+const LAST_KNOWN_MAX_AGE_MS = 2 * 60 * 1000;
 
 type Estado = 'detectando' | 'listo' | 'sin-permiso' | 'sin-senal';
 
@@ -52,7 +54,7 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
       const posicion = await conTiempoLimite(
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         GPS_TIMEOUT_MS,
-      ).catch(() => Location.getLastKnownPositionAsync());
+      ).catch(() => Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }));
       if (!posicion) {
         setEstado('sin-senal');
         return;

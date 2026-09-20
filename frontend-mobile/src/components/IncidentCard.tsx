@@ -144,12 +144,11 @@ export function IncidentCard({
 
         {/* Acciones - Botones de ocurrencia */}
         <View style={styles.actions}>
+          {/* TODO: habilitar al definir la operación "ya no ocurre" en el contrato. */}
           <Pressable
-            style={styles.btnYaNoOcurre}
-            onPress={() => {
-              // TODO: action for 'No está ahí'
-              onClose();
-            }}
+            style={[styles.btnYaNoOcurre, styles.btnDisabled]}
+            disabled
+            accessibilityState={{ disabled: true }}
           >
             <Text style={styles.btnYaNoOcurreText}>No está ahí</Text>
           </Pressable>
@@ -328,6 +327,9 @@ const styles = StyleSheet.create({
   },
   btnOcurreDisabled: {
     opacity: 0.6,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
   btnOcurreText: {
     fontFamily: fontFamily.semiBold,

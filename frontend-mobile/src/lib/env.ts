@@ -11,13 +11,23 @@ function parseUseMocks(raw: string | undefined): boolean {
   );
 }
 
+// Hosts de desarrollo donde se permite http:// (10.0.2.2 es el host visto
+// desde el emulador de Android). Cualquier otra API debe ir por https://.
+const DEV_HTTP_HOSTS = ['localhost', '127.0.0.1', '10.0.2.2'];
+
+function isValidApiUrl(url: string): boolean {
+  if (/^https:\/\/[^\s/]+/.test(url)) return true;
+  const http = /^http:\/\/([^\s/:]+)/.exec(url);
+  return __DEV__ && !!http && DEV_HTTP_HOSTS.includes(http[1]);
+}
+
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 const useMocks = parseUseMocks(process.env.EXPO_PUBLIC_USE_MOCKS);
 
-if (!useMocks && !/^https?:\/\/\S+$/.test(apiUrl)) {
+if (!useMocks && !isValidApiUrl(apiUrl)) {
   throw new Error(
-    'EXPO_PUBLIC_USE_MOCKS=false requiere EXPO_PUBLIC_API_URL con una URL http(s) válida ' +
-      `(recibido: "${apiUrl}").`
+    'EXPO_PUBLIC_USE_MOCKS=false requiere EXPO_PUBLIC_API_URL con una URL https:// ' +
+      `(http:// solo en desarrollo y solo para ${DEV_HTTP_HOSTS.join(', ')}). Recibido: "${apiUrl}".`
   );
 }
 
