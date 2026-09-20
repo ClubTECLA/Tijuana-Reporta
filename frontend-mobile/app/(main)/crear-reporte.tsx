@@ -18,8 +18,16 @@ import { colors } from '../../src/theme/colors';
 import { fontFamily } from '../../src/theme/typography';
 
 export default function CrearReporte() {
-  const { form, errors, isSubmitting, submitSuccess, setField, setLocation, submit } =
-    useCrearReporte();
+  const {
+    form,
+    errors,
+    isSubmitting,
+    submitSuccess,
+    submitError,
+    setField,
+    setLocation,
+    submit,
+  } = useCrearReporte();
 
   const handleSubmit = async () => {
     await submit();
@@ -134,6 +142,7 @@ export default function CrearReporte() {
             <Text style={styles.submitButtonText}>Enviar reporte</Text>
           )}
         </TouchableOpacity>
+        {!!submitError && <Text style={styles.fieldError}>{submitError}</Text>}
 
         {/* Bottom padding for safe area */}
         <View style={styles.bottomPadding} />

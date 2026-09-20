@@ -27,6 +27,7 @@ export interface UseCrearReporteReturn {
   errors: FormErrors;
   isSubmitting: boolean;
   submitSuccess: boolean;
+  submitError: string | null;
   setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   setLocation: (lat: number, lng: number, address: string) => void;
   submit: () => Promise<Reporte | null>;
@@ -124,6 +125,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     setForm(INITIAL_FORM);
     setErrors({});
     setSubmitSuccess(false);
+    crear.reset();
   };
 
   return {
@@ -131,6 +133,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     errors,
     isSubmitting: crear.isPending,
     submitSuccess,
+    submitError: crear.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
     setField,
     setLocation,
     submit,
