@@ -32,4 +32,9 @@ export const colors = {
   statusResuelto: '#22c55e',
   successLight: '#dcfce7',
   successText: '#166534',
+
+  labelSecondary: '#999999',
+  borderSubtle: '#e6e9ee',
+  outlineUser: '#9db2ce',
+  reportar: '#d50004',
 } as const;
