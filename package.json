@@ -5,7 +5,7 @@
     "scripts": {
         "generate:types": "openapi-typescript shared/openapi/openapi.yaml -o shared/types/api-types.ts",
         "dev:web": "pnpm --filter @tijuana-reporta/frontend-web dev",
-        "dev:mobile": "pnpm --filter @tijuana-reporta/frontend-mobile exec expo start -c --tunnel"
+        "dev:mobile": "pnpm --filter @tijuana-reporta/frontend-mobile exec expo start -c"
     },
     "devDependencies": {
         "openapi-typescript": "^7.0.0"
