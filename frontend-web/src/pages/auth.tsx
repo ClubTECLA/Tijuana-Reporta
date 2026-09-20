@@ -5,7 +5,7 @@ import {FaLocationDot} from "react-icons/fa6"
 
 
 const formsInputsDivsStyle = `
-    flex flex-col gap-2 w-full max-w-xs
+    flex flex-col gap-2 w-full
 `
 const inputsLabelsStyle = `
     text-sm font-medium text-gray-600
@@ -19,33 +19,40 @@ const submitButtonStyle = `
     bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
 `
 const formsStyle = `
-    flex flex-col gap-4 w-full max-w-xs
+    flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-8 px-10 shadow-xl items-center justify-center
 `
 function SignInPage() {
 
     return (
-        <div>
+        <div className="w-full flex items-center justify-center">
             <form className={formsStyle}>
                 <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Correo electrónico o Numero de celular</label>
+                    <h1 className="text-4xl font-bold">Iniciar sesión</h1>
+                    <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
+                </div>
+                <div className={formsInputsDivsStyle}>
+                    <label className={inputsLabelsStyle}>Correo institucional</label>
                     <input type="text"  className={inputsStyle} />
                 </div>                
                 <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Password</label>
+                    <label className={inputsLabelsStyle}>Contraseña</label>
                     <input type="password"  className={inputsStyle} />
                 </div>
-                <div className="text-sm text-gray-600">
-                    <a href="#" className="text-blue-500 hover:underline">¿Olvidaste tu contraseña?</a>
+                <div className="flex flex-rowtext-sm text-gray-600">
+                    <label className="w-1/3"><input type="checkbox"/> Recordar este equipo </label>
+                    <a href="#" className="w-2/3 text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
                 </div>
                 <div className={formsInputsDivsStyle}>
                     <button type="submit" className={submitButtonStyle}>Iniciar sesión</button>
                 </div>                
+                <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
+                    <div className="text-center font-bold w-full">**Boton de Google**</div>
             </form>
         </div>
     )
 }
 
-function SignUpPage() {
+function RecoveryPasswordPage() {
     return(
         <div>
             <form className={formsStyle}>
@@ -82,61 +89,51 @@ export default function AuthPage() {
     }, []);
 
 
-    const changeTabButtonSelectedStyle = `
-        px-4 py-2 rounded-md text-white font-semibold bg-blue-500
-    `
-
-    const changeTabButtonStyle = `
-        px-4 py-2 rounded-md text-gray-400 font-semibold
+    const trendLineChartDivStyle = `
+        bg-gray-200/10 shadow-md rounded-xl flex flex-col px-4 py-1
     `
 
     return(
-        <div className="flex flex-row items-center justify-center min-h-screen py-2">
+        <>
+        <div className="pointer-events-none fixed h-screen w-screen bg-gradient-to-r from-blue-900/80 from-0% via-blue-400/20 via-50% to-blue-400/10 to-100%"/>
+
+        <div className="flex flex-row items-center  min-h-screen bg-gray-300">
             
-            <div className="flex flex-col items-center justify-center w-2/3 bg-gray-600 h-screen">
-                <div className="relative h-screen w-full bg-gradient-to-t from-white to-transparent">
-                    <div className="absolute  bottom-0 flex flex-col gap-4 border-t border-gray-800 w-full h-2/5">
-                        <div className="flex flex-row items-center border-2 border-green-500 gap-6 px-10">
-                            <div className="bg-blue-500 rounded-full p-4">
-                                <FaLocationDot className="text-6xl text-white"/>
-                            </div>
-                            <h1 className="text-7xl font-bold text-gray-800">Tijuana Reporta</h1>                        
+            <div className="relative h-screen w-2/4">
+                <div className="absolute top-1/3 left-10 flex flex-col gap-4 w-2/3 h-2/5">
+                    <div className="flex flex-row items-center gap-6">
+                        <div className="bg-blue-500 rounded-xl p-3">
+                            <FaLocationDot className="text-2xl text-white"/>
                         </div>
-                        <div className="border-2 border-blue-800 px-10">
-                            <h2 className="text-md font-semibold text-gray-500">Alerta Ciudadana</h2>
+                        <h1 className="text-3xl font-bold text-white">Tijuana Reporta</h1>                        
+                    </div>
+                    <div>
+                        <h2 className="text-xl text-white">Panel de operación para Protección Civil y personal autorizado</h2>
+                    </div>
+                    <div>
+                        <h2 className="text-sm text-blue-100">Reporta incidentes ocasionados en la ciudad. La comunidad confirma y todos se enteran antes de salir.</h2>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className={trendLineChartDivStyle}>
+                            <span className='text-gray-100 font-bold text-xl'>{23}</span>
+                            <span className="text-xs text-white">Incidentes activos</span>
                         </div>
-                        <div className="border-2 border-blue-800 px-10">
-                            <h2 className="text-xl text-gray-700 font-bold">Reporta incidentes ocasionados en la ciudad. La comunidad confirma y todos se enteran antes de salir.</h2>
+                        <div className={trendLineChartDivStyle}>
+                            <span className='text-gray-100 font-bold text-xl'>{1240}</span>
+                            <span className="text-xs text-white">Personas notificadas hoy</span>
                         </div>
                     </div>
                 </div>
-
+                <span className="absolute bottom-2 left-10 text-xs text-gray-200">
+                    Uso exclusivo de personal autorizado · Actividad registrada en bitácora
+                </span>
             </div>
 
-            <div className="flex flex-col items-center justify-center w-1/3 gap-4">
-                <h1 className="text-2xl font-bold mb-4">{tab === 'login' ? 'Iniciar sesión' : 'Registrarse'}</h1>
-                <div>
-                    <button onClick={() => {
-                            setTab('login');
-                        }}
-                        className={tab === 'login' ? changeTabButtonSelectedStyle : changeTabButtonStyle}
-                    >
-                        Iniciar sesión
-                    </button>
-                    <button onClick={() => {
-                            setTab('register');
-                        }}
-                        className={tab === 'register' ? changeTabButtonSelectedStyle : changeTabButtonStyle}
-                    >
-                        Registrarse
-                    </button>
-                </div>
-                <div>
-                    {tab === 'login' ? <SignInPage /> : <SignUpPage />}
-                    <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
-                    <div className="text-center font-bold border-2 border-gray-300 w-full">**Boton de Google**</div>
-                </div>
+            <div className="flex items-center justify-center w-2/4">
+                    {tab === 'login' ? <SignInPage /> : <RecoveryPasswordPage />}
             </div>
-        </div>  
+        </div>
+        
+        </>  
     )
 }
