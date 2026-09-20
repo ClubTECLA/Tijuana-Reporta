@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '@/theme/colors';
-import { useReportes } from '@/features/reportes/hooks';
+import { useApoyarReporte, useReportes } from '@/features/reportes/hooks';
 import { MapMarker } from '@/features/mapa/MapMarker';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
@@ -17,6 +17,7 @@ export default function MainMap() {
   const insets = useSafeAreaInsets();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
   const { data: reportes = [] } = useReportes();
+  const apoyar = useApoyarReporte();
 
   return (
     <View style={styles.container}>
@@ -45,7 +46,8 @@ export default function MainMap() {
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: insets.top + 8 }]} pointerEvents="box-none">
-        <MapSearchBar />
+        {/* TODO: habilitar al conectar geocodificación y movimiento de cámara. */}
+        <MapSearchBar editable={false} />
       </View>
 
       <View style={[styles.fabWrapper, { bottom: Math.max(insets.bottom + 8, 42) }]} pointerEvents="box-none">
@@ -54,11 +56,17 @@ export default function MainMap() {
 
       <IncidentCard
         reporte={selectedReporte}
-        onClose={() => setSelectedReporte(null)}
-        onApoyar={(id) => {
-          // TODO: conectar con API — por ahora solo cierra
-          console.log('Apoyar reporte:', id);
+        onClose={() => {
+          apoyar.reset();
+          setSelectedReporte(null);
         }}
+        apoyando={apoyar.isPending}
+        apoyarError={apoyar.isError}
+        onApoyar={(id) =>
+          apoyar.mutate(id, {
+            onSuccess: () => setSelectedReporte(null),
+          })
+        }
         onVerDetalle={(id) => {
           // TODO: navegar a pantalla de detalle
           console.log('Ver detalle:', id);

@@ -48,6 +48,7 @@ export function useGoogleSignIn({ onSuccess }: Options) {
       );
       return;
     }
+    if (!request) return;
     promptAsync();
   };
 

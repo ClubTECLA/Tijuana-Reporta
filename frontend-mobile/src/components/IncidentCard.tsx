@@ -60,6 +60,8 @@ interface IncidentCardProps {
   onClose: () => void;
   onApoyar?: (id: string) => void;
   onVerDetalle?: (id: string) => void;
+  apoyando?: boolean;
+  apoyarError?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -69,6 +71,8 @@ export function IncidentCard({
   onClose,
   onApoyar,
   onVerDetalle,
+  apoyando = false,
+  apoyarError = false,
 }: IncidentCardProps) {
   if (!reporte) return null;
 
@@ -151,15 +155,18 @@ export function IncidentCard({
           </Pressable>
 
           <Pressable
-            style={styles.btnOcurre}
-            onPress={() => {
-              // TODO: action for 'Sigue ocurriendo'
-              onApoyar?.(reporte.id);
-            }}
+            style={[styles.btnOcurre, apoyando && styles.btnOcurreDisabled]}
+            disabled={apoyando}
+            onPress={() => onApoyar?.(reporte.id)}
           >
-            <Text style={styles.btnOcurreText}>Sigue ocurriendo</Text>
+            <Text style={styles.btnOcurreText}>
+              {apoyando ? 'Enviando…' : 'Sigue ocurriendo'}
+            </Text>
           </Pressable>
         </View>
+        {apoyarError && (
+          <Text style={styles.apoyarError}>No se pudo registrar tu apoyo. Intenta de nuevo.</Text>
+        )}
       </ScrollView>
     </BottomSheet>
   );
@@ -319,9 +326,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
   },
+  btnOcurreDisabled: {
+    opacity: 0.6,
+  },
   btnOcurreText: {
     fontFamily: fontFamily.semiBold,
     fontSize: 14,
     color: colors.white,
+  },
+  apoyarError: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.danger,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
