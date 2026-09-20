@@ -7,7 +7,6 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Location from 'expo-location';
-// @ts-ignore
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '../theme/colors';
 import { fontFamily } from '../theme/typography';
@@ -107,31 +106,27 @@ export const UbicacionPicker = ({
       ) : (
         <View style={styles.capturedContainer}>
           <View style={styles.mapContainer}>
-            <MapLibreGL.MapView
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-              styleURL="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-              pitchEnabled={false}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              rotateEnabled={false}
-              compassEnabled={false}
-              logoEnabled={false}
-              attributionEnabled={false}
+            <MapLibreGL.Map
+              key={`${lat}-${lng}`}
+              style={StyleSheet.absoluteFill}
+              mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+              touchPitch={false}
+              dragPan={false}
+              touchZoom={false}
+              doubleTapZoom={false}
+              doubleTapHoldZoom={false}
+              touchRotate={false}
+              compass={false}
+              logo={false}
+              attribution={false}
             >
-              <MapLibreGL.Camera
-                centerCoordinate={[lng!, lat!]}
-                zoomLevel={15}
-                animationDuration={0}
-              />
-              <MapLibreGL.PointAnnotation
-                id="picked-location"
-                coordinate={[lng!, lat!]}
-              >
+              <MapLibreGL.Camera initialViewState={{ center: [lng!, lat!], zoom: 15 }} />
+              <MapLibreGL.Marker id="picked-location" lngLat={[lng!, lat!]}>
                 <View style={styles.annotationContainer}>
                   <Text style={styles.annotationPin}>📍</Text>
                 </View>
-              </MapLibreGL.PointAnnotation>
-            </MapLibreGL.MapView>
+              </MapLibreGL.Marker>
+            </MapLibreGL.Map>
           </View>
 
           <View style={styles.capturedRow}>
