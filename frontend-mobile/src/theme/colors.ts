@@ -37,4 +37,21 @@ export const colors = {
   borderSubtle: '#e6e9ee',
   outlineUser: '#9db2ce',
   reportar: '#d50004',
+
+  // Hoja "Reportar un incidente" (Figma).
+  ink: '#1f2733',
+  slate: '#5f6b7a',
+  labelMuted: '#9aa6b4',
+  linkBlue: '#0071ff',
+  chipText: '#676767',
+  photoBackground: '#eef1f4',
+  enviar: '#c91e21',
+  errorBorder: '#f25555',
+  errorFill: 'rgba(255,233,233,0.35)',
+  errorLabel: '#ea352b',
+  backdrop: 'rgba(31,39,51,0.4)',
+  creadoInk: '#233f72',
+  creadoBackground: '#fdfdfd',
+  creadoCard: 'rgba(216,216,216,0.79)',
+  creadoButton: '#b91b1b',
 } as const;

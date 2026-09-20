@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CategoriaReporte, Reporte } from '@/types/api';
+import { tituloReporte } from './crear/categorias';
 import { useCrearReporteMutation } from './hooks';
 
 // ---------------------------------------------------------------------------
@@ -7,9 +8,8 @@ import { useCrearReporteMutation } from './hooks';
 // ---------------------------------------------------------------------------
 
 interface FormState {
-  titulo: string;
-  descripcion: string; // UI-only; not sent to API
   categoria: CategoriaReporte | null;
+  tags: string[];
   lat: number | null;
   lng: number | null;
   direccion: string | null;
@@ -17,7 +17,6 @@ interface FormState {
 }
 
 interface FormErrors {
-  titulo?: string;
   categoria?: string;
   ubicacion?: string;
 }
@@ -26,12 +25,13 @@ export interface UseCrearReporteReturn {
   form: FormState;
   errors: FormErrors;
   isSubmitting: boolean;
-  submitSuccess: boolean;
   submitError: string | null;
-  setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  /** Reporte devuelto por la API tras enviar; sirve para la pantalla de éxito. */
+  creado: Reporte | null;
+  setCategoria: (categoria: CategoriaReporte) => void;
+  toggleTag: (tag: string) => void;
   setLocation: (lat: number, lng: number, address: string) => void;
   submit: () => Promise<Reporte | null>;
-  reset: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,9 +39,8 @@ export interface UseCrearReporteReturn {
 // ---------------------------------------------------------------------------
 
 const INITIAL_FORM: FormState = {
-  titulo: '',
-  descripcion: '',
   categoria: null,
+  tags: [],
   lat: null,
   lng: null,
   direccion: null,
@@ -55,28 +54,26 @@ const INITIAL_FORM: FormState = {
 export function useCrearReporte(): UseCrearReporteReturn {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [creado, setCreado] = useState<Reporte | null>(null);
   const crear = useCrearReporteMutation();
 
-  const setField = <K extends keyof FormState>(
-    key: K,
-    value: FormState[K],
-  ): void => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    // Clear the related error when the user edits the field
-    if (key === 'titulo') {
-      setErrors((prev) => ({ ...prev, titulo: undefined }));
-    } else if (key === 'categoria') {
-      setErrors((prev) => ({ ...prev, categoria: undefined }));
-    } else if (key === 'lat' || key === 'lng') {
-      setErrors((prev) => ({ ...prev, ubicacion: undefined }));
-    }
+  const setCategoria = (categoria: CategoriaReporte): void => {
+    setForm((prev) => ({ ...prev, categoria }));
+    setErrors((prev) => ({ ...prev, categoria: undefined }));
   };
 
-  const setLocation = (lat: number, lng: number, address: string): void => {
+  const toggleTag = (tag: string): void => {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tag) ? prev.tags.filter((t) => t !== tag) : [...prev.tags, tag],
+    }));
+  };
+
+  // Estable: UbicacionActual lo usa como dependencia al detectar la posición.
+  const setLocation = useCallback((lat: number, lng: number, address: string): void => {
     setForm((prev) => ({ ...prev, lat, lng, direccion: address }));
     setErrors((prev) => ({ ...prev, ubicacion: undefined }));
-  };
+  }, []);
 
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
@@ -86,7 +83,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
 
     if (form.lat === null || form.lng === null) {
-      newErrors.ubicacion = 'Debes indicar la ubicación del reporte.';
+      newErrors.ubicacion = 'Aún no tenemos tu ubicación.';
     }
 
     return newErrors;
@@ -103,17 +100,18 @@ export function useCrearReporte(): UseCrearReporteReturn {
     setErrors({});
 
     try {
+      const categoria = form.categoria as CategoriaReporte;
       const nuevo = await crear.mutateAsync({
-        titulo: 'Reporte generado desde App',
-        categoria: form.categoria as CategoriaReporte,
-        tags: [],
+        titulo: tituloReporte(categoria, form.direccion),
+        categoria,
+        tags: form.tags,
         lat: form.lat as number,
         lng: form.lng as number,
         ...(form.direccion !== null && { direccion: form.direccion }),
         ...(form.imageBase64 !== null && { image_base64: form.imageBase64 }),
       });
 
-      setSubmitSuccess(true);
+      setCreado(nuevo);
       return nuevo;
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
@@ -121,22 +119,15 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
-  const reset = (): void => {
-    setForm(INITIAL_FORM);
-    setErrors({});
-    setSubmitSuccess(false);
-    crear.reset();
-  };
-
   return {
     form,
     errors,
     isSubmitting: crear.isPending,
-    submitSuccess,
     submitError: crear.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
-    setField,
+    creado,
+    setCategoria,
+    toggleTag,
     setLocation,
     submit,
-    reset,
   };
 }
