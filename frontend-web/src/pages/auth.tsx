@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useRouter } from '../hooks/useRouter'
 import {FaLocationDot} from "react-icons/fa6"
-import { useSysMessage } from '../hooks/contexts/SysMessageContext'
+import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 
 
 const formsInputsDivsStyle = `
@@ -23,7 +23,7 @@ const formsStyle = `
     flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-8 px-10 shadow-xl items-center justify-center
 `
 function SignInPage() {
-    const { showMessage, MessageInline, cleanMessage } = useSysMessage("inline");
+    const { showMessage, cleanMessage } = useSysMessage();
     const [ remainingAttempts, setRemainingAttempts ] = useState(3);
     const [ form, setForm] = useState({
         email: '',
@@ -43,13 +43,13 @@ function SignInPage() {
         e.preventDefault();
 
         if(remainingAttempts === 0){
-            showMessage("Vuelve a intentar ingresar mas tarde.", 'red', null, "Sin intentos")
+            showMessage("Vuelve a intentar ingresar mas tarde.", 'red', "Sin intentos")
             return;
         }
 
 
         if(form.email.length === 0 || form.password.length === 0){
-            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", 'red', null, "Campos Faltantes")
+            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': 3000, 'title':"Campos Faltantes"})
             return;
         }
 
@@ -63,14 +63,13 @@ function SignInPage() {
                     ? "Vuelve a intentar ingresar mas tarde."
                     : `Te quedan ${attemptsAfterFailure} intentos antes de bloquear el acceso por 15 minutos.`,
                 'red',
-                null,
                 attemptsAfterFailure === 0 ? "Sin intentos" : "Credenciales no validas"
             );
             setRemainingAttempts((currentAttempts) => Math.max(currentAttempts - 1, 0));
             
         }catch(error){
             console.error('Error:', error);
-            showMessage(`Error al comprobar las credenciales`, 'red', null, '');
+            showMessage(`Error al comprobar las credenciales`, 'red', '');
         }
 
     }
@@ -85,7 +84,7 @@ function SignInPage() {
                     <h1 className="text-4xl font-bold">Iniciar sesión</h1>
                     <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
                 </div>
-                <MessageInline />
+                <SysMessage />
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Correo institucional</label>
                     <input 
@@ -95,7 +94,7 @@ function SignInPage() {
                         onChange={handleChangeInput}
                         name={"email"}
                     />
-                </div>                
+                </div>
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Contraseña</label>
                     <input 
