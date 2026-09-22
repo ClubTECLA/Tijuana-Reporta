@@ -60,7 +60,10 @@ func main() {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
-	auth := service.NewAuthService(repository.NewUserRepository(pool), []byte(cfg.JWTSecret), cfg.JWTTTL)
+	auth, err := service.NewAuthService(ctx, repository.NewUserRepository(pool), repository.NewRolesRepository(pool), []byte(cfg.JWTSecret), cfg.JWTTTL)
+	if err != nil {
+		log.Fatalf("Failed to initialize auth service: %v", err)
+	}
 
 	strict := api.NewStrictHandlerWithOptions(
 		api.NewServer(api.Services{

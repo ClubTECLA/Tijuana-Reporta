@@ -10,8 +10,26 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// maxBcryptPasswordBytes es el límite de bcrypt: trunca (y en implementaciones
+// más nuevas devuelve error) cualquier byte después del 72, así que un
+// password más largo debe rechazarse antes de llegar a bcrypt.
+const maxBcryptPasswordBytes = 72
+
 func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error) {
-	user, token, ttl, err := s.services.Auth.Register(ctx, string(request.Body.Email), request.Body.Username, request.Body.Password)
+	username := request.Body.Username
+	password := request.Body.Password
+
+	if username == "" || password == "" {
+		return Register400JSONResponse{Message: "username y password son requeridos"}, nil
+	}
+	if len(username) > 100 {
+		return Register400JSONResponse{Message: "username debe tener entre 1 y 100 caracteres"}, nil
+	}
+	if len(password) < 8 || len(password) > maxBcryptPasswordBytes {
+		return Register400JSONResponse{Message: "password debe tener entre 8 y 72 bytes"}, nil
+	}
+
+	user, token, ttl, err := s.services.Auth.Register(ctx, string(request.Body.Email), username, password)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailTaken) {
 			return Register409JSONResponse{Message: "el email ya está registrado"}, nil
