@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
@@ -22,7 +23,7 @@ func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (R
 	if username == "" || password == "" {
 		return Register400JSONResponse{Message: "username y password son requeridos"}, nil
 	}
-	if len(username) > 100 {
+	if utf8.RuneCountInString(username) > 100 {
 		return Register400JSONResponse{Message: "username debe tener entre 1 y 100 caracteres"}, nil
 	}
 	if len(password) < 8 || len(password) > maxBcryptPasswordBytes {
