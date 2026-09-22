@@ -39,10 +39,21 @@ func (f *fakeUserRepo) GetByID(_ context.Context, id uuid.UUID) (domain.Users, e
 	return domain.Users{}, domain.ErrUserNotFound
 }
 
+type fakeRolesRepo struct {
+	defaultRoleID int
+}
+
+func (f *fakeRolesRepo) GetDefaultRole(_ context.Context) (domain.Roles, error) {
+	return domain.Roles{ID: f.defaultRoleID, Nombre: "ciudadano"}, nil
+}
+
 func TestAuthService_RegisterAndLogin(t *testing.T) {
 	repo := &fakeUserRepo{byEmail: map[string]domain.Users{}}
-	svc := NewAuthService(repo, []byte("test-secret-at-least-32-bytes!!"), time.Hour)
 	ctx := context.Background()
+	svc, err := NewAuthService(ctx, repo, &fakeRolesRepo{defaultRoleID: 1}, []byte("test-secret-at-least-32-bytes!!"), time.Hour)
+	if err != nil {
+		t.Fatalf("NewAuthService() error = %v", err)
+	}
 
 	user, token, ttl, err := svc.Register(ctx, "  Test@Example.com  ", "tester", "s3cretpw")
 	if err != nil {

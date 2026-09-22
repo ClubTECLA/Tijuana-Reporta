@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,11 +12,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// defaultRolID es el id del rol "ciudadano", sembrado primero (por lo tanto
-// id=1) en 002_seed_roles.up.sql. Todo registro público cae en este rol; los
-// demás roles (p. ej. admin) se asignan por fuera de este flujo.
-const defaultRolID = 1
 
 // dummyPasswordHash se compara contra el password recibido cuando el email
 // no existe o el usuario no tiene password local (login con Google, p. ej.).
@@ -37,13 +33,26 @@ type UserRepository interface {
 }
 
 type AuthService struct {
-	repo   UserRepository
-	secret []byte
-	ttl    time.Duration
+	repo          UserRepository
+	secret        []byte
+	ttl           time.Duration
+	defaultRoleID int
 }
 
-func NewAuthService(repo UserRepository, secret []byte, ttl time.Duration) *AuthService {
-	return &AuthService{repo: repo, secret: secret, ttl: ttl}
+type RolesRepository interface {
+	GetDefaultRole(ctx context.Context) (domain.Roles, error)
+}
+
+// NewAuthService resuelve el id del rol "ciudadano" contra la base una sola
+// vez, en vez de asumir un id fijo: el orden de siembra de 002_seed_roles.sql
+// no está garantizado en todos los entornos (p. ej. una base restaurada o
+// re-sembrada manualmente).
+func NewAuthService(ctx context.Context, repo UserRepository, roles RolesRepository, secret []byte, ttl time.Duration) (*AuthService, error) {
+	defaultRole, err := roles.GetDefaultRole(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("resolving default role: %w", err)
+	}
+	return &AuthService{repo: repo, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID}, nil
 }
 
 // Register crea el usuario con password local y devuelve el token de acceso
@@ -56,7 +65,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 		return domain.Users{}, "", 0, err
 	}
 
-	user, err := s.repo.Create(ctx, email, username, string(hash), defaultRolID)
+	user, err := s.repo.Create(ctx, email, username, string(hash), s.defaultRoleID)
 	if err != nil {
 		return domain.Users{}, "", 0, err
 	}
