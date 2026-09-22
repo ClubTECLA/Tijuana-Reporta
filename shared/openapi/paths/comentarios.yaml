@@ -1,6 +1,8 @@
 crearComentario:
   post:
     operationId: crearComentario
+    security:
+      - BearerAuth: []
     parameters:
       - name: reporteId
         in: path

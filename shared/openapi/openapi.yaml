@@ -15,3 +15,8 @@ components:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
     ErrorResponse:
       $ref: './schemas/error_response.yaml'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

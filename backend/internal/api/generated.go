@@ -22,6 +22,10 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+const (
+	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
+)
+
 // Comentario defines model for Comentario.
 type Comentario struct {
 	Comentario string    `json:"comentario"`
@@ -40,6 +44,9 @@ type CrearComentarioRequest struct {
 type ErrorResponse struct {
 	Message string `json:"message"`
 }
+
+// bearerAuthContextKey is the context key for BearerAuth security scheme
+type bearerAuthContextKey string
 
 // CrearComentarioJSONRequestBody defines body for CrearComentario for application/json ContentType.
 type CrearComentarioJSONRequestBody = CrearComentarioRequest
@@ -74,6 +81,8 @@ func (siw *ServerInterfaceWrapper) CrearComentario(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter reporteId: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(string(BearerAuthScopes), []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -254,15 +263,15 @@ func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7FRNbttMDL2Kwe9bqpbctJvZtWkXBroojO6CwJhqaJuG5yccKmhg6DA9Sy9WzMi2ZEdAEqBBN91RQ87j",
-	"4+PT7KH2NniHTiKoPcR6g1bn8NpbdKKZfPoK7AOyEOZcfZaTh4CgIAqTW0NbQM2oBc1SS0qvPNsUgdGC",
-	"b4QsQvH4DpkBFDnBNXI6ZwyeBZdkzrCahswYTBORn1ebse8aYjSgbiCXDJr1UMVw3LPhbk+g/vsWa0kE",
-	"rhk199ot8K7BKE9JaPWPL+jWsgH1vqoKsOSO37OnmA+Qxgh9Zva8wBi8i/iYh8UY9RpH9njR5lg41uNg",
-	"m2VPZRj/888L/DMqZfLU4GTJf91VR5qY3LXk17RXqiS36qxCsku5b7RttNOTRRZcTz58nUMB98iRvAMF",
-	"s2k1rRJPH9DpQKDgalpNr6CAoGWTqZWHbcVyf4jmpi0HuudpfCdzmkkLeTc3oC5/8ozK2qIgR1A3e6BE",
-	"InWCApy2CApOPWA4uHCDRzWfY7rb7jJG+ejNQ7dyJ+gySR3CjupMs9xG7/oXPUX/M65AwX9l/+SXhzWW",
-	"L3Jd27aXI+SDzgNZtrfV7HW5neKOjcFYMwXptt9vZpKGMD454V1V/XFKF+4fofJJi48Tcve/fu7I+Jhq",
-	"2rb9PQA=",
+	"7FXBjtowEP0VNO0xJaHbXnLb3bYSVQ8VXakHhJA3HmAQsb3jyaoI5WP6Lf2xyg6QwEZaKnXVS0+MPc6b",
+	"N/Oe8Q4KWzpr0IiHfAe+WGGpYnhrSzSimGxYObYOWQhjrjjJydYh5OCFySyhTqBgVIJ6riSkF5bLEIFW",
+	"gm+ESoTk6TekO1BkBJfIYZ/RWRackz7BqirSfTCVR77sbMR+qIhRQz6FeKRTrIVKuu2eNDc7gtr7NRYS",
+	"CNwyKm5nN8GHCr08N8JS/fiCZikryN9nWQIlmcN69BzzDlIfoY/MlifonTUen/Io0Xu1xB4dz8ocDvbV",
+	"2Ntm3lLpxv/98wf+6R1l8FRnZ87/3FUHmhjcNeeXtFeohkXFJNtvoWoDfIOKka+r0MwO7uPq00Gxz9/v",
+	"YM8xIDXZVsKViIM6AJNZNBYk2YTMHa0rZdRgEoVUg+uvY0jgEdmTNZDDaJgNs9C/dWiUI8jhapgNryAB",
+	"p2QVmaV7F/h0t4/Guk47esYp2Ua+MCslZM1YQ37+5xFRWZUoyB7y6Q4okAiVIAGjYnPHGtAdqHCFB5Uu",
+	"MfOs+Ri93Fi9baxkBE0kqZzbUBFppmtvTftShOg14wJyeJW2T0naZI+/l7m5ruvzFuJG4604trfZ6GW5",
+	"HeOGjUZfMDlp1G+VGYQmtA1OeJdlf53S2a3qofJBifUDMo+/fm5IW39yTaJVuhdkOqtndV3XvwcA",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

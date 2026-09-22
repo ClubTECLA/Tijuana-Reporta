@@ -80,7 +80,7 @@ func main() {
 	api.RegisterHandlersWithOptions(r, strict, api.GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
-		Middlewares:  []api.MiddlewareFunc{middleware.Auth(cfg.JWTSecret)},
+		Middlewares:  []api.MiddlewareFunc{middleware.Auth(cfg.JWTSecret, string(api.BearerAuthScopes))},
 	})
 
 	// El contrato, servido desde el propio binario, para que web y móvil puedan
