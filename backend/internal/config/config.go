@@ -59,6 +59,9 @@ func Load() (Config, error) {
 		if err != nil {
 			return Config{}, fmt.Errorf("invalid JWT_TTL: %w", err)
 		}
+		if ttl <= 0 {
+			return Config{}, fmt.Errorf("JWT_TTL must be greater than zero")
+		}
 		cfg.JWTTTL = ttl
 	}
 
