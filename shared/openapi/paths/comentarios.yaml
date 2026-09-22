@@ -1,8 +1,6 @@
 crearComentario:
   post:
     operationId: crearComentario
-    security:
-      - BearerAuth: []
     parameters:
       - name: reporteId
         in: path
@@ -25,6 +23,13 @@ crearComentario:
               $ref: '#/components/schemas/Comentario'
       '400':
         description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '401':
+        description: No autenticado
         content:
           application/json:
             schema:
