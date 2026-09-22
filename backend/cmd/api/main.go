@@ -60,10 +60,12 @@ func main() {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
+	auth := service.NewAuthService(repository.NewUserRepository(pool), []byte(cfg.JWTSecret), cfg.JWTTTL)
 
 	strict := api.NewStrictHandlerWithOptions(
 		api.NewServer(api.Services{
 			Comentarios: comentarios,
+			Auth:        auth,
 		}),
 		nil,
 		api.StrictGinServerOptions{

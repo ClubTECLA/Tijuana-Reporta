@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
+
+// minJWTSecretLen son 32 bytes (256 bits), el mínimo recomendado para firmar
+// HS256: por debajo de eso el secreto es más corto que el tamaño del hash y
+// se vuelve más fácil de forzar por fuerza bruta.
+const minJWTSecretLen = 32
+
+const defaultJWTTTL = 24 * time.Hour
 
 type Config struct {
 	DatabaseURL string
 	APIPort     string
 	JWTSecret   string
+	JWTTTL      time.Duration
 }
 
 func Load() (Config, error) {
@@ -39,6 +48,18 @@ func Load() (Config, error) {
 	}
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing environment vars: %v", missing)
+	}
+	if len(cfg.JWTSecret) < minJWTSecretLen {
+		return Config{}, fmt.Errorf("JWT_SECRET must be at least %d bytes long, got %d", minJWTSecretLen, len(cfg.JWTSecret))
+	}
+
+	cfg.JWTTTL = defaultJWTTTL
+	if raw := os.Getenv("JWT_TTL"); raw != "" {
+		ttl, err := time.ParseDuration(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid JWT_TTL: %w", err)
+		}
+		cfg.JWTTTL = ttl
 	}
 
 	return cfg, nil

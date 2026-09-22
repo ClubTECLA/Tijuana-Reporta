@@ -64,7 +64,7 @@ func Auth(secret string, scopesKey string) func(c *gin.Context) {
 				return nil, fmt.Errorf("unexpected sign method: %v", t.Header["alg"])
 			}
 			return []byte(secret), nil
-		})
+		}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
 			c.Abort()

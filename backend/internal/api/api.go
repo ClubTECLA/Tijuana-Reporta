@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	uuid "github.com/google/uuid"
@@ -11,8 +12,18 @@ type ComentarioService interface {
 	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error)
 }
 
+// AuthService devuelve, junto con el usuario, el access token ya firmado y
+// su tiempo de vida, para que el handler pueda armar el AuthResponse del
+// contrato sin conocer nada sobre cómo se firma o valida el token.
+type AuthService interface {
+	Register(ctx context.Context, email, username, password string) (domain.Users, string, time.Duration, error)
+	Login(ctx context.Context, email, password string) (domain.Users, string, time.Duration, error)
+	GetUser(ctx context.Context, id uuid.UUID) (domain.Users, error)
+}
+
 type Services struct {
 	Comentarios ComentarioService
+	Auth        AuthService
 }
 
 // Server implementa StrictServerInterface, la interfaz que oapi-codegen genera
