@@ -13,7 +13,7 @@ const fallbackMapStyle: StyleSpecification = {
       type: 'raster',
       tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
+      attribution: 'OpenStreetMap contributors',
     },
   },
   layers: [
@@ -25,7 +25,7 @@ const fallbackMapStyle: StyleSpecification = {
   ],
 };
 
-const mapStyle: string | StyleSpecification =
+const mapStyle =
   import.meta.env.VITE_MAPLIBRE_STYLE_URL || fallbackMapStyle;
 
 // MapLibre map container component.

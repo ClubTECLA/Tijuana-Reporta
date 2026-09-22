@@ -129,3 +129,9 @@ export interface Logs {
   started_at: string
   finished_at: string
 }
+
+//extra types
+export type componentProps = {
+  className?: string,
+  onClick?: () => void
+}
