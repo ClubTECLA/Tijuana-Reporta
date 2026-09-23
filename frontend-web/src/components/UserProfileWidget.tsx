@@ -8,7 +8,10 @@ export default function UserProfileWidget({className, onClick} : componentProps)
     return(
         <button
             type="button"
-            className={`relative flex h-12 max-w-50 shrink-0 items-center justify-center ${className ?? ''}`}
+            className={`
+                relative flex h-12 max-w-50 
+                shrink-0 items-center justify-center 
+                shadow-lg shadow-gray-600 rounded-full ${className ?? ''}`}
             onClick={onClick}
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
