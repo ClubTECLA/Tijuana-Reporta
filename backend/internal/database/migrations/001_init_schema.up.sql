@@ -33,6 +33,8 @@ CREATE TABLE roles (
 -- USUARIOS Y AUTENTICACIÓN
 -- ============================================================
 
+CREATE TYPE user_state AS ENUM ('Pendiente', 'En revisión', 'Verificado', 'Suspendido')
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE,
@@ -41,7 +43,8 @@ CREATE TABLE users (
     rol_id INTEGER NOT NULL REFERENCES roles(id),
     password_hash TEXT, -- No es necesaria si el login es solo por Google
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    state user_state
 );
 
 -- Indica si un usuario inició sesión con cuenta local o con Google (guarda el token/id del provider)
@@ -58,7 +61,7 @@ CREATE TABLE auth_providers (
 -- REPORTES
 -- ============================================================
 
-CREATE TYPE estado AS ENUM ('Sin revisar', 'En revision', 'Arreglado', 'Expirado');
+CREATE TYPE estado AS ENUM ('Sin revisar', 'En revision', 'Arreglado', 'Expirado', 'Oficial');
 
 -- Tabla que mantiene todos los reportes creados.
 -- Nota: ya no incluye "peso" (vive solo en reportes_scores) ni "punto_origen"
