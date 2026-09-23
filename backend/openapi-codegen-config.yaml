@@ -21,3 +21,13 @@ output-options:
 additional-imports:
   - alias: uuid
     package: github.com/google/uuid
+
+# enable-auth-scopes-on-context: sin esto oapi-codegen no genera las
+# constantes *Scopes ni el c.Set(...) por operación que el middleware de
+# auth necesita para saber si una ruta requiere autenticación. Es una
+# compatibilidad "legacy" (oapi-codegen recomienda en su lugar un
+# middleware de validación de requests contra el spec), pero como solo
+# tenemos un esquema de seguridad simple (bearer, sin scopes reales) nos
+# alcanza y es mucho más simple.
+compatibility:
+  enable-auth-scopes-on-context: true

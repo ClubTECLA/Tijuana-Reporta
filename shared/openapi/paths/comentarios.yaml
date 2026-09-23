@@ -28,6 +28,13 @@ crearComentario:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Comentario:

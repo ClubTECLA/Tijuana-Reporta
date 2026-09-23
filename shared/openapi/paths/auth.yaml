@@ -1,0 +1,89 @@
+register:
+  post:
+    operationId: register
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RegisterRequest'
+    responses:
+      '201':
+        description: Usuario creado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthResponse'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: El email ya está registrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+login:
+  post:
+    operationId: login
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LoginRequest'
+    responses:
+      '200':
+        description: Login exitoso
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthResponse'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: Credenciales inválidas
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+me:
+  get:
+    operationId: me
+    responses:
+      '200':
+        description: Usuario autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RegisterRequest:
+      $ref: '../schemas/auth/register_request.yaml'
+    LoginRequest:
+      $ref: '../schemas/auth/login_request.yaml'
+    AuthResponse:
+      $ref: '../schemas/auth/auth_response.yaml'
+    Usuario:
+      $ref: '../schemas/auth/usuario.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

@@ -15,10 +15,8 @@ type contextKey int
 
 const userIDKey contextKey = iota
 
-// ContextWithUserID agrega el userID autenticado al contexto. La llama el
-// middleware de autenticación (JWT/sesión) una vez validada la petición;
-// ese middleware todavía no existe y hay que implementarlo antes de usar
-// UserIDFromContext en producción.
+// ContextWithUserID agrega el userID autenticado al contexto. La llama Auth
+// una vez validado el JWT de la petición.
 func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
 }
@@ -34,9 +32,22 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 // encuentre más adelante en la cadena de handlers.
 //
 // El claim "sub" debe llevar el userID (uuid) del usuario autenticado; esto
-// tiene que coincidir con lo que firme el endpoint de login/registro
-func Auth(secret string) func(c *gin.Context) {
+// tiene que coincidir con lo que firme el endpoint de login/registro.
+//
+// scopesKey es la clave de contexto que el wrapper gin generado por
+// oapi-codegen setea (c.Set) antes de correr los middlewares, solo para las
+// operaciones que el contrato marca con "security". Se recibe como
+// parámetro (en vez de importar el paquete api, p. ej. api.BearerAuthScopes)
+// porque api ya importa middleware, y ese import aquí crearía un ciclo.
+// Rutas sin ese requisito (p. ej. /auth/login) no la setean, así que el
+// middleware las deja pasar sin exigir token.
+func Auth(secret string, scopesKey string) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		if _, protected := c.Get(scopesKey); !protected {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 
 		// Reads the Authorization: Bearer <token> header
@@ -53,7 +64,7 @@ func Auth(secret string) func(c *gin.Context) {
 				return nil, fmt.Errorf("unexpected sign method: %v", t.Header["alg"])
 			}
 			return []byte(secret), nil
-		})
+		}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
 			c.Abort()

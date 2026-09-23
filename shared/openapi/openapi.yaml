@@ -3,9 +3,18 @@ info:
   title: Tijuana Reporta API
   version: 1.0.0
 
+security:
+  - bearerAuth: []
+
 paths:
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
+  /auth/register:
+    $ref: './paths/auth.yaml#/register'
+  /auth/login:
+    $ref: './paths/auth.yaml#/login'
+  /auth/me:
+    $ref: './paths/auth.yaml#/me'
 
 components:
   schemas:
@@ -15,3 +24,16 @@ components:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
     ErrorResponse:
       $ref: './schemas/error_response.yaml'
+    RegisterRequest:
+      $ref: './schemas/auth/register_request.yaml'
+    LoginRequest:
+      $ref: './schemas/auth/login_request.yaml'
+    AuthResponse:
+      $ref: './schemas/auth/auth_response.yaml'
+    Usuario:
+      $ref: './schemas/auth/usuario.yaml'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
