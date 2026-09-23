@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useRouter } from '../hooks/useRouter'
 import {FaLocationDot} from "react-icons/fa6"
+import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 
 
 const formsInputsDivsStyle = `
@@ -16,34 +17,105 @@ const inputsStyle = `
 `
 
 const submitButtonStyle = `
-    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:focus:ring-0
 `
 const formsStyle = `
     flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-8 px-10 shadow-xl items-center justify-center
 `
 function SignInPage() {
+    const { showMessage, cleanMessage } = useSysMessage();
+    const [ remainingAttempts, setRemainingAttempts ] = useState(3);
+    const [ form, setForm] = useState({
+        email: '',
+        password: ''
+    })
+
+    const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if(remainingAttempts >= 0)
+            cleanMessage();
+        setForm({
+            ...form, 
+            [e.target.name]: e.target.value
+        })
+    }   
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+
+        if(remainingAttempts === 0){
+            showMessage("Vuelve a intentar ingresar mas tarde.", 'red', "Sin intentos")
+            return;
+        }
+
+
+        if(form.email.length === 0 || form.password.length === 0){
+            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': 3000, 'title':"Campos Faltantes"})
+            return;
+        }
+
+        try{
+            //fetch backend for check credentials
+            
+            //test
+            const attemptsAfterFailure = Math.max(remainingAttempts - 1, 0);
+            showMessage(
+                attemptsAfterFailure === 0
+                    ? "Vuelve a intentar ingresar mas tarde."
+                    : `Te quedan ${attemptsAfterFailure} intentos antes de bloquear el acceso por 15 minutos.`,
+                'red',
+                attemptsAfterFailure === 0 ? "Sin intentos" : "Credenciales no validas"
+            );
+            setRemainingAttempts((currentAttempts) => Math.max(currentAttempts - 1, 0));
+            
+        }catch(error){
+            console.error('Error:', error);
+            showMessage(`Error al comprobar las credenciales`, 'red', '');
+        }
+
+    }
 
     return (
         <div className="w-full flex items-center justify-center">
-            <form className={formsStyle}>
+            <form 
+                className={formsStyle}
+                onSubmit={handleSubmit}  
+            >
                 <div className={formsInputsDivsStyle}>
                     <h1 className="text-4xl font-bold">Iniciar sesión</h1>
                     <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
                 </div>
+                <SysMessage />
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Correo institucional</label>
-                    <input type="text"  className={inputsStyle} />
-                </div>                
+                    <input 
+                        type="text"  
+                        className={inputsStyle} 
+                        value={form.email} 
+                        onChange={handleChangeInput}
+                        name={"email"}
+                    />
+                </div>
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Contraseña</label>
-                    <input type="password"  className={inputsStyle} />
+                    <input 
+                        type="password"  
+                        className={inputsStyle} 
+                        value={form.password} 
+                        onChange={handleChangeInput}
+                        name={"password"}
+                    />
                 </div>
                 <div className="flex flex-rowtext-sm text-gray-600">
                     <label className="w-1/3"><input type="checkbox"/> Recordar este equipo </label>
                     <a href="#" className="w-2/3 text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
                 </div>
                 <div className={formsInputsDivsStyle}>
-                    <button type="submit" className={submitButtonStyle}>Iniciar sesión</button>
+                    <button 
+                        type="submit" 
+                        className={submitButtonStyle}
+                        disabled={remainingAttempts === 0}
+                        aria-disabled={remainingAttempts === 0}
+                    >Iniciar sesión</button>
                 </div>                
                 <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
                     <div className="text-center font-bold w-full">**Boton de Google**</div>
