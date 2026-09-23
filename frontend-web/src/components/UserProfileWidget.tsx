@@ -3,15 +3,17 @@ import type { componentProps } from "../types/db-types";
 import { FaRegUser} from "react-icons/fa"
 
 export default function UserProfileWidget({className, onClick} : componentProps) {
-    const [ open, setopen ] = useState(false);
+    const [ open, setOpen ] = useState(false);
 
     return(
         <button
             type="button"
             className={`relative flex h-12 max-w-50 shrink-0 items-center justify-center ${className ?? ''}`}
             onClick={onClick}
-            onMouseEnter={() => setopen(true)}
-            onMouseLeave={() => setopen(false)}
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
         >
             <div className="flex flex-row items-center gap-2 h-13 rounded-full pl-2 pr-1 py-1 bg-white">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-3">
