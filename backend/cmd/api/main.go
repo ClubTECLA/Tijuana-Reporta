@@ -60,10 +60,15 @@ func main() {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
+	auth, err := service.NewAuthService(ctx, repository.NewUserRepository(pool), repository.NewRolesRepository(pool), []byte(cfg.JWTSecret), cfg.JWTTTL)
+	if err != nil {
+		log.Fatalf("Failed to initialize auth service: %v", err)
+	}
 
 	strict := api.NewStrictHandlerWithOptions(
 		api.NewServer(api.Services{
 			Comentarios: comentarios,
+			Auth:        auth,
 		}),
 		nil,
 		api.StrictGinServerOptions{
@@ -80,7 +85,7 @@ func main() {
 	api.RegisterHandlersWithOptions(r, strict, api.GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
-		Middlewares:  []api.MiddlewareFunc{middleware.Auth(cfg.JWTSecret)},
+		Middlewares:  []api.MiddlewareFunc{middleware.Auth(cfg.JWTSecret, string(api.BearerAuthScopes))},
 	})
 
 	// El contrato, servido desde el propio binario, para que web y móvil puedan

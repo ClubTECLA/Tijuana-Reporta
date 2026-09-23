@@ -3,60 +3,37 @@ info:
   title: Tijuana Reporta API
   version: 1.0.0
 
+security:
+  - bearerAuth: []
+
 paths:
   /reportes/{reporteId}/comentarios:
-    post:
-      operationId: crearComentario
-      parameters:
-        - name: reporteId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CrearComentarioRequest'
-      responses:
-        '201':
-          description: Comentario creado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Comentario'
-        '400':
-          description: Datos inválidos
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+    $ref: './paths/comentarios.yaml#/crearComentario'
+  /auth/register:
+    $ref: './paths/auth.yaml#/register'
+  /auth/login:
+    $ref: './paths/auth.yaml#/login'
+  /auth/me:
+    $ref: './paths/auth.yaml#/me'
 
 components:
   schemas:
-    CrearComentarioRequest:
-      type: object
-      required: [comentario]
-      properties:
-        comentario:
-          type: string
-          minLength: 1
-          maxLength: 500
-
     Comentario:
-      type: object
-      required: [id, reporte_id, user_id, comentario, created_at]
-      properties:
-        id: { type: integer }
-        reporte_id: { type: string, format: uuid }
-        user_id: { type: string, format: uuid }
-        comentario: { type: string }
-        created_at: { type: string, format: date-time }
-
+      $ref: './schemas/comentarios/comentario.yaml'
+    CrearComentarioRequest:
+      $ref: './schemas/comentarios/crear_comentario_request.yaml'
     ErrorResponse:
-      type: object
-      required: [message]
-      properties:
-        message: { type: string }
+      $ref: './schemas/error_response.yaml'
+    RegisterRequest:
+      $ref: './schemas/auth/register_request.yaml'
+    LoginRequest:
+      $ref: './schemas/auth/login_request.yaml'
+    AuthResponse:
+      $ref: './schemas/auth/auth_response.yaml'
+    Usuario:
+      $ref: './schemas/auth/usuario.yaml'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

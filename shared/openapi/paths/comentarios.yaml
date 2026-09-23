@@ -1,0 +1,45 @@
+crearComentario:
+  post:
+    operationId: crearComentario
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CrearComentarioRequest'
+    responses:
+      '201':
+        description: Comentario creado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comentario'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Comentario:
+      $ref: '../schemas/comentarios/comentario.yaml'
+    CrearComentarioRequest:
+      $ref: '../schemas/comentarios/crear_comentario_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

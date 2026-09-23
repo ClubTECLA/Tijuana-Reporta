@@ -37,3 +37,12 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+# AI Agents / Context
+.atl/
+.opencode/
+engram/
+
+# Figma CLI extracted files
+DESIGN.md
+DESIGN-structure/
+design.json

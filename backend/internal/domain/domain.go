@@ -1,9 +1,16 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrEmailTaken         = errors.New("email already registered")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserNotFound       = errors.New("user not found")
 )
 
 // Use pointers for optional fields to distinguish between zero values and
@@ -32,11 +39,11 @@ type Roles struct {
 // / Users and authentication
 type Users struct {
 	ID           uuid.UUID `json:"id" db:"id"`
-	Email        string    `json:"email" db:"email"`
-	Phone        string    `json:"phone" db:"phone"`
+	Email        *string   `json:"email" db:"email"`
+	Phone        *string   `json:"phone" db:"phone"`
 	UserName     string    `json:"username" db:"username"`
 	RolID        int       `json:"rol_id" db:"rol_id"`
-	PasswordHash string    `json:"password_hash" db:"password_hash"`
+	PasswordHash *string   `json:"-" db:"password_hash"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }
