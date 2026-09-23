@@ -4,12 +4,17 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './hooks/contexts/AuthContext.tsx'
 import { SysMessageProvider } from './hooks/contexts/SysMessageContext.tsx'
+import NavigationWrapper from './components/NavigationWrapper.tsx'
+import { BrowserRouter } from 'react-router-dom'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SysMessageProvider>
       <AuthProvider>
-        <App />
+        <BrowserRouter>
+          <NavigationWrapper />
+          <App />
+        </BrowserRouter>
       </AuthProvider>
     </SysMessageProvider>
   </StrictMode>,

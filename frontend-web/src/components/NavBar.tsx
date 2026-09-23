@@ -40,8 +40,9 @@ export default function NavBar() {
     
     return(
         <section className="flex flex-row gap-2 bg-white px-4 py-1 rounded-full shadow-lg shadow-gray-600 w-full">
-            {NavItems.map((item) => 
+            {NavItems.map((item, idx) => 
                 <button
+                    key={idx}
                     className="
                         flex flex-row flex-1 items-center 
                         justify-center gap-2  

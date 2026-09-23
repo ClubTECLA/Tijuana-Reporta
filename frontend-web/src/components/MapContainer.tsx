@@ -61,7 +61,7 @@ export default function MapContainer() {
   return (
     <div
       ref={mapContainerRef}
-      className="h-screen w-screen"
+      className="h-screen w-screen "
     />
   );
 }
