@@ -8,14 +8,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type fakeComentarioRepo struct{}
+type fakeComentarioStore struct{}
 
-func (f *fakeComentarioRepo) Crear(_ context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error) {
-	return domain.Comentario{ReporteID: reporteID, UserID: userID, Comentario: texto}, nil
+func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg domain.CreateComentarioParams) (domain.Comentario, error) {
+	return domain.Comentario{
+		ReporteID:  arg.ReporteID,
+		UserID:     arg.UserID,
+		Comentario: arg.Comentario,
+	}, nil
 }
 
 func TestComentarioService_Crear(t *testing.T) {
-	svc := NewComentarioService(&fakeComentarioRepo{})
+	svc := NewComentarioService(&fakeComentarioStore{})
 	reporteID, userID := uuid.New(), uuid.New()
 
 	c, err := svc.Crear(context.Background(), reporteID, userID, "todo bien")

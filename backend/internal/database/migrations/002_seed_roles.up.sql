@@ -3,4 +3,8 @@
 
 INSERT INTO roles (nombre) VALUES
     ('ciudadano'),
-    ('admin');
+    ('admin'),
+    ('moderador'),
+    ('analista'),
+    ('proteccion_civil'),
+    ('rescatista');
