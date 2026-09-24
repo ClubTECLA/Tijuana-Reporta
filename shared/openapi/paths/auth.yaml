@@ -75,6 +75,14 @@ me:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+logout:
+  post:
+    operationId: logout
+    security: []
+    responses:
+      '204':
+        description: Sesión cerrada
+
 components:
   schemas:
     RegisterRequest:
