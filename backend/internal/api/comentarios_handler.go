@@ -7,6 +7,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
+// CrearComentario crea un comentario para el reporte y usuario dados.
 func (s *Server) CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {

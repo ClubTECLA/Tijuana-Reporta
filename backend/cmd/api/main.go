@@ -10,7 +10,6 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/repository"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +28,8 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Timeout handling
+	// Manejo del timeout de la conexión a la base de datos.
+	// Si no se puede hacer ping en 10 segundos, abortar.
 	deadlineSeconds := 10 * time.Second
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(deadlineSeconds))
 	defer cancel()
@@ -41,9 +41,10 @@ func main() {
 	r := gin.Default()
 
 	// middleware.Auth agrega el userID al context.Context de la petición
-	// (c.Request.WithContext), no al propio *gin.Context. Sin este flag,
-	// (*gin.Context).Value() no consulta ese context.Context subyacente,
-	// así que UserIDFromContext siempre fallaría en los handlers strict
+	// (c.Request.WithContext), no a *gin.Context.
+	//
+	// Sin esta flag, (*gin.Context).Value() no consulta ese context.Context
+	// oculto, así que UserIDFromContext siempre fallaría en los handlers strict
 	// (reciben el *gin.Context como context.Context).
 	r.ContextWithFallback = true
 
@@ -52,15 +53,20 @@ func main() {
 	})
 
 	// Las rutas del contrato OpenAPI se montan bajo /v1. No llevan el prefijo
-	// /api porque nginx lo quita antes de reenviar la petición (ver README).
+	// /api porque nginx lo quita antes de reenviar la petición.
 	//
 	// Los middlewares que se pasen aquí son gin.HandlerFunc y corren solo para
-	// las rutas generadas, no para /health.
+	// las rutas generadas, no para /health (es una ruta estática).
 	//
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
-	comentarios := service.NewComentarioService(repository.NewComentarioRepository(pool))
-	auth, err := service.NewAuthService(ctx, repository.NewUserRepository(pool), repository.NewRolesRepository(pool), []byte(cfg.JWTSecret), cfg.JWTTTL)
+	//
+	// Un solo Store para todos los servicios: expone las consultas generadas
+	// por sqlc y las operaciones transaccionales sobre el mismo pool.
+	store := database.NewStore(pool)
+
+	comentarios := service.NewComentarioService(store)
+	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth service: %v", err)
 	}

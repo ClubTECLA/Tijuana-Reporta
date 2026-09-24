@@ -33,7 +33,7 @@ CREATE TABLE roles (
 -- USUARIOS Y AUTENTICACIÓN
 -- ============================================================
 
-CREATE TYPE user_state AS ENUM ('Pendiente', 'En revisión', 'Verificado', 'Suspendido')
+CREATE TYPE user_state AS ENUM ('Pendiente', 'En revisión', 'Verificado', 'Suspendido');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
