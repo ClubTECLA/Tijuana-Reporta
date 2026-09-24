@@ -1,4 +1,3 @@
-import { CiLocationOn } from 'react-icons/ci';
 import { IoSearch } from 'react-icons/io5';
 
 export default function SearchBar() {
@@ -7,17 +6,10 @@ export default function SearchBar() {
             className="
                 flex w-full min-w-0 items-center 
                 gap-3 rounded-full border border-gray-200 
-                bg-white px-2 py-2 shadow-lg shadow-gray-600 
+                bg-white pl-4 pr-2 py-2 shadow-lg shadow-gray-600 
                 pr-5
             "
         >
-            <div
-                className="flex shrink-0 items-center justify-center rounded-full bg-blue-600 p-2 text-white"
-                aria-hidden="true"
-            >
-                <CiLocationOn className="text-2xl" />
-            </div>
-
             <input
                 id="searchInput"
                 name="search"
