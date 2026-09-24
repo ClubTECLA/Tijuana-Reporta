@@ -28,6 +28,7 @@ type AuthStore interface {
 	GetUserByEmail(ctx context.Context, email *string) (domain.User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (domain.User, error)
 	GetDefaultRole(ctx context.Context) (domain.Role, error)
+	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (domain.GetUserWithRolByIDRow, error)
 }
 
 type AuthService struct {
@@ -109,16 +110,22 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (domain
 	return user, token, s.ttl, nil
 }
 
-// Obtener el usuario en base al id. Si no existe, devuelve domain.ErrUserNotFound.
-func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	user, err := s.store.GetUserByID(ctx, id)
+// GetUser devuelve el usuario con su rol según el id.
+func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error) {
+	row, err := s.store.GetUserWithRolByID(ctx, id)
 	if err != nil {
 		if domain.IsNotFound(err) {
-			return domain.User{}, domain.ErrUserNotFound
+			return domain.UserWithRol{}, domain.ErrUserNotFound
 		}
-		return domain.User{}, err
+		return domain.UserWithRol{}, err
 	}
-	return user, nil
+
+	return domain.UserWithRol{
+		ID:       row.ID,
+		Email:    row.Email,
+		Username: row.Username,
+		RolName:  row.RolName,
+	}, nil
 }
 
 // issueToken genera un JWT firmado con el id del usuario y la fecha de expiración.

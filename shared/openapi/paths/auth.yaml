@@ -67,7 +67,7 @@ me:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Usuario'
+              $ref: '#/components/schemas/UsuarioMeResponse'
       '401':
         description: No autenticado
         content:
@@ -85,5 +85,7 @@ components:
       $ref: '../schemas/auth/auth_response.yaml'
     Usuario:
       $ref: '../schemas/auth/usuario.yaml'
+    UsuarioMeResponse:
+      $ref: '../schemas/auth/usuario_me_response.yaml'
     ErrorResponse:
       $ref: '../schemas/error_response.yaml'

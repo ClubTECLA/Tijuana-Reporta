@@ -12,14 +12,15 @@ import (
 
 type Querier interface {
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
-	// Se inserta junto con el usuario dentro de la misma transacción (ver
-	// database.Store.CreateUserWithLocalProvider), para que nunca quede un
-	// usuario sin forma de autenticarse ni un auth_provider huérfano.
+	// Se inserta junto con el usuario dentro de la misma transacción, para que
+	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
+	// sin padre.
 	CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
