@@ -2,8 +2,16 @@ import { useState } from "react";
 import type { componentProps } from "../types/db-types";
 import { FaRegUser} from "react-icons/fa"
 
+import { useAuth } from "../hooks/contexts/AuthContext";
+import { MdLogin } from "react-icons/md";
+import { Link } from "react-router-dom";
+
 export default function UserProfileWidget({className, onClick} : componentProps) {
+    const { isAuthenticated } = useAuth();
+
     const [ open, setOpen ] = useState(false);
+
+    console.log(isAuthenticated);
 
     return(
         <button
@@ -18,9 +26,12 @@ export default function UserProfileWidget({className, onClick} : componentProps)
             onFocus={() => setOpen(true)}
             onBlur={() => setOpen(false)}
         >
-            <div className="flex flex-row items-center gap-2 h-13 rounded-full pl-2 pr-1 py-1 bg-white">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 p-3">
-                    <FaRegUser className="text-2xl text-white" />
+            <Link 
+                className="flex flex-row items-center gap-2 h-13 rounded-full pl-2 pr-1 py-1 bg-white"
+                to={!isAuthenticated ? '/auth' : '/me'}    
+            >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 ">
+                    {!isAuthenticated ? <MdLogin className="text-2xl text-white font-bold"/> : <FaRegUser className="text-2xl text-white" />}
                 </div>  
 
                 <div 
@@ -31,11 +42,19 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                     }`}
                 >
                     <div className="flex flex-col h-12 justify-center items-start py-1">
-                        <span className="truncate text-md font-bold text-gray-700 ">Nombre Apellido</span>
-                        <span className="truncate text-sm font-semibold text-gray-600">Rol</span>
+                        {!isAuthenticated ? 
+                            <>
+                            <span className="truncate text-md font-bold text-gray-700 ">Iniciar Sesion</span>
+                            </>
+                        :
+                            <>
+                            <span className="truncate text-md font-bold text-gray-700 ">Nombre Apellido</span>
+                            <span className="truncate text-sm font-semibold text-gray-600">Rol</span>
+                            </>
+                        }
                     </div>
                 </div>
-            </div>
+            </Link>
         </button>
     )
 }
