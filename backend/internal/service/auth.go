@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,9 +14,6 @@ import (
 
 // dummyPasswordHash se compara contra el password recibido cuando el email
 // no existe o el usuario no tiene password local (login con Google, p. ej.).
-// Así Login siempre paga el costo de un bcrypt.CompareHashAndPassword,
-// evitando que ese email exista o no se filtre por timing o por el mensaje
-// de error.
 var dummyPasswordHash = func() string {
 	hash, err := bcrypt.GenerateFromPassword([]byte("tijuana-reporta-dummy"), bcrypt.DefaultCost)
 	if err != nil {
@@ -26,66 +22,72 @@ var dummyPasswordHash = func() string {
 	return string(hash)
 }()
 
-type UserRepository interface {
-	Create(ctx context.Context, email, username, hash string, rolID int) (domain.Users, error)
-	GetByEmail(ctx context.Context, email string) (domain.Users, error)
-	GetByID(ctx context.Context, id uuid.UUID) (domain.Users, error)
+// AuthStore es el subconjunto de *database.Store que este servicio usa.
+type AuthStore interface {
+	CreateUserWithLocalProvider(ctx context.Context, arg domain.CreateUserParams) (domain.User, error)
+	GetUserByEmail(ctx context.Context, email *string) (domain.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (domain.User, error)
+	GetDefaultRole(ctx context.Context) (domain.Role, error)
 }
 
 type AuthService struct {
-	repo          UserRepository
+	store         AuthStore
 	secret        []byte
 	ttl           time.Duration
 	defaultRoleID int
 }
 
-type RolesRepository interface {
-	GetDefaultRole(ctx context.Context) (domain.Roles, error)
-}
-
 // NewAuthService resuelve el id del rol "ciudadano" contra la base una sola
-// vez, en vez de asumir un id fijo: el orden de siembra de 002_seed_roles.sql
-// no está garantizado en todos los entornos (p. ej. una base restaurada o
-// re-sembrada manualmente).
-func NewAuthService(ctx context.Context, repo UserRepository, roles RolesRepository, secret []byte, ttl time.Duration) (*AuthService, error) {
-	defaultRole, err := roles.GetDefaultRole(ctx)
+// vez, en vez de asumir un id fijo.
+func NewAuthService(ctx context.Context, store AuthStore, secret []byte, ttl time.Duration) (*AuthService, error) {
+	defaultRole, err := store.GetDefaultRole(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("resolving default role: %w", err)
 	}
-	return &AuthService{repo: repo, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID}, nil
+	return &AuthService{store: store, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID}, nil
 }
 
 // Register crea el usuario con password local y devuelve el token de acceso
 // ya firmado, junto con su tiempo de vida.
-func (s *AuthService) Register(ctx context.Context, email, username, password string) (domain.Users, string, time.Duration, error) {
+func (s *AuthService) Register(ctx context.Context, email, username, password string) (domain.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return domain.Users{}, "", 0, err
+		return domain.User{}, "", 0, err
 	}
+	hashed := string(hash)
 
-	user, err := s.repo.Create(ctx, email, username, string(hash), s.defaultRoleID)
+	user, err := s.store.CreateUserWithLocalProvider(ctx, domain.CreateUserParams{
+		Email:        &email,
+		Username:     username,
+		RolID:        s.defaultRoleID,
+		PasswordHash: &hashed,
+	})
 	if err != nil {
-		return domain.Users{}, "", 0, err
+		if domain.IsUniqueViolation(err) {
+			return domain.User{}, "", 0, domain.ErrEmailTaken
+		}
+		return domain.User{}, "", 0, err
 	}
 
 	token, err := s.issueToken(user)
 	if err != nil {
-		return domain.Users{}, "", 0, err
+		return domain.User{}, "", 0, err
 	}
 	return user, token, s.ttl, nil
 }
 
 // Login valida el password contra el hash guardado. Si el email no existe o
 // el usuario no tiene password local, compara igual contra un hash dummy
-// para no revelar cuál de los dos casos ocurrió.
-func (s *AuthService) Login(ctx context.Context, email, password string) (domain.Users, string, time.Duration, error) {
+// para no revelar cuál de los dos casos sucedió.
+func (s *AuthService) Login(ctx context.Context, email, password string) (domain.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
-	user, err := s.repo.GetByEmail(ctx, email)
-	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
-		return domain.Users{}, "", 0, err
+	user, err := s.store.GetUserByEmail(ctx, &email)
+	notFound := domain.IsNotFound(err)
+	if err != nil && !notFound {
+		return domain.User{}, "", 0, err
 	}
 
 	hash := dummyPasswordHash
@@ -94,24 +96,33 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (domain
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
-		return domain.Users{}, "", 0, domain.ErrInvalidCredentials
+		return domain.User{}, "", 0, domain.ErrInvalidCredentials
 	}
-	if errors.Is(err, domain.ErrUserNotFound) {
-		return domain.Users{}, "", 0, domain.ErrInvalidCredentials
+	if notFound {
+		return domain.User{}, "", 0, domain.ErrInvalidCredentials
 	}
 
 	token, err := s.issueToken(user)
 	if err != nil {
-		return domain.Users{}, "", 0, err
+		return domain.User{}, "", 0, err
 	}
 	return user, token, s.ttl, nil
 }
 
-func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.Users, error) {
-	return s.repo.GetByID(ctx, id)
+// Obtener el usuario en base al id. Si no existe, devuelve domain.ErrUserNotFound.
+func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.User, error) {
+	user, err := s.store.GetUserByID(ctx, id)
+	if err != nil {
+		if domain.IsNotFound(err) {
+			return domain.User{}, domain.ErrUserNotFound
+		}
+		return domain.User{}, err
+	}
+	return user, nil
 }
 
-func (s *AuthService) issueToken(user domain.Users) (string, error) {
+// issueToken genera un JWT firmado con el id del usuario y la fecha de expiración.
+func (s *AuthService) issueToken(user domain.User) (string, error) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
 		Subject:   user.ID.String(),
@@ -121,6 +132,7 @@ func (s *AuthService) issueToken(user domain.Users) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 
+// normalizeEmail convierte el email a minúsculas y le quita espacios al inicio y al final.
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }

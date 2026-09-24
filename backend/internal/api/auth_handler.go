@@ -11,11 +11,11 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// maxBcryptPasswordBytes es el límite de bcrypt: trunca (y en implementaciones
-// más nuevas devuelve error) cualquier byte después del 72, así que un
-// password más largo debe rechazarse antes de llegar a bcrypt.
+// maxBcryptPasswordBytes es el límite de bcrypt: cualquier byte después del 72,
+// así que una contraseña más larga debe rechazarse antes de llegar a bcrypt.
 const maxBcryptPasswordBytes = 72
 
+// Register crea un usuario con password local y devuelve un token de acceso
 func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error) {
 	username := request.Body.Username
 	password := request.Body.Password
@@ -41,6 +41,7 @@ func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (R
 	return Register201JSONResponse(toAuthResponse(user, token, ttl)), nil
 }
 
+// Login valida el email y password, y devuelve un token de acceso firmado.
 func (s *Server) Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error) {
 	user, token, ttl, err := s.services.Auth.Login(ctx, string(request.Body.Email), request.Body.Password)
 	if err != nil {
@@ -53,6 +54,7 @@ func (s *Server) Login(ctx context.Context, request LoginRequestObject) (LoginRe
 	return Login200JSONResponse(toAuthResponse(user, token, ttl)), nil
 }
 
+// Retorna el usuario autenticado según el token de la cabecera Authorization.
 func (s *Server) Me(ctx context.Context, request MeRequestObject) (MeResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
@@ -70,7 +72,8 @@ func (s *Server) Me(ctx context.Context, request MeRequestObject) (MeResponseObj
 	return Me200JSONResponse(toUsuario(user)), nil
 }
 
-func toAuthResponse(user domain.Users, token string, ttl time.Duration) AuthResponse {
+// toAuthResponse convierte un domain.User y un token en la respuesta de login/register.
+func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthResponse {
 	return AuthResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
@@ -79,7 +82,8 @@ func toAuthResponse(user domain.Users, token string, ttl time.Duration) AuthResp
 	}
 }
 
-func toUsuario(user domain.Users) Usuario {
+// toUsuario convierte un domain.User en un Usuario para la API.
+func toUsuario(user domain.User) Usuario {
 	var email openapi_types.Email
 	if user.Email != nil {
 		email = openapi_types.Email(*user.Email)
@@ -88,7 +92,7 @@ func toUsuario(user domain.Users) Usuario {
 	return Usuario{
 		Id:        user.ID,
 		Email:     email,
-		Username:  user.UserName,
+		Username:  user.Username,
 		RolId:     user.RolID,
 		CreatedAt: user.CreatedAt,
 	}

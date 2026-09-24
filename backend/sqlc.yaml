@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "queries"
+    queries: "internal/queries"
     schema: "internal/database/migrations"
     gen:
       go:
-        package: "db"
-        out: "internal/database/db"
+        package: "domain"
+        out: "internal/domain"
         emit_json_tags: true
         emit_interface: true
         # El proyecto usa pgx/v5, no database/sql.
@@ -31,3 +31,26 @@ sql:
             go_type:
               type: "time.Time"
               pointer: true
+          # Las columnas opcionales se mapean a punteros en vez de pgtype.Text:
+          # el handler distingue "sin valor" con un nil check (ver toUsuario),
+          # no con un campo .Valid.
+          - db_type: "text"
+            nullable: true
+            go_type:
+              type: "string"
+              pointer: true
+          - db_type: "pg_catalog.varchar"
+            nullable: true
+            go_type:
+              type: "string"
+              pointer: true
+          - db_type: "pg_catalog.int4"
+            go_type: "int"
+          - db_type: "pg_catalog.int4"
+            nullable: true
+            go_type:
+              type: "int"
+              pointer: true
+          # Las PK SERIAL son un tipo aparte para sqlc, no int4.
+          - db_type: "serial"
+            go_type: "int"
