@@ -51,7 +51,7 @@ function SignInPage() {
 
 
         if(form.email.length === 0 || form.password.length === 0){
-            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': 3000, 'title':"Campos Faltantes"})
+            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': null, 'title':"Campos Faltantes"})
             return;
         }
 

@@ -17,7 +17,7 @@ func NewRolesRepository(db *pgxpool.Pool) *RolesRepository {
 
 func (r *RolesRepository) GetDefaultRole(ctx context.Context) (domain.Roles, error) {
 	const query = `
-		SELECT * FROM roles WHERE nombre = "ciudadano"
+		SELECT * FROM roles WHERE nombre = 'ciudadano'
 	`
 
 	var c domain.Roles
