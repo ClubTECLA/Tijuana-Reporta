@@ -60,11 +60,20 @@ function SignInPage() {
             navigate('/');
         }catch(error){
             console.error('Error:', error);
-            const attemptsAfterFailure = Math.max(remainingAttempts - 1, 0);
+            const invalidCredentials = error instanceof Error
+                && 'status' in error
+                && error.status === 401;
+            const attemptsAfterFailure = invalidCredentials
+                ? Math.max(remainingAttempts - 1, 0)
+                : remainingAttempts;
             showMessage(
                 error instanceof Error ? error.message : 'Error al comprobar las credenciales',
                 'red',
-                attemptsAfterFailure === 0 ? "Sin intentos" : "Credenciales no válidas"
+                invalidCredentials && attemptsAfterFailure === 0
+                    ? "Sin intentos"
+                    : invalidCredentials
+                        ? "Credenciales no válidas"
+                        : "Error al iniciar sesión"
             );
             setRemainingAttempts(attemptsAfterFailure);
         }

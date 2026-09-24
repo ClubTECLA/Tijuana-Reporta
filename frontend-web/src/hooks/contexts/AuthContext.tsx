@@ -37,14 +37,11 @@ async function readError(response: Response): Promise<string> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<Users | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
     useEffect(() => {
         const token = localStorage.getItem(accessTokenKey)
-        if (!token) {
-            setIsLoading(false)
-            return
-        }
+        if (!token) return
 
         fetch(`${apiUrl}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -77,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         if (!response.ok) {
-            throw new Error(await readError(response))
+            throw Object.assign(new Error(await readError(response)), { status: response.status })
         }
 
         const data = await response.json() as AuthResponse
