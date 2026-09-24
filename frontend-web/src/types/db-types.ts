@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 // Base catalog
 export interface Incidente {
   id: number
@@ -128,4 +130,17 @@ export interface Logs {
   peso: number
   started_at: string
   finished_at: string
+}
+
+//extra types
+export type componentProps = {
+  className?: string,
+  onClick?: () => void
+}
+
+export type NavItem = {
+  icon: ReactNode
+  title: string
+  destinationPath: string
+  cantNoti?: number
 }
