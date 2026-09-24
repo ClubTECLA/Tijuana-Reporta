@@ -55,8 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
                 return response.json() as Promise<AuthResponse['user']>
             })
-            .then((currentUser) => setUser(toUser(currentUser)))
+            .then((currentUser) => {
+                if (localStorage.getItem(accessTokenKey) === token) {
+                    setUser(toUser(currentUser))
+                }
+            })
             .catch(() => {
+                if (localStorage.getItem(accessTokenKey) !== token) return
                 localStorage.removeItem(accessTokenKey)
                 setUser(null)
             })
