@@ -10,7 +10,8 @@ CREATE TABLE incidentes (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) UNIQUE NOT NULL,
     tiempo_limite SMALLINT,  -- Tiempo promedio que le toma a un incidente desaparecer o resolverse (en días)
-    radio DECIMAL            -- Radio promedio del incidente
+    radio DECIMAL,            -- Radio promedio del incidente
+    esta_activo BOOLEAN         -- Para activar o no este incidente y que no se muestre
 );
 
 -- Catálogo de cada tipo de tag y a qué tipo de incidente pertenece.
@@ -27,6 +28,12 @@ CREATE TABLE tags (
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(255) UNIQUE NOT NULL
+);
+
+-- Catálogo de acciones que se pueden realizar
+CREATE TABLE acciones (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL
 );
 
 -- ============================================================
@@ -61,7 +68,7 @@ CREATE TABLE auth_providers (
 -- REPORTES
 -- ============================================================
 
-CREATE TYPE estado AS ENUM ('Sin revisar', 'En revision', 'Arreglado', 'Expirado', 'Oficial');
+CREATE TYPE estado AS ENUM ('Pendiente', 'Probable', 'Verificado', 'Resuelto', 'Descartado', 'Expirado');
 
 -- Tabla que mantiene todos los reportes creados.
 -- Nota: ya no incluye "peso" (vive solo en reportes_scores) ni "punto_origen"
@@ -70,7 +77,8 @@ CREATE TABLE reporte (
     incidente_id INTEGER NOT NULL REFERENCES incidentes(id),
     avistamientos INTEGER NOT NULL DEFAULT 0, -- Conteo de confirmaciones de que el incidente sigue vigente
     es_historico BOOLEAN NOT NULL DEFAULT false,
-    estado_actual estado NOT NULL DEFAULT 'Sin revisar',
+    es_oficial BOOLEAN NOT NULL DEFAULT false,
+    estado_actual estado NOT NULL DEFAULT 'Pendiente',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     expired_at TIMESTAMPTZ
@@ -137,7 +145,7 @@ CREATE TABLE reportes_scores (
 );
 
 -- ============================================================
--- COMENTARIOS E HISTORIAL
+-- COMENTARIOS, NOTIFICACIONES E HISTORIAL
 -- ============================================================
 
 CREATE TABLE comentarios (
@@ -146,6 +154,19 @@ CREATE TABLE comentarios (
     user_id UUID NOT NULL REFERENCES users(id),
     comentario TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Tabla que contiene las notificaciones de los usuarios
+CREATE TABLE notificaciones (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notificacion TEXT
+);
+
+-- Conteo de notifiaciones no vistas por el usuario
+CREATE TABLE notificaciones_counts (
+    user_id PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    count INTEGER NOT NULL DEFAULT 0
 );
 
 -- Historial de reportes que ha creado/reportado cada usuario.
@@ -165,6 +186,15 @@ CREATE TABLE logs (
     peso INTEGER NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     finished_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Historial de acciones realizadas por los usuarios (mas que nada dirigida a usuarios con roles superiores a ciudadano)
+CREATE TABLE historial (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users (id),
+    accion_id INTEGER NOT NULL REFERENCES acciones (id),
+    nombre_target TEXT,
+    descripcion TEXT
 );
 
 -- ============================================================
