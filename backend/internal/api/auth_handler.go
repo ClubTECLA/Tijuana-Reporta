@@ -69,7 +69,7 @@ func (s *Server) Me(ctx context.Context, request MeRequestObject) (MeResponseObj
 		return nil, err
 	}
 
-	return Me200JSONResponse(toUsuario(user)), nil
+	return Me200JSONResponse(toUsuarioMeResponse(user)), nil
 }
 
 // toAuthResponse convierte un domain.User y un token en la respuesta de login/register.
@@ -82,7 +82,7 @@ func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthRespo
 	}
 }
 
-// toUsuario convierte un domain.User en un Usuario para la API.
+// toUsuario convierte un domain.User en el Usuario que anida AuthResponse.
 func toUsuario(user domain.User) Usuario {
 	var email openapi_types.Email
 	if user.Email != nil {
@@ -95,5 +95,21 @@ func toUsuario(user domain.User) Usuario {
 		Username:  user.Username,
 		RolId:     user.RolID,
 		CreatedAt: user.CreatedAt,
+	}
+}
+
+// toUsuarioMeResponse convierte un domain.UserWithRol en la respuesta de
+// /auth/me, que expone el nombre del rol en vez de su id.
+func toUsuarioMeResponse(user domain.UserWithRol) UsuarioMeResponse {
+	var email openapi_types.Email
+	if user.Email != nil {
+		email = openapi_types.Email(*user.Email)
+	}
+
+	return UsuarioMeResponse{
+		Id:       user.ID,
+		Email:    email,
+		Username: user.Username,
+		RolName:  user.RolName,
 	}
 }

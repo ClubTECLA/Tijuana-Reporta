@@ -7,27 +7,31 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createLocalAuthProvider = `-- name: CreateLocalAuthProvider :exec
-INSERT INTO auth_providers (user_id, provider)
-VALUES ($1, 'local')
+INSERT INTO
+    auth_providers (user_id, provider)
+VALUES
+    ($1, 'local')
 `
 
-// Se inserta junto con el usuario dentro de la misma transacción (ver
-// database.Store.CreateUserWithLocalProvider), para que nunca quede un
-// usuario sin forma de autenticarse ni un auth_provider huérfano.
+// Se inserta junto con el usuario dentro de la misma transacción, para que
+// nunca quede un usuario sin forma de autenticarse ni un auth_provider
+// sin padre.
 func (q *Queries) CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, createLocalAuthProvider, userID)
 	return err
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, username, rol_id, password_hash)
-VALUES ($1, $2, $3, $4)
-RETURNING id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+INSERT INTO
+    users (email, username, rol_id, password_hash)
+VALUES
+    ($1, $2, $3, $4) RETURNING id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
 `
 
 type CreateUserParams struct {
@@ -60,8 +64,12 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, phone, username, rol_id, password_hash, created_at, updated_at, state FROM users
-WHERE email = $1
+SELECT
+    id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+FROM
+    users
+WHERE
+    email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (User, error) {
@@ -82,8 +90,12 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (User, erro
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, phone, username, rol_id, password_hash, created_at, updated_at, state FROM users
-WHERE id = $1
+SELECT
+    id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+FROM
+    users
+WHERE
+    id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -99,6 +111,48 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.State,
+	)
+	return i, err
+}
+
+const getUserWithRolByID = `-- name: GetUserWithRolByID :one
+SELECT
+    u.id, u.email, u.phone, u.username, u.rol_id, u.password_hash, u.created_at, u.updated_at, u.state,
+    r.nombre AS rol_name
+FROM
+    users u
+    JOIN roles r ON r.id = u.rol_id
+WHERE
+    u.id = $1
+`
+
+type GetUserWithRolByIDRow struct {
+	ID           uuid.UUID     `json:"id"`
+	Email        *string       `json:"email"`
+	Phone        *string       `json:"phone"`
+	Username     string        `json:"username"`
+	RolID        int           `json:"rol_id"`
+	PasswordHash *string       `json:"password_hash"`
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
+	State        NullUserState `json:"state"`
+	RolName      string        `json:"rol_name"`
+}
+
+func (q *Queries) GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserWithRolByID, id)
+	var i GetUserWithRolByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.Username,
+		&i.RolID,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.State,
+		&i.RolName,
 	)
 	return i, err
 }

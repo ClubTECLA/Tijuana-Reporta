@@ -34,6 +34,8 @@ components:
       $ref: './schemas/auth/auth_response.yaml'
     Usuario:
       $ref: './schemas/auth/usuario.yaml'
+    UsuarioMeResponse:
+      $ref: './schemas/auth/usuario_me_response.yaml'
   securitySchemes:
     bearerAuth:
       type: http

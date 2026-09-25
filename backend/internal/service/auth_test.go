@@ -60,6 +60,21 @@ func (f *fakeAuthStore) GetUserByID(_ context.Context, id uuid.UUID) (domain.Use
 	return domain.User{}, pgx.ErrNoRows
 }
 
+func (f *fakeAuthStore) GetUserWithRolByID(_ context.Context, id uuid.UUID) (domain.GetUserWithRolByIDRow, error) {
+	for _, u := range f.byEmail {
+		if u.ID == id {
+			return domain.GetUserWithRolByIDRow{
+				ID:       u.ID,
+				Email:    u.Email,
+				Username: u.Username,
+				RolID:    u.RolID,
+				RolName:  "ciudadano",
+			}, nil
+		}
+	}
+	return domain.GetUserWithRolByIDRow{}, pgx.ErrNoRows
+}
+
 func (f *fakeAuthStore) GetDefaultRole(_ context.Context) (domain.Role, error) {
 	return domain.Role{ID: f.defaultRoleID, Nombre: "ciudadano"}, nil
 }
