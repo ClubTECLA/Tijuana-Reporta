@@ -20,7 +20,7 @@ type ComentarioService interface {
 type AuthService interface {
 	Register(ctx context.Context, email, username, password string) (domain.User, string, time.Duration, error)
 	Login(ctx context.Context, email, password string) (domain.User, string, time.Duration, error)
-	GetUser(ctx context.Context, id uuid.UUID) (domain.User, error)
+	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
 }
 
 // Services agrupa los servicios que el servidor expone a la API.
