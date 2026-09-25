@@ -29,10 +29,7 @@ const (
 
 // AuthResponse defines model for AuthResponse.
 type AuthResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-	TokenType   string `json:"token_type"`
-	User        struct {
+	User struct {
 		CreatedAt time.Time           `json:"created_at"`
 		Email     openapi_types.Email `json:"email"`
 		Id        uuid.UUID           `json:"id"`
@@ -108,6 +105,9 @@ type ServerInterface interface {
 	// (POST /auth/login)
 	Login(c *gin.Context)
 
+	// (POST /auth/logout)
+	Logout(c *gin.Context)
+
 	// (GET /auth/me)
 	Me(c *gin.Context)
 
@@ -138,6 +138,19 @@ func (siw *ServerInterfaceWrapper) Login(c *gin.Context) {
 	}
 
 	siw.Handler.Login(c)
+}
+
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.Logout(c)
 }
 
 // Me operation middleware
@@ -223,6 +236,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.POST(options.BaseURL+"/auth/login", wrapper.Login)
+	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout)
 	router.GET(options.BaseURL+"/auth/me", wrapper.Me)
 	router.POST(options.BaseURL+"/auth/register", wrapper.Register)
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
@@ -276,6 +290,21 @@ func (response Login401JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+type LogoutRequestObject struct {
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout204Response struct {
+}
+
+func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
 }
 
 type MeRequestObject struct {
@@ -420,6 +449,9 @@ type StrictServerInterface interface {
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
 
+	// (POST /auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+
 	// (GET /auth/me)
 	Me(ctx context.Context, request MeRequestObject) (MeResponseObject, error)
 
@@ -511,6 +543,30 @@ func (sh *strictHandler) Login(ctx *gin.Context) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(LoginResponseObject); ok {
 		if err := validResponse.VisitLoginResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// Logout operation middleware
+func (sh *strictHandler) Logout(ctx *gin.Context) {
+	var request LogoutRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx, request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		if err := validResponse.VisitLogoutResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -611,22 +667,22 @@ func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7Fjvbts2EH8V4baPXmyvG7DpW9d1QIZ2GLIO+xAYAitdbGYWqR5PXYJAD9Nn6YsNJKVItKnYGeLYGPrF",
-	"IEXx7ne/+yvfQa7LSitUbCC9A5OvsBRu+bLm1QWaSiuDdl+RrpBYojsVeY7GZKz/RmX3fFshpGCYpFpC",
-	"MwG8qSShyeTwWCrGJZI9dzcz/zxyvTZI9uBrwitI4atpj3Pagpz+aWpBUkPTTIDwQy0JC0gvQ2yBpgBW",
-	"q2Qx6bTr99eYs9X+Speo2AnfsjwPzraA54SCscgE2+MrTaVdQSEYv2FZWgxbd2QR54iw0sSYySKQVdey",
-	"iImx5uz37gZh7pWBsl7UZGhuYFyUNkJBPXcX+KFGw7soLMXNG1RLXkH6/Ww2gVKqbj/fhXwgKQboNZGm",
-	"8SAu0RixjAXghpruxZiON3op1aipWAq5Djzin0TcVwlj/tFU7IbTibi/EcN1gUtpGOmpoQ3c88NIECpR",
-	"4oZn54/1bIflXt4Oc7tisB1s/yEhH0HNnrlJep2NpfmQsj0SNcJMK31ngrYkvcXxnDiM6SPmPZXtbhkz",
-	"uG0Vmah55X/opFtagLc+WH8L1KxtAcvo9CpYgJLacvbkQE+0nkUj4Utxe6C4xRjLSnwg4/+fta6fiYbr",
-	"L4PsIwbZKJWEggZPxgvRs423HUwk0vRAnD/BnGu1YV6T5Ns/rFYv+D0KQrJfiv3ul85jv/71DlqMVpI/",
-	"7V24Yq6gsYKluvIhKHltT97J61ookVw4R4rk5e/nMIGPSEZqBSnMz2ZnM2u/rlCJSkIKL85mZy9cSeWV",
-	"Qza1VWDqWpvdVto7yrIiWGp1XkDqR3fwFKDhn3Rx6/2nGJV7X1TVWubuxvTaaNV/Iz+qk4cttglpZ6rR",
-	"PfDuc/C/nc0OgyScgRySAk1OsmJPruMkwRvJ2mhL8ncHgLIRsBEYPwvWJpHq4+dPa1lo45HMj4DkFWGB",
-	"KpdijT0gYYKUgPRyYfc+6nyFX2Ik4t66Kv4sno51wIh57SdBImqrX+ai0Mfj+rcNHE1Pajf/jWdz98H7",
-	"HAm9NY3uldPzI+V052PbwoqTS+ofj4Dk9Tpx41VyKxI0/PlT4j1KPuwimd1OFWZ6167Oi2Y6mA/G43Lj",
-	"XzHXpUiUyEgG0ss7sC3KdS6YgJ8P4V4HbEbVZMDFruFocdhM2Gs6OlJijAzBsfp+f3qi+XEihThMinD2",
-	"u1w0i+bfAQA=",
+	"7Fjvbts2EH8V4baPWmyvHbDpW9d1QIZ2GNIO+xAYBitdbAYWqR5PXYNAD9Nn2CPkxQaSkiXZlP9scWwU",
+	"/RKTonj3u9/9Ve4h1XmhFSo2kNyDSReYC7d8UfLiCk2hlUG7L0gXSCzRnZYGyf5+S3gDCXwzauWMaiGj",
+	"P00pSGqoqhgIP5SSMIPk2t+dxsB3BUIC+v0tpgxVDC91jordnQ2Fae+svmqYpJrbqymhYMxmgu3xjabc",
+	"riATjN+xzBHizTsy64iSinGOBA5roYlxJrOerLKUWUiMNWe/d9d4cK90lLWi4q65PeOCtBEKarm7wg8l",
+	"Gt5FYS4+vUY15wUkP4zHMeRSNfvJLuQdSSFAr4g0DcdOjsaIOQb8uKameTGk47WeSzVoKuZCLnse8U8C",
+	"7iuEMX9rynbDaUSsboRwXeFcGkZ6bGgd9/w4EIRK5Ljm2cmhnm2wrOTtMLfJ8c1g+w8JeQA1e+Ym6eVs",
+	"KM27lO2RqAFmauk7E7Qm6Q0O58RxTB8w77Fsd8uQwXUHmImSF/4P/a9O0pNXHtpWereXtm7M6PwKRw8l",
+	"1VXk0YGeaRkJOvhrTdlSU0KMzXLckmhfZolpR5Hu+uv8eMD8GKSSUFDnyXAherKpsoGJRJq2xPkjjJdW",
+	"G6YlSb57a7V6we9REJL9Lmp3vzYe++2vd1BjtJL8aevCBXMBlRUs1Y0PQclLe/JO3pZCiejKOVJEL/64",
+	"hBg+IhmpFSQwuRhfjK39ukAlCgkJPLsYXzxzJZUXDtnIVoGRa212W2jvKMuKYKnVZQaJn5jBU4CGf9bZ",
+	"nfefYlTufVEUS5m6G6Nbo1X7RXhQg+632KpPO1OJ7oF3n4P//Xh8HCT90cMhydCkJAv25DpOIvwkWRtt",
+	"SX5+BChrARuA8YtgbSKpPj58XspMG49kcgIkLwkzVKkUS2wBCdNLCUiup3a/ijpd8taws+cbLn9uf/rK",
+	"36KRD/+oKEUikYktSn1bmWNA3xuEpwqvUNsNcFqP/5EorX6ZikyfzsG/r+GoWlKboXPYl83H7VNUkY0R",
+	"eK9CMjlRIWl8bPtmdnaV5KcTIHm1jNxMF92JCA0/fI68R8mHXSCz61HGjO7r1WVWjTpDyXBcrv0HzLVG",
+	"EjkykoHk+h5sX3TtEmLwQymsdMB6VMUdLnZNZNPjZsJeI9mJEmNg8g41ldXpmebHmRTiflL0B87raTWt",
+	"/h0A",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

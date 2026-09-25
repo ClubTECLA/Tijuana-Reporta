@@ -16,11 +16,12 @@ import (
 type Estado string
 
 const (
-	EstadoSinrevisar Estado = "Sin revisar"
-	EstadoEnrevision Estado = "En revision"
-	EstadoArreglado  Estado = "Arreglado"
+	EstadoPendiente  Estado = "Pendiente"
+	EstadoProbable   Estado = "Probable"
+	EstadoVerificado Estado = "Verificado"
+	EstadoResuelto   Estado = "Resuelto"
+	EstadoDescartado Estado = "Descartado"
 	EstadoExpirado   Estado = "Expirado"
-	EstadoOficial    Estado = "Oficial"
 )
 
 func (e *Estado) Scan(src interface{}) error {
@@ -102,6 +103,11 @@ func (ns NullUserState) Value() (driver.Value, error) {
 	return string(ns.UserState), nil
 }
 
+type Accione struct {
+	ID     int    `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
 type AuthProvider struct {
 	ID         uuid.UUID `json:"id"`
 	UserID     uuid.UUID `json:"user_id"`
@@ -126,11 +132,21 @@ type FotosReporte struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Historial struct {
+	ID           uuid.UUID `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	AccionID     int       `json:"accion_id"`
+	NombreTarget *string   `json:"nombre_target"`
+	Descripcion  *string   `json:"descripcion"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 type Incidente struct {
 	ID           int            `json:"id"`
 	Nombre       string         `json:"nombre"`
 	TiempoLimite pgtype.Int2    `json:"tiempo_limite"`
 	Radio        pgtype.Numeric `json:"radio"`
+	EstaActivo   pgtype.Bool    `json:"esta_activo"`
 }
 
 type IncidenteTag struct {
@@ -160,6 +176,17 @@ type Log struct {
 	FinishedAt  time.Time      `json:"finished_at"`
 }
 
+type Notificacione struct {
+	ID           int       `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	Notificacion *string   `json:"notificacion"`
+}
+
+type NotificacionesCount struct {
+	UserID int `json:"user_id"`
+	Count  int `json:"count"`
+}
+
 type PuntosOrigen struct {
 	ReporteID   uuid.UUID      `json:"reporte_id"`
 	Latitude    pgtype.Numeric `json:"latitude"`
@@ -182,6 +209,7 @@ type Reporte struct {
 	IncidenteID   int        `json:"incidente_id"`
 	Avistamientos int        `json:"avistamientos"`
 	EsHistorico   bool       `json:"es_historico"`
+	EsOficial     bool       `json:"es_oficial"`
 	EstadoActual  Estado     `json:"estado_actual"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
