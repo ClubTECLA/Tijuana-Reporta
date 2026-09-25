@@ -1,9 +1,15 @@
+import { useRouter } from '../hooks/useRouter';
 import BellButton from './BellButton';
 import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
 
 export default function NavigationWrapper() {
+    
+    if(useRouter().pathname === '/auth'){
+        return null
+    }
+
     return (
         <section className="pointer-events-none z-50 fixed top-0 left-0 w-screen h-screen"> 
             <div className="pointer-events-auto fixed top-2 w-full h-13 flex flex-row justify-end pr-10">

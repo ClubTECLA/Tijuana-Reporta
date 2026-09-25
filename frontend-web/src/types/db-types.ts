@@ -144,3 +144,14 @@ export type NavItem = {
   destinationPath: string
   cantNoti?: number
 }
+
+export interface AuthResponse {
+    access_token: string
+    user: {
+        id: string
+        email: string
+        username: string
+        rol_id: number
+        created_at: string
+    }
+}

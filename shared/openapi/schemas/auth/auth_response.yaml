@@ -1,11 +1,5 @@
 type: object
-required: [access_token, token_type, expires_in, user]
+required: [user]
 properties:
-  access_token:
-    type: string
-  token_type:
-    type: string
-  expires_in:
-    type: integer
   user:
     $ref: './usuario.yaml'

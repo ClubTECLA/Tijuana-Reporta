@@ -1,5 +1,3 @@
-import { useEffect, useState} from "react"
-import type { NavItem } from "../types/db-types"
 import { useRouter } from "../hooks/useRouter"
 import { Link } from "react-router-dom"
 
@@ -34,12 +32,11 @@ const navItems = [
 
 export default function NavBar() {
     const router = useRouter();
-    const [ NavItems, setNavItems ] = useState<NavItem[]>(navItems)
     const currentPath = router.pathname;
     
     return(
         <section className="flex flex-row gap-2 bg-white px-4 py-1 rounded-full shadow-lg shadow-gray-600 w-full">
-            {NavItems.map((item, idx) => 
+            {navItems.map((item, idx) => 
                 <Link
                     key={idx}
                     className={`
