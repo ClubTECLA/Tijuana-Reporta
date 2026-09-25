@@ -165,7 +165,7 @@ CREATE TABLE notificaciones (
 
 -- Conteo de notifiaciones no vistas por el usuario
 CREATE TABLE notificaciones_counts (
-    user_id SERIAL PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     count INTEGER NOT NULL DEFAULT 0
 );
 

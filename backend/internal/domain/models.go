@@ -183,8 +183,8 @@ type Notificacione struct {
 }
 
 type NotificacionesCount struct {
-	UserID int `json:"user_id"`
-	Count  int `json:"count"`
+	UserID uuid.UUID `json:"user_id"`
+	Count  int       `json:"count"`
 }
 
 type PuntosOrigen struct {
