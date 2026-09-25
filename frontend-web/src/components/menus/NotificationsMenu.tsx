@@ -1,4 +1,4 @@
-export default function TemplateMenu() {
+export default function NotificationsMenu() {
     return (
         <section>
             
