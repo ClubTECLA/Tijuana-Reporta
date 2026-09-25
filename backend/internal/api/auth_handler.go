@@ -80,7 +80,10 @@ func (s *Server) Logout(ctx context.Context, request LogoutRequestObject) (Logou
 // toAuthResponse convierte un domain.User y un token en la respuesta de login/register.
 func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthResponse {
 	return AuthResponse{
-		User: toUsuario(user),
+		AccessToken: token,
+		TokenType:   "Bearer",
+		ExpiresIn:   int(ttl.Seconds()),
+		User:        toUsuario(user),
 	}
 }
 
