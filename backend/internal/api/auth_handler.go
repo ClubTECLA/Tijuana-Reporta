@@ -72,13 +72,15 @@ func (s *Server) Me(ctx context.Context, request MeRequestObject) (MeResponseObj
 	return Me200JSONResponse(toUsuarioMeResponse(user)), nil
 }
 
+// Logout cierra la sesión. El token no se guarda en el servidor, así que solo responde 204.
+func (s *Server) Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error) {
+	return Logout204Response{}, nil
+}
+
 // toAuthResponse convierte un domain.User y un token en la respuesta de login/register.
 func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthResponse {
 	return AuthResponse{
-		AccessToken: token,
-		TokenType:   "Bearer",
-		ExpiresIn:   int(ttl.Seconds()),
-		User:        toUsuario(user),
+		User: toUsuario(user),
 	}
 }
 
