@@ -18,16 +18,17 @@ export function CommonPanelProvider({children}: {children: ReactNode}) {
             {children}
             <section 
                 className="
-                    fixed left-3 top-20 
+                    fixed left-3 top-20 bottom-5
                     bg-white rounded-2xl 
-                    z-50 w-fit h-fit
-                    shadow-lg shadow-gray-600 p-4    
+                    z-50 w-fit 
+                    shadow-lg shadow-gray-600 p-4  
+                    flex flex-col
                 "
             >
                 {panelView ? 
                     panelView
                 :
-                    <div className="text-bold text-gray-700 flex items-center justify-center">
+                    <div className="text-bold text-gray-700 flex items-center justify-center h-full">
                         No hay view seleccionada
                     </div>
                 }

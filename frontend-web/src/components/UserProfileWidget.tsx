@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { componentProps } from "../types/db-types";
+import type { componentProps } from "../types/utils-types";
 import { useAuth } from "../hooks/contexts/AuthContext";
 import { MdLogin } from "react-icons/md";
 import { Link } from "react-router-dom";

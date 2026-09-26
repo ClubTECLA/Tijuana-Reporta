@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Users, AuthResponse } from '../../types/db-types'
+import type { AuthResponse } from '../../types/utils-types'
+import { type Users } from '../../types/db-types'
 import { apiUrl } from '../../types/global-variables'
 
 

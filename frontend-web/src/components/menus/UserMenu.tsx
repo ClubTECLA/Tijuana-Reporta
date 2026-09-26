@@ -3,6 +3,8 @@ import { useAuth } from "../../hooks/contexts/AuthContext"
 import type { ReactNode } from "react";
 import { FiUser } from "react-icons/fi";
 import { IoIosArrowForward } from "react-icons/io";
+import { useCommonPanel } from "../../hooks/contexts/CommonPanelContext";
+import UserProfileView from "../CommonPanel/PanelViews/UserProfileView";
 
 type optionsColor = "red" | 'blue' | 'green';
 
@@ -10,24 +12,25 @@ type menuOptions = {
     icon: ReactNode,
     title: string,
     onClick?: () => void,
-    view?: ReactNode
     color?: optionsColor
 }
 
 export default function UserMenu() {
     const { user, isAuthenticated } = useAuth();
+    const { setPanelView } = useCommonPanel();
 
     const options: menuOptions[] = [
         {
             icon: <FiUser/>,
             title: "Mi perfil y contraseña",
             color: 'blue',
+            onClick: () => setPanelView(<UserProfileView/>)
         },
     ]
 
 
     return (
-        <section className="rounded-3xl bg-white w-fit h-fit p-4 shadow-lg shadow-gray-600">
+        <section className="rounded-3xl bg-white w-fit h-fit p-4 shadow-lg shadow-gray-600 pointer-events-auto">
             <div className="flex flex-row gap-3 items-center">
                 {!user?.username ? 
                     <div
@@ -46,29 +49,38 @@ export default function UserMenu() {
                 </div>
             </div>
             <div className="rounded-xl border-2 border-gray-300 mt-4">
-                {options.map((option) => {
+                {options.map((option, idx) => {
                     
                     const color: optionsColor = option.color || 'blue';
                     const wrapped = `bg-${color}-100 text-${color}-500`;
 
                     return( 
-                        <div className={`flex flex-row px-4 py-2 text-xl gap-3`}>
-                            <div className={`${wrapped} p-3 rounded-xl`}>
+                        <button
+                            className={`flex flex-row px-4 py-2 text-xl gap-3
+                                hover:bg-gray-500 hover:text-white group 
+                                transition-all duration-300 rounded-2xl
+                            `}
+                            onClick={option.onClick}
+                            key={idx}
+                        >
+                            <div className={`${wrapped} p-3 rounded-xl group-hover:bg-transparent group-hover:text-white group-hover:scale-150`}>
                                 {option.icon}
                             </div>
                             <span 
                                 className="
                                     flex items-center justify-center 
                                     font-bold text-sm
-                                    text-gray-700
+                                    text-gray-700 group-hover:text-white
                                 "
                             >{option.title}</span>
-                            {!option.view && 
-                                <div className="flex items-center justify-center text-gray-500 text-2xl">
+                            {!!option.onClick ? 
+                                <div className="flex items-center justify-center text-gray-500 text-2xl group-hover:bg-gray-500 group-hover:text-white transition-all duration-300">
                                     <IoIosArrowForward/>
                                 </div>
+                                :
+                                null
                             }
-                        </div>
+                        </button>
                     )
                 })}
             </div>
