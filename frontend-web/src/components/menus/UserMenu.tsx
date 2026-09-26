@@ -16,7 +16,7 @@ type menuOptions = {
 }
 
 export default function UserMenu() {
-    const { user, isAuthenticated } = useAuth();
+    const { user} = useAuth();
     const { setPanelView } = useCommonPanel();
 
     const options: menuOptions[] = [
@@ -24,7 +24,7 @@ export default function UserMenu() {
             icon: <FiUser/>,
             title: "Mi perfil y contraseña",
             color: 'blue',
-            onClick: () => setPanelView(<UserProfileView/>)
+            onClick: () => setPanelView("SI")
         },
     ]
 

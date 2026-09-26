@@ -26,4 +26,5 @@ export interface AuthResponse {
 
 export interface subsectionProps {
     debug?: boolean
+    format: "row" | "col"
 }

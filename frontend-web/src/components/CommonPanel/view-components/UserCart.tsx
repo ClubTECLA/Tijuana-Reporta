@@ -1,6 +1,5 @@
 import type { subsectionProps } from "../../../types/utils-types";
 import SubSection from "../PanelComponents/primitive-components/SubSection";
-import type { ReactNode } from "react";
 
 interface userCartProps extends subsectionProps {
     username: string,
@@ -8,7 +7,7 @@ interface userCartProps extends subsectionProps {
     rolName?: string
 }
 
-export default function UserCart({username, email, rolName, debug}: userCartProps) {
+export default function UserCart({username, email, rolName, debug, format}: userCartProps) {
     const usernameArray = username.split(' ');
     let iconName:string;
     if(username.length === 0){
@@ -21,7 +20,7 @@ export default function UserCart({username, email, rolName, debug}: userCartProp
     }
 
     return(
-        <SubSection className="flex-row w-full rounded-2xl bg-blue-50 items-center" debug={debug}>
+        <SubSection format={format} className="flex-row w-full rounded-2xl bg-blue-50 items-center" debug={debug}>
             <div className="rounded-full flex items-center justify-center bg-blue-700 text-white w-10 h-10 font-bold">
                 {iconName}
             </div>

@@ -1,5 +1,3 @@
-import type { ReactNode } from "react"
-
 // Base catalog
 export interface Incidente {
   id: number
