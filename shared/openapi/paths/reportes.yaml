@@ -1,0 +1,38 @@
+crearReporte:
+  post:
+    operationId: crearReporte
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CrearReporteRequest'
+    responses:
+      '201':
+        description: Reporte creado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Reporte:
+      $ref: '../schemas/reportes/reporte.yaml'
+    CrearReporteRequest:
+      $ref: '../schemas/reportes/crear_reporte_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'
