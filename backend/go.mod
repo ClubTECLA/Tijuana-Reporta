@@ -1,6 +1,6 @@
 module github.com/ClubTECLA/tijuana-reporta/backend
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/getkin/kin-openapi v0.142.0

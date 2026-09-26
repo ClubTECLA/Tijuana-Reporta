@@ -66,6 +66,7 @@ func main() {
 	store := database.NewStore(pool)
 
 	comentarios := service.NewComentarioService(store)
+	reportes := service.NewReporteService(store)
 	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth service: %v", err)
@@ -74,6 +75,7 @@ func main() {
 	strict := api.NewStrictHandlerWithOptions(
 		api.NewServer(api.Services{
 			Comentarios: comentarios,
+			Reportes:    reportes,
 			Auth:        auth,
 		}),
 		nil,

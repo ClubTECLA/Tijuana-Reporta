@@ -55,6 +55,14 @@ type CrearComentarioRequest struct {
 	Comentario string `json:"comentario"`
 }
 
+// CrearReporteRequest defines model for CrearReporteRequest.
+type CrearReporteRequest struct {
+	ImagePath   *string `json:"image_path,omitempty"`
+	IncidenteId int     `json:"incidente_id"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
@@ -71,6 +79,19 @@ type RegisterRequest struct {
 	Email    openapi_types.Email `json:"email"`
 	Password string              `json:"password"`
 	Username string              `json:"username"`
+}
+
+// Reporte defines model for Reporte.
+type Reporte struct {
+	Avistamientos int        `json:"avistamientos"`
+	CreatedAt     time.Time  `json:"created_at"`
+	EsHistorico   bool       `json:"es_historico"`
+	EsOficial     bool       `json:"es_oficial"`
+	EstadoActual  string     `json:"estado_actual"`
+	ExpiredAt     *time.Time `json:"expired_at,omitempty"`
+	Id            uuid.UUID  `json:"id"`
+	IncidenteId   int        `json:"incidente_id"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // Usuario defines model for Usuario.
@@ -99,6 +120,9 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// CrearReporteJSONRequestBody defines body for CrearReporte for application/json ContentType.
+type CrearReporteJSONRequestBody = CrearReporteRequest
+
 // CrearComentarioJSONRequestBody defines body for CrearComentario for application/json ContentType.
 type CrearComentarioJSONRequestBody = CrearComentarioRequest
 
@@ -108,11 +132,17 @@ type ServerInterface interface {
 	// (POST /auth/login)
 	Login(c *gin.Context)
 
+	// (POST /auth/logout)
+	Logout(c *gin.Context)
+
 	// (GET /auth/me)
 	Me(c *gin.Context)
 
 	// (POST /auth/register)
 	Register(c *gin.Context)
+
+	// (POST /reportes)
+	CrearReporte(c *gin.Context)
 
 	// (POST /reportes/{reporteId}/comentarios)
 	CrearComentario(c *gin.Context, reporteId uuid.UUID)
@@ -138,6 +168,19 @@ func (siw *ServerInterfaceWrapper) Login(c *gin.Context) {
 	}
 
 	siw.Handler.Login(c)
+}
+
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.Logout(c)
 }
 
 // Me operation middleware
@@ -166,6 +209,21 @@ func (siw *ServerInterfaceWrapper) Register(c *gin.Context) {
 	}
 
 	siw.Handler.Register(c)
+}
+
+// CrearReporte operation middleware
+func (siw *ServerInterfaceWrapper) CrearReporte(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CrearReporte(c)
 }
 
 // CrearComentario operation middleware
@@ -223,8 +281,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.POST(options.BaseURL+"/auth/login", wrapper.Login)
+	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout)
 	router.GET(options.BaseURL+"/auth/me", wrapper.Me)
 	router.POST(options.BaseURL+"/auth/register", wrapper.Register)
+	router.POST(options.BaseURL+"/reportes", wrapper.CrearReporte)
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
 }
 
@@ -276,6 +336,21 @@ func (response Login401JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+type LogoutRequestObject struct {
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout204Response struct {
+}
+
+func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
 }
 
 type MeRequestObject struct {
@@ -363,6 +438,56 @@ func (response Register409JSONResponse) VisitRegisterResponse(w http.ResponseWri
 	return err
 }
 
+type CrearReporteRequestObject struct {
+	Body *CrearReporteJSONRequestBody
+}
+
+type CrearReporteResponseObject interface {
+	VisitCrearReporteResponse(w http.ResponseWriter) error
+}
+
+type CrearReporte201JSONResponse Reporte
+
+func (response CrearReporte201JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearReporte400JSONResponse ErrorResponse
+
+func (response CrearReporte400JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearReporte401JSONResponse ErrorResponse
+
+func (response CrearReporte401JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CrearComentarioRequestObject struct {
 	ReporteId uuid.UUID `json:"reporteId"`
 	Body      *CrearComentarioJSONRequestBody
@@ -420,11 +545,17 @@ type StrictServerInterface interface {
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
 
+	// (POST /auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+
 	// (GET /auth/me)
 	Me(ctx context.Context, request MeRequestObject) (MeResponseObject, error)
 
 	// (POST /auth/register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
+
+	// (POST /reportes)
+	CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error)
 
 	// (POST /reportes/{reporteId}/comentarios)
 	CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error)
@@ -518,6 +649,30 @@ func (sh *strictHandler) Login(ctx *gin.Context) {
 	}
 }
 
+// Logout operation middleware
+func (sh *strictHandler) Logout(ctx *gin.Context) {
+	var request LogoutRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx, request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		if err := validResponse.VisitLogoutResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Me operation middleware
 func (sh *strictHandler) Me(ctx *gin.Context) {
 	var request MeRequestObject
@@ -573,6 +728,37 @@ func (sh *strictHandler) Register(ctx *gin.Context) {
 	}
 }
 
+// CrearReporte operation middleware
+func (sh *strictHandler) CrearReporte(ctx *gin.Context) {
+	var request CrearReporteRequestObject
+
+	var body CrearReporteJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CrearReporte(ctx, request.(CrearReporteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CrearReporte")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CrearReporteResponseObject); ok {
+		if err := validResponse.VisitCrearReporteResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CrearComentario operation middleware
 func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) {
 	var request CrearComentarioRequestObject
@@ -611,22 +797,25 @@ func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7Fjvbts2EH8V4baPXmyvG7DpW9d1QIZ2GLIO+xAYAitdbGYWqR5PXYJAD9Nn6YsNJKVItKnYGeLYGPrF",
-	"IEXx7ne/+yvfQa7LSitUbCC9A5OvsBRu+bLm1QWaSiuDdl+RrpBYojsVeY7GZKz/RmX3fFshpGCYpFpC",
-	"MwG8qSShyeTwWCrGJZI9dzcz/zxyvTZI9uBrwitI4atpj3Pagpz+aWpBUkPTTIDwQy0JC0gvQ2yBpgBW",
-	"q2Qx6bTr99eYs9X+Speo2AnfsjwPzraA54SCscgE2+MrTaVdQSEYv2FZWgxbd2QR54iw0sSYySKQVdey",
-	"iImx5uz37gZh7pWBsl7UZGhuYFyUNkJBPXcX+KFGw7soLMXNG1RLXkH6/Ww2gVKqbj/fhXwgKQboNZGm",
-	"8SAu0RixjAXghpruxZiON3op1aipWAq5Djzin0TcVwlj/tFU7IbTibi/EcN1gUtpGOmpoQ3c88NIECpR",
-	"4oZn54/1bIflXt4Oc7tisB1s/yEhH0HNnrlJep2NpfmQsj0SNcJMK31ngrYkvcXxnDiM6SPmPZXtbhkz",
-	"uG0Vmah55X/opFtagLc+WH8L1KxtAcvo9CpYgJLacvbkQE+0nkUj4Utxe6C4xRjLSnwg4/+fta6fiYbr",
-	"L4PsIwbZKJWEggZPxgvRs423HUwk0vRAnD/BnGu1YV6T5Ns/rFYv+D0KQrJfiv3ul85jv/71DlqMVpI/",
-	"7V24Yq6gsYKluvIhKHltT97J61ookVw4R4rk5e/nMIGPSEZqBSnMz2ZnM2u/rlCJSkIKL85mZy9cSeWV",
-	"Qza1VWDqWpvdVto7yrIiWGp1XkDqR3fwFKDhn3Rx6/2nGJV7X1TVWubuxvTaaNV/Iz+qk4cttglpZ6rR",
-	"PfDuc/C/nc0OgyScgRySAk1OsmJPruMkwRvJ2mhL8ncHgLIRsBEYPwvWJpHq4+dPa1lo45HMj4DkFWGB",
-	"KpdijT0gYYKUgPRyYfc+6nyFX2Ik4t66Kv4sno51wIh57SdBImqrX+ai0Mfj+rcNHE1Pajf/jWdz98H7",
-	"HAm9NY3uldPzI+V052PbwoqTS+ofj4Dk9Tpx41VyKxI0/PlT4j1KPuwimd1OFWZ6167Oi2Y6mA/G43Lj",
-	"XzHXpUiUyEgG0ss7sC3KdS6YgJ8P4V4HbEbVZMDFruFocdhM2Gs6OlJijAzBsfp+f3qi+XEihThMinD2",
-	"u1w0i+bfAQA=",
+	"7FlRbuM2E76KwP9/dGOnuwVavW3TLZBityiyW/QhCARGnNhMJVI7HKUJAh1mz9Aj5GIFKckWZcpygjg2",
+	"2rwkkkhxvvnmmyFHvmepzgutQJFh8T0z6QJy7i7flbQ4A1NoZcDeF6gLQJLgRnmagjEJ6T9B2Xu6K4DF",
+	"zBBKNWfVhMFtIRFMIrvDUhHMAe24ezOpnwdeLw2gHfg/whWL2f+mK5zTBuT0d1NylJpV1YQhfCklgmDx",
+	"uY/Ns+TBaoxcTFrr+vIaUrLWT3QOitzia56n3tga8BSBE4iEkx2+0pjbKyY4wTckc4th7R0pwhwhFBoJ",
+	"Eim8tcpSitAy1p3t5vYIc1M6xlZLTbrues4FaUPguOLuDL6UYGiMwpzffgA1pwWLv5vNJiyXqr0/HkPe",
+	"WWkQ0Fnt2CAamfM5JAWnRScKneCoVApQyzCshynjJKkU4Adcl5dZJ9qqzC+b6VrNt5/fD1UXTcd0d9kQ",
+	"E+8RNQ6ncw7G8HkoFXv224khGx/0XKpBmiHnMvNcrp8EhFxwY/7SKMbhtEss3wjhOoO5NAT43NA6Qv1+",
+	"IB0Vz6Gn8ePHarzFslxv1F2n90DNvpGGeC5BkTZhKT+leoFJFtKQRpl2S+Kl1hlw1czQVzKVPBsaJy50",
+	"wlMqvSn93eQpVXW0ao7nd1mIR5ISqq+9zPWD0WPRo6zPjxclD11IDe0muV6EnxLq7RNlS/ZRZ8O8dxJo",
+	"C4IDedKsPrpxNSR9hOEKuRvXB9x7Lt/dZcjh5giV8JIW9R886KOeh7fc2bnPM5PZ7SzBw9vPPJTYbG7P",
+	"DvRAd7egEl6L24biFmIsyWFDxv87a92qV+hevzZ4j2jwglQicOw8GS5EL9b2tTABUeMGnT9L19Maa+ht",
+	"CWnZxv9027lGDr42J6/NSSMPqw9IS5R098nqpBbCJXAEtF8fV3c/t2798sdn1qjKhcmNrlxcEBWsqhxx",
+	"V3W8JWV25LO8LrniUd0c8+jdb6dswm4AjdSKxez4aHY0s3zqAhQvJIvZm6PZ0Rt3HKGFQza1O+jUHQvt",
+	"baHrtLYq5iS1OhUsrj+CsJpiMPSjFnd17VMEys3nRZHJ1L0xvTZarb67PuoU7B9PKz+shCW4B3Xpc/C/",
+	"nc12g8TvHxwSASZFWVBNruMkgltJ2mhL8tsdQOkV+wCMnzhpE0l18/A1k0KbGsnxHpCcIAhQNoFgBYgb",
+	"LyVYfH5h75eq0yVtlJ0dXwv5W/vPN/4JjHz4W0UpIHLBNxitj2RzCNj7COyl5BU6sgY4bXr4iJfWvky5",
+	"0PsL8K89HNWK1LZhG45l+73yJarIWvu4VSE53lMhaWNs9xhxcJXkhz0geZ9Frh+K7ngEhh6+RnVEsZZd",
+	"ILPbo9iw/rq/muxYgyOH5j2Jce20GiC+4edApXg4Na/lcnrfXJ2KatrpH0dkeNLtTguOPAcCNCw+v2fS",
+	"WnUN1ITV3w/Y0gbr62bS8Xeseb7Yrei36p73JP2BjyShM8xy9DUHNuWAX4P9/ub8orqo/hkA",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
