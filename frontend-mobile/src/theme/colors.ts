@@ -54,4 +54,14 @@ export const colors = {
   creadoBackground: '#fdfdfd',
   creadoCard: 'rgba(216,216,216,0.79)',
   creadoButton: '#b91b1b',
+
+  // Pantalla "Buscar dirección" (Figma).
+  textPrimary: '#111827',
+  textSecondary: '#475569',
+  bgCanvas: '#e8edf3',
+  divider: '#d9e0e8',
+  etiquetaPeligroBg: '#ffe9e9',
+  etiquetaPeligroText: '#d93f3f',
+  etiquetaAdvertenciaBg: '#fff6da',
+  etiquetaAdvertenciaText: '#b7770f',
 } as const;
