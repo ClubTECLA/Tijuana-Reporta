@@ -217,9 +217,9 @@ SELECT * FROM reporte WHERE id = $1;
 
 - Nombra las consultas en inglés y en `PascalCase`: `CreateX`, `GetXByID`, `ListXByY`,
   `UpdateX`, `DeleteX`.
-- Para parámetros con nombre o casts, usa `**sqlc**.arg(nombre)`
+- Para parámetros con nombre o casts, usa `sqlc.arg(nombre)`
   (ver `CreateLocation` en `reporte.sql`).
-- Los tipos se mapean según `**sqlc**.yaml`: `uuid` -> `uuid.UUID`, `timestamptz` ->
+- Los tipos se mapean según `sqlc.yaml`: `uuid` -> `uuid.UUID`, `timestamptz` ->
   `time.Time`, columnas `NULL` -> punteros (`*string`, `*int`, `*time.Time`).
 
 ### Paso 4: Genera el código
@@ -229,7 +229,7 @@ task generate
 ```
 
 Este comando corre `go tool oapi-codegen` (contrato -> `internal/api/generated.go`) y
-`**sqlc** generate` (SQL -> `internal/domain/`). Después de esto el build **falla a
+`sqlc generate` (SQL -> `internal/domain/`). Después de esto el build **falla a
 propósito**: `api.go` tiene la aserción `var _ StrictServerInterface = (*Server)(nil)` y
 `Server` todavía no implementa el método nuevo. El error del compilador te dice qué falta.
 
