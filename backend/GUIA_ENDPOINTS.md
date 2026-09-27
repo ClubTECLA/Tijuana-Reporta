@@ -94,8 +94,8 @@ Si el endpoint necesita una tabla o columna nueva, crea un par de archivos con e
 siguiente número de la secuencia:
 
 ```
-internal/database/migrations/005_agregar_algo.up.sql
-internal/database/migrations/005_agregar_algo.down.sql
+internal/database/migrations/006_agregar_algo.up.sql
+internal/database/migrations/006_agregar_algo.down.sql
 ```
 
 - `up` aplica el cambio; `down` lo revierte **exactamente** (una migración sin `down`
