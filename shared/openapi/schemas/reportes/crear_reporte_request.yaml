@@ -6,9 +6,13 @@ properties:
   latitude:
     type: number
     format: double
+    minimum: -90
+    maximum: 90
   longitude:
     type: number
     format: double
+    minimum: -180
+    maximum: 180
   image_path:
     type: string
     minLength: 1
