@@ -15,3 +15,6 @@ RETURNING *;
 
 -- name: ListLocationsByReporteId :many
 SELECT * FROM location WHERE reporte_id = $1;
+
+-- name: GetReporteById :one
+SELECT * FROM reporte WHERE id = $1;

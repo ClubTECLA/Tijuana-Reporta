@@ -28,6 +28,39 @@ crearReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+obtenerReporte:
+  get:
+    operationId: obtenerReporte
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Reporte encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+
 components:
   schemas:
     Reporte:

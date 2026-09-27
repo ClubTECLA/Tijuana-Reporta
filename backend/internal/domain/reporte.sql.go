@@ -96,6 +96,27 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 	return i, err
 }
 
+const getReporteById = `-- name: GetReporteById :one
+SELECT id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at FROM reporte WHERE id = $1
+`
+
+func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error) {
+	row := q.db.QueryRow(ctx, getReporteById, id)
+	var i Reporte
+	err := row.Scan(
+		&i.ID,
+		&i.IncidenteID,
+		&i.Avistamientos,
+		&i.EsHistorico,
+		&i.EsOficial,
+		&i.EstadoActual,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiredAt,
+	)
+	return i, err
+}
+
 const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many
 SELECT id, reporte_id, latitude, longitude, user_id, created_at FROM location WHERE reporte_id = $1
 `

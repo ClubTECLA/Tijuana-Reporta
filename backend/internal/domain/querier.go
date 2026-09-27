@@ -21,6 +21,7 @@ type Querier interface {
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)

@@ -18,6 +18,7 @@ type ComentarioService interface {
 // servicio.
 type ReporteService interface {
 	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.Reporte, error)
+	Obtener(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 }
 
 // AuthService devuelve, junto con el usuario, el access token ya firmado y

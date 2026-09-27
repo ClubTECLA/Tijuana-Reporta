@@ -14,6 +14,7 @@ var (
 	ErrEmailTaken         = errors.New("email already registered")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrReporteNotFound    = errors.New("reporte not found")
 )
 
 // pgUniqueViolation es el código de error de Postgres para unique_violation.

@@ -9,6 +9,8 @@ security:
 paths:
   /reportes:
     $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/{reporteId}:
+    $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
   /auth/register:

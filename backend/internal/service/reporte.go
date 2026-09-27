@@ -10,6 +10,7 @@ import (
 // ReporteStore es el subconjunto de *database.Store que este servicio usa.
 type ReporteStore interface {
 	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 }
 
 type ReporteService struct {
@@ -37,4 +38,13 @@ func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteI
 		Longitude:  longitude,
 		ImagePaths: imagePaths,
 	})
+}
+
+// Obtener devuelve el reporte con el id dado
+func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Reporte, error) {
+	r, err := s.store.GetReporteById(ctx, id)
+	if domain.IsNotFound(err) {
+		return domain.Reporte{}, domain.ErrReporteNotFound
+	}
+	return r, err
 }
