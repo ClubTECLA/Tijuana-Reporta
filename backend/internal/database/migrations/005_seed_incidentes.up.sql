@@ -7,4 +7,5 @@ INSERT INTO incidentes (nombre, tiempo_limite, radio, esta_activo) VALUES
     ('drenaje', 5, 100, true),
     ('deslave', 5, 100, true),
     ('inundacion', 5, 100, true),
-    ('incendio', 5, 100, true);
+    ('incendio', 5, 100, true)
+ON CONFLICT (nombre) DO NOTHING;
