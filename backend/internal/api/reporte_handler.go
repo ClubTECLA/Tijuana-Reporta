@@ -32,6 +32,9 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	b := request.Body
 	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, b.ImagePath)
 	if err != nil {
+		if errors.Is(err, domain.ErrIncidenteNotFound) {
+			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
+		}
 		return nil, err
 	}
 

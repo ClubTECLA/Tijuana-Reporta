@@ -8,13 +8,15 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // fakeReporteStore implementa ReporteStore en memoria y guarda los últimos
 // parámetros recibidos por CreateReporte para poder revisarlos.
 type fakeReporteStore struct {
-	byID    map[uuid.UUID]domain.Reporte
-	lastArg domain.CreateReporteTxParams
+	byID      map[uuid.UUID]domain.Reporte
+	lastArg   domain.CreateReporteTxParams
+	createErr error
 }
 
 func newFakeReporteStore() *fakeReporteStore {
@@ -23,6 +25,9 @@ func newFakeReporteStore() *fakeReporteStore {
 
 func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error) {
 	f.lastArg = arg
+	if f.createErr != nil {
+		return domain.Reporte{}, f.createErr
+	}
 	r := domain.Reporte{
 		ID:          uuid.New(),
 		IncidenteID: arg.Reporte.IncidenteID,
@@ -72,6 +77,17 @@ func TestReporteService_Crear_SinFoto(t *testing.T) {
 	}
 	if len(store.lastArg.ImagePaths) != 0 {
 		t.Fatalf("CreateReporte() ImagePaths = %v, want empty", store.lastArg.ImagePaths)
+	}
+}
+
+func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
+	store := newFakeReporteStore()
+	store.createErr = &pgconn.PgError{Code: "23503", ConstraintName: "reporte_incidente_id_fkey"}
+	svc := NewReporteService(store)
+
+	_, err := svc.Crear(context.Background(), uuid.New(), 999, 32.5027, -117.00371, nil)
+	if !errors.Is(err, domain.ErrIncidenteNotFound) {
+		t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteNotFound)
 	}
 }
 

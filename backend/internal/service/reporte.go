@@ -31,13 +31,17 @@ func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteI
 		imagePaths = []string{*imagePath}
 	}
 
-	return s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
+	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
 		Reporte:    domain.CreateReporteParams{IncidenteID: incidenteID},
 		UserID:     userID,
 		Latitude:   latitude,
 		Longitude:  longitude,
 		ImagePaths: imagePaths,
 	})
+	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
+		return domain.Reporte{}, domain.ErrIncidenteNotFound
+	}
+	return r, err
 }
 
 // Obtener devuelve el reporte con el id dado
