@@ -61,7 +61,7 @@ comentario al inicio que lo indica, y **sqlc** no los toca.
 
 - Go (la versión de `go.mod`).
 - [Task](https://taskfile.dev/installation/) para correr los comandos del `Taskfile.yml`.
-- [sqlc](https://docs.**sqlc**.dev/en/latest/overview/install.html).
+- [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html).
 - [golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) (`migrate`).
 - `oapi-codegen` no se instala aparte: está fijado como `tool` en `go.mod` y se ejecuta
   con `go tool oapi-codegen` (el `Taskfile` ya lo hace así).
