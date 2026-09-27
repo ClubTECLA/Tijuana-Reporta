@@ -8,6 +8,7 @@ export default function MainLayout() {
         name="crear-reporte"
         options={{ presentation: 'transparentModal', animation: 'fade' }}
       />
+      <Stack.Screen name="buscar" />
     </Stack>
   );
 }
