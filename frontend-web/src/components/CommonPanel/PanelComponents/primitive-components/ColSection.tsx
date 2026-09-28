@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { IoIosArrowBack } from "react-icons/io";
+import { IoIosArrowBack, IoIosClose } from "react-icons/io";
+import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
 
 type arrangementType = 'toUp' | 'toDown' | 'center'
 
@@ -41,18 +42,36 @@ export default function ColSection(
         extraHeaderBtns
     }: SectionProps
 ) {
+    const { backView, hasPrevView, closePanel } = useCommonPanel();
     
     return(
-        <section className={`w-fit h-full flex flex-col ${!!debug ? 'border-2' : ''}`}>
+        <section className={`w-fit h-full flex flex-col ${debug ? 'border-2' : ''}`}>
             <div className="flex flex-row items-center">
+                {hasPrevView && 
+                    <button 
+                        type='button'
+                        aria-label="Regresar"
+                        onClick={backView}
+                        className="
+                            flex items-center justify-center 
+                            w-10 h-10 rounded-full 
+                            bg-gray-100 text-2xl font-bold text-gray-500 
+                        "
+                    >
+                        <IoIosArrowBack/>
+                    </button>
+                }
                 <button 
+                    type='button'
+                    aria-label="Cerrar"
+                    onClick={closePanel}
                     className="
                         flex items-center justify-center 
                         w-10 h-10 rounded-full 
                         bg-gray-100 text-2xl font-bold text-gray-500 
                     "
                 >
-                    <IoIosArrowBack/>
+                    <IoIosClose/>
                 </button>
                 <div className="flex flex-col items-start pl-4">
                     <span className="text-xl font-bold">{title}</span>

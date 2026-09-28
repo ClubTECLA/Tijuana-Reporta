@@ -28,3 +28,11 @@ export interface subsectionProps {
     debug?: boolean
     format: "row" | "col"
 }
+
+export type NavItemsType = {
+  icon: ReactNode,
+  title: string,
+  destinationPath?: string,
+  onClick?: () => void,
+  cantNoti?: number
+}[]

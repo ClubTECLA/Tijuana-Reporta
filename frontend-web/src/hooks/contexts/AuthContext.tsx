@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthResponse } from '../../types/utils-types'
 import { type Users } from '../../types/db-types'
-import { apiUrl, testUser } from '../../types/global-variables'
+import { apiUrl } from '../../types/global-variables'
 
 
 const accessTokenKey = 'access_token'
@@ -37,7 +37,7 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<Users | null>(testUser);
+    const [user, setUser] = useState<Users | null>(null);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
     useEffect(() => {

@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { IoIosArrowBack } from "react-icons/io";
+import { IoIosArrowBack, IoIosClose } from "react-icons/io";
+import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
 
 type arrangementType = 'toRight' | 'toLeft' | 'center'
 
 const arrangementNormalize = {
     toRight: 'justify-start w-fit',
-    toLeft: 'justify-end h-full',
-    center: 'justify-center h-full'
+    toLeft: 'justify-end w-full',
+    center: 'justify-center w-full'
 }
 
 const headerButtonColors = {
@@ -41,17 +42,36 @@ export default function RowSection(
         extraHeaderBtns
     }: SectionProps
 ) {
+    const { backView, hasPrevView, closePanel } = useCommonPanel();
+
     return(
-        <section className={`w-full h-full flex flex-col ${!!debug ? 'border-2' : ''}`}>
+        <section className={`w-full h-full flex flex-col ${debug ? 'border-2' : ''}`}>
             <div className="flex flex-row items-center">
+                {hasPrevView && 
+                    <button 
+                        type='button'
+                        aria-label="Regresar"
+                        onClick={backView}
+                        className="
+                            flex items-center justify-center 
+                            w-10 h-10 rounded-full 
+                            bg-gray-100 text-2xl font-bold text-gray-500 
+                        "
+                    >
+                        <IoIosArrowBack/>
+                    </button>
+                }
                 <button 
+                    type='button'
+                    aria-label="Cerrar"
+                    onClick={closePanel}
                     className="
                         flex items-center justify-center 
                         w-10 h-10 rounded-full 
                         bg-gray-100 text-2xl font-bold text-gray-500 
                     "
                 >
-                    <IoIosArrowBack/>
+                    <IoIosClose/>
                 </button>
                 <div className="flex flex-col items-start pl-4">
                     <span className="text-xl font-bold">{title}</span>
