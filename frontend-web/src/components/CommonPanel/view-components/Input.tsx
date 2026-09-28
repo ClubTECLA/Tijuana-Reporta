@@ -11,6 +11,8 @@ interface inputProps extends subsectionProps {
     checked?: boolean
     defaultChecked?: boolean
     onChange?: ChangeEventHandler<HTMLInputElement>
+    name?: string
+    key?: string | null
 }
 
 export default function Input({
@@ -21,7 +23,9 @@ export default function Input({
     value,
     checked,
     defaultChecked,
-    format
+    format,
+    name,
+    key
 }: inputProps) {
     const inputId = useId();
 
@@ -37,6 +41,8 @@ export default function Input({
                         type="text"
                         value={value}
                         onChange={onChange}
+                        name={name}
+                        key={key}
                     />
                 </div>
             }
@@ -53,6 +59,8 @@ export default function Input({
                             defaultChecked={checked === undefined ? defaultChecked : undefined}
                             onChange={onChange}
                             className="peer sr-only"
+                            name={name}
+                            key={key}
                         />
                         <span
                             aria-hidden="true"

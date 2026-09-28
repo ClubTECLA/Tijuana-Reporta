@@ -24,7 +24,7 @@ export default function UserMenu() {
             icon: <FiUser/>,
             title: "Mi perfil y contraseña",
             color: 'blue',
-            onClick: () => setPanelView("SI")
+            onClick: () => setPanelView(<UserProfileView/>)
         },
     ]
 

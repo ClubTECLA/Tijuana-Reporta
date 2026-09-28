@@ -3,8 +3,8 @@ import SubSection from "../PanelComponents/primitive-components/SubSection";
 
 interface userCartProps extends subsectionProps {
     username: string,
-    email?: string,
-    rolName?: string
+    email?: string | null,
+    rolName?: string | null | number
 }
 
 export default function UserCart({username, email, rolName, debug, format}: userCartProps) {

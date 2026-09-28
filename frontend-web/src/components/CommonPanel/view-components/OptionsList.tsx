@@ -40,7 +40,7 @@ export function ListTile({icon, tileName, type = 'button', tileDescription, valu
                             text-gray-600 gap-1 
                             w-30 h-10"
                         >
-                            {valueBagde}
+                            <div className="text-lg font-bold text-blue-700">{valueBagde}</div>
                             <IoIosArrowForward/>
                         </div>
                     }
