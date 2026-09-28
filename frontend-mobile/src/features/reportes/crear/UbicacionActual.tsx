@@ -1,20 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { PinDestacadoIcon } from '@/components/icons/PinDestacadoIcon';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
+import { CorregirUbicacionModal } from './CorregirUbicacionModal';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const MAP_HEIGHT = 94;
 const PIN_WIDTH = 27;
 const PIN_HEIGHT = 43;
+// Mismo centro que el mapa principal: punto de partida si no hay GPS.
+const FALLBACK = { lat: 32.5149, lng: -117.0382 };
 const GPS_TIMEOUT_MS = 8000;
 // Si no hay fix nuevo, solo se acepta una posición guardada de hace menos de 2 min.
 const LAST_KNOWN_MAX_AGE_MS = 2 * 60 * 1000;
 
-type Estado = 'detectando' | 'listo' | 'sin-permiso' | 'sin-senal';
+// gps: posición detectada · manual: el usuario movió el pin · fallback: sin GPS, centro de Tijuana.
+type Origen = 'gps' | 'manual' | 'fallback';
 
 interface UbicacionActualProps {
   lat: number | null;
@@ -41,14 +45,25 @@ async function formatearDireccion(latitude: number, longitude: number): Promise<
 }
 
 export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualProps) {
-  const [estado, setEstado] = useState<Estado>(lat !== null && lng !== null ? 'listo' : 'detectando');
+  const [origen, setOrigen] = useState<Origen>('gps');
+  const cameraRef = useRef<MapLibreGL.CameraRef>(null);
+  const [corrigiendo, setCorrigiendo] = useState(false);
+
+  const aplicar = useCallback(
+    async (latitude: number, longitude: number, nuevoOrigen: Origen) => {
+      setOrigen(nuevoOrigen);
+      const direccion =
+        nuevoOrigen === 'fallback' ? 'Tijuana, B.C.' : await formatearDireccion(latitude, longitude);
+      onLocationChange(latitude, longitude, direccion);
+    },
+    [onLocationChange],
+  );
 
   const detectar = useCallback(async () => {
-    setEstado('detectando');
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setEstado('sin-permiso');
+        await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
         return;
       }
       const posicion = await conTiempoLimite(
@@ -56,16 +71,17 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
         GPS_TIMEOUT_MS,
       ).catch(() => Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }));
       if (!posicion) {
-        setEstado('sin-senal');
+        await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
         return;
       }
-      const { latitude, longitude } = posicion.coords;
-      onLocationChange(latitude, longitude, await formatearDireccion(latitude, longitude));
-      setEstado('listo');
-    } catch {
-      setEstado('sin-senal');
+      await aplicar(posicion.coords.latitude, posicion.coords.longitude, 'gps');
+    } catch (err) {
+      // Nunca se traga el error en silencio: sin este log un fallo real
+      // (SecurityException, Play Services caído…) no deja rastro.
+      console.error('[UbicacionActual] no se pudo detectar la ubicación:', err);
+      await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
     }
-  }, [onLocationChange]);
+  }, [aplicar]);
 
   useEffect(() => {
     if (lat === null || lng === null) void detectar();
@@ -73,24 +89,49 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (estado === 'listo' && lat !== null && lng !== null) {
+  // El usuario corrigió el punto en el modal: se guarda y la cámara del mini-mapa lo sigue.
+  const guardarManual = useCallback(
+    async (latitude: number, longitude: number) => {
+      setCorrigiendo(false);
+      void cameraRef.current?.jumpTo({ center: [longitude, latitude], zoom: 15 });
+      await aplicar(latitude, longitude, 'manual');
+    },
+    [aplicar],
+  );
+
+  if (lat === null || lng === null) {
     return (
+      <View style={[styles.mapa, styles.placeholder]}>
+        <ActivityIndicator color={colors.slate} />
+        <Text style={styles.texto}>Detectando tu ubicación…</Text>
+      </View>
+    );
+  }
+
+  const pista =
+    origen === 'fallback'
+      ? 'No detectamos tu ubicación. Toca el mapa para marcarla.'
+      : origen === 'manual'
+          ? 'Ubicación ajustada manualmente.'
+          : 'Toca el mapa si necesitas ajustarla.';
+
+  return (
+    <View>
       <View style={styles.mapa}>
         <MapLibreGL.Map
-          key={`${lat}-${lng}`}
           style={StyleSheet.absoluteFill}
           mapStyle={MAP_STYLE}
           touchPitch={false}
+          touchRotate={false}
           dragPan={false}
           touchZoom={false}
           doubleTapZoom={false}
           doubleTapHoldZoom={false}
-          touchRotate={false}
           compass={false}
           logo={false}
           attribution={false}
         >
-          <MapLibreGL.Camera initialViewState={{ center: [lng, lat], zoom: 15 }} />
+          <MapLibreGL.Camera ref={cameraRef} initialViewState={{ center: [lng, lat], zoom: 15 }} />
         </MapLibreGL.Map>
         <View
           pointerEvents="none"
@@ -98,31 +139,26 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
         >
           <PinDestacadoIcon width={PIN_WIDTH} />
         </View>
+        {/* Toque en cualquier parte del mapa: abre el modal "Corregir ubicación". */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setCorrigiendo(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Corregir ubicación"
+        />
       </View>
-    );
-  }
-
-  const fallo = estado === 'sin-permiso' || estado === 'sin-senal';
-  return (
-    <View style={[styles.mapa, styles.placeholder]}>
-      {estado === 'detectando' && (
-        <>
-          <ActivityIndicator color={colors.slate} />
-          <Text style={styles.texto}>Detectando tu ubicación…</Text>
-        </>
-      )}
-      {fallo && (
-        <>
-          <Text style={styles.texto}>
-            {estado === 'sin-permiso'
-              ? 'Permiso de ubicación denegado. Actívalo en Configuración.'
-              : 'No se pudo obtener tu ubicación.'}
-          </Text>
-          <Pressable onPress={() => void detectar()} accessibilityRole="button" hitSlop={8}>
-            <Text style={styles.reintentar}>Reintentar</Text>
-          </Pressable>
-        </>
-      )}
+      <CorregirUbicacionModal
+        visible={corrigiendo}
+        lat={lat}
+        lng={lng}
+        onCancelar={() => setCorrigiendo(false)}
+        onGuardar={(la, ln) => void guardarManual(la, ln)}
+      />
+      <View style={styles.pie}>
+        <Text style={styles.pista} numberOfLines={2}>
+          {pista}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -143,15 +179,23 @@ const styles = StyleSheet.create({
   pin: {
     position: 'absolute',
   },
+  pie: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  pista: {
+    flex: 1,
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.slate,
+  },
   texto: {
     fontFamily: fontFamily.regular,
     fontSize: 13,
     color: colors.slate,
     textAlign: 'center',
-  },
-  reintentar: {
-    fontFamily: fontFamily.bold,
-    fontSize: 13,
-    color: colors.linkBlue,
   },
 });

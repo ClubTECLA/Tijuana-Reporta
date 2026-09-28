@@ -53,7 +53,7 @@ export default function MainMap() {
             lngLat={[reporte.lng, reporte.lat]}
             onPress={() => setSelectedReporte(reporte)}
           >
-            <MapMarker categoria={reporte.categoria} halo={selectedReporte?.id === reporte.id} />
+            <MapMarker categoria={reporte.categorias[0]} halo={selectedReporte?.id === reporte.id} />
           </MapLibreGL.Marker>
         ))}
         {target && (

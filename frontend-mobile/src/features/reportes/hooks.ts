@@ -27,3 +27,12 @@ export function useApoyarReporte() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reportesKeys.all }),
   });
 }
+
+export function useConfirmarDuplicado() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, imageBase64 }: { id: string; imageBase64?: string }) =>
+      reportesApi.confirmarDuplicado(id, imageBase64),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reportesKeys.all }),
+  });
+}
