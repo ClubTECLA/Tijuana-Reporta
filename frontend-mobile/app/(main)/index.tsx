@@ -1,20 +1,25 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '@/theme/colors';
+import { fontFamily } from '@/theme/typography';
 import { useReportes } from '@/features/reportes/hooks';
 import { ReporteDetalle } from '@/features/reportes/detalle/ReporteDetalle';
 import { MapMarker } from '@/features/mapa/MapMarker';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
+import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
+import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
-import { PinDestacadoIcon } from '@/components/icons/PinDestacadoIcon';
+import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import type { Reporte } from '@/types/api';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const TARGET_ZOOM = 15;
+const MI_UBICACION_ZOOM = 16;
+const AVISO_MS = 3500;
 const SIN_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 
 // Medidas de la pantalla "Ver reporte" (Figma 22).
@@ -22,12 +27,20 @@ const BUSCADOR_ALTO = 60;
 const SEPARACION_BUSCADOR = 26;
 const FAB_ALTO = 60;
 const SEPARACION_FAB = 31;
+// Separación entre el botón de ubicación y el de reportar (Figma 10): 84 px del círculo + 21.
+const UBICACION_SOBRE_FAB = 105;
 
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
   const { data: reportes = [] } = useReportes();
+
+  const [expandido, setExpandido] = useState(true);
+  const [permisoUbicacion, setPermisoUbicacion] = useState(false);
+  const [miPosicionSimulada, setMiPosicionSimulada] = useState<Coordenadas | null>(null);
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const cameraRef = useRef<MapLibreGL.CameraRef>(null);
   const target = useMapaTargetStore((s) => s.target);
@@ -52,13 +65,59 @@ export default function MainMap() {
     [pantallaAlto, tarjetaBottom],
   );
 
-  // Al elegir un resultado en "Buscar dirección" (app/(main)/buscar.tsx), la
-  // cámara vuela hasta ahí y se marca el destino con un pin temporal.
+  // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa).
+  useEffect(() => {
+    void tienePermisoUbicacion().then(setPermisoUbicacion).catch(() => setPermisoUbicacion(false));
+  }, []);
+
+  useEffect(() => {
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(null), AVISO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  // "Reportar" nace ensanchado (Figma 10) y se contrae a círculo (Figma 11) en cuanto el usuario
+  // mueve el mapa; solo vuelve a ensancharse al tocar "ir a mi ubicación". Los vuelos de cámara
+  // del propio código (`userInteraction: false`) no lo contraen.
+  const alMoverse = useCallback((e: { nativeEvent: { userInteraction: boolean } }) => {
+    if (e.nativeEvent.userInteraction) setExpandido(false);
+  }, []);
+
+  const irAMiUbicacion = useCallback(async () => {
+    setBuscandoUbicacion(true);
+    try {
+      const posicion = await obtenerPosicionActual();
+      if (!posicion) {
+        setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
+        return;
+      }
+      setPermisoUbicacion(true);
+      // Sin GPS (emulador en PC) y con mocks, `posicion.simulada`: el punto azul lo dibujamos
+      // nosotros porque el nativo no tiene posición que mostrar.
+      setMiPosicionSimulada(posicion.simulada ? { lat: posicion.lat, lng: posicion.lng } : null);
+      setExpandido(true);
+      cameraRef.current?.flyTo({
+        center: [posicion.lng, posicion.lat],
+        zoom: MI_UBICACION_ZOOM,
+        duration: 800,
+        padding: SIN_PADDING,
+      });
+    } catch (err) {
+      console.error('[MainMap] no se pudo obtener la ubicación actual:', err);
+      setAviso('No pudimos obtener tu ubicación. Intenta de nuevo.');
+    } finally {
+      setBuscandoUbicacion(false);
+    }
+  }, []);
+
+  // Al elegir un resultado en "Buscar dirección" (app/(main)/buscar.tsx), la cámara vuela hasta
+  // ahí. No se marca el punto con ningún pin: es para explorar los reportes de esa zona.
   useEffect(() => {
     if (target && !target.reporteId) {
       cameraRef.current?.flyTo({ center: [target.lng, target.lat], zoom: TARGET_ZOOM, duration: 1200, padding: SIN_PADDING });
+      clearTarget();
     }
-  }, [target]);
+  }, [target, clearTarget]);
 
   // "Ver reporte" desde la pantalla de éxito: abre la tarjeta del reporte recién creado/confirmado.
   useEffect(() => {
@@ -66,8 +125,7 @@ export default function MainMap() {
     const reporte = reportes.find((r) => r.id === target.reporteId);
     if (!reporte) return;
     seleccionar(reporte);
-    // El reporte ya tiene su propio marcador: se libera el target para que no
-    // reabra la tarjeta cada vez que se refresque la lista.
+    // Se libera el target para que no reabra la tarjeta cada vez que se refresque la lista.
     clearTarget();
   }, [target, reportes, clearTarget, seleccionar]);
 
@@ -78,6 +136,7 @@ export default function MainMap() {
         mapStyle={MAP_STYLE}
         logo={false}
         attribution={false}
+        onRegionWillChange={alMoverse}
       >
         <MapLibreGL.Camera
           ref={cameraRef}
@@ -86,6 +145,12 @@ export default function MainMap() {
             zoom: 11,
           }}
         />
+        {permisoUbicacion && !miPosicionSimulada && <MapLibreGL.UserLocation />}
+        {miPosicionSimulada && (
+          <MapLibreGL.Marker id="mi-posicion-simulada" lngLat={[miPosicionSimulada.lng, miPosicionSimulada.lat]}>
+            <PuntoUsuario />
+          </MapLibreGL.Marker>
+        )}
         {reportes.map((reporte) => (
           <MapLibreGL.Marker
             key={reporte.id}
@@ -96,11 +161,6 @@ export default function MainMap() {
             <MapMarker categoria={reporte.categorias[0]} halo={selectedReporte?.id === reporte.id} />
           </MapLibreGL.Marker>
         ))}
-        {target && (
-          <MapLibreGL.Marker id="destino-busqueda" lngLat={[target.lng, target.lat]} anchor="bottom">
-            <PinDestacadoIcon width={27} />
-          </MapLibreGL.Marker>
-        )}
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: buscadorTop }]} pointerEvents="box-none">
@@ -123,9 +183,19 @@ export default function MainMap() {
           />
         </>
       ) : (
-        <View style={[styles.fabWrapper, { bottom: fabBottom }]} pointerEvents="box-none">
-          <ReportarFab onPress={() => router.push('/(main)/crear-reporte')} />
-        </View>
+        <>
+          <View style={[styles.ubicacionWrapper, { bottom: fabBottom + UBICACION_SOBRE_FAB }]} pointerEvents="box-none">
+            {aviso && (
+              <View style={styles.aviso}>
+                <Text style={styles.avisoTexto}>{aviso}</Text>
+              </View>
+            )}
+            <UbicacionFab onPress={() => void irAMiUbicacion()} cargando={buscandoUbicacion} />
+          </View>
+          <View style={[styles.fabWrapper, { bottom: fabBottom }]} pointerEvents="box-none">
+            <ReportarFab expandido={expandido} onPress={() => router.push('/(main)/crear-reporte')} />
+          </View>
+        </>
       )}
     </View>
   );
@@ -146,6 +216,24 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  ubicacionWrapper: {
+    position: 'absolute',
+    right: 20,
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  aviso: {
+    maxWidth: 260,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: colors.ink,
+  },
+  avisoTexto: {
+    fontFamily: fontFamily.medium,
+    fontSize: 13,
+    color: colors.white,
   },
   scrim: {
     ...StyleSheet.absoluteFill,
