@@ -37,3 +37,9 @@ additional-imports:
 # alcanza y es mucho más simple.
 compatibility:
   enable-auth-scopes-on-context: true
+
+# Los schemas que referencian otros componentes lo hacen vía el openapi.yaml
+# raíz (../../openapi.yaml#/components/schemas/X) para que oapi-codegen use el
+# tipo con nombre en vez de inlinear un struct anónimo. "-" = mismo paquete.
+import-mapping:
+  ../../openapi.yaml: "-"
