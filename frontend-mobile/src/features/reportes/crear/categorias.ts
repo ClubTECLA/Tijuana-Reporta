@@ -26,13 +26,34 @@ export const CATEGORIAS_PICKER: CategoriaReporte[] = [
 ];
 export const CATEGORIAS_VISIBLES = 4;
 
-// El diseño muestra "Tráfico" y "Muertos" como chips de la descripción. El
-// resto es provisional hasta definir el catálogo de etiquetas.
-export const ETIQUETAS = ['tráfico', 'muertos', 'heridos', 'cables', 'bloqueo', 'peligroso'];
-export const ETIQUETAS_VISIBLES = 2;
+// Etiquetas predefinidas de "Información adicional", por categoría (Figma 16/17: chips con un punto
+// del color de su categoría). La primera de cada lista es la "etiqueta de categoría": se agrega sola
+// al elegir la categoría. Lo demás es provisional hasta definir el catálogo con diseño y backend.
+// Cada etiqueta pertenece a una sola categoría (de ahí su color); se guarda tal cual en `Reporte.tags`.
+export const ETIQUETAS_POR_CATEGORIA: Partial<Record<CategoriaReporte, string[]>> = {
+  inundacion: ['inundación', 'tráfico', 'vehículo atrapado', 'casas afectadas'],
+  deslave: ['deslave', 'bloqueo', 'casas en riesgo'],
+  arbol: ['árbol caído', 'cables', 'poste caído'],
+  socavon: ['hundimiento', 'profundo', 'peligroso'],
+  luz: ['sin luz', 'apagón', 'cables expuestos'],
+  drenaje: ['drenaje tapado', 'desborde', 'mal olor'],
+};
+
+export interface EtiquetaDeCategoria {
+  id: string;
+  categoria: CategoriaReporte;
+}
+
+export const etiquetasDe = (categoria: CategoriaReporte): EtiquetaDeCategoria[] =>
+  (ETIQUETAS_POR_CATEGORIA[categoria] ?? []).map((id) => ({ id, categoria }));
+
+/** Etiqueta que se crea sola al elegir la categoría. */
+export const etiquetaPrincipal = (categoria: CategoriaReporte): string | undefined =>
+  ETIQUETAS_POR_CATEGORIA[categoria]?.[0];
 
 export function etiquetaLabel(tag: string): string {
-  return tag.charAt(0).toUpperCase() + tag.slice(1);
+  const texto = tag.replaceAll('_', ' ');
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 export function tituloReporte(categoria: CategoriaReporte, direccion: string | null): string {

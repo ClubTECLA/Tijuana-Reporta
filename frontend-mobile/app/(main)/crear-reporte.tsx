@@ -13,7 +13,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraIcon } from '@/components/icons/CameraIcon';
-import { SendUpIcon } from '@/components/icons/SendUpIcon';
+import { SendIcon } from '@/components/icons/SendIcon';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
@@ -21,13 +21,13 @@ import { CategoriaChip } from '@/features/reportes/crear/CategoriaChip';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { ReporteCreado } from '@/features/reportes/crear/ReporteCreado';
 import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
+import { EtiquetaChip } from '@/features/reportes/crear/EtiquetaChip';
 import { UbicacionActual } from '@/features/reportes/crear/UbicacionActual';
 import {
   CATEGORIAS_PICKER,
   CATEGORIAS_VISIBLES,
-  ETIQUETAS,
-  ETIQUETAS_VISIBLES,
-  etiquetaLabel,
+  etiquetaPrincipal,
+  etiquetasDe,
 } from '@/features/reportes/crear/categorias';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
@@ -92,7 +92,15 @@ export default function CrearReporte() {
   const visibles = CATEGORIAS_PICKER.slice(0, CATEGORIAS_VISIBLES);
   // Categorías elegidas desde "+ Ver mas" que no tienen tarjeta en la grilla: van como chips quitables.
   const fueraDeGrilla = form.categorias.filter((c) => !visibles.includes(c));
-  const etiquetas = todasEtiquetas ? ETIQUETAS : ETIQUETAS.slice(0, ETIQUETAS_VISIBLES);
+  // Información adicional: solo hay etiquetas de las categorías elegidas (con su color). Contraída, la
+  // etiqueta por defecto de cada una más las que el usuario haya activado; con "Ver mas", el resto
+  // de las etiquetas de esas mismas categorías.
+  const deLasElegidas = form.categorias.flatMap(etiquetasDe);
+  const contraidas = deLasElegidas.filter(
+    ({ id, categoria }) => form.tags.includes(id) || id === etiquetaPrincipal(categoria),
+  );
+  const hayMasEtiquetas = contraidas.length < deLasElegidas.length;
+  const etiquetas = todasEtiquetas && hayMasEtiquetas ? deLasElegidas : contraidas;
 
   return (
     <View style={styles.root}>
@@ -207,34 +215,33 @@ export default function CrearReporte() {
               <CameraIcon />
             </Pressable>
 
-            {/* Descripción (etiquetas) */}
+            {/* Información adicional (etiquetas por categoría) */}
             <View style={[styles.filaLabel, styles.seccionDescripcion]}>
-              <Text style={styles.label}>Descripción (opcional)</Text>
-              {ETIQUETAS.length > ETIQUETAS_VISIBLES && (
+              <Text style={styles.label}>Información adicional</Text>
+              {hayMasEtiquetas && (
                 <Pressable onPress={() => setTodasEtiquetas((v) => !v)} accessibilityRole="button" hitSlop={8}>
                   <Text style={styles.verMas}>{todasEtiquetas ? '− Ver menos' : '+ Ver mas'}</Text>
                 </Pressable>
               )}
             </View>
-            <View style={styles.chips}>
-              {etiquetas.map((tag) => {
-                const activa = form.tags.includes(tag);
-                return (
-                  <Pressable
-                    key={tag}
-                    onPress={() => toggleTag(tag)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: activa }}
-                    style={[styles.chip, activa && styles.chipActivo]}
-                  >
-                    <Text style={[styles.chipTexto, activa && styles.chipTextoActivo]}>{etiquetaLabel(tag)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {etiquetas.length === 0 ? (
+              <Text style={styles.etiquetasVacio}>Elige qué está pasando para ver etiquetas sugeridas.</Text>
+            ) : (
+              <View style={styles.chips}>
+                {etiquetas.map(({ id, categoria }) => (
+                  <EtiquetaChip
+                    key={id}
+                    etiqueta={id}
+                    categoria={categoria}
+                    activa={form.tags.includes(id)}
+                    onPress={() => toggleTag(id)}
+                  />
+                ))}
+              </View>
+            )}
           </ScrollView>
 
-          <View style={[styles.pie, { paddingBottom: Math.max(insets.bottom, 0) + 8 }]}>
+          <View style={[styles.pie, { paddingBottom: Math.max(insets.bottom, 0) + 12 }]}>
             {!!submitError && <Text style={[styles.error, styles.errorEnvio]}>{submitError}</Text>}
             <Pressable
               onPress={() => void submit()}
@@ -247,7 +254,7 @@ export default function CrearReporte() {
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <>
-                  <SendUpIcon />
+                  <SendIcon size={22} />
                   <Text style={styles.enviarTexto}>Enviar reporte</Text>
                 </>
               )}
@@ -313,7 +320,7 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 19,
     paddingTop: 14,
-    paddingBottom: 12,
+    paddingBottom: 24,
   },
 
   // ── Secciones ────────────────────────────────────────────────────────────
@@ -422,51 +429,38 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 9.8,
   },
-  chip: {
-    paddingHorizontal: 14.7,
-    paddingVertical: 7.4,
-    borderRadius: 999,
-    borderWidth: 1.434,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.white,
-    elevation: 1,
-  },
-  chipActivo: {
-    borderColor: colors.primary,
-    backgroundColor: '#eaf2ff',
-  },
-  chipTexto: {
-    fontFamily: fontFamily.medium,
-    fontSize: 15.95,
-    lineHeight: 23.9,
-    color: colors.chipText,
-  },
-  chipTextoActivo: {
-    color: colors.primary,
+  etiquetasVacio: {
+    marginTop: 8,
+    fontFamily: fontFamily.regular,
+    fontSize: 14,
+    color: colors.labelMuted,
   },
 
   // ── Enviar ───────────────────────────────────────────────────────────────
   pie: {
     paddingHorizontal: 19,
-    paddingTop: 8,
+    paddingTop: 12,
     backgroundColor: colors.white,
   },
+  // Botón "Enviar reporte" (Figma 16, Button/Enviar reporte): 60 px, píldora roja, icono de 22 px.
   enviar: {
-    height: 84,
-    borderRadius: 48.8,
+    height: 60,
+    borderRadius: 999,
+    paddingHorizontal: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    backgroundColor: colors.enviar,
+    gap: 10,
+    backgroundColor: colors.reportRed,
+    elevation: 4,
+    shadowColor: colors.reportRed,
   },
   enviarDeshabilitado: {
     opacity: 0.7,
   },
   enviarTexto: {
     fontFamily: fontFamily.bold,
-    fontSize: 24,
-    lineHeight: 35.4,
+    fontSize: 18,
     color: colors.white,
   },
 
