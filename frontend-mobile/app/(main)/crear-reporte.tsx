@@ -79,7 +79,7 @@ export default function CrearReporte() {
         reporte={creado}
         viaDuplicado={creadoViaDuplicado}
         onVer={() => {
-          setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo });
+          setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo, reporteId: creado.id });
           router.back();
         }}
         onVolver={() => router.back()}

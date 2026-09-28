@@ -76,4 +76,10 @@ export const colors = {
   reportRedShadow: 'rgba(194,5,8,0.35)',
   cardSecondary: '#f2f2f7',
   scrim: 'rgba(15,23,42,0.35)',
+
+  // Tarjeta "Ver reporte" (Figma 22).
+  scrimMapa: 'rgba(0,0,0,0.25)',
+  rescatista: '#d35456',
+  rescatistaAvatar: '#e06d2f',
+  captionGradient: 'rgba(31,39,51,0.8)',
 } as const;
