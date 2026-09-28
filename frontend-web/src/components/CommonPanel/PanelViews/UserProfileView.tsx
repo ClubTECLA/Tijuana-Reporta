@@ -8,7 +8,7 @@ import { LuLock } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { FaUserLock } from "react-icons/fa6";
-import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 
 
 export default function UserProfileView() {
