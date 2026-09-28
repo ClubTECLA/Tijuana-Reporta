@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthResponse } from '../../types/utils-types'
 import { type Users } from '../../types/db-types'
-import { apiUrl } from '../../types/global-variables'
+import { apiUrl, testUser } from '../../types/global-variables'
 
 
 const accessTokenKey = 'access_token'
@@ -37,7 +37,7 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<Users | null>(null);
+    const [user, setUser] = useState<Users | null>(testUser);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
     useEffect(() => {
@@ -67,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [])
 
     const authenticate = async (endpoint: 'login' | 'register', body: object) => {
-        console.log("apiUrl:", apiUrl)
         const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -91,7 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = (email: string, username: string, password: string) =>
         authenticate('register', { email, username, password })
 
-    const logout = () => {
+    const logout = async () => {
+
+        await fetch(`${apiUrl}/auth/logout`,{
+            method: 'POST',
+        })
+
         localStorage.removeItem(accessTokenKey)
         setUser(null)
     }

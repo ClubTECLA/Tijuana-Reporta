@@ -1,14 +1,16 @@
-import { useCommonPanel } from '../hooks/contexts/CommonPanelContext';
 import { useRouter } from '../hooks/useRouter';
 import BellButton from './BellButton';
 import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
+import { modals } from '../types/global-modals';
+import useModals from '../hooks/useModals';
 
 export default function NavigationWrapper() {
-    const { setPanelView } = useCommonPanel();
+    const { setModal, currentModal} = useModals()
+    const { pathname } = useRouter();
 
-    if(useRouter().pathname === '/auth'){
+    if(pathname === '/auth'){
         return null
     }
 
@@ -27,10 +29,12 @@ export default function NavigationWrapper() {
                     <BellButton className=""/>
                     <UserProfileWidget 
                         className="" 
-                        onClick={() => setPanelView('Mi perfil')}
+                        onClick={() => setModal('Menu de Usuario')}
                     />    
                 </div>
             </div>
+
+            {currentModal && modals[currentModal]}
         </section>
     )
 }
