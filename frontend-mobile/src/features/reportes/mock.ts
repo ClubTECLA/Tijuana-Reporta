@@ -1,4 +1,4 @@
-import type { Reporte } from '@/types/api';
+import type { ComentarioConAutor, Reporte } from '@/types/api';
 import type { ReportesApi } from './port';
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -61,9 +61,62 @@ const seed: Reporte[] = [
   },
 ];
 
+const haceMin = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+
+// Hilos de ejemplo (Figma 22: "Inundación en Zona Centro"), por id de reporte.
+const seedComentarios: Record<string, ComentarioConAutor[]> = {
+  'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d': [
+    {
+      id: 1,
+      reporte_id: 'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d',
+      user_id: 'mock-rescatista-1',
+      autor: 'José M.',
+      es_rescatista: true,
+      comentario: 'Ya se está haciendo revisión de este incidente',
+      created_at: haceMin(240),
+    },
+    {
+      id: 2,
+      reporte_id: 'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d',
+      user_id: 'mock-user-luis',
+      autor: 'Luis R.',
+      comentario: 'Se metió el agua a dos locales. Con El Niño esto se pone peor cada lluvia.',
+      created_at: haceMin(120),
+    },
+    {
+      id: 3,
+      reporte_id: 'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d',
+      user_id: 'mock-user-anonimo',
+      autor: 'Anónimo',
+      comentario: 'El nivel sigue subiendo, no baja porque las coladeras están tapadas.',
+      created_at: haceMin(180),
+    },
+    {
+      id: 4,
+      reporte_id: 'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d',
+      user_id: 'mock-user-paola',
+      autor: 'Paola M.',
+      comentario: 'Tercer día seguido que se inunda este cruce.',
+      created_at: haceMin(240),
+    },
+  ],
+  'b75f858a-36fb-4c12-8789-58bfa98d248b': [
+    {
+      id: 5,
+      reporte_id: 'b75f858a-36fb-4c12-8789-58bfa98d248b',
+      user_id: 'mock-user-luis',
+      autor: 'Luis R.',
+      comentario: 'Ya le cayeron dos coches, cuidado si vienen de noche.',
+      created_at: haceMin(90),
+    },
+  ],
+};
+
 // Estado en memoria: lo que se crea o se apoya durante la sesión se refleja
 // en la siguiente lectura, para poder probar el flujo completo sin backend.
 let reportes = [...seed];
+const comentariosPorReporte = new Map<string, ComentarioConAutor[]>(Object.entries(seedComentarios));
+let siguienteComentarioId = 100;
 
 export const reportesMock: ReportesApi = {
   async listar() {
@@ -106,5 +159,24 @@ export const reportesMock: ReportesApi = {
     const actualizado = reportes.find((r) => r.id === id);
     if (!actualizado) throw new Error(`Reporte ${id} no encontrado`);
     return actualizado;
+  },
+
+  async comentarios(id) {
+    await delay(300);
+    return [...(comentariosPorReporte.get(id) ?? [])];
+  },
+
+  async comentar(id, texto) {
+    await delay(300);
+    const nuevo: ComentarioConAutor = {
+      id: siguienteComentarioId++,
+      reporte_id: id,
+      user_id: 'mock-user-123',
+      autor: 'Tú',
+      comentario: texto,
+      created_at: new Date().toISOString(),
+    };
+    comentariosPorReporte.set(id, [...(comentariosPorReporte.get(id) ?? []), nuevo]);
+    return nuevo;
   },
 };

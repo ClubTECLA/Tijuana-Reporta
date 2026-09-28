@@ -4,6 +4,8 @@ export interface MapaTarget {
   lat: number;
   lng: number;
   nombre: string;
+  /** Si viene, además de volar al punto se abre la tarjeta de ese reporte ("Ver reporte"). */
+  reporteId?: string;
 }
 
 interface MapaTargetState {
