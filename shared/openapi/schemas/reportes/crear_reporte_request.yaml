@@ -1,0 +1,14 @@
+type: object
+required: [incidente_id, latitude, longitude]
+properties:
+  incidente_id:
+    type: integer
+  latitude:
+    type: number
+    format: double
+  longitude:
+    type: number
+    format: double
+  image_path:
+    type: string
+    minLength: 1
