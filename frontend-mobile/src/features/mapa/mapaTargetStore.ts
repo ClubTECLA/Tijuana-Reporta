@@ -16,7 +16,7 @@ interface MapaTargetState {
 
 // Puente entre la pantalla "Buscar dirección" y el mapa: al elegir un
 // resultado se guarda aquí, y la Camera del mapa (que vive en otra pantalla
-// del stack) reacciona al cambio para volar hasta ese punto.
+// del stack) reacciona al cambio para volar hasta ese punto y lo libera (`clear`).
 export const useMapaTargetStore = create<MapaTargetState>((set) => ({
   target: null,
   setTarget: (target) => set({ target }),
