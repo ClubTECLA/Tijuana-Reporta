@@ -6,7 +6,7 @@ import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
 
 export default function NavigationWrapper() {
-    
+
     if(useRouter().pathname === '/auth'){
         return null
     }

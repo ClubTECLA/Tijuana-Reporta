@@ -9,12 +9,20 @@ import React, {
     useMemo,
     useRef,
 } from "react";
+//react icons imports
+import { FiAlertCircle, FiAlertTriangle } from "react-icons/fi";
+import {IoMdCheckmarkCircleOutline} from "react-icons/io" 
+import { IoCloseOutline } from "react-icons/io5";
+
+
 
 /** Supported visual states for system messages. */
-type MessageColor = 'red' | 'green' | 'yellow';
+type MessageColor = 'red' | 'green' | 'yellow' | 'blue';
 
 /** Controls whether a message is rendered in the document flow or over the page. */
 type MessageType = "float" | "inline";
+
+type JustifyFloatMessage = 'start' | 'center' | 'end';
 
 /**
  * Optional configuration for showMessage.
@@ -38,42 +46,39 @@ type ShowMessageOptions = {
     title?: string;
     showTime?: number | null;
     type?: MessageType;
+    justify?: JustifyFloatMessage;
 };
 
 /** Internal state and actions exposed to consumers of the message context. */
 type SysMessageContextType = {
     showMessage: (msg: string, options?: ShowMessageOptions | MessageColor, title?: string) => void;
     cleanMessage: () => void;
-    messageState: MessageBoxProps;
+    messageState: MessageState;
 };
 
 const SysMessageContext = createContext<SysMessageContextType | null>(null);
 
 /** Maps each message color to its visual classes and icon. */
-const config: Record<MessageColor, { wrapper: string; icon: React.ReactNode }> = {
+const config: Record<MessageColor, { icon: React.ReactNode; barClass: string; wrapped: string }> = {
     green: {
-        wrapper: "bg-emerald-50 border-emerald-200 text-emerald-800",
-        icon: (
-            <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-        )
+        icon: <IoMdCheckmarkCircleOutline className="text-green-500 text-4xl"/>,
+        barClass: "border-l-green-500",
+        wrapped: "break-words whitespace-normal text-green-800 bg-green-100",
     },
     red: {
-        wrapper: "bg-red-50 border-red-200 text-red-800",
-        icon: (
-            <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-        )
+        icon: <FiAlertTriangle className="text-red-500 text-4xl"/>,
+        barClass: "border-l-red-500",
+        wrapped: "break-words whitespace-normal text-red-500 bg-red-100",
     },
     yellow: {
-        wrapper: "bg-yellow-50 border-yellow-200 text-yellow-800",
-        icon: (
-            <svg className="w-5 h-5 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-        )
+        icon: <FiAlertCircle className="text-yellow-500 text-4xl"/>,
+        barClass: "border-l-yellow-500",
+        wrapped: "break-words whitespace-normal text-yellow-700 bg-yellow-50",
+    },
+    blue: {
+        icon: <IoMdCheckmarkCircleOutline className="text-blue-500 text-4xl"/>,
+        barClass: "border-l-blue-500",
+        wrapped: "break-words whitespace-normal text-blue-700 bg-blue-100",
     }
 };
 
@@ -84,7 +89,11 @@ type MessageBoxProps = {
     type: MessageType;
     isVisible: boolean;
     animate: boolean;
+    justify: JustifyFloatMessage;
+    onClose: () => void;
 };
+
+type MessageState = Omit<MessageBoxProps, "onClose">;
 
 /**
  * Renders the current message using the selected display mode.
@@ -92,43 +101,64 @@ type MessageBoxProps = {
  * Inline messages remain in the normal document flow. Float messages use fixed
  * positioning and are animated from the top of the viewport.
  */
-function MessageBox({ message, title, color, type, isVisible, animate }: MessageBoxProps) {
+function MessageBox({ message, title, color,justify, type,isVisible, animate, onClose }: MessageBoxProps) {
     if (!isVisible || !message) return null;
 
     const currentStyle = config[color];
 
+    const justifyM: Record<JustifyFloatMessage, string> = {
+        'end': 'right-10',
+        'center': 'left-1/2 -translate-x-1/2',
+        'start': 'left-10'
+    }
+
     if (type === "inline") {
         return (
             <div className={`
-                flex flex-row items-center gap-3 px-5 py-3.5 w-full
-                border rounded-2xl transition-all duration-300 ease-out
-                ${currentStyle.wrapper}
+                flex flex-row items-center gap-3 px-5 py-1 w-full
+                rounded-2xl transition-all duration-300 ease-out
+                ${currentStyle.wrapped}
                 ${animate ? "opacity-100 scale-100" : "opacity-0 scale-95"}
             `}>
                 {currentStyle.icon}
-                <div className="flex flex-col">
+                <div className={`flex flex-col`}>
                     {title && <span className="text-md font-bold">{title}</span>}
                     <span className="text-xs font-medium leading-snug">{message}</span>
                 </div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="ml-auto rounded-md p-1"
+                    aria-label="Cerrar mensaje"
+                >
+                    <IoCloseOutline className="text-3xl" />
+                </button>
             </div>
         );
     }
 
     return (
         <div className={`
-            fixed left-1/2 -translate-x-1/2 z-[100]
+            fixed ${justifyM[justify]} z-[100]
             flex items-center gap-3 px-5 py-3.5
-            border rounded-2xl shadow-xl shadow-zinc-200/50
-            w-max max-w-[90vw]
+            border-l-4 ${currentStyle.barClass} rounded-2xl shadow-xl shadow-zinc-200/50
+            w-max max-w-[90vw] bg-white
             transition-all duration-300 ease-out font-sn-pro
-            ${currentStyle.wrapper}
-            ${animate ? "top-24 opacity-100 scale-100" : "top-0 opacity-0 scale-95 pointer-events-none"}
+            ${animate ? "top-20 opacity-100 scale-100" : "top-0 opacity-0 scale-95 pointer-events-none"}
         `}>
             {currentStyle.icon}
-            <div className="flex flex-col">
+            <div className={`flex flex-col break-words whitespace-normal`}>
                 {title && <span className="text-md font-bold">{title}</span>}
                 <span className="text-xs font-medium leading-snug">{message}</span>
             </div>
+            <button
+                type="button"
+                onClick={onClose}
+                className="ml-auto rounded-md p-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                aria-label="Cerrar mensaje"
+            >
+                <IoCloseOutline className="text-3xl" />
+            </button>
         </div>
     );
 }
@@ -153,6 +183,7 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
     const [messageColor, setMessageColor] = useState<MessageColor>('green');
     const [showTime, setShowTime] = useState<number | null>(4000);
     const [typeMessage, setTypeMessage] = useState<MessageType>("float");
+    const [floatMessageJustify, setFloatMessageJustify] = useState<JustifyFloatMessage>('end');
 
     const [isVisible, setIsVisible] = useState(false);
     const [animate, setAnimate] = useState(false);
@@ -194,6 +225,7 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
         let tTitle = '';
         let time: number | null = 4000;
         let type: MessageType = 'float';
+        let justify: JustifyFloatMessage = 'end';
 
         if (typeof options === 'string') {
             color = options;
@@ -203,6 +235,7 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
             tTitle = options.title || '';
             time = options.showTime !== undefined ? options.showTime : 4000;
             type = options.type || 'float';
+            justify = options.justify || 'end';
         }
 
         if (hideTimeoutRef.current) {
@@ -217,6 +250,7 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
         setTypeMessage(type);
         setAnimate(false);  
         setIsVisible(true);
+        setFloatMessageJustify(justify);
     }, []);
 
     /*
@@ -261,16 +295,20 @@ export function SysMessageProvider({ children }: { children: React.ReactNode }) 
                 title,
                 color: messageColor,
                 type: typeMessage,
+                justify: floatMessageJustify,
                 isVisible,
                 animate,
             },
         }),
-        [showMessage, cleanMessage, message, title, messageColor, typeMessage, isVisible, animate]
+        [showMessage, cleanMessage, message, title, messageColor, typeMessage, floatMessageJustify, isVisible, animate]
     );
 
     return (
         <SysMessageContext.Provider value={value}>
             {children}
+            {typeMessage === "float" && (
+                <MessageBox {...value.messageState} onClose={cleanMessage} />
+            )}
         </SysMessageContext.Provider>
     );
 }
@@ -320,6 +358,7 @@ export function useSysMessage() {
  * });
  */
 export function SysMessage() {
-    const { messageState } = useSysMessage();
-    return <MessageBox {...messageState} />;
+    const { messageState, cleanMessage } = useSysMessage();
+    if (messageState.type !== "inline") return null;
+    return <MessageBox {...messageState} onClose={cleanMessage} />;
 }
