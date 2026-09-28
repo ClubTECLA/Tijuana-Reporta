@@ -64,4 +64,16 @@ export const colors = {
   etiquetaPeligroText: '#d93f3f',
   etiquetaAdvertenciaBg: '#fff6da',
   etiquetaAdvertenciaText: '#b7770f',
+
+  // Modal "Corregir ubicación" y hoja "Reporte creado" (Figma).
+  brand: '#2677e6',
+  brandText: '#176edf',
+  brandShadow: 'rgba(38,119,230,0.35)',
+  infoSubtle: '#eff6ff',
+  successSubtle: '#e7f7f0',
+  successIcon: '#1f9460',
+  reportRed: '#c30508',
+  reportRedShadow: 'rgba(194,5,8,0.35)',
+  cardSecondary: '#f2f2f7',
+  scrim: 'rgba(15,23,42,0.35)',
 } as const;

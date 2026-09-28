@@ -14,10 +14,13 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraIcon } from '@/components/icons/CameraIcon';
 import { SendUpIcon } from '@/components/icons/SendUpIcon';
+import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
+import { CategoriaChip } from '@/features/reportes/crear/CategoriaChip';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { ReporteCreado } from '@/features/reportes/crear/ReporteCreado';
+import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
 import { UbicacionActual } from '@/features/reportes/crear/UbicacionActual';
 import {
   CATEGORIAS_PICKER,
@@ -28,7 +31,6 @@ import {
 } from '@/features/reportes/crear/categorias';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
-import type { CategoriaReporte } from '@/types/api';
 
 const pares = <T,>(items: T[]): T[][] => {
   const filas: T[][] = [];
@@ -38,8 +40,22 @@ const pares = <T,>(items: T[]): T[][] => {
 
 export default function CrearReporte() {
   const insets = useSafeAreaInsets();
-  const { form, errors, isSubmitting, submitError, creado, setCategoria, toggleTag, setLocation, submit } =
-    useCrearReporte();
+  const {
+    form,
+    errors,
+    isSubmitting,
+    submitError,
+    creado,
+    creadoViaDuplicado,
+    duplicado,
+    toggleCategoria,
+    toggleTag,
+    setLocation,
+    submit,
+    confirmarEsElMismo,
+    seguirReportando,
+  } = useCrearReporte();
+  const setTarget = useMapaTargetStore((s) => s.setTarget);
   const [expandido, setExpandido] = useState(false);
   const [todasEtiquetas, setTodasEtiquetas] = useState(false);
   const slide = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -58,18 +74,24 @@ export default function CrearReporte() {
   }, [expandido]);
 
   if (creado) {
-    return <ReporteCreado reporte={creado} onVolver={() => router.back()} />;
+    return (
+      <ReporteCreado
+        reporte={creado}
+        viaDuplicado={creadoViaDuplicado}
+        onVer={() => {
+          setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo });
+          router.back();
+        }}
+        onVolver={() => router.back()}
+      />
+    );
   }
 
   const cerrar = () => router.back();
-  const elegir = (categoria: CategoriaReporte) => {
-    setCategoria(categoria);
-    setExpandido(false);
-  };
   const errorCategoria = !!errors.categoria;
-  // Si se eligió una de las categorías que solo salen en "+ Ver mas", ocupa el último lugar visible.
   const visibles = CATEGORIAS_PICKER.slice(0, CATEGORIAS_VISIBLES);
-  if (form.categoria && !visibles.includes(form.categoria)) visibles[visibles.length - 1] = form.categoria;
+  // Categorías elegidas desde "+ Ver mas" que no tienen tarjeta en la grilla: van como chips quitables.
+  const fueraDeGrilla = form.categorias.filter((c) => !visibles.includes(c));
   const etiquetas = todasEtiquetas ? ETIQUETAS : ETIQUETAS.slice(0, ETIQUETAS_VISIBLES);
 
   return (
@@ -97,14 +119,25 @@ export default function CrearReporte() {
                       key={cat}
                       compact
                       categoria={cat}
-                      selected={form.categoria === cat}
-                      onPress={() => elegir(cat)}
+                      selected={form.categorias.includes(cat)}
+                      onPress={() => toggleCategoria(cat)}
                     />
                   ))}
                 </View>
               ))}
             </View>
           </ScrollView>
+        </View>
+      ) : duplicado ? (
+        /* ── "¿Es el mismo incidente?" ───────────────────────────────────── */
+        <View style={styles.duplicadoWrap}>
+          <ReporteDuplicado
+            reporte={duplicado.reporte}
+            distanciaM={duplicado.distanciaM}
+            confirmando={isSubmitting}
+            onConfirmar={() => void confirmarEsElMismo()}
+            onRechazar={() => void seguirReportando()}
+          />
         </View>
       ) : (
         /* ── Hoja "Reportar un incidente" ────────────────────────────────── */
@@ -138,6 +171,13 @@ export default function CrearReporte() {
                 <Text style={styles.verMas}>+ Ver mas</Text>
               </Pressable>
             </View>
+            {fueraDeGrilla.length > 0 && (
+              <View style={styles.chipsSeleccionadas}>
+                {fueraDeGrilla.map((cat) => (
+                  <CategoriaChip key={cat} categoria={cat} onQuitar={() => toggleCategoria(cat)} />
+                ))}
+              </View>
+            )}
             <View style={[styles.grid, errorCategoria && styles.gridError]}>
               {pares(visibles).map((fila, i) => (
                 <View key={i} style={styles.fila}>
@@ -145,9 +185,9 @@ export default function CrearReporte() {
                     <CategoriaCard
                       key={cat}
                       categoria={cat}
-                      selected={form.categoria === cat}
+                      selected={form.categorias.includes(cat)}
                       dimmed={errorCategoria}
-                      onPress={() => elegir(cat)}
+                      onPress={() => toggleCategoria(cat)}
                     />
                   ))}
                 </View>
@@ -155,7 +195,7 @@ export default function CrearReporte() {
             </View>
 
             {/* Foto */}
-            <Text style={[styles.label, styles.seccionFoto]}>Foto (toma o sube una foto)</Text>
+            <Text style={[styles.label, styles.seccionFoto]}>toma o sube una foto (opcional)</Text>
             {/* TODO: habilitar con expo-image-picker (requiere reconstruir el dev client). */}
             <Pressable
               style={[styles.foto, styles.fotoDeshabilitada]}
@@ -320,6 +360,20 @@ const styles = StyleSheet.create({
   errorEnvio: {
     marginBottom: 8,
     textAlign: 'center',
+  },
+
+  duplicadoWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  chipsSeleccionadas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+    paddingHorizontal: 6,
   },
 
   // ── Cuadrícula de categorías ─────────────────────────────────────────────

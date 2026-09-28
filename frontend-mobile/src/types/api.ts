@@ -21,7 +21,8 @@ export interface Usuario {
 export interface Reporte {
   id: string;
   titulo: string;
-  categoria: CategoriaReporte;
+  /** Un reporte puede describir varios eventos a la vez (p. ej. inundación + árbol caído). */
+  categorias: CategoriaReporte[];
   tags: string[];
   lat: number;
   lng: number;
@@ -43,7 +44,7 @@ export interface Comentario {
 
 export interface CrearReporteRequest {
   titulo: string;
-  categoria: CategoriaReporte;
+  categorias: CategoriaReporte[];
   tags: string[];
   lat: number;
   lng: number;

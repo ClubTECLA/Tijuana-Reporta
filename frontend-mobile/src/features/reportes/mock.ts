@@ -7,7 +7,7 @@ const seed: Reporte[] = [
   {
     id: 'b75f858a-36fb-4c12-8789-58bfa98d248b',
     titulo: 'Socavón en Blvd. Agua Caliente',
-    categoria: 'socavon',
+    categorias: ['socavon'],
     tags: ['profundo', 'peligro'],
     lat: 32.5149,
     lng: -117.0094,
@@ -21,7 +21,7 @@ const seed: Reporte[] = [
   {
     id: 'f9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d',
     titulo: 'Árbol caído sobre cableado',
-    categoria: 'arbol',
+    categorias: ['arbol'],
     tags: ['cables', 'bloqueo'],
     lat: 32.5255,
     lng: -117.0210,
@@ -35,7 +35,7 @@ const seed: Reporte[] = [
   {
     id: 'a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d',
     titulo: 'Inundación severa en Vía Rápida',
-    categoria: 'inundacion',
+    categorias: ['inundacion'],
     tags: ['tráfico', 'imposible_pasar'],
     lat: 32.5312,
     lng: -116.9934,
@@ -49,7 +49,7 @@ const seed: Reporte[] = [
   {
     id: 'c3d4e5f6-a1b2-4c5d-6e7f-8a9b0c1d2e3f',
     titulo: 'Falla eléctrica en toda la colonia',
-    categoria: 'luz',
+    categorias: ['luz'],
     tags: ['sin_luz', 'apagón'],
     lat: 32.4831,
     lng: -116.9664,
@@ -76,7 +76,7 @@ export const reportesMock: ReportesApi = {
     const nuevo: Reporte = {
       id: Math.random().toString(36).substring(2),
       titulo: req.titulo,
-      categoria: req.categoria,
+      categorias: req.categorias,
       tags: req.tags,
       lat: req.lat,
       lng: req.lng,
@@ -94,5 +94,17 @@ export const reportesMock: ReportesApi = {
   async apoyar(id) {
     await delay(300);
     reportes = reportes.map((r) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r));
+  },
+
+  async confirmarDuplicado(id, imageBase64) {
+    await delay(600);
+    reportes = reportes.map((r) =>
+      r.id === id
+        ? { ...r, upvotes: r.upvotes + 1, ...(imageBase64 !== undefined && { image_url: imageBase64 }) }
+        : r,
+    );
+    const actualizado = reportes.find((r) => r.id === id);
+    if (!actualizado) throw new Error(`Reporte ${id} no encontrado`);
+    return actualizado;
   },
 };

@@ -10,6 +10,7 @@ import {
 import { colors } from '../theme/colors';
 import { fontFamily } from '../theme/typography';
 import { Reporte, CategoriaReporte, StatusReporte } from '../types/api';
+import { hace } from '../lib/time';
 import { BottomSheet } from './BottomSheet';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,15 +45,6 @@ const STATUS_CONFIG: Record<StatusReporte, { label: string; bg: string; text: st
   resuelto: { label: 'Resuelto', bg: colors.successLight, text: colors.successText },
 };
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `Hace ${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `Hace ${hrs} h`;
-  return `Hace ${Math.floor(hrs / 24)} días`;
-}
-
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface IncidentCardProps {
@@ -77,6 +69,7 @@ export function IncidentCard({
   if (!reporte) return null;
 
   const statusCfg = STATUS_CONFIG[reporte.status];
+  const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
 
   return (
     <BottomSheet isVisible={!!reporte} onClose={onClose} maxHeightRatio={0.7}>
@@ -96,17 +89,24 @@ export function IncidentCard({
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text style={styles.imagePlaceholderEmoji}>
-              {CATEGORIA_EMOJI[reporte.categoria]}
+              {CATEGORIA_EMOJI[categoriaPrincipal]}
             </Text>
           </View>
         )}
 
-        {/* Badges: categoría + status */}
+        {/* Badges: categoría(s) + status */}
         <View style={styles.badgeRow}>
           <View style={styles.categoriaBadge}>
-            <Text style={styles.categoriaEmoji}>{CATEGORIA_EMOJI[reporte.categoria]}</Text>
-            <Text style={styles.categoriaText}>{CATEGORIA_LABELS[reporte.categoria]}</Text>
+            <Text style={styles.categoriaEmoji}>{CATEGORIA_EMOJI[categoriaPrincipal]}</Text>
+            <Text style={styles.categoriaText}>{CATEGORIA_LABELS[categoriaPrincipal]}</Text>
           </View>
+          {/* Reporte con varios eventos a la vez: el resto de categorías, en badges aparte. */}
+          {categoriasExtra.map((cat) => (
+            <View key={cat} style={styles.categoriaBadge}>
+              <Text style={styles.categoriaEmoji}>{CATEGORIA_EMOJI[cat]}</Text>
+              <Text style={styles.categoriaText}>{CATEGORIA_LABELS[cat]}</Text>
+            </View>
+          ))}
 
           <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
             <Text style={[styles.statusText, { color: statusCfg.text }]}>
@@ -125,7 +125,7 @@ export function IncidentCard({
             {reporte.direccion ?? `${reporte.lat.toFixed(4)}, ${reporte.lng.toFixed(4)}`}
           </Text>
           <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.metaTime}>{timeAgo(reporte.created_at)}</Text>
+          <Text style={styles.metaTime}>{hace(reporte.created_at)}</Text>
         </View>
 
         {/* Tags */}
@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
   // Badges
   badgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     marginBottom: 10,
