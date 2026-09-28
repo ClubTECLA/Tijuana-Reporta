@@ -7,6 +7,8 @@ security:
   - bearerAuth: []
 
 paths:
+  /reportes:
+    $ref: './paths/reportes.yaml#/crearReporte'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
   /auth/register:
@@ -24,6 +26,10 @@ components:
       $ref: './schemas/comentarios/comentario.yaml'
     CrearComentarioRequest:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
+    Reporte:
+      $ref: './schemas/reportes/reporte.yaml'
+    CrearReporteRequest:
+      $ref: './schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:
       $ref: './schemas/error_response.yaml'
     RegisterRequest:

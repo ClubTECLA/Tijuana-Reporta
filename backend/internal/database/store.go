@@ -53,3 +53,41 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg domain.Crea
 
 	return user, nil
 }
+
+// CreateReporte inserta el reporte, la ubicación inicial y sus fotos en la
+// misma transacción
+func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error) {
+	var reporte domain.Reporte
+
+	err := s.execTx(ctx, func(q *domain.Queries) error {
+		var err error
+		if reporte, err = q.CreateReporte(ctx, arg.Reporte); err != nil {
+			return err
+		}
+
+		if _, err = q.CreateLocation(ctx, domain.CreateLocationParams{
+			ReporteID: reporte.ID,
+			UserID:    arg.UserID,
+			Latitude:  arg.Latitude,
+			Longitude: arg.Longitude,
+		}); err != nil {
+			return err
+		}
+
+		for _, path := range arg.ImagePaths {
+			if _, err = q.CreateFotoReporte(ctx, domain.CreateFotoReporteParams{
+				ReporteID: reporte.ID,
+				ImagePath: path,
+				UserID:    arg.UserID,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return domain.Reporte{}, err
+	}
+
+	return reporte, nil
+}

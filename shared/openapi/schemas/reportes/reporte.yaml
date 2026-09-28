@@ -1,0 +1,25 @@
+type: object
+required: [id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at]
+properties:
+  id:
+    type: string
+    format: uuid
+  incidente_id:
+    type: integer
+  avistamientos:
+    type: integer
+  es_historico:
+    type: boolean
+  es_oficial:
+    type: boolean
+  estado_actual:
+    type: string
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
+  expired_at:
+    type: string
+    format: date-time

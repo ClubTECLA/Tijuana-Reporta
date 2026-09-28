@@ -12,15 +12,19 @@ import (
 
 type Querier interface {
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
+	CreateFotoReporte(ctx context.Context, arg CreateFotoReporteParams) (FotosReporte, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
 	// sin padre.
 	CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error
+	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
+	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
 }
 
 var _ Querier = (*Queries)(nil)
