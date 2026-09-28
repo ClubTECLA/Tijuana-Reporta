@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CategoriaReporte, Reporte } from '@/types/api';
-import { tituloReporte } from './crear/categorias';
+import { etiquetaPrincipal, etiquetasDe, tituloReporte } from './crear/categorias';
 import { buscarDuplicado } from './crear/duplicados';
 import { useConfirmarDuplicado, useCrearReporteMutation } from './hooks';
 import { reportesApi } from './api';
@@ -72,13 +72,25 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const confirmar = useConfirmarDuplicado();
   const enviando = useRef(false);
 
+  // Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
+  // quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
   const toggleCategoria = (categoria: CategoriaReporte): void => {
-    setForm((prev) => ({
-      ...prev,
-      categorias: prev.categorias.includes(categoria)
-        ? prev.categorias.filter((c) => c !== categoria)
-        : [...prev.categorias, categoria],
-    }));
+    setForm((prev) => {
+      if (prev.categorias.includes(categoria)) {
+        const propias = etiquetasDe(categoria).map((e) => e.id);
+        return {
+          ...prev,
+          categorias: prev.categorias.filter((c) => c !== categoria),
+          tags: prev.tags.filter((t) => !propias.includes(t)),
+        };
+      }
+      const principal = etiquetaPrincipal(categoria);
+      return {
+        ...prev,
+        categorias: [...prev.categorias, categoria],
+        tags: principal && !prev.tags.includes(principal) ? [...prev.tags, principal] : prev.tags,
+      };
+    });
     setErrors((prev) => ({ ...prev, categoria: undefined }));
   };
 

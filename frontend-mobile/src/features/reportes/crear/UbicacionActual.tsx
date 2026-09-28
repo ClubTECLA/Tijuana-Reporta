@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import * as Location from 'expo-location';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { PinDestacadoIcon } from '@/components/icons/PinDestacadoIcon';
+import { distanciaMetros } from '@/lib/geo';
+import { conTiempoLimite, obtenerPosicionActual, type PosicionActual } from '@/lib/ubicacion';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
 import { CorregirUbicacionModal } from './CorregirUbicacionModal';
@@ -13,12 +15,14 @@ const PIN_WIDTH = 27;
 const PIN_HEIGHT = 43;
 // Mismo centro que el mapa principal: punto de partida si no hay GPS.
 const FALLBACK = { lat: 32.5149, lng: -117.0382 };
-const GPS_TIMEOUT_MS = 8000;
-// Si no hay fix nuevo, solo se acepta una posición guardada de hace menos de 2 min.
-const LAST_KNOWN_MAX_AGE_MS = 2 * 60 * 1000;
+// El geocodificador depende de la red: si tarda más, se sigue con una dirección genérica.
+const GEOCODIFICAR_TIMEOUT_MS = 3000;
+// Un fix nuevo solo mueve el pin si difiere de la posición mostrada más que esto (ruido del GPS).
+const AFINAR_MIN_M = 25;
 
-// gps: posición detectada · manual: el usuario movió el pin · fallback: sin GPS, centro de Tijuana.
-type Origen = 'gps' | 'manual' | 'fallback';
+// gps: posición detectada · simulada: sin GPS, ubicación mock (solo con mocks) · manual: el usuario
+// movió el pin · fallback: sin GPS ni mocks, centro de Tijuana.
+type Origen = 'gps' | 'simulada' | 'manual' | 'fallback';
 
 interface UbicacionActualProps {
   lat: number | null;
@@ -26,15 +30,9 @@ interface UbicacionActualProps {
   onLocationChange: (lat: number, lng: number, address: string) => void;
 }
 
-const conTiempoLimite = <T,>(promesa: Promise<T>, ms: number) =>
-  Promise.race([
-    promesa,
-    new Promise<never>((_, rechazar) => setTimeout(() => rechazar(new Error('timeout')), ms)),
-  ]);
-
 async function formatearDireccion(latitude: number, longitude: number): Promise<string> {
   try {
-    const [r] = await Location.reverseGeocodeAsync({ latitude, longitude });
+    const [r] = await conTiempoLimite(Location.reverseGeocodeAsync({ latitude, longitude }), GEOCODIFICAR_TIMEOUT_MS);
     if (!r) return 'Ubicación detectada';
     const calle = [r.street, r.streetNumber].filter(Boolean).join(' ');
     const ciudad = r.city ?? r.region ?? '';
@@ -48,10 +46,15 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
   const [origen, setOrigen] = useState<Origen>('gps');
   const cameraRef = useRef<MapLibreGL.CameraRef>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
+  // Espejo del estado para el callback que llega tarde (fix nuevo), que no puede leer valores frescos.
+  const origenRef = useRef<Origen>('gps');
+  const posicionRef = useRef<{ lat: number; lng: number } | null>(lat !== null && lng !== null ? { lat, lng } : null);
 
   const aplicar = useCallback(
     async (latitude: number, longitude: number, nuevoOrigen: Origen) => {
       setOrigen(nuevoOrigen);
+      origenRef.current = nuevoOrigen;
+      posicionRef.current = { lat: latitude, lng: longitude };
       const direccion =
         nuevoOrigen === 'fallback' ? 'Tijuana, B.C.' : await formatearDireccion(latitude, longitude);
       onLocationChange(latitude, longitude, direccion);
@@ -59,29 +62,35 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
     [onLocationChange],
   );
 
+  // Llega el fix nuevo tras haber mostrado la última posición conocida: se ajusta el pin, salvo que
+  // el usuario ya lo haya movido a mano.
+  const afinar = useCallback(
+    (fresca: PosicionActual) => {
+      const actual = posicionRef.current;
+      if (origenRef.current !== 'gps' || (actual && distanciaMetros(actual, fresca) < AFINAR_MIN_M)) return;
+      void cameraRef.current?.jumpTo({ center: [fresca.lng, fresca.lat], zoom: 15 });
+      void aplicar(fresca.lat, fresca.lng, 'gps');
+    },
+    [aplicar],
+  );
+
   const detectar = useCallback(async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
-        return;
-      }
-      const posicion = await conTiempoLimite(
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-        GPS_TIMEOUT_MS,
-      ).catch(() => Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }));
+      const posicion = await obtenerPosicionActual({ alRefinar: afinar });
       if (!posicion) {
         await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
         return;
       }
-      await aplicar(posicion.coords.latitude, posicion.coords.longitude, 'gps');
+      await aplicar(posicion.lat, posicion.lng, posicion.simulada ? 'simulada' : 'gps');
+      // "Usar GPS" con el mapa ya montado: la cámara vuela a la posición detectada.
+      void cameraRef.current?.flyTo({ center: [posicion.lng, posicion.lat], zoom: 15, duration: 500 });
     } catch (err) {
       // Nunca se traga el error en silencio: sin este log un fallo real
       // (SecurityException, Play Services caído…) no deja rastro.
       console.error('[UbicacionActual] no se pudo detectar la ubicación:', err);
       await aplicar(FALLBACK.lat, FALLBACK.lng, 'fallback');
     }
-  }, [aplicar]);
+  }, [aplicar, afinar]);
 
   useEffect(() => {
     if (lat === null || lng === null) void detectar();
@@ -111,7 +120,9 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
   const pista =
     origen === 'fallback'
       ? 'No detectamos tu ubicación. Toca el mapa para marcarla.'
-      : origen === 'manual'
+      : origen === 'simulada'
+        ? 'Ubicación simulada: este dispositivo no entregó GPS. Toca el mapa para ajustarla.'
+        : origen === 'manual'
           ? 'Ubicación ajustada manualmente.'
           : 'Toca el mapa si necesitas ajustarla.';
 
