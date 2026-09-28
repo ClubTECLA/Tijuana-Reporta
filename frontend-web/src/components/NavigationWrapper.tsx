@@ -1,3 +1,4 @@
+import { useCommonPanel } from '../hooks/contexts/CommonPanelContext';
 import { useRouter } from '../hooks/useRouter';
 import BellButton from './BellButton';
 import NavBar from "./NavBar";
@@ -5,7 +6,8 @@ import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
 
 export default function NavigationWrapper() {
-    
+    const { setPanelView } = useCommonPanel();
+
     if(useRouter().pathname === '/auth'){
         return null
     }
@@ -23,10 +25,12 @@ export default function NavigationWrapper() {
                 </div>
                 <div className="flex flex-row flex-1/6 items-end justify-end gap-2">
                     <BellButton className=""/>
-                    <UserProfileWidget className=""/>    
+                    <UserProfileWidget 
+                        className="" 
+                        onClick={() => setPanelView('Mi perfil')}
+                    />    
                 </div>
             </div>
-
         </section>
     )
 }

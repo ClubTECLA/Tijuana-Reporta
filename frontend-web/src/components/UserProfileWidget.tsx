@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { componentProps } from "../types/db-types";
+import type { componentProps } from "../types/utils-types";
 import { useAuth } from "../hooks/contexts/AuthContext";
 import { MdLogin } from "react-icons/md";
 import { Link } from "react-router-dom";
@@ -11,7 +11,6 @@ export default function UserProfileWidget({className, onClick} : componentProps)
 
     return(
         <Link
-            to={!isAuthenticated ? '/auth' : '/me'}    
             className={`
                 relative flex h-12 max-w-50 shrink-0 
                 flex-row items-center justify-center 
@@ -19,7 +18,12 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                 py-1 shadow-lg shadow-gray-600
                 ${className ?? ''}
             `}
-            onClick={onClick}
+            onClick={() => {
+                if(isAuthenticated)
+                    onClick?.()
+            }}
+            
+            to={!isAuthenticated ? '/auth' : '#'}
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
             onFocus={() => setOpen(true)}

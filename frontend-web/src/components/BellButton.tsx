@@ -1,5 +1,5 @@
 import { LuBell } from 'react-icons/lu'
-import type { componentProps } from "../types/db-types"
+import type { componentProps } from "../types/utils-types"
 
 export default function BellButton({className, onClick}: componentProps) {
     return(

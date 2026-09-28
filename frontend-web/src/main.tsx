@@ -6,14 +6,17 @@ import { AuthProvider } from './hooks/contexts/AuthContext.tsx'
 import { SysMessageProvider } from './hooks/contexts/SysMessageContext.tsx'
 import NavigationWrapper from './components/NavigationWrapper.tsx'
 import { BrowserRouter } from 'react-router-dom'
+import { CommonPanelProvider } from './hooks/contexts/CommonPanelContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SysMessageProvider>
       <AuthProvider>
         <BrowserRouter>
-          <NavigationWrapper />
-          <App />
+          <CommonPanelProvider>
+            <NavigationWrapper />
+            <App />
+          </CommonPanelProvider>
         </BrowserRouter>
       </AuthProvider>
     </SysMessageProvider>
