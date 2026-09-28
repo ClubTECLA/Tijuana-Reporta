@@ -27,6 +27,36 @@ const (
 	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
 
+// Defines values for EstadoReporte.
+const (
+	Descartado EstadoReporte = "Descartado"
+	Expirado   EstadoReporte = "Expirado"
+	Pendiente  EstadoReporte = "Pendiente"
+	Probable   EstadoReporte = "Probable"
+	Resuelto   EstadoReporte = "Resuelto"
+	Verificado EstadoReporte = "Verificado"
+)
+
+// Valid indicates whether the value is a known member of the EstadoReporte enum.
+func (e EstadoReporte) Valid() bool {
+	switch e {
+	case Descartado:
+		return true
+	case Expirado:
+		return true
+	case Pendiente:
+		return true
+	case Probable:
+		return true
+	case Resuelto:
+		return true
+	case Verificado:
+		return true
+	default:
+		return false
+	}
+}
+
 // AuthResponse defines model for AuthResponse.
 type AuthResponse struct {
 	AccessToken string `json:"access_token"`
@@ -68,6 +98,26 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// EstadoReporte defines model for EstadoReporte.
+type EstadoReporte string
+
+// Foto defines model for Foto.
+type Foto struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        int       `json:"id"`
+	ImagePath string    `json:"image_path"`
+	UserId    uuid.UUID `json:"user_id"`
+}
+
+// Location defines model for Location.
+type Location struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        int       `json:"id"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
+	UserId    uuid.UUID `json:"user_id"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Email    openapi_types.Email `json:"email"`
@@ -81,17 +131,50 @@ type RegisterRequest struct {
 	Username string              `json:"username"`
 }
 
-// Reporte defines model for Reporte.
+// Reporte Detalle completo de un reporte.
 type Reporte struct {
-	Avistamientos int        `json:"avistamientos"`
-	CreatedAt     time.Time  `json:"created_at"`
-	EsHistorico   bool       `json:"es_historico"`
-	EsOficial     bool       `json:"es_oficial"`
-	EstadoActual  string     `json:"estado_actual"`
-	ExpiredAt     *time.Time `json:"expired_at,omitempty"`
-	Id            uuid.UUID  `json:"id"`
-	IncidenteId   int        `json:"incidente_id"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	Avistamientos int           `json:"avistamientos"`
+	Comentarios   []Comentario  `json:"comentarios"`
+	CreatedAt     time.Time     `json:"created_at"`
+	EsHistorico   bool          `json:"es_historico"`
+	EsOficial     bool          `json:"es_oficial"`
+	EstadoActual  EstadoReporte `json:"estado_actual"`
+	ExpiredAt     *time.Time    `json:"expired_at,omitempty"`
+	Fotos         []Foto        `json:"fotos"`
+	Id            uuid.UUID     `json:"id"`
+	IncidenteId   int           `json:"incidente_id"`
+
+	// Latitude Centroide de todas las locations (tabla puntos_origen).
+	Latitude  float64    `json:"latitude"`
+	Locations []Location `json:"locations"`
+
+	// Longitude Centroide de todas las locations (tabla puntos_origen).
+	Longitude float64   `json:"longitude"`
+	Tags      []Tag     `json:"tags"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ReporteResumen Versión ligera de un reporte para pintar pines en el mapa.
+type ReporteResumen struct {
+	Avistamientos int           `json:"avistamientos"`
+	EsOficial     bool          `json:"es_oficial"`
+	EstadoActual  EstadoReporte `json:"estado_actual"`
+	Id            uuid.UUID     `json:"id"`
+	IncidenteId   int           `json:"incidente_id"`
+
+	// Latitude Centroide del reporte (tabla puntos_origen).
+	Latitude float64 `json:"latitude"`
+
+	// Longitude Centroide del reporte (tabla puntos_origen).
+	Longitude float64 `json:"longitude"`
+}
+
+// Tag defines model for Tag.
+type Tag struct {
+	// Count Cuántos usuarios han confirmado este tag en el reporte.
+	Count  int    `json:"count"`
+	Id     int    `json:"id"`
+	Nombre string `json:"nombre"`
 }
 
 // Usuario defines model for Usuario.
@@ -113,6 +196,14 @@ type UsuarioMeResponse struct {
 
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
+
+// ListarReportesParams defines parameters for ListarReportes.
+type ListarReportesParams struct {
+	MinLat *float64 `form:"min_lat,omitempty" json:"min_lat,omitempty"`
+	MaxLat *float64 `form:"max_lat,omitempty" json:"max_lat,omitempty"`
+	MinLng *float64 `form:"min_lng,omitempty" json:"min_lng,omitempty"`
+	MaxLng *float64 `form:"max_lng,omitempty" json:"max_lng,omitempty"`
+}
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
@@ -140,6 +231,9 @@ type ServerInterface interface {
 
 	// (POST /auth/register)
 	Register(c *gin.Context)
+
+	// (GET /reportes)
+	ListarReportes(c *gin.Context, params ListarReportesParams)
 
 	// (POST /reportes)
 	CrearReporte(c *gin.Context)
@@ -212,6 +306,59 @@ func (siw *ServerInterfaceWrapper) Register(c *gin.Context) {
 	}
 
 	siw.Handler.Register(c)
+}
+
+// ListarReportes operation middleware
+func (siw *ServerInterfaceWrapper) ListarReportes(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListarReportesParams
+
+	// ------------- Optional query parameter "min_lat" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "min_lat", c.Request.URL.Query(), &params.MinLat, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter min_lat: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "max_lat" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "max_lat", c.Request.URL.Query(), &params.MaxLat, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter max_lat: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "min_lng" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "min_lng", c.Request.URL.Query(), &params.MinLng, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter min_lng: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "max_lng" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "max_lng", c.Request.URL.Query(), &params.MaxLng, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter max_lng: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarReportes(c, params)
 }
 
 // CrearReporte operation middleware
@@ -314,6 +461,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout)
 	router.GET(options.BaseURL+"/auth/me", wrapper.Me)
 	router.POST(options.BaseURL+"/auth/register", wrapper.Register)
+	router.GET(options.BaseURL+"/reportes", wrapper.ListarReportes)
 	router.POST(options.BaseURL+"/reportes", wrapper.CrearReporte)
 	router.GET(options.BaseURL+"/reportes/:reporteId", wrapper.ObtenerReporte)
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
@@ -465,6 +613,56 @@ func (response Register409JSONResponse) VisitRegisterResponse(w http.ResponseWri
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportesRequestObject struct {
+	Params ListarReportesParams
+}
+
+type ListarReportesResponseObject interface {
+	VisitListarReportesResponse(w http.ResponseWriter) error
+}
+
+type ListarReportes200JSONResponse []ReporteResumen
+
+func (response ListarReportes200JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportes400JSONResponse ErrorResponse
+
+func (response ListarReportes400JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportes401JSONResponse ErrorResponse
+
+func (response ListarReportes401JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -634,6 +832,9 @@ type StrictServerInterface interface {
 
 	// (POST /auth/register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
+
+	// (GET /reportes)
+	ListarReportes(ctx context.Context, request ListarReportesRequestObject) (ListarReportesResponseObject, error)
 
 	// (POST /reportes)
 	CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error)
@@ -812,6 +1013,32 @@ func (sh *strictHandler) Register(ctx *gin.Context) {
 	}
 }
 
+// ListarReportes operation middleware
+func (sh *strictHandler) ListarReportes(ctx *gin.Context, params ListarReportesParams) {
+	var request ListarReportesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarReportes(ctx, request.(ListarReportesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarReportes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarReportesResponseObject); ok {
+		if err := validResponse.VisitListarReportesResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CrearReporte operation middleware
 func (sh *strictHandler) CrearReporte(ctx *gin.Context) {
 	var request CrearReporteRequestObject
@@ -907,26 +1134,36 @@ func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"TC+mfw8A",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -16,6 +16,8 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrReporteNotFound    = errors.New("reporte not found")
 	ErrIncidenteNotFound  = errors.New("incidente not found")
+	ErrAreaIncompleta     = errors.New("area incompleta")
+	ErrAreaInvalida       = errors.New("area invalida")
 )
 
 // Códigos de error de Postgres.

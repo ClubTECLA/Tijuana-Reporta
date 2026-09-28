@@ -15,3 +15,14 @@ type CreateReporteTxParams struct {
 	Longitude  float64
 	ImagePaths []string
 }
+
+// ReporteDetalle agrupa el reporte con todo lo que depende de este.
+type ReporteDetalle struct {
+	Reporte     Reporte
+	Latitude    float64
+	Longitude   float64
+	Comentarios []Comentario
+	Fotos       []FotosReporte
+	Tags        []ListTagsByReporteIdRow
+	Locations   []ListLocationsByReporteIdRow
+}

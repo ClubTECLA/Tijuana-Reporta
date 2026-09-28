@@ -1,0 +1,17 @@
+type: object
+required: [id, latitude, longitude, user_id, created_at]
+properties:
+  id:
+    type: integer
+  latitude:
+    type: number
+    format: double
+  longitude:
+    type: number
+    format: double
+  user_id:
+    type: string
+    format: uuid
+  created_at:
+    type: string
+    format: date-time
