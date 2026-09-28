@@ -54,3 +54,8 @@ sql:
           # Las PK SERIAL son un tipo aparte para sqlc, no int4.
           - db_type: "serial"
             go_type: "int"
+          - db_type: "float8"
+            nullable: true
+            go_type:
+              type: "float64"
+              pointer: true
