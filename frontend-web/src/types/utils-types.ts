@@ -13,18 +13,6 @@ export type NavItem = {
   cantNoti?: number
 }
 
-export interface AuthResponse {
-    access_token: string
-    user: {
-        id: string
-        email: string
-        username: string
-        rol_id: number
-        created_at: string
-        role_name: string
-    }
-}
-
 export interface subsectionProps {
     debug?: boolean
     format: "row" | "col"

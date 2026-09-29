@@ -19,7 +19,7 @@ interface AuthContextType {
     isLoading: boolean
     login: (email: string, password: string) => Promise<void>
     register: (email: string, username: string, password: string) => Promise<void>
-    logout: () => void
+    logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -48,7 +48,7 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<AuthContextUser | null>(testUser);
+    const [user, setUser] = useState<AuthContextUser | null>(null);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
     useEffect(() => {
@@ -104,12 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
 
-        await fetch(`${apiUrl}/auth/logout`,{
-            method: 'POST',
-        })
-
-        localStorage.removeItem(accessTokenKey)
-        setUser(null)
+        try{
+            await fetch(`${apiUrl}/auth/logout`,{
+                method: 'POST',
+            })
+        }catch(error){
+            console.error('Logout request failed:', error)
+        }finally{
+            localStorage.removeItem(accessTokenKey)
+            setUser(null)
+        }
     }
 
     return (
