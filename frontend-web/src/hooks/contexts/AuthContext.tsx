@@ -52,9 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
     useEffect(() => {
+        loadUser();
+    }, [])
+
+    const loadUser = () => {
+        
         const token = localStorage.getItem(accessTokenKey)
         if (!token) return
-
+        
         fetch(`${apiUrl}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -75,8 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(null)
             })
             .finally(() => setIsLoading(false))
-    }, [])
-
+    }
 
     const authenticate = async <T extends AuthEndpoint>(endpoint: T, body: AuthRequest<T>) => {
         const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
@@ -92,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json() as AuthResponseFor<T>
 
         localStorage.setItem(accessTokenKey, data.access_token)
-
-        setUser(toUser(data.user))
+        
+        loadUser();
     }
 
     const login = (email: string, password: string) =>
