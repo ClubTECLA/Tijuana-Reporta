@@ -18,7 +18,7 @@ type MenuOptions = {
 
 export default function UserMenu() {
     const { user, logout } = useAuth();
-    const { setPanelView } = useCommonPanel();
+    const { setPanelView, closePanel } = useCommonPanel();
     const { closeModal } = useModals();
 
     const options: MenuOptions[] = [
@@ -26,12 +26,12 @@ export default function UserMenu() {
             icon: <FiUser />,
             title: "Mi perfil y contraseña",
             color: "blue",
-            onClick: () => setPanelView("Mi perfil"),
+            onClick: () => {setPanelView("Mi perfil"); closeModal()},
         },{
             icon: <MdLogout/>,
             title: 'Cerrar Sesion',
             color: 'red',
-            onClick: logout
+            onClick: () => {logout(); closeModal(); closePanel()}
         }
     ];
 

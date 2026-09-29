@@ -21,6 +21,7 @@ export interface AuthResponse {
         username: string
         rol_id: number
         created_at: string
+        role_name: string
     }
 }
 
