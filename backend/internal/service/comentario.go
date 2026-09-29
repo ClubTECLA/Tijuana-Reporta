@@ -7,18 +7,25 @@ import (
 	"github.com/google/uuid"
 )
 
-type ComentarioRepository interface {
-	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error)
+// ComentarioStore es el subconjunto de *database.Store que este servicio usa.
+type ComentarioStore interface {
+	CreateComentario(ctx context.Context, arg domain.CreateComentarioParams) (domain.Comentario, error)
 }
 
 type ComentarioService struct {
-	repo ComentarioRepository
+	store ComentarioStore
 }
 
-func NewComentarioService(repo ComentarioRepository) *ComentarioService {
-	return &ComentarioService{repo: repo}
+// NewComentarioService crea un servicio de comentarios con la store dada.
+func NewComentarioService(store ComentarioStore) *ComentarioService {
+	return &ComentarioService{store: store}
 }
 
+// Crear crea un comentario para el reporte y usuario dados.
 func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error) {
-	return s.repo.Crear(ctx, reporteID, userID, texto)
+	return s.store.CreateComentario(ctx, domain.CreateComentarioParams{
+		ReporteID:  reporteID,
+		UserID:     userID,
+		Comentario: texto,
+	})
 }

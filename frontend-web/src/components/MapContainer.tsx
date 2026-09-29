@@ -25,7 +25,7 @@ const fallbackMapStyle: StyleSpecification = {
   ],
 };
 
-const mapStyle: string | StyleSpecification =
+const mapStyle =
   import.meta.env.VITE_MAPLIBRE_STYLE_URL || fallbackMapStyle;
 
 // MapLibre map container component.
@@ -61,7 +61,7 @@ export default function MapContainer() {
   return (
     <div
       ref={mapContainerRef}
-      className="h-screen w-screen"
+      className="h-screen w-screen "
     />
   );
 }

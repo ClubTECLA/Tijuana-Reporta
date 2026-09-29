@@ -6,6 +6,12 @@ generate:
   embedded-spec: true
 output: internal/api/generated.go
 output-options:
+  # Sin esto oapi-codegen poda los schemas de components que ningún path
+  # referencia por nombre (#/components/schemas/X) y los inlinea como structs
+  # anónimos. Usuario solo se usa anidado dentro de AuthResponse, vía un $ref
+  # a otro archivo, así que sin skip-prune desaparece como tipo con nombre.
+  skip-prune: true
+
   # Un solo tipo UUID en todo el stack. Por defecto oapi-codegen usa
   # openapi_types.UUID; lo mapeamos al mismo google/uuid que genera sqlc para
   # las columnas uuid, así no hay conversiones entre la capa HTTP y la de datos.
@@ -21,3 +27,19 @@ output-options:
 additional-imports:
   - alias: uuid
     package: github.com/google/uuid
+
+# enable-auth-scopes-on-context: sin esto oapi-codegen no genera las
+# constantes *Scopes ni el c.Set(...) por operación que el middleware de
+# auth necesita para saber si una ruta requiere autenticación. Es una
+# compatibilidad "legacy" (oapi-codegen recomienda en su lugar un
+# middleware de validación de requests contra el spec), pero como solo
+# tenemos un esquema de seguridad simple (bearer, sin scopes reales) nos
+# alcanza y es mucho más simple.
+compatibility:
+  enable-auth-scopes-on-context: true
+
+# Los schemas que referencian otros componentes lo hacen vía el openapi.yaml
+# raíz (../../openapi.yaml#/components/schemas/X) para que oapi-codegen use el
+# tipo con nombre en vez de inlinear un struct anónimo. "-" = mismo paquete.
+import-mapping:
+  ../../openapi.yaml: "-"

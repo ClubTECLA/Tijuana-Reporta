@@ -2,3 +2,6 @@ packages:
   - "frontend-web"
   - "frontend-mobile"
   - "shared"
+
+overrides:
+  "@expo/metro-runtime": "^57.0.15"

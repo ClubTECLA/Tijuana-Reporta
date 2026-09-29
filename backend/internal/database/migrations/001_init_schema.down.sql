@@ -8,6 +8,10 @@ DROP FUNCTION IF EXISTS update_tag_counts();
 
 DROP TABLE IF EXISTS logs;
 DROP TABLE IF EXISTS users_reports;
+DROP TABLE IF EXISTS historial;
+DROP TABLE IF EXISTS notificaciones_counts;
+DROP TABLE IF EXISTS notificaciones;
+DROP TABLE IF EXISTS acciones;
 DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS reportes_scores;
 DROP TABLE IF EXISTS reporte_tag_counts;

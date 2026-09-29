@@ -1,0 +1,16 @@
+type: object
+required: [id, email, username, rol_id, created_at]
+properties:
+  id:
+    type: string
+    format: uuid
+  email:
+    type: string
+    format: email
+  username:
+    type: string
+  rol_id:
+    type: integer
+  created_at:
+    type: string
+    format: date-time

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useRouter } from '../hooks/useRouter'
+import React, { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {FaLocationDot} from "react-icons/fa6"
+import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
+import { useAuth } from '../hooks/contexts/AuthContext'
 
 
 const formsInputsDivsStyle = `
@@ -16,61 +17,236 @@ const inputsStyle = `
 `
 
 const submitButtonStyle = `
-    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:focus:ring-0
 `
 const formsStyle = `
     flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-8 px-10 shadow-xl items-center justify-center
 `
 function SignInPage() {
+    const { showMessage, cleanMessage } = useSysMessage();
+    const { login } = useAuth();
+    const navigate = useNavigate();
+    const [ remainingAttempts, setRemainingAttempts ] = useState(3);
+    const [ form, setForm] = useState({
+        email: '',
+        password: ''
+    })
+
+    const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if(remainingAttempts >= 0)
+            cleanMessage();
+        setForm({
+            ...form, 
+            [e.target.name]: e.target.value
+        })
+    }   
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+
+        if(remainingAttempts === 0){
+            showMessage("Vuelve a intentar ingresar mas tarde.", 'red', "Sin intentos")
+            return;
+        }
+
+
+        if(form.email.length === 0 || form.password.length === 0){
+            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': null, 'title':"Campos Faltantes"})
+            return;
+        }
+
+        try{
+            await login(form.email, form.password);
+            navigate('/');
+        }catch(error){
+            console.error('Error:', error);
+            const invalidCredentials = error instanceof Error
+                && 'status' in error
+                && error.status === 401;
+            const attemptsAfterFailure = invalidCredentials
+                ? Math.max(remainingAttempts - 1, 0)
+                : remainingAttempts;
+            showMessage(
+                error instanceof Error ? error.message : 'Error al comprobar las credenciales',
+                'red',
+                invalidCredentials && attemptsAfterFailure === 0
+                    ? "Sin intentos"
+                    : invalidCredentials
+                        ? "Credenciales no válidas"
+                        : "Error al iniciar sesión"
+            );
+            setRemainingAttempts(attemptsAfterFailure);
+        }
+
+    }
 
     return (
         <div className="w-full flex items-center justify-center">
-            <form className={formsStyle}>
+            <form 
+                className={formsStyle}
+                onSubmit={handleSubmit}  
+            >
                 <div className={formsInputsDivsStyle}>
                     <h1 className="text-4xl font-bold">Iniciar sesión</h1>
                     <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
                 </div>
+                <SysMessage />
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Correo institucional</label>
-                    <input type="text"  className={inputsStyle} />
-                </div>                
+                    <input 
+                        type="text"  
+                        className={inputsStyle} 
+                        value={form.email} 
+                        onChange={handleChangeInput}
+                        name={"email"}
+                    />
+                </div>
                 <div className={formsInputsDivsStyle}>
                     <label className={inputsLabelsStyle}>Contraseña</label>
-                    <input type="password"  className={inputsStyle} />
+                    <input 
+                        type="password"  
+                        className={inputsStyle} 
+                        value={form.password} 
+                        onChange={handleChangeInput}
+                        name={"password"}
+                    />
                 </div>
                 <div className="flex flex-rowtext-sm text-gray-600">
                     <label className="w-1/3"><input type="checkbox"/> Recordar este equipo </label>
                     <a href="#" className="w-2/3 text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
                 </div>
                 <div className={formsInputsDivsStyle}>
-                    <button type="submit" className={submitButtonStyle}>Iniciar sesión</button>
+                    <button 
+                        type="submit" 
+                        className={submitButtonStyle}
+                        disabled={remainingAttempts === 0}
+                        aria-disabled={remainingAttempts === 0}
+                    >Iniciar sesión</button>
                 </div>                
                 <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
                     <div className="text-center font-bold w-full">**Boton de Google**</div>
+                <Link
+                    to="/auth?tab=register"
+                    className="w-full text-center border border-blue-500 text-blue-500 font-semibold py-2 px-4 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    Crear cuenta
+                </Link>
             </form>
         </div>
     )
 }
 
-function RecoveryPasswordPage() {
+function RegisterPage() {
+    const { register } = useAuth();
+    const navigate = useNavigate();
+    const { showMessage } = useSysMessage();
+    const [form, setForm] = useState({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    })
+
+    const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        })
+    }
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault()
+        if (form.password !== form.confirmPassword) {
+            showMessage('Las contraseñas no coinciden.', 'red', 'Registro')
+            return
+        }
+
+        try {
+            await register(form.email, form.username, form.password)
+            navigate('/')
+        } catch (error) {
+            console.error('Registration failed:', error)
+            showMessage(
+                error instanceof Error ? error.message : 'No se pudo crear la cuenta.',
+                'red',
+                'Registro'
+            )
+        }
+    }
+
     return(
-        <div>
-            <form className={formsStyle}>
+        <div className="w-full flex items-center justify-center">
+            <form className={formsStyle} onSubmit={handleSubmit}>
                 <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Correo electrónico</label>
-                    <input type="text"  className={inputsStyle} />
+                    <h1 className="text-4xl font-bold">Crear cuenta</h1>
+                    <span className="text-sm text-gray-600">
+                        Regístrate para comenzar a reportar incidentes en Tijuana
+                    </span>
+                </div>
+                <SysMessage />
+                <div className={formsInputsDivsStyle}>
+                    <label className={inputsLabelsStyle} htmlFor="register-username">Nombre de usuario</label>
+                    <input
+                        id="register-username"
+                        name="username"
+                        type="text"
+                        className={inputsStyle}
+                        value={form.username}
+                        onChange={handleChangeInput}
+                        autoComplete="username"
+                        required
+                    />
                 </div>
                 <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Numero de celular</label>
-                    <input type="text"  className={inputsStyle} />
+                    <label className={inputsLabelsStyle} htmlFor="register-email">Correo electrónico</label>
+                    <input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        className={inputsStyle}
+                        value={form.email}
+                        onChange={handleChangeInput}
+                        autoComplete="email"
+                        required
+                    />
                 </div>
                 <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Password</label>
-                    <input type="password"  className={inputsStyle} />
+                    <label className={inputsLabelsStyle} htmlFor="register-password">Contraseña</label>
+                    <input
+                        id="register-password"
+                        name="password"
+                        type="password"
+                        className={inputsStyle}
+                        value={form.password}
+                        onChange={handleChangeInput}
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                    />
+                </div>
+                <div className={formsInputsDivsStyle}>
+                    <label className={inputsLabelsStyle} htmlFor="register-confirm-password">Confirmar contraseña</label>
+                    <input
+                        id="register-confirm-password"
+                        name="confirmPassword"
+                        type="password"
+                        className={inputsStyle}
+                        value={form.confirmPassword}
+                        onChange={handleChangeInput}
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                    />
                 </div>
                 <div className={formsInputsDivsStyle}>
                     <button type="submit" className={submitButtonStyle}>Registrarse</button>
                 </div>
+                <Link
+                    to="/auth?tab=login"
+                    className="text-center text-sm text-blue-500 hover:underline"
+                >
+                    Ya tengo una cuenta
+                </Link>
             </form>
         </div>
     )
@@ -78,15 +254,8 @@ function RecoveryPasswordPage() {
 
 export default function AuthPage() {
     const [searchParams] = useSearchParams()
-    const [ tab , setTab ] = useState('login');
-    const router = useRouter();
-    
-    useEffect(() => {
-        const tabParam = searchParams.get('tab');
-        if (tabParam === 'login' || tabParam === 'register') {
-            setTab(tabParam);
-        }
-    }, []);
+    const tabParam = searchParams.get('tab');
+    const tab = tabParam === 'register' ? 'register' : 'login';
 
 
     const trendLineChartDivStyle = `
@@ -130,7 +299,7 @@ export default function AuthPage() {
             </div>
 
             <div className="flex items-center justify-center w-2/4">
-                    {tab === 'login' ? <SignInPage /> : <RecoveryPasswordPage />}
+                    {tab === 'login' ? <SignInPage /> : <RegisterPage />}
             </div>
         </div>
         

@@ -3,9 +3,24 @@ info:
   title: Tijuana Reporta API
   version: 1.0.0
 
+security:
+  - bearerAuth: []
+
 paths:
+  /reportes:
+    $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/{reporteId}:
+    $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
+  /auth/register:
+    $ref: './paths/auth.yaml#/register'
+  /auth/login:
+    $ref: './paths/auth.yaml#/login'
+  /auth/me:
+    $ref: './paths/auth.yaml#/me'
+  /auth/logout:
+    $ref: './paths/auth.yaml#/logout'
 
 components:
   schemas:
@@ -13,5 +28,34 @@ components:
       $ref: './schemas/comentarios/comentario.yaml'
     CrearComentarioRequest:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
+    Reporte:
+      $ref: './schemas/reportes/reporte.yaml'
+    ReporteResumen:
+      $ref: './schemas/reportes/reporte_resumen.yaml'
+    EstadoReporte:
+      $ref: './schemas/reportes/estado_reporte.yaml'
+    Foto:
+      $ref: './schemas/fotos/foto.yaml'
+    Tag:
+      $ref: './schemas/tags/tag.yaml'
+    Location:
+      $ref: './schemas/locations/location.yaml'
+    CrearReporteRequest:
+      $ref: './schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:
       $ref: './schemas/error_response.yaml'
+    RegisterRequest:
+      $ref: './schemas/auth/register_request.yaml'
+    LoginRequest:
+      $ref: './schemas/auth/login_request.yaml'
+    AuthResponse:
+      $ref: './schemas/auth/auth_response.yaml'
+    Usuario:
+      $ref: './schemas/auth/usuario.yaml'
+    UsuarioMeResponse:
+      $ref: './schemas/auth/usuario_me_response.yaml'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
