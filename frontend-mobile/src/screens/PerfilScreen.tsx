@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
@@ -6,25 +6,36 @@ import { MenuRow } from '../components/MenuRow';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { perfilColors } from '../theme/perfilTokens';
 
-// Datos de ejemplo: todavía no existen los endpoints de perfil en el contrato OpenAPI.
+// Datos de ejemplo
 const MOCK_USUARIO = {
-  nombre: 'Bruce Cervantes',
+  nombre: 'Bobo Cervantes',
   telefono: '+52 664 •••• 4421',
   totalReportes: 12,
   reportesActivos: 2,
   reportesHistorial: 10,
+  notificacionesNuevas: 3,
+  notificacionesHistorial: 10,
   radioAlertasKm: 1.5,
 };
 
 interface PerfilScreenProps {
   onBack?: () => void;
   onMisReportes?: () => void;
+  onNotificaciones?: () => void;
   onAlertas?: () => void;
   onCerrarSesion?: () => void;
 }
 
-export const PerfilScreen = ({ onBack, onMisReportes, onAlertas, onCerrarSesion }: PerfilScreenProps) => {
+export const PerfilScreen = ({
+  onBack,
+  onMisReportes,
+  onNotificaciones,
+  onAlertas,
+  onCerrarSesion,
+}: PerfilScreenProps) => {
   const u = MOCK_USUARIO;
+  const [modoOscuro, setModoOscuro] = useState(false);
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -48,10 +59,26 @@ export const PerfilScreen = ({ onBack, onMisReportes, onAlertas, onCerrarSesion 
             value={String(u.reportesActivos)}
             onPress={onMisReportes}
           />
+          <View style={styles.divider} />
+          <MenuRow
+            icon="🔔"
+            title="Notificaciones"
+            subtitle={`${u.notificacionesNuevas} hoy · ${u.notificacionesHistorial} en historial`}
+            value={String(u.notificacionesNuevas)}
+            onPress={onNotificaciones}
+          />
         </Card>
 
         <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
+          <MenuRow
+            icon="🌙"
+            title="Modo oscuro"
+            subtitle="Usa la versión oscura de la aplicación"
+            switchValue={modoOscuro}
+            onSwitchChange={setModoOscuro}
+          />
+          <View style={styles.divider} />
           <MenuRow
             icon="🔔"
             title="Alertas y lugares"
