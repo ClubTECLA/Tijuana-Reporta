@@ -28,6 +28,7 @@ export interface Users {
   password_hash: string | null
   created_at: string
   updated_at: string
+  rol_name?: string 
 }
 
 export interface AuthProviders {

@@ -59,7 +59,7 @@ export default function UserProfileView() {
                 format={"col"}
                 username={user.username}
                 email={user.email}
-                rolName={user.rol_id}
+                rolName={user.rol_name}
             />
             <Input
                 format={"col"}

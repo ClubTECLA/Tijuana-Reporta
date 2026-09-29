@@ -48,7 +48,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                     :
                         <>
                         <span className="truncate text-md font-bold text-gray-700 ">{user?.username || "Usuario"}</span>
-                        <span className="truncate text-sm font-semibold text-gray-600">{user?.rol_id || "Invitado"}</span>
+                        <span className="truncate text-sm font-semibold text-gray-600">{user?.rol_name || "Invitado"}</span>
                         </>
                     }
                 </div>

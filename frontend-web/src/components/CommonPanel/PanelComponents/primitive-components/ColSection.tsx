@@ -68,7 +68,8 @@ export default function ColSection(
                     className="
                         flex items-center justify-center 
                         w-10 h-10 rounded-full 
-                        bg-gray-100 text-2xl font-bold text-gray-500 
+                        bg-gray-200 text-2xl font-bold text-gray-500
+                        hover:bg-gray-100 hover:scale-120 transition-all duration-300 
                     "
                 >
                     <IoIosClose/>

@@ -55,7 +55,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
 
         setCurrentPanelView(view);
     };
-    console.log(previousView);
+
     return (
         <CommonPanelContext.Provider
             value={{
