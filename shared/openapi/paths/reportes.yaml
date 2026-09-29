@@ -1,4 +1,42 @@
 crearReporte:
+  get:
+    operationId: listarReportes
+    description: Reportes activos para el mapa. Si se manda el área visible, filtra por ella.
+    parameters:
+      - name: min_lat
+        in: query
+        schema: { type: number, format: double, minimum: -90, maximum: 90 }
+      - name: max_lat
+        in: query
+        schema: { type: number, format: double, minimum: -90, maximum: 90 }
+      - name: min_lng
+        in: query
+        schema: { type: number, format: double, minimum: -180, maximum: 180 }
+      - name: max_lng
+        in: query
+        schema: { type: number, format: double, minimum: -180, maximum: 180 }
+    responses:
+      '200':
+        description: Lista de reportes
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReporteResumen'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
   post:
     operationId: crearReporte
     requestBody:
@@ -28,10 +66,45 @@ crearReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+obtenerReporte:
+  get:
+    operationId: obtenerReporte
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Reporte encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+
 components:
   schemas:
     Reporte:
       $ref: '../schemas/reportes/reporte.yaml'
+    ReporteResumen:
+      $ref: '../schemas/reportes/reporte_resumen.yaml'
     CrearReporteRequest:
       $ref: '../schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:

@@ -1,0 +1,13 @@
+type: object
+required: [id, image_path, user_id, created_at]
+properties:
+  id:
+    type: integer
+  image_path:
+    type: string
+  user_id:
+    type: string
+    format: uuid
+  created_at:
+    type: string
+    format: date-time
