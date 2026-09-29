@@ -9,6 +9,8 @@ security:
 paths:
   /reportes:
     $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/{reporteId}:
+    $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
   /auth/register:
@@ -28,6 +30,16 @@ components:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
     Reporte:
       $ref: './schemas/reportes/reporte.yaml'
+    ReporteResumen:
+      $ref: './schemas/reportes/reporte_resumen.yaml'
+    EstadoReporte:
+      $ref: './schemas/reportes/estado_reporte.yaml'
+    Foto:
+      $ref: './schemas/fotos/foto.yaml'
+    Tag:
+      $ref: './schemas/tags/tag.yaml'
+    Location:
+      $ref: './schemas/locations/location.yaml'
     CrearReporteRequest:
       $ref: './schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:

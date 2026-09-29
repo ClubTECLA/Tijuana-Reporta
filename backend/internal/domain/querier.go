@@ -21,10 +21,16 @@ type Querier interface {
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
+	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
+	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
+	ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
+	ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error)
+	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

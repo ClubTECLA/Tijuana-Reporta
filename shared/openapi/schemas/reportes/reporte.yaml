@@ -1,5 +1,20 @@
 type: object
-required: [id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at]
+description: Detalle completo de un reporte.
+required:
+  - id
+  - incidente_id
+  - avistamientos
+  - es_historico
+  - es_oficial
+  - estado_actual
+  - latitude
+  - longitude
+  - created_at
+  - updated_at
+  - comentarios
+  - fotos
+  - tags
+  - locations
 properties:
   id:
     type: string
@@ -13,7 +28,15 @@ properties:
   es_oficial:
     type: boolean
   estado_actual:
-    type: string
+    $ref: '../../openapi.yaml#/components/schemas/EstadoReporte'
+  latitude:
+    type: number
+    format: double
+    description: Centroide de todas las locations (tabla puntos_origen).
+  longitude:
+    type: number
+    format: double
+    description: Centroide de todas las locations (tabla puntos_origen).
   created_at:
     type: string
     format: date-time
@@ -23,3 +46,19 @@ properties:
   expired_at:
     type: string
     format: date-time
+  comentarios:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/Comentario'
+  fotos:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/Foto'
+  tags:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/Tag'
+  locations:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/Location'

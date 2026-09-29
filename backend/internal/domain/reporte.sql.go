@@ -7,6 +7,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -96,19 +97,97 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 	return i, err
 }
 
-const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many
-SELECT id, reporte_id, latitude, longitude, user_id, created_at FROM location WHERE reporte_id = $1
+const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
+SELECT latitude::float8 AS latitude, longitude::float8 AS longitude
+FROM puntos_origen WHERE reporte_id = $1
 `
 
-func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error) {
+type GetPuntoOrigenByReporteIdRow struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+func (q *Queries) GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error) {
+	row := q.db.QueryRow(ctx, getPuntoOrigenByReporteId, reporteID)
+	var i GetPuntoOrigenByReporteIdRow
+	err := row.Scan(&i.Latitude, &i.Longitude)
+	return i, err
+}
+
+const getReporteById = `-- name: GetReporteById :one
+SELECT id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at FROM reporte WHERE id = $1
+`
+
+func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error) {
+	row := q.db.QueryRow(ctx, getReporteById, id)
+	var i Reporte
+	err := row.Scan(
+		&i.ID,
+		&i.IncidenteID,
+		&i.Avistamientos,
+		&i.EsHistorico,
+		&i.EsOficial,
+		&i.EstadoActual,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiredAt,
+	)
+	return i, err
+}
+
+const listFotosByReporteId = `-- name: ListFotosByReporteId :many
+SELECT id, reporte_id, image_path, user_id, created_at FROM fotos_reportes WHERE reporte_id = $1 ORDER BY created_at
+`
+
+func (q *Queries) ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error) {
+	rows, err := q.db.Query(ctx, listFotosByReporteId, reporteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FotosReporte
+	for rows.Next() {
+		var i FotosReporte
+		if err := rows.Scan(
+			&i.ID,
+			&i.ReporteID,
+			&i.ImagePath,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many
+SELECT id, reporte_id, latitude::float8 AS latitude, longitude::float8 AS longitude, user_id, created_at
+FROM location WHERE reporte_id = $1 ORDER BY created_at
+`
+
+type ListLocationsByReporteIdRow struct {
+	ID        int       `json:"id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error) {
 	rows, err := q.db.Query(ctx, listLocationsByReporteId, reporteID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Location
+	var items []ListLocationsByReporteIdRow
 	for rows.Next() {
-		var i Location
+		var i ListLocationsByReporteIdRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ReporteID,
@@ -117,6 +196,102 @@ func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.U
 			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReportesResumen = `-- name: ListReportesResumen :many
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude::float8 AS latitude, p.longitude::float8 AS longitude
+FROM reporte r
+JOIN puntos_origen p ON p.reporte_id = r.id
+WHERE NOT r.es_historico
+AND ($1::float8 IS NULL OR p.latitude >= $1::float8)
+AND ($2::float8 IS NULL OR p.latitude <= $2::float8)
+AND ($3::float8 IS NULL OR p.longitude >= $3::float8)
+AND ($4::float8 IS NULL OR p.longitude <= $4::float8)
+`
+
+type ListReportesResumenParams struct {
+	MinLat *float64 `json:"min_lat"`
+	MaxLat *float64 `json:"max_lat"`
+	MinLng *float64 `json:"min_lng"`
+	MaxLng *float64 `json:"max_lng"`
+}
+
+type ListReportesResumenRow struct {
+	ID            uuid.UUID `json:"id"`
+	IncidenteID   int       `json:"incidente_id"`
+	EstadoActual  Estado    `json:"estado_actual"`
+	Avistamientos int       `json:"avistamientos"`
+	EsOficial     bool      `json:"es_oficial"`
+	Latitude      float64   `json:"latitude"`
+	Longitude     float64   `json:"longitude"`
+}
+
+func (q *Queries) ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error) {
+	rows, err := q.db.Query(ctx, listReportesResumen,
+		arg.MinLat,
+		arg.MaxLat,
+		arg.MinLng,
+		arg.MaxLng,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReportesResumenRow
+	for rows.Next() {
+		var i ListReportesResumenRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncidenteID,
+			&i.EstadoActual,
+			&i.Avistamientos,
+			&i.EsOficial,
+			&i.Latitude,
+			&i.Longitude,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTagsByReporteId = `-- name: ListTagsByReporteId :many
+SELECT t.id, t.nombre, rtc.count
+FROM reporte_tag_counts rtc
+JOIN tags t ON t.id = rtc.tag_id
+WHERE rtc.reporte_id = $1
+AND rtc.count > 0
+ORDER BY rtc.count DESC
+`
+
+type ListTagsByReporteIdRow struct {
+	ID     int    `json:"id"`
+	Nombre string `json:"nombre"`
+	Count  int    `json:"count"`
+}
+
+func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error) {
+	rows, err := q.db.Query(ctx, listTagsByReporteId, reporteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTagsByReporteIdRow
+	for rows.Next() {
+		var i ListTagsByReporteIdRow
+		if err := rows.Scan(&i.ID, &i.Nombre, &i.Count); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

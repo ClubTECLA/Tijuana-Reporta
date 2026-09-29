@@ -4,8 +4,19 @@ import (
 	"context"
 	"errors"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
+
+func toComentario(c domain.Comentario) Comentario {
+	return Comentario{
+		Comentario: c.Comentario,
+		CreatedAt:  c.CreatedAt,
+		Id:         c.ID,
+		ReporteId:  c.ReporteID,
+		UserId:     c.UserID,
+	}
+}
 
 // CrearComentario crea un comentario para el reporte y usuario dados.
 func (s *Server) CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error) {
@@ -19,11 +30,5 @@ func (s *Server) CrearComentario(ctx context.Context, request CrearComentarioReq
 		return nil, err
 	}
 
-	return CrearComentario201JSONResponse{
-		Id:         c.ID,
-		ReporteId:  c.ReporteID,
-		UserId:     c.UserID,
-		Comentario: c.Comentario,
-		CreatedAt:  c.CreatedAt,
-	}, nil
+	return CrearComentario201JSONResponse(toComentario(c)), nil
 }

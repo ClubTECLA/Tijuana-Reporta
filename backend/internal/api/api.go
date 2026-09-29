@@ -17,7 +17,9 @@ type ComentarioService interface {
 // ReporteService es la interfaz que el handler de reportes necesita del
 // servicio.
 type ReporteService interface {
-	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.Reporte, error)
+	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.ReporteDetalle, error)
+	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
+	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
 }
 
 // AuthService devuelve, junto con el usuario, el access token ya firmado y
