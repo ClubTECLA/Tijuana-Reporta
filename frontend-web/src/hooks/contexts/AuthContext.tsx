@@ -9,7 +9,7 @@ import type {
     AuthResponseFor,
     MeResponse,
 } from '../../types/api-types'
-import { apiUrl, testUser } from '../../types/global-variables'
+import { apiUrl} from '../../types/global-variables'
 
 const accessTokenKey = 'access_token'
 
