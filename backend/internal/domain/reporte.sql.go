@@ -12,6 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const addAvistamientoById = `-- name: AddAvistamientoById :one
+UPDATE reporte
+SET avistamientos = avistamientos + 1 
+WHERE id = $1
+RETURNING id, avistamientos
+`
+
+type AddAvistamientoByIdRow struct {
+	ID            uuid.UUID `json:"id"`
+	Avistamientos int       `json:"avistamientos"`
+}
+
+func (q *Queries) AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error) {
+	row := q.db.QueryRow(ctx, addAvistamientoById, id)
+	var i AddAvistamientoByIdRow
+	err := row.Scan(&i.ID, &i.Avistamientos)
+	return i, err
+}
+
 const createFotoReporte = `-- name: CreateFotoReporte :one
 INSERT INTO fotos_reportes (reporte_id, image_path, user_id)
 VALUES ($1, $2, $3)

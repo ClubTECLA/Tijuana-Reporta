@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
 	CreateFotoReporte(ctx context.Context, arg CreateFotoReporteParams) (FotosReporte, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
