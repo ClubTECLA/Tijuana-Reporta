@@ -108,6 +108,16 @@ func (f *fakeReporteStore) ListReportesResumen(_ context.Context, arg domain.Lis
 	return f.resumen, nil
 }
 
+func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
+	r, ok := f.byID[id]
+	if !ok {
+		return domain.AddAvistamientoByIdRow{}, pgx.ErrNoRows
+	}
+	r.Avistamientos++
+	f.byID[id] = r
+	return domain.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
+}
+
 func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
@@ -272,5 +282,35 @@ func TestReporteService_Listar_ErrorStore(t *testing.T) {
 
 	if _, err := svc.Listar(context.Background(), nil, nil, nil, nil); !errors.Is(err, store.listErr) {
 		t.Fatalf("Listar() error = %v, want %v", err, store.listErr)
+	}
+}
+
+func TestReporteService_AddAvistamientoById(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+
+	creado, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, nil)
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	id := creado.Reporte.ID
+
+	for want := 1; want <= 2; want++ {
+		a, err := svc.AgregarAvistamiento(context.Background(), id)
+		if err != nil {
+			t.Fatalf("AgregarAvistamiento() error = %v", err)
+		}
+		if a.ID != id || a.Avistamientos != want {
+			t.Fatalf("AgregarAvistamiento() = %+v, want id=%v avistamientos=%d", a, id, want)
+		}
+	}
+}
+
+func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
+	svc := NewReporteService(newFakeReporteStore())
+
+	_, err := svc.AgregarAvistamiento(context.Background(), uuid.New())
+	if !errors.Is(err, domain.ErrReporteNotFound) {
+		t.Fatalf("AgregarAvistamiento() error = %v, want %v", err, domain.ErrReporteNotFound)
 	}
 }

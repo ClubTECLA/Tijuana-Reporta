@@ -17,6 +17,7 @@ type ReporteStore interface {
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
+	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 }
 
 type ReporteService struct {
@@ -119,4 +120,15 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 		MinLng: minLng,
 		MaxLng: maxLng,
 	})
+}
+
+func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
+	a, err := s.store.AddAvistamientoById(ctx, id)
+	if domain.IsNotFound(err) {
+		return domain.AddAvistamientoByIdRow{}, domain.ErrReporteNotFound
+	}
+	if err != nil {
+		return domain.AddAvistamientoByIdRow{}, err
+	}
+	return a, nil
 }

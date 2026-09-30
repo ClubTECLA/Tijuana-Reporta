@@ -98,6 +98,43 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+agregarAvistamiento:
+  patch:
+    operationId: agregarAvistamiento
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Avistamiento agregado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:

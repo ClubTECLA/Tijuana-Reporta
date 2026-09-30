@@ -176,6 +176,10 @@ type Log struct {
 	FinishedAt  time.Time      `json:"finished_at"`
 }
 
+type Migration005SeedIncidente struct {
+	IncidenteID int `json:"incidente_id"`
+}
+
 type Notificacione struct {
 	ID           int       `json:"id"`
 	UserID       uuid.UUID `json:"user_id"`

@@ -120,6 +120,12 @@ Content-Type: application/json
     "comentario": "Sigue ahí el socavón"
 }
 
+# Avistamientos
+### Agregar un avistamiento (200)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/avistamientos
+Authorization: Bearer {{token}}
+
+
 # Logout 
 
 ### Logout (204)
