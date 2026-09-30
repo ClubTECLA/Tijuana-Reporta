@@ -9,7 +9,7 @@ import type {
     AuthResponseFor,
     MeResponse,
 } from '../../types/api-types'
-import { apiUrl, testUser } from '../../types/global-variables'
+import { apiUrl} from '../../types/global-variables'
 
 const accessTokenKey = 'access_token'
 
@@ -51,11 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthContextUser | null>(null);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
-    useEffect(() => {
+    function loadUser(): Promise<void> {
+        
         const token = localStorage.getItem(accessTokenKey)
-        if (!token) return
-
-        fetch(`${apiUrl}/auth/me`, {
+        if (!token) return Promise.resolve()
+        
+        return fetch(`${apiUrl}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(async (response) => {
@@ -69,14 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUser(toUser(currentUser))
                 }
             })
-            .catch(() => {
-                if (localStorage.getItem(accessTokenKey) !== token) return
-                localStorage.removeItem(accessTokenKey)
-                setUser(null)
+            .catch((error: unknown) => {
+                if (localStorage.getItem(accessTokenKey) === token) {
+                    localStorage.removeItem(accessTokenKey)
+                    setUser(null)
+                }
+                throw error
             })
             .finally(() => setIsLoading(false))
-    }, [])
+    }
 
+    useEffect(() => {
+        loadUser().catch((error: unknown) => {
+            console.error('Failed to load current user:', error)
+        });
+    }, [])
 
     const authenticate = async <T extends AuthEndpoint>(endpoint: T, body: AuthRequest<T>) => {
         const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
@@ -92,8 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json() as AuthResponseFor<T>
 
         localStorage.setItem(accessTokenKey, data.access_token)
-
-        setUser(toUser(data.user))
+        
+        await loadUser()
     }
 
     const login = (email: string, password: string) =>
