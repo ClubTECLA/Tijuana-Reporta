@@ -247,21 +247,27 @@ func TestListarReportes(t *testing.T) {
 	}
 
 	t.Run("sin filtro", func(t *testing.T) {
-		rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes", nil)
+		tc := *c
+		tc.t = t
+		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes", nil)
 		if !contiene(decode[[]api.ReporteResumen](t, rec)) {
 			t.Errorf("el listado no incluye el reporte %v", creado.Id)
 		}
 	})
 
 	t.Run("área de Tijuana", func(t *testing.T) {
-		rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=32.4&max_lat=32.6&min_lng=-117.2&max_lng=-116.8", nil)
+		tc := *c
+		tc.t = t
+		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=32.4&max_lat=32.6&min_lng=-117.2&max_lng=-116.8", nil)
 		if !contiene(decode[[]api.ReporteResumen](t, rec)) {
 			t.Errorf("el listado del área no incluye el reporte %v", creado.Id)
 		}
 	})
 
 	t.Run("área fuera de Tijuana", func(t *testing.T) {
-		rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=10&max_lat=11&min_lng=10&max_lng=11", nil)
+		tc := *c
+		tc.t = t
+		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=10&max_lat=11&min_lng=10&max_lng=11", nil)
 		if contiene(decode[[]api.ReporteResumen](t, rec)) {
 			t.Errorf("el listado de otra área incluye el reporte %v", creado.Id)
 		}
