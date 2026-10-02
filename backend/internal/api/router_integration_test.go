@@ -489,3 +489,230 @@ func TestCreateIncidenteConTagsRollback(t *testing.T) {
 		t.Errorf("quedaron %d incidentes %q tras el rollback, quería 0", n, nombre)
 	}
 }
+
+// crearIncidente crea un incidente con el cliente (que debe ser admin) y lo
+// devuelve.
+func (c *testClient) crearIncidente(body map[string]any) api.Incidente {
+	c.t.Helper()
+
+	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", body)
+	return decode[api.Incidente](c.t, rec)
+}
+
+// nombresDeTags devuelve los nombres de los tags, en orden.
+func nombresDeTags(tags []api.TagCatalogo) []string {
+	nombres := make([]string, 0, len(tags))
+	for _, t := range tags {
+		nombres = append(nombres, t.Nombre)
+	}
+	return nombres
+}
+
+func TestListarIncidentes(t *testing.T) {
+	admin := newTestClient(t)
+	admin.loginComo("admin")
+	activo := admin.crearIncidente(map[string]any{
+		"nombre": nombreIncidente(),
+		"tags":   []map[string]any{{"nombre": "profundo"}, {"nombre": "ancho"}},
+	})
+	inactivo := admin.crearIncidente(map[string]any{"nombre": nombreIncidente(), "esta_activo": false})
+
+	// Listar no es solo para admins: cualquier usuario autenticado puede.
+	c := newTestClient(t)
+	c.login()
+
+	buscar := func(is []api.Incidente, id int) (api.Incidente, bool) {
+		i := slices.IndexFunc(is, func(i api.Incidente) bool { return i.Id == id })
+		if i < 0 {
+			return api.Incidente{}, false
+		}
+		return is[i], true
+	}
+
+	t.Run("solo activos", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		is := decode[[]api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes", nil))
+
+		got, ok := buscar(is, activo.Id)
+		if !ok {
+			t.Fatalf("el listado no incluye el incidente activo %d", activo.Id)
+		}
+		if !slices.Equal(nombresDeTags(got.Tags), []string{"profundo", "ancho"}) {
+			t.Errorf("tags = %v, quería [profundo ancho]", nombresDeTags(got.Tags))
+		}
+		if _, ok := buscar(is, inactivo.Id); ok {
+			t.Errorf("el listado incluye el incidente inactivo %d", inactivo.Id)
+		}
+		if _, ok := buscar(is, incidenteSocavon); !ok {
+			t.Errorf("el listado no incluye los incidentes sembrados")
+		}
+		for _, i := range is {
+			if i.Tags == nil {
+				t.Errorf("incidente %d: tags = null, quería []", i.Id)
+			}
+		}
+	})
+
+	t.Run("incluir inactivos", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		is := decode[[]api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes?incluir_inactivos=true", nil))
+
+		if _, ok := buscar(is, inactivo.Id); !ok {
+			t.Errorf("el listado no incluye el incidente inactivo %d", inactivo.Id)
+		}
+	})
+
+	t.Run("sin token", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		tc.token = ""
+		tc.expect(http.StatusUnauthorized, http.MethodGet, "/v1/incidentes", nil)
+	})
+}
+
+func TestObtenerIncidente(t *testing.T) {
+	c := newTestClient(t)
+	c.loginComo("admin")
+	creado := c.crearIncidente(map[string]any{
+		"nombre":      nombreIncidente(),
+		"esta_activo": false,
+		"tags":        []map[string]any{{"nombre": "profundo", "peso": 2}},
+	})
+
+	t.Run("existente, aunque esté inactivo", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", creado.Id), nil))
+
+		if got.Id != creado.Id || got.Nombre != creado.Nombre || got.EstaActivo {
+			t.Errorf("incidente = %+v, quería id=%d nombre=%q inactivo", got, creado.Id, creado.Nombre)
+		}
+		if len(got.Tags) != 1 || got.Tags[0].Nombre != "profundo" || got.Tags[0].Peso != 2 {
+			t.Errorf("tags = %+v, quería [profundo (peso 2)]", got.Tags)
+		}
+	})
+
+	t.Run("inexistente", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		tc.expect(http.StatusNotFound, http.MethodGet, "/v1/incidentes/999999", nil)
+	})
+
+	t.Run("id que no es número", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		tc.expect(http.StatusBadRequest, http.MethodGet, "/v1/incidentes/abc", nil)
+	})
+}
+
+func TestAgregarTags(t *testing.T) {
+	c := newTestClient(t)
+	c.loginComo("admin")
+
+	t.Run("agrega y los devuelve en orden", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		inc := tc.crearIncidente(map[string]any{"nombre": nombreIncidente(), "tags": []map[string]any{{"nombre": "profundo"}}})
+		path := fmt.Sprintf("/v1/incidentes/%d/tags", inc.Id)
+
+		rec := tc.expect(http.StatusCreated, http.MethodPost, path, []map[string]any{
+			{"nombre": "ancho"}, {"nombre": "con agua", "peso": 3},
+		})
+		tags := decode[[]api.TagCatalogo](t, rec)
+		if len(tags) != 2 || tags[0].Id == 0 || tags[0].Nombre != "ancho" || tags[0].Peso != 1 || tags[1].Peso != 3 {
+			t.Errorf("tags = %+v, quería [ancho (peso 1), con agua (peso 3)] con ids", tags)
+		}
+
+		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
+		if !slices.Equal(nombresDeTags(got.Tags), []string{"profundo", "ancho", "con agua"}) {
+			t.Errorf("tags del incidente = %v, quería [profundo ancho con agua]", nombresDeTags(got.Tags))
+		}
+	})
+
+	t.Run("todo o nada", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		inc := tc.crearIncidente(map[string]any{"nombre": nombreIncidente(), "tags": []map[string]any{{"nombre": "profundo"}}})
+		path := fmt.Sprintf("/v1/incidentes/%d/tags", inc.Id)
+
+		// "nuevo" es válido, pero "PROFUNDO" ya existe: no se crea ninguno.
+		tc.expect(http.StatusConflict, http.MethodPost, path, []map[string]any{{"nombre": "nuevo"}, {"nombre": "PROFUNDO"}})
+
+		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
+		if !slices.Equal(nombresDeTags(got.Tags), []string{"profundo"}) {
+			t.Errorf("tags del incidente = %v, quería [profundo]", nombresDeTags(got.Tags))
+		}
+	})
+
+	inc := c.crearIncidente(map[string]any{"nombre": nombreIncidente()})
+	path := fmt.Sprintf("/v1/incidentes/%d/tags", inc.Id)
+
+	errores := []struct {
+		name string
+		path string
+		body any
+		want int
+	}{
+		{name: "sin tags", path: path, body: []map[string]any{}, want: http.StatusBadRequest},
+		{name: "repetidos en la petición", path: path, body: []map[string]any{{"nombre": "a"}, {"nombre": "A"}}, want: http.StatusBadRequest},
+		{name: "peso 0", path: path, body: []map[string]any{{"nombre": "a", "peso": 0}}, want: http.StatusBadRequest},
+		{name: "incidente inexistente", path: "/v1/incidentes/999999/tags", body: []map[string]any{{"nombre": "a"}}, want: http.StatusNotFound},
+	}
+	for _, tt := range errores {
+		t.Run(tt.name, func(t *testing.T) {
+			tc := *c
+			tc.t = t
+			tc.expect(tt.want, http.MethodPost, tt.path, tt.body)
+		})
+	}
+
+	t.Run("ciudadano", func(t *testing.T) {
+		ciudadano := newTestClient(t)
+		ciudadano.login()
+		ciudadano.expect(http.StatusForbidden, http.MethodPost, path, []map[string]any{{"nombre": "a"}})
+	})
+}
+
+// TestCreateTags prueba la transacción y los errores del store directamente:
+// por la API, el servicio rechaza antes los repetidos y los incidentes que no
+// existen, así que solo llegan a la base en una carrera.
+func TestCreateTags(t *testing.T) {
+	pool := testPool(t)
+	store := database.NewStore(pool)
+
+	t.Run("rollback si uno falla", func(t *testing.T) {
+		d, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
+			Incidente: domain.CreateIncidenteParams{Nombre: nombreIncidente(), Color: "#757575", EstaActivo: true},
+		})
+		if err != nil {
+			t.Fatalf("CreateIncidenteConTags() error = %v", err)
+		}
+		id := d.Incidente.ID
+
+		_, err = store.CreateTags(t.Context(), []domain.CreateTagParams{
+			{IncidenteID: id, Nombre: "nuevo", Peso: 1},
+			{IncidenteID: id, Nombre: "nuevo", Peso: 1},
+		})
+		if !domain.IsUniqueViolation(err) {
+			t.Fatalf("CreateTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
+		}
+
+		var n int
+		if err := pool.QueryRow(t.Context(), "SELECT count(*) FROM tags WHERE incidente_id = $1", id).Scan(&n); err != nil {
+			t.Fatalf("contando tags: %v", err)
+		}
+		if n != 0 {
+			t.Errorf("quedaron %d tags tras el rollback, quería 0", n)
+		}
+	})
+
+	// El servicio traduce este FOREIGN KEY por nombre a ErrIncidenteNotFound.
+	t.Run("incidente inexistente", func(t *testing.T) {
+		_, err := store.CreateTags(t.Context(), []domain.CreateTagParams{{IncidenteID: 999999, Nombre: "a", Peso: 1}})
+		if !domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
+			t.Fatalf("CreateTags() error = %v, quería el FOREIGN KEY tags_incidente_id_fkey", err)
+		}
+	})
+}
