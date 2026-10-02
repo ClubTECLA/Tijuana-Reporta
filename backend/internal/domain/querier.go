@@ -32,8 +32,15 @@ type Querier interface {
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
 	ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error)
+	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
+	// administración).
+	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
 	ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error)
+	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]Tag, error)
+	// Los tags de varios incidentes en una sola consulta, para no hacer una por
+	// incidente al listar.
+	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
 }
 

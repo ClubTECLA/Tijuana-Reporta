@@ -18,6 +18,7 @@ var (
 	ErrIncidenteNotFound  = errors.New("incidente not found")
 	ErrIncidenteInvalido  = errors.New("invalid incidente")
 	ErrIncidenteNameTaken = errors.New("incidente name taken")
+	ErrTagNameTaken       = errors.New("tag name taken")
 	ErrAreaIncompleta     = errors.New("area incompleta")
 	ErrAreaInvalida       = errors.New("area invalida")
 )

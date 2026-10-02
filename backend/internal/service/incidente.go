@@ -14,6 +14,11 @@ import (
 // IncidenteStore es el subconjunto de *database.Store que este servicio usa.
 type IncidenteStore interface {
 	CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error)
+	CreateTags(ctx context.Context, arg []domain.CreateTagParams) ([]domain.Tag, error)
+	GetIncidenteById(ctx context.Context, id int) (domain.Incidente, error)
+	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]domain.Incidente, error)
+	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]domain.Tag, error)
+	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]domain.Tag, error)
 }
 
 type IncidenteService struct {
@@ -129,4 +134,108 @@ func validarTags(nuevos []domain.NuevoTag) ([]domain.CreateTagParams, error) {
 		tags = append(tags, domain.CreateTagParams{Nombre: nombre, Peso: peso})
 	}
 	return tags, nil
+}
+
+// Listar devuelve los incidentes con sus tags, ordenados por nombre. Los
+// inactivos solo se incluyen si incluirInactivos es true.
+//
+// Los tags de todos los incidentes se piden en una sola consulta y se
+// reparten aquí, en vez de hacer una consulta por incidente.
+func (s *IncidenteService) Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error) {
+	incidentes, err := s.store.ListIncidentes(ctx, incluirInactivos)
+	if err != nil {
+		return nil, err
+	}
+	if len(incidentes) == 0 {
+		return []domain.IncidenteDetalle{}, nil
+	}
+
+	ids := make([]int, 0, len(incidentes))
+	for _, i := range incidentes {
+		ids = append(ids, i.ID)
+	}
+	tags, err := s.store.ListTagsByIncidenteIds(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	porIncidente := make(map[int][]domain.Tag, len(incidentes))
+	for _, t := range tags {
+		porIncidente[t.IncidenteID] = append(porIncidente[t.IncidenteID], t)
+	}
+
+	detalles := make([]domain.IncidenteDetalle, 0, len(incidentes))
+	for _, i := range incidentes {
+		detalles = append(detalles, domain.IncidenteDetalle{Incidente: i, Tags: porIncidente[i.ID]})
+	}
+	return detalles, nil
+}
+
+// Obtener devuelve el incidente con sus tags, esté activo o no.
+func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error) {
+	incidente, err := s.store.GetIncidenteById(ctx, id)
+	if err != nil {
+		if domain.IsNotFound(err) {
+			return domain.IncidenteDetalle{}, domain.ErrIncidenteNotFound
+		}
+		return domain.IncidenteDetalle{}, err
+	}
+
+	tags, err := s.store.ListTagsByIncidenteId(ctx, id)
+	if err != nil {
+		return domain.IncidenteDetalle{}, err
+	}
+	return domain.IncidenteDetalle{Incidente: incidente, Tags: tags}, nil
+}
+
+// AgregarTags agrega tags al catálogo de un incidente existente, todos o
+// ninguno.
+//
+// El UNIQUE (incidente_id, nombre) de la base distingue mayúsculas, así que
+// aquí se compara contra los tags que ya tiene el incidente sin
+// distinguirlas, igual que validarTags dentro de la misma petición.
+func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error) {
+	if len(nuevos) == 0 {
+		return nil, fmt.Errorf("%w: hay que mandar al menos un tag", domain.ErrIncidenteInvalido)
+	}
+	tags, err := validarTags(nuevos)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.store.GetIncidenteById(ctx, incidenteID); err != nil {
+		if domain.IsNotFound(err) {
+			return nil, domain.ErrIncidenteNotFound
+		}
+		return nil, err
+	}
+
+	existentes, err := s.store.ListTagsByIncidenteId(ctx, incidenteID)
+	if err != nil {
+		return nil, err
+	}
+	usados := make(map[string]bool, len(existentes))
+	for _, t := range existentes {
+		usados[strings.ToLower(t.Nombre)] = true
+	}
+	for i := range tags {
+		if usados[strings.ToLower(tags[i].Nombre)] {
+			return nil, fmt.Errorf("%w: %q", domain.ErrTagNameTaken, tags[i].Nombre)
+		}
+		tags[i].IncidenteID = incidenteID
+	}
+
+	creados, err := s.store.CreateTags(ctx, tags)
+	if err != nil {
+		// Las dos comprobaciones de arriba pueden quedar viejas si otra
+		// petición crea el mismo tag o borra el incidente entre medio.
+		if domain.IsUniqueViolation(err) {
+			return nil, domain.ErrTagNameTaken
+		}
+		if domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
+			return nil, domain.ErrIncidenteNotFound
+		}
+		return nil, err
+	}
+	return creados, nil
 }

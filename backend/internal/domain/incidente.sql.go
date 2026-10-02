@@ -84,3 +84,102 @@ func (q *Queries) GetIncidenteById(ctx context.Context, id int) (Incidente, erro
 	)
 	return i, err
 }
+
+const listIncidentes = `-- name: ListIncidentes :many
+SELECT id, nombre, tiempo_limite, radio, esta_activo, color FROM incidentes
+WHERE esta_activo OR $1::boolean
+ORDER BY nombre
+`
+
+// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
+// administración).
+func (q *Queries) ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error) {
+	rows, err := q.db.Query(ctx, listIncidentes, incluirInactivos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Incidente
+	for rows.Next() {
+		var i Incidente
+		if err := rows.Scan(
+			&i.ID,
+			&i.Nombre,
+			&i.TiempoLimite,
+			&i.Radio,
+			&i.EstaActivo,
+			&i.Color,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTagsByIncidenteId = `-- name: ListTagsByIncidenteId :many
+SELECT id, incidente_id, nombre, peso FROM tags
+WHERE incidente_id = $1
+ORDER BY id
+`
+
+func (q *Queries) ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]Tag, error) {
+	rows, err := q.db.Query(ctx, listTagsByIncidenteId, incidenteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tag
+	for rows.Next() {
+		var i Tag
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncidenteID,
+			&i.Nombre,
+			&i.Peso,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTagsByIncidenteIds = `-- name: ListTagsByIncidenteIds :many
+SELECT id, incidente_id, nombre, peso FROM tags
+WHERE incidente_id = ANY($1::int[])
+ORDER BY incidente_id, id
+`
+
+// Los tags de varios incidentes en una sola consulta, para no hacer una por
+// incidente al listar.
+func (q *Queries) ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error) {
+	rows, err := q.db.Query(ctx, listTagsByIncidenteIds, incidenteIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tag
+	for rows.Next() {
+		var i Tag
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncidenteID,
+			&i.Nombre,
+			&i.Peso,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

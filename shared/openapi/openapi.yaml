@@ -25,6 +25,10 @@ paths:
     $ref: './paths/auth.yaml#/logout'
   /incidentes:
     $ref: './paths/incidentes.yaml#/crearIncidente'
+  /incidentes/{incidenteId}:
+    $ref: './paths/incidentes.yaml#/obtenerIncidente'
+  /incidentes/{incidenteId}/tags:
+    $ref: './paths/incidentes.yaml#/agregarTags'
 
 components:
   schemas:

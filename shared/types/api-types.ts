@@ -140,10 +140,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Tipos de incidente con los tags de su catálogo, ordenados por nombre. Por defecto solo los activos. */
+        get: operations["listarIncidentes"];
         put?: never;
         /** @description Crea un nuevo tipo de incidente. Solo para administradores. */
         post: operations["crearIncidente"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/incidentes/{incidenteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Un tipo de incidente con los tags de su catálogo, esté activo o no. */
+        get: operations["obtenerIncidente"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/incidentes/{incidenteId}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Agrega tags al catálogo de un incidente existente. Solo para administradores. */
+        post: operations["agregarTags"];
         delete?: never;
         options?: never;
         head?: never;
@@ -308,6 +343,23 @@ export interface components {
             username: string;
             rol_name: string;
         };
+        /** @description Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte. */
+        tag_catalogo: {
+            id: number;
+            nombre: string;
+            peso: number;
+        };
+        incidente: {
+            id: number;
+            nombre: string;
+            tiempo_limite: number | null;
+            /** Format: double */
+            radio: number | null;
+            /** @example #EF6C33 */
+            color: string;
+            tags: components["schemas"]["tag_catalogo"][];
+            esta_activo: boolean;
+        };
         /** @description Tag nuevo del catálogo. El incidente al que pertenece lo da el contexto (el incidente que se está creando), no el cliente. */
         crear_tag_request: {
             nombre: string;
@@ -328,23 +380,6 @@ export interface components {
             color?: string;
             /** @description Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas). */
             tags?: components["schemas"]["crear_tag_request"][];
-        };
-        /** @description Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte. */
-        tag_catalogo: {
-            id: number;
-            nombre: string;
-            peso: number;
-        };
-        incidente: {
-            id: number;
-            nombre: string;
-            tiempo_limite: number | null;
-            /** Format: double */
-            radio: number | null;
-            /** @example #EF6C33 */
-            color: string;
-            tags: components["schemas"]["tag_catalogo"][];
-            esta_activo: boolean;
         };
     };
     responses: never;
@@ -704,6 +739,37 @@ export interface operations {
             };
         };
     };
+    listarIncidentes: {
+        parameters: {
+            query?: {
+                incluir_inactivos?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de incidentes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["incidente"][];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
     crearIncidente: {
         parameters: {
             query?: never;
@@ -754,6 +820,117 @@ export interface operations {
                 };
             };
             /** @description Ya existe un incidente con ese nombre */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    obtenerIncidente: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidenteId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Incidente encontrado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["incidente"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Incidente no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    agregarTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidenteId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["crear_tag_request"][];
+            };
+        };
+        responses: {
+            /** @description Tags creados, en el orden en que se mandaron */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["tag_catalogo"][];
+                };
+            };
+            /** @description Datos inválidos (p. ej. tags repetidos en la petición) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Incidente no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El incidente ya tiene un tag con ese nombre (sin importar mayúsculas) */
             409: {
                 headers: {
                     [name: string]: unknown;

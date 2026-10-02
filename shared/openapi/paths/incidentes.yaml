@@ -1,4 +1,29 @@
 crearIncidente:
+  get:
+    operationId: listarIncidentes
+    description: Tipos de incidente con los tags de su catálogo, ordenados por nombre. Por defecto solo los activos.
+    parameters:
+      - name: incluir_inactivos
+        in: query
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Lista de incidentes
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Incidente'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
   post:
     operationId: crearIncidente
     description: Crea un nuevo tipo de incidente. Solo para administradores.
@@ -42,11 +67,107 @@ crearIncidente:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+obtenerIncidente:
+  get:
+    operationId: obtenerIncidente
+    description: Un tipo de incidente con los tags de su catálogo, esté activo o no.
+    parameters:
+      - name: incidenteId
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      '200':
+        description: Incidente encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Incidente'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Incidente no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+agregarTags:
+  post:
+    operationId: agregarTags
+    description: Agrega tags al catálogo de un incidente existente. Solo para administradores.
+    security:
+      - bearerAuth: [admin]
+    parameters:
+      - name: incidenteId
+        in: path
+        required: true
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              $ref: '#/components/schemas/CrearTagRequest'
+    responses:
+      '201':
+        description: Tags creados, en el orden en que se mandaron
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TagCatalogo'
+      '400':
+        description: Datos inválidos (p. ej. tags repetidos en la petición)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Incidente no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: El incidente ya tiene un tag con ese nombre (sin importar mayúsculas)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Incidente:
       $ref: '../schemas/incidentes/incidente.yaml'
     CrearIncidenteRequest:
       $ref: '../schemas/incidentes/crear_incidente_request.yaml'
+    CrearTagRequest:
+      $ref: '../schemas/tags/crear_tag_request.yaml'
+    TagCatalogo:
+      $ref: '../schemas/tags/tag_catalogo.yaml'
     ErrorResponse:
       $ref: '../schemas/error_response.yaml'
