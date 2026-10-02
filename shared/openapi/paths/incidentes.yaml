@@ -1,0 +1,52 @@
+crearIncidente:
+  post:
+    operationId: crearIncidente
+    description: Crea un nuevo tipo de incidente. Solo para administradores.
+    security:
+      - bearerAuth: [admin]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CrearIncidenteRequest'
+    responses:
+      '201':
+        description: Incidente creado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Incidente'
+      '400':
+        description: Datos inválidos (p. ej. color mal formado o tags repetidos)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: Ya existe un incidente con ese nombre
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Incidente:
+      $ref: '../schemas/incidentes/incidente.yaml'
+    CrearIncidenteRequest:
+      $ref: '../schemas/incidentes/crear_incidente_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

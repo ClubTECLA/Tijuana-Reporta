@@ -91,3 +91,32 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 
 	return reporte, nil
 }
+
+// CreateIncidenteConTags inserta el incidente y sus tags en la misma
+// transacción: si un tag falla (p. ej. nombre repetido), no queda un
+// incidente a medias.
+func (s *Store) CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error) {
+	detalle := domain.IncidenteDetalle{Tags: make([]domain.Tag, 0, len(arg.Tags))}
+
+	err := s.execTx(ctx, func(q *domain.Queries) error {
+		var err error
+		if detalle.Incidente, err = q.CreateIncidente(ctx, arg.Incidente); err != nil {
+			return err
+		}
+
+		for _, t := range arg.Tags {
+			t.IncidenteID = detalle.Incidente.ID
+			tag, err := q.CreateTag(ctx, t)
+			if err != nil {
+				return err
+			}
+			detalle.Tags = append(detalle.Tags, tag)
+		}
+		return nil
+	})
+	if err != nil {
+		return domain.IncidenteDetalle{}, err
+	}
+
+	return detalle, nil
+}

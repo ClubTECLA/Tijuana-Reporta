@@ -23,6 +23,8 @@ paths:
     $ref: './paths/auth.yaml#/me'
   /auth/logout:
     $ref: './paths/auth.yaml#/logout'
+  /incidentes:
+    $ref: './paths/incidentes.yaml#/crearIncidente'
 
 components:
   schemas:
@@ -40,6 +42,10 @@ components:
       $ref: './schemas/fotos/foto.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
+    TagCatalogo:
+      $ref: './schemas/tags/tag_catalogo.yaml'
+    CrearTagRequest:
+      $ref: './schemas/tags/crear_tag_request.yaml'
     Location:
       $ref: './schemas/locations/location.yaml'
     CrearReporteRequest:
@@ -56,6 +62,10 @@ components:
       $ref: './schemas/auth/usuario.yaml'
     UsuarioMeResponse:
       $ref: './schemas/auth/usuario_me_response.yaml'
+    Incidente:
+      $ref: './schemas/incidentes/incidente.yaml'
+    CrearIncidenteRequest:
+      $ref: './schemas/incidentes/crear_incidente_request.yaml'
   securitySchemes:
     bearerAuth:
       type: http

@@ -126,6 +126,51 @@ PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/avistamientos
 Authorization: Bearer {{token}}
 
 
+# Incidentes (solo admin)
+## Con el usuario de {{email}} como ciudadano responden 403. Para probarlos,
+## hazlo admin y vuelve a correr "login" (el rol va dentro del token):
+##   UPDATE users SET rol_id = (SELECT id FROM roles WHERE nombre = 'admin')
+##   WHERE email = 'test@example.com';
+
+### Crear incidente con tags (201; 409 si el nombre ya existe, p. ej. en la segunda corrida)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "semaforo",
+    "color": "#FBC02D",
+    "tiempo_limite": 3,
+    "radio": 50,
+    "tags": [
+        { "nombre": "apagado", "peso": 2 },
+        { "nombre": "intermitente" }
+    ]
+}
+
+### Crear incidente con tags repetidos (400)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "poste",
+    "tags": [
+        { "nombre": "caido" },
+        { "nombre": "Caido" }
+    ]
+}
+
+### Crear incidente con color inválido (400)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "poste",
+    "color": "red"
+}
+
 # Logout 
 
 ### Logout (204)

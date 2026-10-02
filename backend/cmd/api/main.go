@@ -41,6 +41,7 @@ func main() {
 
 	comentarios := service.NewComentarioService(store)
 	reportes := service.NewReporteService(store)
+	incidentes := service.NewIncidenteService(store)
 	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth service: %v", err)
@@ -49,6 +50,7 @@ func main() {
 	r := api.NewRouter(api.Services{
 		Comentarios: comentarios,
 		Reportes:    reportes,
+		Incidentes:  incidentes,
 		Auth:        auth,
 	}, cfg.JWTSecret)
 

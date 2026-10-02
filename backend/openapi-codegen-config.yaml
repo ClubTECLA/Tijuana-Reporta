@@ -30,11 +30,9 @@ additional-imports:
 
 # enable-auth-scopes-on-context: sin esto oapi-codegen no genera las
 # constantes *Scopes ni el c.Set(...) por operación que el middleware de
-# auth necesita para saber si una ruta requiere autenticación. Es una
-# compatibilidad "legacy" (oapi-codegen recomienda en su lugar un
-# middleware de validación de requests contra el spec), pero como solo
-# tenemos un esquema de seguridad simple (bearer, sin scopes reales) nos
-# alcanza y es mucho más simple.
+# auth necesita para saber si una ruta requiere autenticación. Los scopes
+# son los roles permitidos en la ruta (security: - bearerAuth: [admin]); los
+# compara middleware.RequireRole. Lista vacía = basta con estar autenticado.
 compatibility:
   enable-auth-scopes-on-context: true
 

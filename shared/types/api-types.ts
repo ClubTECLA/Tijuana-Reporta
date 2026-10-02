@@ -11,13 +11,46 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Reportes activos para el mapa. Si se manda el área visible, filtra por ella. */
+        get: operations["listarReportes"];
         put?: never;
         post: operations["crearReporte"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/reportes/{reporteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["obtenerReporte"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reportes/{reporteId}/avistamientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["agregarAvistamiento"];
         trace?: never;
     };
     "/reportes/{reporteId}/comentarios": {
@@ -100,6 +133,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/incidentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Crea un nuevo tipo de incidente. Solo para administradores. */
+        post: operations["crearIncidente"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -107,6 +157,13 @@ export interface components {
         Comentario: components["schemas"]["comentario"];
         CrearComentarioRequest: components["schemas"]["crear_comentario_request"];
         Reporte: components["schemas"]["reporte"];
+        ReporteResumen: components["schemas"]["reporte_resumen"];
+        EstadoReporte: components["schemas"]["estado_reporte"];
+        Foto: components["schemas"]["foto"];
+        Tag: components["schemas"]["tag"];
+        TagCatalogo: components["schemas"]["tag_catalogo"];
+        CrearTagRequest: components["schemas"]["crear_tag_request"];
+        Location: components["schemas"]["location"];
         CrearReporteRequest: components["schemas"]["crear_reporte_request"];
         ErrorResponse: components["schemas"]["error_response"];
         RegisterRequest: components["schemas"]["register_request"];
@@ -114,6 +171,32 @@ export interface components {
         AuthResponse: components["schemas"]["auth_response"];
         Usuario: components["schemas"]["usuario"];
         UsuarioMeResponse: components["schemas"]["usuario_me_response"];
+        Incidente: components["schemas"]["incidente"];
+        CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
+        /** @enum {string} */
+        estado_reporte: "Pendiente" | "Probable" | "Verificado" | "Resuelto" | "Descartado" | "Expirado";
+        /** @description Versión ligera de un reporte para pintar pines en el mapa. */
+        reporte_resumen: {
+            /** Format: uuid */
+            id: string;
+            incidente_id: number;
+            estado_actual: components["schemas"]["estado_reporte"];
+            avistamientos: number;
+            es_oficial: boolean;
+            /**
+             * Format: double
+             * @description Centroide del reporte (tabla puntos_origen).
+             */
+            latitude: number;
+            /**
+             * Format: double
+             * @description Centroide del reporte (tabla puntos_origen).
+             */
+            longitude: number;
+        };
+        error_response: {
+            message: string;
+        };
         crear_reporte_request: {
             incidente_id: number;
             /** Format: double */
@@ -121,27 +204,6 @@ export interface components {
             /** Format: double */
             longitude: number;
             image_path?: string;
-        };
-        reporte: {
-            /** Format: uuid */
-            id: string;
-            incidente_id: number;
-            avistamientos: number;
-            es_historico: boolean;
-            es_oficial: boolean;
-            estado_actual: string;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at: string;
-            /** Format: date-time */
-            expired_at?: string;
-        };
-        error_response: {
-            message: string;
-        };
-        crear_comentario_request: {
-            comentario: string;
         };
         comentario: {
             id: number;
@@ -152,6 +214,64 @@ export interface components {
             comentario: string;
             /** Format: date-time */
             created_at: string;
+        };
+        foto: {
+            id: number;
+            image_path: string;
+            /** Format: uuid */
+            user_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        tag: {
+            id: number;
+            nombre: string;
+            /** @description Cuántos usuarios han confirmado este tag en el reporte. */
+            count: number;
+        };
+        location: {
+            id: number;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /** Format: uuid */
+            user_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description Detalle completo de un reporte. */
+        reporte: {
+            /** Format: uuid */
+            id: string;
+            incidente_id: number;
+            avistamientos: number;
+            es_historico: boolean;
+            es_oficial: boolean;
+            estado_actual: components["schemas"]["estado_reporte"];
+            /**
+             * Format: double
+             * @description Centroide de todas las locations (tabla puntos_origen).
+             */
+            latitude: number;
+            /**
+             * Format: double
+             * @description Centroide de todas las locations (tabla puntos_origen).
+             */
+            longitude: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            expired_at?: string;
+            comentarios: components["schemas"]["comentario"][];
+            fotos: components["schemas"]["foto"][];
+            tags: components["schemas"]["tag"][];
+            locations: components["schemas"]["location"][];
+        };
+        crear_comentario_request: {
+            comentario: string;
         };
         register_request: {
             /** Format: email */
@@ -188,6 +308,44 @@ export interface components {
             username: string;
             rol_name: string;
         };
+        /** @description Tag nuevo del catálogo. El incidente al que pertenece lo da el contexto (el incidente que se está creando), no el cliente. */
+        crear_tag_request: {
+            nombre: string;
+            /** @default 1 */
+            peso: number;
+        };
+        crear_incidente_request: {
+            nombre: string;
+            tiempo_limite?: number;
+            /** Format: double */
+            radio?: number;
+            /** @default true */
+            esta_activo: boolean;
+            /**
+             * @description Se usa el gris por defecto (#757575).
+             * @example #EF6C33
+             */
+            color?: string;
+            /** @description Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas). */
+            tags?: components["schemas"]["crear_tag_request"][];
+        };
+        /** @description Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte. */
+        tag_catalogo: {
+            id: number;
+            nombre: string;
+            peso: number;
+        };
+        incidente: {
+            id: number;
+            nombre: string;
+            tiempo_limite: number | null;
+            /** Format: double */
+            radio: number | null;
+            /** @example #EF6C33 */
+            color: string;
+            tags: components["schemas"]["tag_catalogo"][];
+            esta_activo: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -197,6 +355,49 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarReportes: {
+        parameters: {
+            query?: {
+                min_lat?: number;
+                max_lat?: number;
+                min_lng?: number;
+                max_lng?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de reportes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_resumen"][];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
     crearReporte: {
         parameters: {
             query?: never;
@@ -230,6 +431,95 @@ export interface operations {
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    obtenerReporte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reporte encontrado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    agregarAvistamiento: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Avistamiento agregado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -411,6 +701,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    crearIncidente: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["crear_incidente_request"];
+            };
+        };
+        responses: {
+            /** @description Incidente creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["incidente"];
+                };
+            };
+            /** @description Datos inválidos (p. ej. color mal formado o tags repetidos) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Ya existe un incidente con ese nombre */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
             };
         };
     };

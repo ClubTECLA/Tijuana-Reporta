@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -17,9 +18,11 @@ import (
 var errUniqueViolation = &pgconn.PgError{Code: "23505", ConstraintName: "users_email_key"}
 
 // fakeAuthStore implementa AuthStore en memoria.
+// rolName es el rol que devuelve GetUserWithRolByID; vacío = "ciudadano".
 type fakeAuthStore struct {
 	byEmail       map[string]domain.User
 	defaultRoleID int
+	rolName       string
 }
 
 func (f *fakeAuthStore) CreateUserWithLocalProvider(_ context.Context, arg domain.CreateUserParams) (domain.User, error) {
@@ -68,7 +71,7 @@ func (f *fakeAuthStore) GetUserWithRolByID(_ context.Context, id uuid.UUID) (dom
 				Email:    u.Email,
 				Username: u.Username,
 				RolID:    u.RolID,
-				RolName:  "ciudadano",
+				RolName:  f.rol(),
 			}, nil
 		}
 	}
@@ -117,5 +120,52 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 
 	if _, err := svc.GetUser(ctx, uuid.New()); !errors.Is(err, domain.ErrUserNotFound) {
 		t.Fatalf("GetUser() with unknown id error = %v, want ErrUserNotFound", err)
+	}
+}
+
+func (f *fakeAuthStore) rol() string {
+	if f.rolName == "" {
+		return "ciudadano"
+	}
+	return f.rolName
+}
+
+// rolDelToken valida el token con el secreto y devuelve su claim "rol", el
+// mismo que lee middleware.Auth.
+func rolDelToken(t *testing.T, token string, secret []byte) string {
+	t.Helper()
+
+	var claims tokenClaims
+	if _, err := jwt.ParseWithClaims(token, &claims, func(*jwt.Token) (any, error) { return secret, nil }); err != nil {
+		t.Fatalf("ParseWithClaims() error = %v", err)
+	}
+	return claims.Rol
+}
+
+func TestAuthService_TokenLlevaRol(t *testing.T) {
+	store := &fakeAuthStore{byEmail: map[string]domain.User{}, defaultRoleID: 1}
+	secret := []byte("test-secret-at-least-32-bytes!!")
+	ctx := context.Background()
+	svc, err := NewAuthService(ctx, store, secret, time.Hour)
+	if err != nil {
+		t.Fatalf("NewAuthService() error = %v", err)
+	}
+
+	_, token, _, err := svc.Register(ctx, "test@example.com", "tester", "s3cretpw")
+	if err != nil {
+		t.Fatalf("Register() error = %v", err)
+	}
+	if rol := rolDelToken(t, token, secret); rol != "ciudadano" {
+		t.Fatalf("Register() token rol = %q, want \"ciudadano\" (rol por defecto)", rol)
+	}
+
+	// Login lee el rol actual de la base, no asume el rol por defecto.
+	store.rolName = "admin"
+	_, token, _, err = svc.Login(ctx, "test@example.com", "s3cretpw")
+	if err != nil {
+		t.Fatalf("Login() error = %v", err)
+	}
+	if rol := rolDelToken(t, token, secret); rol != "admin" {
+		t.Fatalf("Login() token rol = %q, want \"admin\"", rol)
 	}
 }

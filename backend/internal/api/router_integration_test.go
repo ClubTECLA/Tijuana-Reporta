@@ -24,6 +24,7 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -58,6 +59,7 @@ func newTestClient(t *testing.T) *testClient {
 	router := api.NewRouter(api.Services{
 		Comentarios: service.NewComentarioService(store),
 		Reportes:    service.NewReporteService(store),
+		Incidentes:  service.NewIncidenteService(store),
 		Auth:        auth,
 	}, testJWTSecret)
 
@@ -146,6 +148,29 @@ func (c *testClient) crearReporte() api.Reporte {
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
 	})
 	return decode[api.Reporte](c.t, rec)
+}
+
+// loginComo registra un usuario, le asigna el rol dado directo en la base y
+// luego inicia sesión, para que el token ya lleve ese rol.
+func (c *testClient) loginComo(rol string) {
+	c.t.Helper()
+
+	email, password := credenciales()
+	c.expect(http.StatusCreated, http.MethodPost, "/v1/auth/register", map[string]any{
+		"email": email, "username": "tester", "password": password,
+	})
+
+	_, err := testPool(c.t).Exec(c.t.Context(),
+		`UPDATE users SET rol_id = (SELECT id FROM roles WHERE nombre = $1) WHERE email = $2`,
+		rol, email)
+	if err != nil {
+		c.t.Fatalf("asignando rol %q: %v", rol, err)
+	}
+
+	rec := c.expect(http.StatusOK, http.MethodPost, "/v1/auth/login", map[string]any{
+		"email": email, "password": password,
+	})
+	c.token = decode[api.AuthResponse](c.t, rec).AccessToken
 }
 
 // TestStatus cubre las peticiones donde solo importa el código de respuesta.
@@ -305,5 +330,162 @@ func TestAgregarAvistamiento(t *testing.T) {
 
 	if actualizado.Avistamientos != reporte.Avistamientos+1 {
 		t.Errorf("avistamientos = %d, quería %d", actualizado.Avistamientos, reporte.Avistamientos+1)
+	}
+}
+
+// nombreIncidente devuelve un nombre único por llamada: incidentes.nombre es
+// UNIQUE y la base se comparte entre tests y corridas.
+func nombreIncidente() string {
+	return "test-" + uuid.NewString()
+}
+
+func TestCrearIncidentePermisos(t *testing.T) {
+	t.Run("sin token", func(t *testing.T) {
+		c := newTestClient(t)
+		c.expect(http.StatusUnauthorized, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombreIncidente()})
+	})
+
+	t.Run("ciudadano", func(t *testing.T) {
+		c := newTestClient(t)
+		c.login()
+		c.expect(http.StatusForbidden, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombreIncidente()})
+	})
+
+	t.Run("admin", func(t *testing.T) {
+		c := newTestClient(t)
+		c.loginComo("admin")
+		c.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombreIncidente()})
+	})
+}
+
+func TestCrearIncidente(t *testing.T) {
+	c := newTestClient(t)
+	c.loginComo("admin")
+
+	t.Run("con tags", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		nombre := nombreIncidente()
+
+		rec := tc.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", map[string]any{
+			"nombre":        nombre,
+			"color":         "#EF6C33",
+			"esta_activo":   false,
+			"tiempo_limite": 7,
+			"radio":         25.5,
+			"tags": []map[string]any{
+				{"nombre": "profundo", "peso": 3},
+				{"nombre": "ancho"},
+				{"nombre": "con agua"},
+			},
+		})
+		inc := decode[api.Incidente](t, rec)
+
+		if inc.Id == 0 || inc.Nombre != nombre || inc.Color != "#EF6C33" || inc.EstaActivo {
+			t.Errorf("incidente = %+v, quería nombre=%q color=#EF6C33 esta_activo=false", inc, nombre)
+		}
+		if inc.TiempoLimite == nil || *inc.TiempoLimite != 7 || inc.Radio == nil || *inc.Radio != 25.5 {
+			t.Errorf("tiempo_limite/radio = %v/%v, quería 7/25.5", inc.TiempoLimite, inc.Radio)
+		}
+
+		want := []struct {
+			nombre string
+			peso   int
+		}{{"profundo", 3}, {"ancho", 1}, {"con agua", 1}}
+		if len(inc.Tags) != len(want) {
+			t.Fatalf("tags = %+v, quería %d", inc.Tags, len(want))
+		}
+		for i, w := range want {
+			got := inc.Tags[i]
+			if got.Id == 0 || got.Nombre != w.nombre || got.Peso != w.peso {
+				t.Errorf("tags[%d] = %+v, quería nombre=%q peso=%d y un id", i, got, w.nombre, w.peso)
+			}
+		}
+	})
+
+	t.Run("valores por defecto", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+
+		rec := tc.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombreIncidente()})
+		inc := decode[api.Incidente](t, rec)
+
+		if inc.Color != "#757575" || !inc.EstaActivo || inc.TiempoLimite != nil || inc.Radio != nil {
+			t.Errorf("incidente = %+v, quería color=#757575 esta_activo=true y tiempo_limite/radio nulos", inc)
+		}
+		// El contrato pide un arreglo: null rompería a los clientes generados.
+		if inc.Tags == nil || len(inc.Tags) != 0 {
+			t.Errorf("tags = %#v, quería [] (no null)", inc.Tags)
+		}
+	})
+
+	t.Run("nombre repetido", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		body := map[string]any{"nombre": nombreIncidente()}
+
+		tc.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", body)
+		tc.expect(http.StatusConflict, http.MethodPost, "/v1/incidentes", body)
+	})
+
+	t.Run("nombre de un incidente sembrado", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		tc.expect(http.StatusConflict, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": "socavon"})
+	})
+
+	invalidos := []struct {
+		name string
+		body map[string]any
+	}{
+		{name: "nombre vacío", body: map[string]any{"nombre": "  "}},
+		{name: "color inválido", body: map[string]any{"color": "red"}},
+		{name: "tiempo_limite negativo", body: map[string]any{"tiempo_limite": -1}},
+		{name: "radio negativo", body: map[string]any{"radio": -2.5}},
+		{name: "peso 0", body: map[string]any{"tags": []map[string]any{{"nombre": "luz", "peso": 0}}}},
+		{name: "tags repetidos", body: map[string]any{"tags": []map[string]any{{"nombre": "luz"}, {"nombre": "Luz"}}}},
+	}
+	for _, tt := range invalidos {
+		t.Run(tt.name, func(t *testing.T) {
+			tc := *c
+			tc.t = t
+			nombre := nombreIncidente()
+
+			body := map[string]any{"nombre": nombre}
+			for k, v := range tt.body {
+				body[k] = v
+			}
+			tc.expect(http.StatusBadRequest, http.MethodPost, "/v1/incidentes", body)
+
+			// Nada quedó creado: el mismo nombre, ya válido, se puede usar.
+			if _, ok := tt.body["nombre"]; !ok {
+				tc.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombre})
+			}
+		})
+	}
+}
+
+// TestCreateIncidenteConTagsRollback prueba la transacción del store
+// directamente: el servicio ya rechaza los tags repetidos, así que por la API
+// no hay forma de que falle un tag después de insertar el incidente.
+func TestCreateIncidenteConTagsRollback(t *testing.T) {
+	pool := testPool(t)
+	store := database.NewStore(pool)
+	nombre := nombreIncidente()
+
+	_, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
+		Incidente: domain.CreateIncidenteParams{Nombre: nombre, Color: "#757575", EstaActivo: true},
+		Tags:      []domain.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
+	})
+	if !domain.IsUniqueViolation(err) {
+		t.Fatalf("CreateIncidenteConTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
+	}
+
+	var n int
+	if err := pool.QueryRow(t.Context(), "SELECT count(*) FROM incidentes WHERE nombre = $1", nombre).Scan(&n); err != nil {
+		t.Fatalf("contando incidentes: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("quedaron %d incidentes %q tras el rollback, quería 0", n, nombre)
 	}
 }
