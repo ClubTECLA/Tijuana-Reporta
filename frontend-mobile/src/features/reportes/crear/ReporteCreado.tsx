@@ -33,7 +33,6 @@ export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }
   const insets = useSafeAreaInsets();
   const categoriaPrincipal = reporte.categorias[0];
   const recibido = viaDuplicado ? new Date() : new Date(reporte.created_at);
-  const verbo = viaDuplicado ? 'enviado' : 'creado';
 
   return (
     <View style={styles.root}>
@@ -49,7 +48,9 @@ export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }
             </View>
             <Text style={styles.titulo}>{viaDuplicado ? '¡Reporte Enviado!' : '¡Reporte Creado!'}</Text>
             <Text style={styles.subtitulo}>
-              Tu reporte de {listarCategorias(reporte)} fue {verbo} con éxito
+              {viaDuplicado
+                ? `Confirmaste el reporte de ${listarCategorias(reporte)} con éxito`
+                : `Tu reporte de ${listarCategorias(reporte)} fue creado con éxito`}
             </Text>
           </View>
 
