@@ -31,6 +31,7 @@ interface SectionProps {
     subtitle?: string
     extraHeaderBtns?: headerBtnsType,
     className?: string
+    footerText?: string
 }
 
 export default function ColSection(
@@ -41,7 +42,8 @@ export default function ColSection(
         title,
         subtitle,
         extraHeaderBtns,
-        className
+        className,
+        footerText
     }: SectionProps
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
@@ -114,6 +116,9 @@ export default function ColSection(
             }
             <div className={`w-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
                 {children}
+                <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
+                    {footerText && <span className="text-xs text-gray-500">{footerText}</span>}
+                </div>
             </div>
         </section>
     )
