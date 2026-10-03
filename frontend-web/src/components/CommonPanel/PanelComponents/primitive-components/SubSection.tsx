@@ -8,7 +8,7 @@ interface generalSubsectionProps extends subsectionProps{
 
 export default function SubSection({children, className, debug, format}: generalSubsectionProps){
     return(
-        <div className={`flex flex-1 ${format === 'col' ? "w-full h-fit" : "h-full w-fit"} p-2 ${className ?? ''} ${debug ? 'border-2 border-blue-400' : ''}`}>
+        <div className={`flex  ${format === 'col' ? "w-full h-fit flex-1" : "h-full w-fit"} p-2 ${className ?? ''} ${debug ? 'border-2 border-blue-400' : ''}`}>
             {children}
         </div>
     )

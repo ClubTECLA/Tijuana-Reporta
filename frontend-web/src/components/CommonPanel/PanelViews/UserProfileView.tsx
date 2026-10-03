@@ -4,11 +4,14 @@ import Input from "../view-components/Input";
 import { ListTile, OptionList } from "../view-components/OptionsList";
 import UserCart from "../view-components/UserCart";
 import { GoShieldCheck } from "react-icons/go";
-import { LuLock } from "react-icons/lu";
+import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
+import Button from "../view-components/Button";
+import RowSection from "../PanelComponents/primitive-components/RowSection";
+import SubSection from "../PanelComponents/primitive-components/SubSection";
 
 type FormState = {
     username: string;
@@ -54,6 +57,7 @@ export default function UserProfileView() {
             arrangementSubsections="toDown"
             title="Mi perfil"
             subtitle="Cuenta institucional - Proteccion Civil"
+            className="pb-10"
         >
             <UserCart
                 format={"col"}
@@ -114,6 +118,19 @@ export default function UserProfileView() {
                     icon={<IoMdNotificationsOutline />}
                 />
             </OptionList>
+            <RowSection debug={false} arrangementSubsections='toLeft' className="gap-3 mt-5">
+                <Button
+                    title="Descartar"
+                    format='row'
+                    color='gray'
+                />
+                <Button
+                    title="Guardar Cambios"
+                    format='row'
+                    icon={<LuSun />}
+                    color='blue'
+                />
+            </RowSection>
         </ColSection>
     );
 }
