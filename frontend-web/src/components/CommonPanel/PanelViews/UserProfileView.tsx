@@ -115,7 +115,7 @@ export default function UserProfileView() {
                 <ListTile
                     tileName="Notificaciones"
                     tileDescription="Que te avisamos y por donde"
-                    onClick={() => {}}
+                    onClick={() => setPanelView('Notificaciones')}
                     icon={<IoMdNotificationsOutline />}
                 />
                 <ListTile

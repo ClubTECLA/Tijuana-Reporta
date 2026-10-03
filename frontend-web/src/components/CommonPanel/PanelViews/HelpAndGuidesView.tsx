@@ -6,6 +6,35 @@ import { MdOutlineReportProblem } from 'react-icons/md';
 import { FiFlag } from 'react-icons/fi';
 import { LuUsersRound } from 'react-icons/lu';
 
+
+const GuiasItems = [
+    {
+        tileName: "Revisar reportes duplicados",
+        onClick: () => {},
+        icon: <HiOutlineDocumentReport/>
+    },
+    {
+        tileName: "Verificar y cerrar incidentes",
+        icon: <MdOutlineReportProblem/>,
+        onClick: () => {}
+    },
+    {
+        tileName: "Enviar avisos a la poblacion",
+        icon: <HiOutlinePaperAirplane/>,
+        onClick: () => {}
+    },
+    {
+        tileName: "Moderar contenido y cuentas",
+        icon: <FiFlag/>,
+        onClick: () => {}
+    },
+    {
+        tileName: "Roles y permisos del equipo",
+        icon: <LuUsersRound/>,
+        onClick: () => {}
+    }
+]
+
 export default function HelpAndGuidesView() {
     return (
         <ColSection
@@ -20,32 +49,16 @@ export default function HelpAndGuidesView() {
             />
             <OptionList
                 format='col'
+                title='Guias'
             >
-                <ListTile
-                    tileName="Revisar reportes duplicados"                
-                    onClick={() => {}}
-                    icon={<HiOutlineDocumentReport/>}
-                />
-                <ListTile
-                    tileName="Verificar y cerrar incidentes"
-                    icon={<MdOutlineReportProblem/>}
-                    onClick={() => {}}
-                />
-                <ListTile
-                    tileName="Enviar avisos a la poblacion"
-                    icon={<HiOutlinePaperAirplane/>}
-                    onClick={() => {}}
-                />
-                <ListTile
-                    tileName="Moderar contenido y cuentas"
-                    icon={<FiFlag/>}
-                    onClick={() => {}}
-                />
-                <ListTile
-                    tileName="Roles y permisos del equipo"
-                    icon={<LuUsersRound/>}
-                    onClick={() => {}}
-                />
+                {GuiasItems.map((item, index) => (
+                    <ListTile
+                        key={index}
+                        tileName={item.tileName}
+                        onClick={item.onClick}
+                        icon={item.icon}
+                    />
+                ))}
             </OptionList>
         </ColSection>
     );

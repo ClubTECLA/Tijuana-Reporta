@@ -17,6 +17,8 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
 
     const closePanel = () => {
         setOpen(false);
+        setCurrentPanelView(null);
+        setPreviousView([]);
     }
 
     const backView = () => {

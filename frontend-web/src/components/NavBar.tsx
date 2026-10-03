@@ -32,7 +32,9 @@ export default function NavBar() {
     return(
         <section className="flex flex-row gap-2 bg-white px-4 py-1 rounded-full shadow-lg shadow-gray-600 w-full">
             {navItems.map((item, idx) => 
-                <>
+                <div
+                    key={idx}
+                >
                     {item.destinationPath && !item.onClick &&
                         <Link
                             key={idx}
@@ -67,7 +69,7 @@ export default function NavBar() {
                             <span>{item.title}</span>
                         </button>
                     }
-                </>
+                </div>
             )}
         </section>
     )
