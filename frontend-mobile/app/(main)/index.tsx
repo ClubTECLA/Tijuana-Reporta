@@ -20,6 +20,8 @@ const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 const TARGET_ZOOM = 15;
 const MI_UBICACION_ZOOM = 16;
 const AVISO_MS = 3500;
+// Pausa tras el último movimiento antes de volver a ensanchar "Reportar".
+const QUIETO_MS = 600;
 const SIN_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 
 // Medidas de la pantalla "Ver reporte" (Figma 22).
@@ -27,8 +29,8 @@ const BUSCADOR_ALTO = 60;
 const SEPARACION_BUSCADOR = 26;
 const FAB_ALTO = 60;
 const SEPARACION_FAB = 31;
-// Separación entre el botón de ubicación y el de reportar (Figma 10): 84 px del círculo + 21.
-const UBICACION_SOBRE_FAB = 105;
+// Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
+const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
 
 export default function MainMap() {
   const insets = useSafeAreaInsets();
@@ -77,11 +79,30 @@ export default function MainMap() {
   }, [aviso]);
 
   // "Reportar" nace ensanchado (Figma 10) y se contrae a círculo (Figma 11) en cuanto el usuario
-  // mueve el mapa; solo vuelve a ensancharse al tocar "ir a mi ubicación". Los vuelos de cámara
-  // del propio código (`userInteraction: false`) no lo contraen.
-  const alMoverse = useCallback((e: { nativeEvent: { userInteraction: boolean } }) => {
-    if (e.nativeEvent.userInteraction) setExpandido(false);
+  // mueve el mapa; vuelve a ensancharse cuando el mapa se queda quieto (`onRegionDidChange` más
+  // una breve pausa, para no parpadear entre gesto y gesto). Los vuelos de cámara del propio
+  // código (`userInteraction: false`) no lo contraen.
+  const quietoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelarQuieto = useCallback(() => {
+    if (quietoTimer.current) clearTimeout(quietoTimer.current);
+    quietoTimer.current = null;
   }, []);
+
+  const alMoverse = useCallback(
+    (e: { nativeEvent: { userInteraction: boolean } }) => {
+      if (!e.nativeEvent.userInteraction) return;
+      cancelarQuieto();
+      setExpandido(false);
+    },
+    [cancelarQuieto],
+  );
+
+  const alQuedarseQuieto = useCallback(() => {
+    cancelarQuieto();
+    quietoTimer.current = setTimeout(() => setExpandido(true), QUIETO_MS);
+  }, [cancelarQuieto]);
+
+  useEffect(() => cancelarQuieto, [cancelarQuieto]);
 
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
@@ -137,6 +158,7 @@ export default function MainMap() {
         logo={false}
         attribution={false}
         onRegionWillChange={alMoverse}
+        onRegionDidChange={alQuedarseQuieto}
       >
         <MapLibreGL.Camera
           ref={cameraRef}
