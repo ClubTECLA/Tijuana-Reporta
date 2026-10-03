@@ -54,4 +54,32 @@ export const colors = {
   creadoBackground: '#fdfdfd',
   creadoCard: 'rgba(216,216,216,0.79)',
   creadoButton: '#b91b1b',
+
+  // Pantalla "Buscar dirección" (Figma).
+  textPrimary: '#111827',
+  textSecondary: '#475569',
+  bgCanvas: '#e8edf3',
+  divider: '#d9e0e8',
+  etiquetaPeligroBg: '#ffe9e9',
+  etiquetaPeligroText: '#d93f3f',
+  etiquetaAdvertenciaBg: '#fff6da',
+  etiquetaAdvertenciaText: '#b7770f',
+
+  // Modal "Corregir ubicación" y hoja "Reporte creado" (Figma).
+  brand: '#2677e6',
+  brandText: '#176edf',
+  brandShadow: 'rgba(38,119,230,0.35)',
+  infoSubtle: '#eff6ff',
+  successSubtle: '#e7f7f0',
+  successIcon: '#1f9460',
+  reportRed: '#c30508',
+  reportRedShadow: 'rgba(194,5,8,0.35)',
+  cardSecondary: '#f2f2f7',
+  scrim: 'rgba(15,23,42,0.35)',
+
+  // Tarjeta "Ver reporte" (Figma 22).
+  scrimMapa: 'rgba(0,0,0,0.25)',
+  rescatista: '#d35456',
+  rescatistaAvatar: '#e06d2f',
+  captionGradient: 'rgba(31,39,51,0.8)',
 } as const;
