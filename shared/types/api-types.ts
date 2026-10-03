@@ -364,7 +364,7 @@ export interface components {
         crear_tag_request: {
             nombre: string;
             /** @default 1 */
-            peso: number;
+            peso?: number;
         };
         crear_incidente_request: {
             nombre: string;
@@ -372,7 +372,7 @@ export interface components {
             /** Format: double */
             radio?: number;
             /** @default true */
-            esta_activo: boolean;
+            esta_activo?: boolean;
             /**
              * @description Se usa el gris por defecto (#757575).
              * @example #EF6C33
