@@ -63,7 +63,8 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
   const [teclado, setTeclado] = useState(0);
   const insets = useSafeAreaInsets();
 
-  // Con el teclado abierto la tarjeta sube para que el campo de texto siga visible.
+  // Con el teclado abierto la tarjeta sube y la foto se compacta, para que el hilo y el
+  // campo de texto sigan visibles en pantallas bajas.
   useEffect(() => {
     const mostrar = Keyboard.addListener('keyboardDidShow', (e) => setTeclado(e.endCoordinates.height));
     const ocultar = Keyboard.addListener('keyboardDidHide', () => setTeclado(0));
@@ -87,12 +88,12 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
 
   return (
     <View style={[styles.tarjeta, { top, bottom: teclado > 0 ? teclado + insets.bottom + 8 : bottom }]}>
-      <View style={styles.encabezado}>
+      <View style={[styles.encabezado, teclado > 0 && styles.encabezadoCompacto]}>
         {reporte.image_url ? (
           <Image source={{ uri: reporte.image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.fotoVacia]}>
-            <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />
+            {teclado === 0 && <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />}
           </View>
         )}
         <LinearGradient
@@ -198,6 +199,9 @@ const styles = StyleSheet.create({
   encabezado: {
     height: 151,
     backgroundColor: colors.photoBackground,
+  },
+  encabezadoCompacto: {
+    height: 56,
   },
   fotoVacia: {
     alignItems: 'center',
