@@ -57,7 +57,7 @@ export default function ColSection(
     return(
         <section className={`w-fit h-full flex flex-col ${debug ? 'border-2' : ''}`}>
             {title && 
-                <div className="flex flex-row items-center">
+                <div className="flex flex-row items-center gap-2">
                     {hasPrevView && 
                         <button 
                             type='button'
@@ -66,7 +66,8 @@ export default function ColSection(
                             className="
                                 flex items-center justify-center 
                                 w-10 h-10 rounded-full 
-                                bg-gray-100 text-2xl font-bold text-gray-500 
+                                bg-gray-200 text-2xl font-bold text-gray-500 
+                                hover:bg-gray-100 hover:scale-120 transition-all duration-300 
                             "
                         >
                             <IoIosArrowBack/>
@@ -79,7 +80,7 @@ export default function ColSection(
                         className="
                             flex items-center justify-center 
                             w-10 h-10 rounded-full 
-                            bg-gray-200 text-2xl font-bold text-gray-500
+                            bg-gray-200 text-3xl font-bold text-gray-500
                             hover:bg-gray-100 hover:scale-120 transition-all duration-300 
                         "
                     >

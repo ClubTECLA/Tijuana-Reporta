@@ -22,13 +22,15 @@ export function ListTile({icon, tileName, type = 'button', tileDescription, valu
                     onClick={onClick}
                     className="flex flex-row items-center w-full px-2 py-1 hover:bg-gray-300 rounded-2xl"
                 >
-                    <div 
-                        className="
-                            rounded-xl bg-blue-50 
-                            text-blue-500 flex items-center 
-                            justify-center w-10 h-10 text-xl
-                        "
-                    >{icon}</div>
+                    {icon &&
+                        <div 
+                            className="
+                                rounded-xl bg-blue-50 
+                                text-blue-500 flex items-center 
+                                justify-center w-10 h-10 text-xl
+                            "
+                        >{icon}</div>
+                    }
                     <div className="flex flex-col items-start justify-center pl-4 w-60">
                         <span className="font-semibold text-md text-gray-800">{tileName}</span>
                         <span className="text-gray-500 text-sm">{tileDescription}</span>

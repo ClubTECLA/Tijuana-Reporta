@@ -19,7 +19,7 @@ export default function SearchBar() {
                 min-w-0 flex-1 bg-transparent 
                 px-1 text-sm text-gray-700 
                 placeholder:text-gray-400 
-                focus-within:outline-blue-700
+                focus-within:outline-transparent
                 rounded-full h-full px-4
                 "
             />

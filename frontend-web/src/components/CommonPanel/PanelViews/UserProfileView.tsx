@@ -1,4 +1,4 @@
-import { FiMoon, FiSmartphone } from "react-icons/fi";
+import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
 import ColSection from "../PanelComponents/primitive-components/ColSection";
 import Input from "../view-components/Input";
 import { ListTile, OptionList } from "../view-components/OptionsList";
@@ -11,7 +11,7 @@ import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../view-components/Button";
 import RowSection from "../PanelComponents/primitive-components/RowSection";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
 
 type FormState = {
     username: string;
@@ -19,6 +19,7 @@ type FormState = {
 };
 
 export default function UserProfileView() {
+    const { setPanelView } = useCommonPanel();
     const { user, isAuthenticated } = useAuth();
     const [form, setForm] = useState<FormState>({
         username: "",
@@ -116,6 +117,12 @@ export default function UserProfileView() {
                     tileDescription="Que te avisamos y por donde"
                     onClick={() => {}}
                     icon={<IoMdNotificationsOutline />}
+                />
+                <ListTile
+                    tileName="Ayudas y guias"
+                    tileDescription="Respuestas rapidas para el equipo"
+                    onClick={() => setPanelView('Ayudas y guias')}
+                    icon={<FiHelpCircle />}
                 />
             </OptionList>
             <RowSection debug={false} arrangementSubsections='toLeft' className="gap-3 mt-5">
