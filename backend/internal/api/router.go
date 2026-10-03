@@ -53,7 +53,10 @@ func NewRouter(services Services, jwtSecret string) *gin.Engine {
 	RegisterHandlersWithOptions(r, strict, GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
-		Middlewares:  []MiddlewareFunc{middleware.Auth(jwtSecret, string(BearerAuthScopes))},
+		Middlewares: []MiddlewareFunc{
+			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
+			middleware.RequireRole(string(BearerAuthScopes)),
+		},
 	})
 
 	// El contrato, servido desde el propio binario, para que web y móvil puedan

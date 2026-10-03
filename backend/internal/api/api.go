@@ -32,10 +32,20 @@ type AuthService interface {
 	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
 }
 
+// IncidenteService es la interfaz que el handler de incidentes necesita del
+// servicio.
+type IncidenteService interface {
+	Crear(ctx context.Context, nuevo domain.NuevoIncidente) (domain.IncidenteDetalle, error)
+	Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error)
+	Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error)
+	AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error)
+}
+
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
 	Comentarios ComentarioService
 	Reportes    ReporteService
+	Incidentes  IncidenteService
 	Auth        AuthService
 }
 

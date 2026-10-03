@@ -1,0 +1,29 @@
+type: object
+required: [nombre]
+properties:
+  nombre:
+    type: string
+    minLength: 1
+    maxLength: 100
+  tiempo_limite:
+    type: integer
+    minimum: 0
+    maximum: 32767
+  radio:
+    type: number
+    format: double
+    minimum: 0
+  esta_activo:
+    type: boolean
+    default: true
+  color:
+    type: string
+    pattern: '^#[0-9A-Fa-f]{6}$'
+    example: '#EF6C33'
+    description: Se usa el gris por defecto (#757575).
+  tags:
+    type: array
+    maxItems: 50
+    description: Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas).
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/CrearTagRequest'

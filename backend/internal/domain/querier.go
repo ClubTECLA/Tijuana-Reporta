@@ -14,14 +14,17 @@ type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
 	CreateFotoReporte(ctx context.Context, arg CreateFotoReporteParams) (FotosReporte, error)
+	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
 	// sin padre.
 	CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
+	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
+	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
@@ -29,8 +32,15 @@ type Querier interface {
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
 	ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error)
+	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
+	// administración).
+	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
 	ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error)
+	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]Tag, error)
+	// Los tags de varios incidentes en una sola consulta, para no hacer una por
+	// incidente al listar.
+	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
 }
 

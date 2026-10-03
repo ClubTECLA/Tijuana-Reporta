@@ -6,7 +6,8 @@
 #   docker-compose.override.yml publicando 8080:8080
 #
 # Orden: corre "login" antes que cualquier petición autenticada, y
-# "crearReporte" antes de las que usan {{reporteId}}.
+# "crearReporte" antes de las que usan {{reporteId}} (igual "crearIncidente"
+# con {{incidenteId}}).
 
 @baseUrl = http://localhost:8080
 @email = test@example.com
@@ -14,6 +15,7 @@
 
 @token = {{login.response.body.$.access_token}}
 @reporteId = {{crearReporte.response.body.$.id}}
+@incidenteId = {{crearIncidente.response.body.$.id}}
 
 ### Health
 GET {{baseUrl}}/health
@@ -125,6 +127,91 @@ Content-Type: application/json
 PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/avistamientos
 Authorization: Bearer {{token}}
 
+
+# Incidentes
+## Listar y obtener: cualquier usuario autenticado.
+
+### Listar incidentes activos con sus tags (200)
+GET {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+
+### Listar incluyendo los inactivos (200)
+GET {{baseUrl}}/v1/incidentes?incluir_inactivos=true
+Authorization: Bearer {{token}}
+
+### Obtener incidente (200)
+GET {{baseUrl}}/v1/incidentes/2
+Authorization: Bearer {{token}}
+
+### Obtener incidente inexistente (404)
+GET {{baseUrl}}/v1/incidentes/999999
+Authorization: Bearer {{token}}
+
+## Crear y agregar tags: solo admin.
+## Con el usuario de {{email}} como ciudadano responden 403. Para probarlos,
+## hazlo admin y vuelve a correr "login" (el rol va dentro del token):
+##   UPDATE users SET rol_id = (SELECT id FROM roles WHERE nombre = 'admin')
+##   WHERE email = 'test@example.com';
+
+### Crear incidente con tags (201; 409 si el nombre ya existe, p. ej. en la segunda corrida)
+# @name crearIncidente
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "semaforo",
+    "color": "#FBC02D",
+    "tiempo_limite": 3,
+    "radio": 50,
+    "tags": [
+        { "nombre": "apagado", "peso": 2 },
+        { "nombre": "intermitente" }
+    ]
+}
+
+### Crear incidente con tags repetidos (400)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "poste",
+    "tags": [
+        { "nombre": "caido" },
+        { "nombre": "Caido" }
+    ]
+}
+
+### Crear incidente con color inválido (400)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "poste",
+    "color": "red"
+}
+
+### Agregar tags a un incidente (201; 409 si ya los tiene, p. ej. en la segunda corrida)
+# Usa el incidente de "Crear incidente con tags".
+POST {{baseUrl}}/v1/incidentes/{{incidenteId}}/tags
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[
+    { "nombre": "fundido" },
+    { "nombre": "chueco", "peso": 2 }
+]
+
+### Agregar un tag que ya existe, con otras mayúsculas (409)
+POST {{baseUrl}}/v1/incidentes/{{incidenteId}}/tags
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[
+    { "nombre": "APAGADO" }
+]
 
 # Logout 
 

@@ -209,7 +209,8 @@ func TestReporteService_Obtener_NoEncontrado(t *testing.T) {
 	}
 }
 
-func ptr(v float64) *float64 { return &v }
+// ptr devuelve un puntero al valor, para armar argumentos opcionales.
+func ptr[T any](v T) *T { return &v }
 
 func TestReporteService_Listar_SinArea(t *testing.T) {
 	store := newFakeReporteStore()
