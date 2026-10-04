@@ -30,19 +30,26 @@ export default function NavBar() {
     const currentPath = router.pathname;
     
     return(
-        <section className="flex flex-row gap-2 bg-white px-4 py-1 rounded-full shadow-lg shadow-gray-600 w-full">
+        <section 
+            className="
+                flex flex-row gap-2 bg-white 
+                px-4 py-1 rounded-full shadow-lg 
+                shadow-gray-600 w-full
+                items-center
+            "
+        >
             {navItems.map((item, idx) => 
                 <div
                     key={idx}
+                    className="flex min-w-0 flex-1 flex-1"
                 >
                     {item.destinationPath && !item.onClick &&
                         <Link
-                            key={idx}
                             className={`
-                                flex flex-row flex-1 items-center 
+                                flex flex-row items-center 
                                 justify-center gap-2  
                                 rounded-full px-3 py-1
-                                font-bold
+                                font-bold  w-full
                                 hover:bg-gray-800 hover:text-white transition-all duration-300
                                 ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
                             `}
@@ -54,12 +61,11 @@ export default function NavBar() {
                     }
                     {!item.destinationPath && item.onClick &&
                         <button
-                            key={idx}
                             className={`
-                                flex flex-row flex-1 items-center 
+                                flex flex-row items-center 
                                 justify-center gap-2  
                                 rounded-full px-3 py-1
-                                font-bold
+                                font-bold w-full
                                 hover:bg-gray-800 hover:text-white transition-all duration-300
                                 ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
                             `}

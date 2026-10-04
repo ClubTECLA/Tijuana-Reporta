@@ -1,19 +1,31 @@
 import { LuBell } from 'react-icons/lu'
-import type { componentProps } from "../types/utils-types"
 
-export default function BellButton({className, onClick}: componentProps) {
+interface BellButtonProps {
+    className?: string,
+    onClick?: () => void
+    cantNotis?: string | number;
+}
+
+export default function BellButton({className, onClick, cantNotis}: BellButtonProps) {
     return(
         <button
             type="button"
-            className={`relative flex h-12 w-12 shrink-0 items-center justify-center ${className ?? ''}`}
+            className={`    
+                relative flex h-12 w-12 
+                shrink-0 items-center 
+                justify-center ${className ?? ''}
+                hover:scale-105 transition-all duration-300
+            `}
             onClick={onClick}
         >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow-lg shadow-gray-600">
                 <LuBell className="text-2xl text-gray-600" />
             </div>
-            <div className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1">
-                <span className="text-xs font-bold leading-none text-white">{100}</span>
-            </div>
+            {cantNotis && 
+                <div className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1">
+                    <span className="text-xs font-bold leading-none text-white">{cantNotis}</span>
+                </div>
+            }
         </button>
     )
 }

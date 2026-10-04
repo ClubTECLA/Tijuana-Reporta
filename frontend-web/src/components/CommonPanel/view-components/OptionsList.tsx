@@ -3,6 +3,7 @@ import type { subsectionProps } from "../../../types/utils-types";
 import SubSection from "../PanelComponents/primitive-components/SubSection";
 import { IoIosArrowForward } from "react-icons/io";
 import Input from "./Input";
+import { validateChildren } from "./validateChildren";
 
 interface listTileProps {
     icon?: ReactNode
@@ -90,6 +91,8 @@ interface optionsListProps extends subsectionProps {
 
 
 export function OptionList({ debug, format, title, children} : optionsListProps) {
+    validateChildren(children, "OptionList", ListTile, "ListTile");
+
     return(
         <SubSection 
             debug={debug} 
