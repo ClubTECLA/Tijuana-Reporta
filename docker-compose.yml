@@ -16,6 +16,16 @@ services:
       timeout: 5s
       retries: 10
 
+  # Aplica las migraciones pendientes antes de levantar el backend.
+  migrate:
+    image: migrate/migrate:v4.18.1
+    volumes:
+      - ./backend/internal/database/migrations:/migrations:ro
+    command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     build: ./backend
     restart: unless-stopped
@@ -26,6 +36,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     expose: ["8080"]
 
   frontend-web:

@@ -44,3 +44,9 @@ AND (sqlc.narg(min_lat)::float8 IS NULL OR p.latitude >= sqlc.narg(min_lat)::flo
 AND (sqlc.narg(max_lat)::float8 IS NULL OR p.latitude <= sqlc.narg(max_lat)::float8)
 AND (sqlc.narg(min_lng)::float8 IS NULL OR p.longitude >= sqlc.narg(min_lng)::float8)
 AND (sqlc.narg(max_lng)::float8 IS NULL OR p.longitude <= sqlc.narg(max_lng)::float8);
+
+-- name: AddAvistamientoById :one
+UPDATE reporte
+SET avistamientos = avistamientos + 1 
+WHERE id = $1
+RETURNING id, avistamientos;

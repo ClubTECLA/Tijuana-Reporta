@@ -1,0 +1,25 @@
+type: object
+required: [id, nombre, tiempo_limite, radio, color, tags, esta_activo]
+properties:
+  id:
+    type: integer
+  nombre:
+    type: string
+    maxLength: 100
+  tiempo_limite:
+    type: integer
+    nullable: true
+  radio:
+    type: number
+    format: double
+    nullable: true
+  color:
+    type: string
+    pattern: '^#[0-9A-Fa-f]{6}$'
+    example: '#EF6C33'
+  tags:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/TagCatalogo'
+  esta_activo:
+    type: boolean

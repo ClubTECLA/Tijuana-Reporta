@@ -109,3 +109,18 @@ func (s *Server) ListarReportes(ctx context.Context, request ListarReportesReque
 	}
 	return res, nil
 }
+
+func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error) {
+	if _, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId); err != nil {
+		if errors.Is(err, domain.ErrReporteNotFound) {
+			return AgregarAvistamiento404JSONResponse{Message: "reporte no encontrado"}, nil
+		}
+		return nil, err
+	}
+
+	r, err := s.services.Reportes.Obtener(ctx, request.ReporteId)
+	if err != nil {
+		return nil, err
+	}
+	return AgregarAvistamiento200JSONResponse(toReporte(r)), nil
+}

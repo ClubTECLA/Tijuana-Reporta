@@ -20,6 +20,7 @@ type ReporteService interface {
 	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.ReporteDetalle, error)
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
+	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 }
 
 // AuthService devuelve, junto con el usuario, el access token ya firmado y
@@ -31,10 +32,20 @@ type AuthService interface {
 	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
 }
 
+// IncidenteService es la interfaz que el handler de incidentes necesita del
+// servicio.
+type IncidenteService interface {
+	Crear(ctx context.Context, nuevo domain.NuevoIncidente) (domain.IncidenteDetalle, error)
+	Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error)
+	Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error)
+	AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error)
+}
+
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
 	Comentarios ComentarioService
 	Reportes    ReporteService
+	Incidentes  IncidenteService
 	Auth        AuthService
 }
 

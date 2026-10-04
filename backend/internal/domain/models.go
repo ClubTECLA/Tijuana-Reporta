@@ -142,11 +142,12 @@ type Historial struct {
 }
 
 type Incidente struct {
-	ID           int            `json:"id"`
-	Nombre       string         `json:"nombre"`
-	TiempoLimite pgtype.Int2    `json:"tiempo_limite"`
-	Radio        pgtype.Numeric `json:"radio"`
-	EstaActivo   pgtype.Bool    `json:"esta_activo"`
+	ID           int      `json:"id"`
+	Nombre       string   `json:"nombre"`
+	TiempoLimite *int     `json:"tiempo_limite"`
+	Radio        *float64 `json:"radio"`
+	EstaActivo   bool     `json:"esta_activo"`
+	Color        string   `json:"color"`
 }
 
 type IncidenteTag struct {
@@ -174,6 +175,10 @@ type Log struct {
 	Peso        int            `json:"peso"`
 	StartedAt   time.Time      `json:"started_at"`
 	FinishedAt  time.Time      `json:"finished_at"`
+}
+
+type Migration005SeedIncidente struct {
+	IncidenteID int `json:"incidente_id"`
 }
 
 type Notificacione struct {
