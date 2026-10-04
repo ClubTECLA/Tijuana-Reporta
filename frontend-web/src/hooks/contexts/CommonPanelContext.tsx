@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { panelViews, type PanelViewKey } from "../../types/global-views";
+import { validateChildren } from "../../components/CommonPanel/view-components/validateChildren";
 
 interface CommonPanelContextType {
     setPanelView: (newView: PanelViewKey | null) => void;
@@ -11,6 +12,8 @@ interface CommonPanelContextType {
 const CommonPanelContext = createContext<CommonPanelContextType | undefined>(undefined);
 
 export function CommonPanelProvider({ children }: { children: ReactNode }) {
+    validateChildren(children, "CommonPanelProvider");
+
     const [currentPanelView, setCurrentPanelView] = useState<PanelViewKey | null>(null);
     const [previousView, setPreviousView] = useState<PanelViewKey[]>([]);
     const [ open, setOpen ] = useState(true);

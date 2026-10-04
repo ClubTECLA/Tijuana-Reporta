@@ -13,7 +13,6 @@ export default function NavigationWrapper() {
     if(pathname === '/auth'){
         return null
     }
-
     return (
         <section className="pointer-events-none z-50 fixed top-0 left-0 w-screen h-screen"> 
             <div className="pointer-events-auto fixed top-2 w-full h-13 flex flex-row justify-end pr-10">
@@ -26,7 +25,13 @@ export default function NavigationWrapper() {
                     </div>
                 </div>
                 <div className="flex flex-row flex-1/6 items-end justify-end gap-2">
-                    <BellButton className=""/>
+                    <BellButton 
+                        onClick={() => setModal(
+                            currentModal === 'Menu de Notificaciones'
+                                ? null
+                                : 'Menu de Notificaciones'
+                        )}
+                    />
                     <UserProfileWidget 
                         className="" 
                         onClick={() => setModal('Menu de Usuario')}
