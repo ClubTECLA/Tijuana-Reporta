@@ -7,6 +7,12 @@ security:
   - bearerAuth: []
 
 paths:
+  /reportes:
+    $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/{reporteId}:
+    $ref: './paths/reportes.yaml#/obtenerReporte'
+  /reportes/{reporteId}/avistamientos:
+    $ref: './paths/reportes.yaml#/agregarAvistamiento'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
   /auth/register:
@@ -17,6 +23,12 @@ paths:
     $ref: './paths/auth.yaml#/me'
   /auth/logout:
     $ref: './paths/auth.yaml#/logout'
+  /incidentes:
+    $ref: './paths/incidentes.yaml#/crearIncidente'
+  /incidentes/{incidenteId}:
+    $ref: './paths/incidentes.yaml#/obtenerIncidente'
+  /incidentes/{incidenteId}/tags:
+    $ref: './paths/incidentes.yaml#/agregarTags'
 
 components:
   schemas:
@@ -24,6 +36,24 @@ components:
       $ref: './schemas/comentarios/comentario.yaml'
     CrearComentarioRequest:
       $ref: './schemas/comentarios/crear_comentario_request.yaml'
+    Reporte:
+      $ref: './schemas/reportes/reporte.yaml'
+    ReporteResumen:
+      $ref: './schemas/reportes/reporte_resumen.yaml'
+    EstadoReporte:
+      $ref: './schemas/reportes/estado_reporte.yaml'
+    Foto:
+      $ref: './schemas/fotos/foto.yaml'
+    Tag:
+      $ref: './schemas/tags/tag.yaml'
+    TagCatalogo:
+      $ref: './schemas/tags/tag_catalogo.yaml'
+    CrearTagRequest:
+      $ref: './schemas/tags/crear_tag_request.yaml'
+    Location:
+      $ref: './schemas/locations/location.yaml'
+    CrearReporteRequest:
+      $ref: './schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:
       $ref: './schemas/error_response.yaml'
     RegisterRequest:
@@ -36,6 +66,10 @@ components:
       $ref: './schemas/auth/usuario.yaml'
     UsuarioMeResponse:
       $ref: './schemas/auth/usuario_me_response.yaml'
+    Incidente:
+      $ref: './schemas/incidentes/incidente.yaml'
+    CrearIncidenteRequest:
+      $ref: './schemas/incidentes/crear_incidente_request.yaml'
   securitySchemes:
     bearerAuth:
       type: http

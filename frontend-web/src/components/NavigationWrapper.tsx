@@ -3,10 +3,14 @@ import BellButton from './BellButton';
 import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
+import { modals } from '../types/global-modals';
+import useModals from '../hooks/useModals';
 
 export default function NavigationWrapper() {
-    
-    if(useRouter().pathname === '/auth'){
+    const { setModal, currentModal} = useModals()
+    const { pathname } = useRouter();
+
+    if(pathname === '/auth'){
         return null
     }
 
@@ -23,10 +27,14 @@ export default function NavigationWrapper() {
                 </div>
                 <div className="flex flex-row flex-1/6 items-end justify-end gap-2">
                     <BellButton className=""/>
-                    <UserProfileWidget className=""/>    
+                    <UserProfileWidget 
+                        className="" 
+                        onClick={() => setModal('Menu de Usuario')}
+                    />    
                 </div>
             </div>
 
+            {currentModal && modals[currentModal]}
         </section>
     )
 }

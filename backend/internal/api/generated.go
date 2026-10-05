@@ -27,6 +27,36 @@ const (
 	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
 
+// Defines values for EstadoReporte.
+const (
+	Descartado EstadoReporte = "Descartado"
+	Expirado   EstadoReporte = "Expirado"
+	Pendiente  EstadoReporte = "Pendiente"
+	Probable   EstadoReporte = "Probable"
+	Resuelto   EstadoReporte = "Resuelto"
+	Verificado EstadoReporte = "Verificado"
+)
+
+// Valid indicates whether the value is a known member of the EstadoReporte enum.
+func (e EstadoReporte) Valid() bool {
+	switch e {
+	case Descartado:
+		return true
+	case Expirado:
+		return true
+	case Pendiente:
+		return true
+	case Probable:
+		return true
+	case Resuelto:
+		return true
+	case Verificado:
+		return true
+	default:
+		return false
+	}
+}
+
 // AuthResponse defines model for AuthResponse.
 type AuthResponse struct {
 	AccessToken string `json:"access_token"`
@@ -55,9 +85,70 @@ type CrearComentarioRequest struct {
 	Comentario string `json:"comentario"`
 }
 
+// CrearIncidenteRequest defines model for CrearIncidenteRequest.
+type CrearIncidenteRequest struct {
+	// Color Se usa el gris por defecto (#757575).
+	//
+	// Example: #EF6C33
+	Color      *string  `json:"color,omitempty"`
+	EstaActivo *bool    `json:"esta_activo,omitempty"`
+	Nombre     string   `json:"nombre"`
+	Radio      *float64 `json:"radio,omitempty"`
+
+	// Tags Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas).
+	Tags         *[]CrearTagRequest `json:"tags,omitempty"`
+	TiempoLimite *int               `json:"tiempo_limite,omitempty"`
+}
+
+// CrearReporteRequest defines model for CrearReporteRequest.
+type CrearReporteRequest struct {
+	ImagePath   *string `json:"image_path,omitempty"`
+	IncidenteId int     `json:"incidente_id"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+}
+
+// CrearTagRequest Tag nuevo del catálogo. El incidente al que pertenece lo da el contexto (el incidente que se está creando), no el cliente.
+type CrearTagRequest struct {
+	Nombre string `json:"nombre"`
+	Peso   *int   `json:"peso,omitempty"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// EstadoReporte defines model for EstadoReporte.
+type EstadoReporte string
+
+// Foto defines model for Foto.
+type Foto struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        int       `json:"id"`
+	ImagePath string    `json:"image_path"`
+	UserId    uuid.UUID `json:"user_id"`
+}
+
+// Incidente defines model for Incidente.
+type Incidente struct {
+	// Color Example: #EF6C33
+	Color        string        `json:"color"`
+	EstaActivo   bool          `json:"esta_activo"`
+	Id           int           `json:"id"`
+	Nombre       string        `json:"nombre"`
+	Radio        *float64      `json:"radio"`
+	Tags         []TagCatalogo `json:"tags"`
+	TiempoLimite *int          `json:"tiempo_limite"`
+}
+
+// Location defines model for Location.
+type Location struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        int       `json:"id"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
+	UserId    uuid.UUID `json:"user_id"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -71,6 +162,59 @@ type RegisterRequest struct {
 	Email    openapi_types.Email `json:"email"`
 	Password string              `json:"password"`
 	Username string              `json:"username"`
+}
+
+// Reporte Detalle completo de un reporte.
+type Reporte struct {
+	Avistamientos int           `json:"avistamientos"`
+	Comentarios   []Comentario  `json:"comentarios"`
+	CreatedAt     time.Time     `json:"created_at"`
+	EsHistorico   bool          `json:"es_historico"`
+	EsOficial     bool          `json:"es_oficial"`
+	EstadoActual  EstadoReporte `json:"estado_actual"`
+	ExpiredAt     *time.Time    `json:"expired_at,omitempty"`
+	Fotos         []Foto        `json:"fotos"`
+	Id            uuid.UUID     `json:"id"`
+	IncidenteId   int           `json:"incidente_id"`
+
+	// Latitude Centroide de todas las locations (tabla puntos_origen).
+	Latitude  float64    `json:"latitude"`
+	Locations []Location `json:"locations"`
+
+	// Longitude Centroide de todas las locations (tabla puntos_origen).
+	Longitude float64   `json:"longitude"`
+	Tags      []Tag     `json:"tags"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ReporteResumen Versión ligera de un reporte para pintar pines en el mapa.
+type ReporteResumen struct {
+	Avistamientos int           `json:"avistamientos"`
+	EsOficial     bool          `json:"es_oficial"`
+	EstadoActual  EstadoReporte `json:"estado_actual"`
+	Id            uuid.UUID     `json:"id"`
+	IncidenteId   int           `json:"incidente_id"`
+
+	// Latitude Centroide del reporte (tabla puntos_origen).
+	Latitude float64 `json:"latitude"`
+
+	// Longitude Centroide del reporte (tabla puntos_origen).
+	Longitude float64 `json:"longitude"`
+}
+
+// Tag defines model for Tag.
+type Tag struct {
+	// Count Cuántos usuarios han confirmado este tag en el reporte.
+	Count  int    `json:"count"`
+	Id     int    `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
+// TagCatalogo Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte.
+type TagCatalogo struct {
+	Id     int    `json:"id"`
+	Nombre string `json:"nombre"`
+	Peso   int    `json:"peso"`
 }
 
 // Usuario defines model for Usuario.
@@ -93,11 +237,36 @@ type UsuarioMeResponse struct {
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListarIncidentesParams defines parameters for ListarIncidentes.
+type ListarIncidentesParams struct {
+	IncluirInactivos *bool `form:"incluir_inactivos,omitempty" json:"incluir_inactivos,omitempty"`
+}
+
+// AgregarTagsJSONBody defines parameters for AgregarTags.
+type AgregarTagsJSONBody = []CrearTagRequest
+
+// ListarReportesParams defines parameters for ListarReportes.
+type ListarReportesParams struct {
+	MinLat *float64 `form:"min_lat,omitempty" json:"min_lat,omitempty"`
+	MaxLat *float64 `form:"max_lat,omitempty" json:"max_lat,omitempty"`
+	MinLng *float64 `form:"min_lng,omitempty" json:"min_lng,omitempty"`
+	MaxLng *float64 `form:"max_lng,omitempty" json:"max_lng,omitempty"`
+}
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
+
+// CrearIncidenteJSONRequestBody defines body for CrearIncidente for application/json ContentType.
+type CrearIncidenteJSONRequestBody = CrearIncidenteRequest
+
+// AgregarTagsJSONRequestBody defines body for AgregarTags for application/json ContentType.
+type AgregarTagsJSONRequestBody = AgregarTagsJSONBody
+
+// CrearReporteJSONRequestBody defines body for CrearReporte for application/json ContentType.
+type CrearReporteJSONRequestBody = CrearReporteRequest
 
 // CrearComentarioJSONRequestBody defines body for CrearComentario for application/json ContentType.
 type CrearComentarioJSONRequestBody = CrearComentarioRequest
@@ -108,11 +277,38 @@ type ServerInterface interface {
 	// (POST /auth/login)
 	Login(c *gin.Context)
 
+	// (POST /auth/logout)
+	Logout(c *gin.Context)
+
 	// (GET /auth/me)
 	Me(c *gin.Context)
 
 	// (POST /auth/register)
 	Register(c *gin.Context)
+
+	// (GET /incidentes)
+	ListarIncidentes(c *gin.Context, params ListarIncidentesParams)
+
+	// (POST /incidentes)
+	CrearIncidente(c *gin.Context)
+
+	// (GET /incidentes/{incidenteId})
+	ObtenerIncidente(c *gin.Context, incidenteId int)
+
+	// (POST /incidentes/{incidenteId}/tags)
+	AgregarTags(c *gin.Context, incidenteId int)
+
+	// (GET /reportes)
+	ListarReportes(c *gin.Context, params ListarReportesParams)
+
+	// (POST /reportes)
+	CrearReporte(c *gin.Context)
+
+	// (GET /reportes/{reporteId})
+	ObtenerReporte(c *gin.Context, reporteId uuid.UUID)
+
+	// (PATCH /reportes/{reporteId}/avistamientos)
+	AgregarAvistamiento(c *gin.Context, reporteId uuid.UUID)
 
 	// (POST /reportes/{reporteId}/comentarios)
 	CrearComentario(c *gin.Context, reporteId uuid.UUID)
@@ -138,6 +334,19 @@ func (siw *ServerInterfaceWrapper) Login(c *gin.Context) {
 	}
 
 	siw.Handler.Login(c)
+}
+
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.Logout(c)
 }
 
 // Me operation middleware
@@ -166,6 +375,226 @@ func (siw *ServerInterfaceWrapper) Register(c *gin.Context) {
 	}
 
 	siw.Handler.Register(c)
+}
+
+// ListarIncidentes operation middleware
+func (siw *ServerInterfaceWrapper) ListarIncidentes(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListarIncidentesParams
+
+	// ------------- Optional query parameter "incluir_inactivos" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "incluir_inactivos", c.Request.URL.Query(), &params.IncluirInactivos, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter incluir_inactivos: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarIncidentes(c, params)
+}
+
+// CrearIncidente operation middleware
+func (siw *ServerInterfaceWrapper) CrearIncidente(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{"admin"})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CrearIncidente(c)
+}
+
+// ObtenerIncidente operation middleware
+func (siw *ServerInterfaceWrapper) ObtenerIncidente(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "incidenteId" -------------
+	var incidenteId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "incidenteId", c.Param("incidenteId"), &incidenteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter incidenteId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ObtenerIncidente(c, incidenteId)
+}
+
+// AgregarTags operation middleware
+func (siw *ServerInterfaceWrapper) AgregarTags(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "incidenteId" -------------
+	var incidenteId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "incidenteId", c.Param("incidenteId"), &incidenteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter incidenteId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{"admin"})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AgregarTags(c, incidenteId)
+}
+
+// ListarReportes operation middleware
+func (siw *ServerInterfaceWrapper) ListarReportes(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListarReportesParams
+
+	// ------------- Optional query parameter "min_lat" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "min_lat", c.Request.URL.Query(), &params.MinLat, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter min_lat: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "max_lat" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "max_lat", c.Request.URL.Query(), &params.MaxLat, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter max_lat: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "min_lng" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "min_lng", c.Request.URL.Query(), &params.MinLng, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter min_lng: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "max_lng" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "max_lng", c.Request.URL.Query(), &params.MaxLng, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter max_lng: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarReportes(c, params)
+}
+
+// CrearReporte operation middleware
+func (siw *ServerInterfaceWrapper) CrearReporte(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CrearReporte(c)
+}
+
+// ObtenerReporte operation middleware
+func (siw *ServerInterfaceWrapper) ObtenerReporte(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reporteId" -------------
+	var reporteId uuid.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reporteId", c.Param("reporteId"), &reporteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter reporteId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ObtenerReporte(c, reporteId)
+}
+
+// AgregarAvistamiento operation middleware
+func (siw *ServerInterfaceWrapper) AgregarAvistamiento(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reporteId" -------------
+	var reporteId uuid.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reporteId", c.Param("reporteId"), &reporteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter reporteId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AgregarAvistamiento(c, reporteId)
 }
 
 // CrearComentario operation middleware
@@ -223,8 +652,17 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.POST(options.BaseURL+"/auth/login", wrapper.Login)
+	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout)
 	router.GET(options.BaseURL+"/auth/me", wrapper.Me)
 	router.POST(options.BaseURL+"/auth/register", wrapper.Register)
+	router.GET(options.BaseURL+"/incidentes", wrapper.ListarIncidentes)
+	router.POST(options.BaseURL+"/incidentes", wrapper.CrearIncidente)
+	router.GET(options.BaseURL+"/incidentes/:incidenteId", wrapper.ObtenerIncidente)
+	router.POST(options.BaseURL+"/incidentes/:incidenteId/tags", wrapper.AgregarTags)
+	router.GET(options.BaseURL+"/reportes", wrapper.ListarReportes)
+	router.POST(options.BaseURL+"/reportes", wrapper.CrearReporte)
+	router.GET(options.BaseURL+"/reportes/:reporteId", wrapper.ObtenerReporte)
+	router.PATCH(options.BaseURL+"/reportes/:reporteId/avistamientos", wrapper.AgregarAvistamiento)
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
 }
 
@@ -276,6 +714,21 @@ func (response Login401JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+type LogoutRequestObject struct {
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout204Response struct {
+}
+
+func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
 }
 
 type MeRequestObject struct {
@@ -363,6 +816,477 @@ func (response Register409JSONResponse) VisitRegisterResponse(w http.ResponseWri
 	return err
 }
 
+type ListarIncidentesRequestObject struct {
+	Params ListarIncidentesParams
+}
+
+type ListarIncidentesResponseObject interface {
+	VisitListarIncidentesResponse(w http.ResponseWriter) error
+}
+
+type ListarIncidentes200JSONResponse []Incidente
+
+func (response ListarIncidentes200JSONResponse) VisitListarIncidentesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarIncidentes401JSONResponse ErrorResponse
+
+func (response ListarIncidentes401JSONResponse) VisitListarIncidentesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearIncidenteRequestObject struct {
+	Body *CrearIncidenteJSONRequestBody
+}
+
+type CrearIncidenteResponseObject interface {
+	VisitCrearIncidenteResponse(w http.ResponseWriter) error
+}
+
+type CrearIncidente201JSONResponse Incidente
+
+func (response CrearIncidente201JSONResponse) VisitCrearIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearIncidente400JSONResponse ErrorResponse
+
+func (response CrearIncidente400JSONResponse) VisitCrearIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearIncidente401JSONResponse ErrorResponse
+
+func (response CrearIncidente401JSONResponse) VisitCrearIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearIncidente403JSONResponse ErrorResponse
+
+func (response CrearIncidente403JSONResponse) VisitCrearIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearIncidente409JSONResponse ErrorResponse
+
+func (response CrearIncidente409JSONResponse) VisitCrearIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerIncidenteRequestObject struct {
+	IncidenteId int `json:"incidenteId"`
+}
+
+type ObtenerIncidenteResponseObject interface {
+	VisitObtenerIncidenteResponse(w http.ResponseWriter) error
+}
+
+type ObtenerIncidente200JSONResponse Incidente
+
+func (response ObtenerIncidente200JSONResponse) VisitObtenerIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerIncidente401JSONResponse ErrorResponse
+
+func (response ObtenerIncidente401JSONResponse) VisitObtenerIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerIncidente404JSONResponse ErrorResponse
+
+func (response ObtenerIncidente404JSONResponse) VisitObtenerIncidenteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTagsRequestObject struct {
+	IncidenteId int `json:"incidenteId"`
+	Body        *AgregarTagsJSONRequestBody
+}
+
+type AgregarTagsResponseObject interface {
+	VisitAgregarTagsResponse(w http.ResponseWriter) error
+}
+
+type AgregarTags201JSONResponse []TagCatalogo
+
+func (response AgregarTags201JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTags400JSONResponse ErrorResponse
+
+func (response AgregarTags400JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTags401JSONResponse ErrorResponse
+
+func (response AgregarTags401JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTags403JSONResponse ErrorResponse
+
+func (response AgregarTags403JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTags404JSONResponse ErrorResponse
+
+func (response AgregarTags404JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarTags409JSONResponse ErrorResponse
+
+func (response AgregarTags409JSONResponse) VisitAgregarTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportesRequestObject struct {
+	Params ListarReportesParams
+}
+
+type ListarReportesResponseObject interface {
+	VisitListarReportesResponse(w http.ResponseWriter) error
+}
+
+type ListarReportes200JSONResponse []ReporteResumen
+
+func (response ListarReportes200JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportes400JSONResponse ErrorResponse
+
+func (response ListarReportes400JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarReportes401JSONResponse ErrorResponse
+
+func (response ListarReportes401JSONResponse) VisitListarReportesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearReporteRequestObject struct {
+	Body *CrearReporteJSONRequestBody
+}
+
+type CrearReporteResponseObject interface {
+	VisitCrearReporteResponse(w http.ResponseWriter) error
+}
+
+type CrearReporte201JSONResponse Reporte
+
+func (response CrearReporte201JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearReporte400JSONResponse ErrorResponse
+
+func (response CrearReporte400JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearReporte401JSONResponse ErrorResponse
+
+func (response CrearReporte401JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerReporteRequestObject struct {
+	ReporteId uuid.UUID `json:"reporteId"`
+}
+
+type ObtenerReporteResponseObject interface {
+	VisitObtenerReporteResponse(w http.ResponseWriter) error
+}
+
+type ObtenerReporte200JSONResponse Reporte
+
+func (response ObtenerReporte200JSONResponse) VisitObtenerReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerReporte401JSONResponse ErrorResponse
+
+func (response ObtenerReporte401JSONResponse) VisitObtenerReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerReporte404JSONResponse ErrorResponse
+
+func (response ObtenerReporte404JSONResponse) VisitObtenerReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarAvistamientoRequestObject struct {
+	ReporteId uuid.UUID `json:"reporteId"`
+}
+
+type AgregarAvistamientoResponseObject interface {
+	VisitAgregarAvistamientoResponse(w http.ResponseWriter) error
+}
+
+type AgregarAvistamiento200JSONResponse Reporte
+
+func (response AgregarAvistamiento200JSONResponse) VisitAgregarAvistamientoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarAvistamiento400JSONResponse ErrorResponse
+
+func (response AgregarAvistamiento400JSONResponse) VisitAgregarAvistamientoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarAvistamiento401JSONResponse ErrorResponse
+
+func (response AgregarAvistamiento401JSONResponse) VisitAgregarAvistamientoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AgregarAvistamiento404JSONResponse ErrorResponse
+
+func (response AgregarAvistamiento404JSONResponse) VisitAgregarAvistamientoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CrearComentarioRequestObject struct {
 	ReporteId uuid.UUID `json:"reporteId"`
 	Body      *CrearComentarioJSONRequestBody
@@ -420,11 +1344,38 @@ type StrictServerInterface interface {
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
 
+	// (POST /auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+
 	// (GET /auth/me)
 	Me(ctx context.Context, request MeRequestObject) (MeResponseObject, error)
 
 	// (POST /auth/register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
+
+	// (GET /incidentes)
+	ListarIncidentes(ctx context.Context, request ListarIncidentesRequestObject) (ListarIncidentesResponseObject, error)
+
+	// (POST /incidentes)
+	CrearIncidente(ctx context.Context, request CrearIncidenteRequestObject) (CrearIncidenteResponseObject, error)
+
+	// (GET /incidentes/{incidenteId})
+	ObtenerIncidente(ctx context.Context, request ObtenerIncidenteRequestObject) (ObtenerIncidenteResponseObject, error)
+
+	// (POST /incidentes/{incidenteId}/tags)
+	AgregarTags(ctx context.Context, request AgregarTagsRequestObject) (AgregarTagsResponseObject, error)
+
+	// (GET /reportes)
+	ListarReportes(ctx context.Context, request ListarReportesRequestObject) (ListarReportesResponseObject, error)
+
+	// (POST /reportes)
+	CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error)
+
+	// (GET /reportes/{reporteId})
+	ObtenerReporte(ctx context.Context, request ObtenerReporteRequestObject) (ObtenerReporteResponseObject, error)
+
+	// (PATCH /reportes/{reporteId}/avistamientos)
+	AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error)
 
 	// (POST /reportes/{reporteId}/comentarios)
 	CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error)
@@ -518,6 +1469,30 @@ func (sh *strictHandler) Login(ctx *gin.Context) {
 	}
 }
 
+// Logout operation middleware
+func (sh *strictHandler) Logout(ctx *gin.Context) {
+	var request LogoutRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx, request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		if err := validResponse.VisitLogoutResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Me operation middleware
 func (sh *strictHandler) Me(ctx *gin.Context) {
 	var request MeRequestObject
@@ -573,6 +1548,231 @@ func (sh *strictHandler) Register(ctx *gin.Context) {
 	}
 }
 
+// ListarIncidentes operation middleware
+func (sh *strictHandler) ListarIncidentes(ctx *gin.Context, params ListarIncidentesParams) {
+	var request ListarIncidentesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarIncidentes(ctx, request.(ListarIncidentesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarIncidentes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarIncidentesResponseObject); ok {
+		if err := validResponse.VisitListarIncidentesResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CrearIncidente operation middleware
+func (sh *strictHandler) CrearIncidente(ctx *gin.Context) {
+	var request CrearIncidenteRequestObject
+
+	var body CrearIncidenteJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CrearIncidente(ctx, request.(CrearIncidenteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CrearIncidente")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CrearIncidenteResponseObject); ok {
+		if err := validResponse.VisitCrearIncidenteResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ObtenerIncidente operation middleware
+func (sh *strictHandler) ObtenerIncidente(ctx *gin.Context, incidenteId int) {
+	var request ObtenerIncidenteRequestObject
+
+	request.IncidenteId = incidenteId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ObtenerIncidente(ctx, request.(ObtenerIncidenteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ObtenerIncidente")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ObtenerIncidenteResponseObject); ok {
+		if err := validResponse.VisitObtenerIncidenteResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AgregarTags operation middleware
+func (sh *strictHandler) AgregarTags(ctx *gin.Context, incidenteId int) {
+	var request AgregarTagsRequestObject
+
+	request.IncidenteId = incidenteId
+
+	var body AgregarTagsJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AgregarTags(ctx, request.(AgregarTagsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AgregarTags")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(AgregarTagsResponseObject); ok {
+		if err := validResponse.VisitAgregarTagsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListarReportes operation middleware
+func (sh *strictHandler) ListarReportes(ctx *gin.Context, params ListarReportesParams) {
+	var request ListarReportesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarReportes(ctx, request.(ListarReportesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarReportes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarReportesResponseObject); ok {
+		if err := validResponse.VisitListarReportesResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CrearReporte operation middleware
+func (sh *strictHandler) CrearReporte(ctx *gin.Context) {
+	var request CrearReporteRequestObject
+
+	var body CrearReporteJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CrearReporte(ctx, request.(CrearReporteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CrearReporte")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CrearReporteResponseObject); ok {
+		if err := validResponse.VisitCrearReporteResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ObtenerReporte operation middleware
+func (sh *strictHandler) ObtenerReporte(ctx *gin.Context, reporteId uuid.UUID) {
+	var request ObtenerReporteRequestObject
+
+	request.ReporteId = reporteId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ObtenerReporte(ctx, request.(ObtenerReporteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ObtenerReporte")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ObtenerReporteResponseObject); ok {
+		if err := validResponse.VisitObtenerReporteResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AgregarAvistamiento operation middleware
+func (sh *strictHandler) AgregarAvistamiento(ctx *gin.Context, reporteId uuid.UUID) {
+	var request AgregarAvistamientoRequestObject
+
+	request.ReporteId = reporteId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AgregarAvistamiento(ctx, request.(AgregarAvistamientoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AgregarAvistamiento")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(AgregarAvistamientoResponseObject); ok {
+		if err := validResponse.VisitAgregarAvistamientoResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CrearComentario operation middleware
 func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) {
 	var request CrearComentarioRequestObject
@@ -611,22 +1811,51 @@ func (sh *strictHandler) CrearComentario(ctx *gin.Context, reporteId uuid.UUID) 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7Fjvbts2EH8V4baPXmyvG7DpW9d1QIZ2GLIO+xAYAitdbGYWqR5PXYJAD9Nn6YsNJKVItKnYGeLYGPrF",
-	"IEXx7ne/+yvfQa7LSitUbCC9A5OvsBRu+bLm1QWaSiuDdl+RrpBYojsVeY7GZKz/RmX3fFshpGCYpFpC",
-	"MwG8qSShyeTwWCrGJZI9dzcz/zxyvTZI9uBrwitI4atpj3Pagpz+aWpBUkPTTIDwQy0JC0gvQ2yBpgBW",
-	"q2Qx6bTr99eYs9X+Speo2AnfsjwPzraA54SCscgE2+MrTaVdQSEYv2FZWgxbd2QR54iw0sSYySKQVdey",
-	"iImx5uz37gZh7pWBsl7UZGhuYFyUNkJBPXcX+KFGw7soLMXNG1RLXkH6/Ww2gVKqbj/fhXwgKQboNZGm",
-	"8SAu0RixjAXghpruxZiON3op1aipWAq5Djzin0TcVwlj/tFU7IbTibi/EcN1gUtpGOmpoQ3c88NIECpR",
-	"4oZn54/1bIflXt4Oc7tisB1s/yEhH0HNnrlJep2NpfmQsj0SNcJMK31ngrYkvcXxnDiM6SPmPZXtbhkz",
-	"uG0Vmah55X/opFtagLc+WH8L1KxtAcvo9CpYgJLacvbkQE+0nkUj4Utxe6C4xRjLSnwg4/+fta6fiYbr",
-	"L4PsIwbZKJWEggZPxgvRs423HUwk0vRAnD/BnGu1YV6T5Ns/rFYv+D0KQrJfiv3ul85jv/71DlqMVpI/",
-	"7V24Yq6gsYKluvIhKHltT97J61ookVw4R4rk5e/nMIGPSEZqBSnMz2ZnM2u/rlCJSkIKL85mZy9cSeWV",
-	"Qza1VWDqWpvdVto7yrIiWGp1XkDqR3fwFKDhn3Rx6/2nGJV7X1TVWubuxvTaaNV/Iz+qk4cttglpZ6rR",
-	"PfDuc/C/nc0OgyScgRySAk1OsmJPruMkwRvJ2mhL8ncHgLIRsBEYPwvWJpHq4+dPa1lo45HMj4DkFWGB",
-	"KpdijT0gYYKUgPRyYfc+6nyFX2Ik4t66Kv4sno51wIh57SdBImqrX+ai0Mfj+rcNHE1Pajf/jWdz98H7",
-	"HAm9NY3uldPzI+V052PbwoqTS+ofj4Dk9Tpx41VyKxI0/PlT4j1KPuwimd1OFWZ6167Oi2Y6mA/G43Lj",
-	"XzHXpUiUyEgG0ss7sC3KdS6YgJ8P4V4HbEbVZMDFruFocdhM2Gs6OlJijAzBsfp+f3qi+XEihThMinD2",
-	"u1w0i+bfAQA=",
+	"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",
+	"O3DKon66zzEW5RgLK2Asff8zAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

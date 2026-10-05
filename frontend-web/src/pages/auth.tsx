@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {FaLocationDot} from "react-icons/fa6"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { useAuth } from '../hooks/contexts/AuthContext'
+import { useCommonPanel } from '../hooks/contexts/CommonPanelContext'
+import useModals from '../hooks/useModals'
 
 
 const formsInputsDivsStyle = `
@@ -51,7 +53,7 @@ function SignInPage() {
 
 
         if(form.email.length === 0 || form.password.length === 0){
-            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': 3000, 'title':"Campos Faltantes"})
+            showMessage("Asegurate de rellenar correctamente todos los campos solicitados.", {'type': 'inline','color': 'red', 'showTime': null, 'title':"Campos Faltantes"})
             return;
         }
 
@@ -253,6 +255,8 @@ function RegisterPage() {
 }
 
 export default function AuthPage() {
+    const {closePanel} = useCommonPanel();
+    const {closeModal} = useModals();
     const [searchParams] = useSearchParams()
     const tabParam = searchParams.get('tab');
     const tab = tabParam === 'register' ? 'register' : 'login';
@@ -261,6 +265,11 @@ export default function AuthPage() {
     const trendLineChartDivStyle = `
         bg-gray-200/10 shadow-md rounded-xl flex flex-col px-4 py-1
     `
+
+    useEffect(() => {
+        closeModal()
+        closePanel()
+    }, []);
 
     return(
         <>

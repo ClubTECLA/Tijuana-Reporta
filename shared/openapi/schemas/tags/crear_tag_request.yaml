@@ -1,0 +1,12 @@
+description: Tag nuevo del catálogo. El incidente al que pertenece lo da el contexto (el incidente que se está creando), no el cliente.
+type: object
+required: [nombre]
+properties:
+  nombre:
+    type: string
+    minLength: 1
+    maxLength: 50
+  peso:
+    type: integer
+    minimum: 1
+    default: 1

@@ -35,3 +35,33 @@ func (q *Queries) CreateComentario(ctx context.Context, arg CreateComentarioPara
 	)
 	return i, err
 }
+
+const listComentariosByReporteId = `-- name: ListComentariosByReporteId :many
+SELECT id, reporte_id, user_id, comentario, created_at FROM comentarios WHERE reporte_id = $1 ORDER BY created_at
+`
+
+func (q *Queries) ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error) {
+	rows, err := q.db.Query(ctx, listComentariosByReporteId, reporteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Comentario
+	for rows.Next() {
+		var i Comentario
+		if err := rows.Scan(
+			&i.ID,
+			&i.ReporteID,
+			&i.UserID,
+			&i.Comentario,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

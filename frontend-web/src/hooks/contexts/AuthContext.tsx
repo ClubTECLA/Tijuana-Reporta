@@ -1,34 +1,46 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Users, AuthResponse } from '../../types/db-types'
-import { apiUrl } from '../../types/global-variables'
-
+import type {
+    ApiErrorResponse,
+    AuthApiUser,
+    AuthContextUser,
+    AuthEndpoint,
+    AuthRequest,
+    AuthResponseFor,
+    MeResponse,
+} from '../../types/api-types'
+import { apiUrl} from '../../types/global-variables'
 
 const accessTokenKey = 'access_token'
 
 interface AuthContextType {
-    user: Users | null
+    user: AuthContextUser | null
     isAuthenticated: boolean
     isLoading: boolean
     login: (email: string, password: string) => Promise<void>
     register: (email: string, username: string, password: string) => Promise<void>
-    logout: () => void
+    logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function toUser(user: AuthResponse['user']): Users {
+function toUser(user: AuthApiUser): AuthContextUser {
     return {
-        ...user,
+        id: user.id,
+        email: user.email,
+        username: user.username,
         phone: null,
         password_hash: null,
-        updated_at: user.created_at,
+        rol_id: 'rol_id' in user ? user.rol_id : undefined,
+        created_at: 'created_at' in user ? user.created_at : undefined,
+        updated_at: 'created_at' in user ? user.created_at : undefined,
+        rol_name: 'rol_name' in user ? user.rol_name : undefined,
     }
 }
 
 async function readError(response: Response): Promise<string> {
     try {
-        const data = await response.json() as { message?: string }
+        const data = await response.json() as ApiErrorResponse
         return data.message ?? 'No se pudo completar la solicitud.'
     } catch {
         return 'No se pudo completar la solicitud.'
@@ -36,37 +48,45 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<Users | null>(null)
+    const [user, setUser] = useState<AuthContextUser | null>(null);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
 
-    useEffect(() => {
+    function loadUser(): Promise<void> {
+        
         const token = localStorage.getItem(accessTokenKey)
-        if (!token) return
-
-        fetch(`${apiUrl}/auth/me`, {
+        if (!token) return Promise.resolve()
+        
+        return fetch(`${apiUrl}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(async (response) => {
                 if (!response.ok) {
                     throw new Error(await readError(response))
                 }
-                return response.json() as Promise<AuthResponse['user']>
+                return response.json() as Promise<MeResponse>
             })
             .then((currentUser) => {
                 if (localStorage.getItem(accessTokenKey) === token) {
                     setUser(toUser(currentUser))
                 }
             })
-            .catch(() => {
-                if (localStorage.getItem(accessTokenKey) !== token) return
-                localStorage.removeItem(accessTokenKey)
-                setUser(null)
+            .catch((error: unknown) => {
+                if (localStorage.getItem(accessTokenKey) === token) {
+                    localStorage.removeItem(accessTokenKey)
+                    setUser(null)
+                }
+                throw error
             })
             .finally(() => setIsLoading(false))
+    }
+
+    useEffect(() => {
+        loadUser().catch((error: unknown) => {
+            console.error('Failed to load current user:', error)
+        });
     }, [])
 
-    const authenticate = async (endpoint: 'login' | 'register', body: object) => {
-        console.log("apiUrl:", apiUrl)
+    const authenticate = async <T extends AuthEndpoint>(endpoint: T, body: AuthRequest<T>) => {
         const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -77,11 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw Object.assign(new Error(await readError(response)), { status: response.status })
         }
 
-        const data = await response.json() as AuthResponse
+        const data = await response.json() as AuthResponseFor<T>
 
         localStorage.setItem(accessTokenKey, data.access_token)
-
-        setUser(toUser(data.user))
+        
+        await loadUser()
     }
 
     const login = (email: string, password: string) =>
@@ -90,9 +110,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = (email: string, username: string, password: string) =>
         authenticate('register', { email, username, password })
 
-    const logout = () => {
-        localStorage.removeItem(accessTokenKey)
-        setUser(null)
+    const logout = async () => {
+
+        try{
+            await fetch(`${apiUrl}/auth/logout`,{
+                method: 'POST',
+            })
+        }catch(error){
+            console.error('Logout request failed:', error)
+        }finally{
+            localStorage.removeItem(accessTokenKey)
+            setUser(null)
+        }
     }
 
     return (
