@@ -5,6 +5,7 @@ import { AuthMapBackground } from '../src/components/auth/AuthMapBackground';
 import { BotonPildora } from '../src/components/BotonPildora';
 import { LocationPinIcon } from '../src/components/icons/LocationPinIcon';
 import { usePermisosVistos } from '../src/features/bienvenida/permisosVistos';
+import { useSessionStore } from '../src/lib/session';
 import { colors } from '../src/theme/colors';
 import { fontFamily } from '../src/theme/typography';
 
@@ -12,6 +13,7 @@ export default function Bienvenida() {
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
   const permisosVistos = usePermisosVistos();
+  const entrarComoInvitado = useSessionStore((s) => s.entrarComoInvitado);
 
   // La primera vez se pasa antes por "Activa tu ubicación" y "Recibe alertas cercanas".
   if (permisosVistos === null) return <View style={styles.root} />;
@@ -51,12 +53,12 @@ export default function Bienvenida() {
               style={styles.loginButton}
               onPress={() => router.push('/(auth)/auth?tab=login')}
             />
-            {/* El mapa como invitado no está en el alcance de este flujo todavía. */}
+            {/* Al entrar como invitado, app/_layout.tsx cambia la Bienvenida por el mapa. */}
             <BotonPildora
               etiqueta="Ver el mapa como invitado"
               variante="texto"
               style={styles.guestButton}
-              onPress={() => router.push('/(main)')}
+              onPress={entrarComoInvitado}
             />
           </View>
         </View>

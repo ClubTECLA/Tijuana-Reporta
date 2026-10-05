@@ -5,6 +5,7 @@ import { AuthScreenShell } from '../../src/components/auth/AuthScreenShell';
 import { OtpInput } from '../../src/components/auth/OtpInput';
 import { PrimaryButton } from '../../src/components/auth/PrimaryButton';
 import { StepDots } from '../../src/components/auth/StepDots';
+import { iniciarSesionYEntrar } from '../../src/features/sesion/entrar';
 import { colors } from '../../src/theme/colors';
 import { fontFamily } from '../../src/theme/typography';
 
@@ -37,7 +38,8 @@ export default function VerificarScreen() {
     if (isRecuperar) {
       router.push({ pathname: '/(auth)/nueva-contrasena', params: { phone } });
     } else {
-      router.replace('/');
+      // Registro terminado. Sin backend de auth todavía, queda una sesión simulada.
+      iniciarSesionYEntrar();
     }
   };
 

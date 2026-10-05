@@ -15,10 +15,12 @@ import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
 import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
+import { HojaCrearCuenta, type MotivoCuenta } from '@/features/sesion/HojaCrearCuenta';
 import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import { esErrorDeRed } from '@/lib/estados';
 import { distanciaMetros } from '@/lib/geo';
 import { useEnLinea } from '@/lib/red';
+import { useEsInvitado } from '@/lib/session';
 import type { Reporte } from '@/types/api';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -75,6 +77,9 @@ export default function MainMap() {
   const reportesQuery = useReportes();
   const { data: reportes = [] } = reportesQuery;
   const enLinea = useEnLinea();
+  const esInvitado = useEsInvitado();
+  // Hoja "Crea una cuenta" cuando el invitado intenta reportar, comentar o abrir su perfil.
+  const [motivoCuenta, setMotivoCuenta] = useState<MotivoCuenta | null>(null);
 
   const [expandido, setExpandido] = useState(true);
   const [permisoUbicacion, setPermisoUbicacion] = useState(false);
@@ -248,7 +253,10 @@ export default function MainMap() {
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: buscadorTop }]} pointerEvents="box-none">
-        <MapSearchBar onPress={() => router.push('/(main)/buscar')} />
+        <MapSearchBar
+          onPress={() => router.push('/(main)/buscar')}
+          onProfilePress={() => (esInvitado ? setMotivoCuenta('perfil') : router.push('/(main)/perfil'))}
+        />
       </View>
 
       {avisoDatos && !selectedReporte && (
@@ -277,6 +285,7 @@ export default function MainMap() {
             top={tarjetaTop}
             bottom={tarjetaBottom}
             onClose={() => setSelectedReporte(null)}
+            onPedirCuenta={esInvitado ? () => setMotivoCuenta('comentar') : undefined}
           />
         </>
       ) : (
@@ -290,10 +299,15 @@ export default function MainMap() {
             <UbicacionFab onPress={() => void irAMiUbicacion()} cargando={buscandoUbicacion} />
           </View>
           <View style={[styles.fabWrapper, { bottom: fabBottom }]} pointerEvents="box-none">
-            <ReportarFab expandido={expandido} onPress={() => router.push('/(main)/crear-reporte')} />
+            <ReportarFab
+              expandido={expandido}
+              onPress={() => (esInvitado ? setMotivoCuenta('reportar') : router.push('/(main)/crear-reporte'))}
+            />
           </View>
         </>
       )}
+
+      <HojaCrearCuenta motivo={motivoCuenta} onCerrar={() => setMotivoCuenta(null)} />
     </View>
   );
 }
