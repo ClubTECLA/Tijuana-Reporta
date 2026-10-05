@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ReportCard } from '../components/ReportCard';
+import { EstadoVista } from '../components/estado/EstadoVista';
 import { Reporte } from '../types/reporte';
 import { perfilColors, perfilRadius } from '../theme/perfilTokens';
 
@@ -32,15 +33,29 @@ export const MisReportesScreen = ({ onBack, onSelectReporte }: MisReportesScreen
         <Text style={styles.historialText}>Historial · {TOTAL_HISTORIAL}</Text>
       </View>
 
-      <Text style={styles.section}>Activos</Text>
-      {MOCK_ACTIVOS.map((r) => (
-        <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />
-      ))}
+      {MOCK_ACTIVOS.length === 0 && MOCK_CERRADOS.length === 0 ? (
+        <EstadoVista
+          estado="vacio"
+          titulo="Aún no has reportado nada"
+          mensaje="Cuando reportes un incidente desde el mapa, aquí podrás seguir su estado."
+        />
+      ) : (
+        <>
+          <Text style={styles.section}>Activos</Text>
+          {MOCK_ACTIVOS.length === 0 ? (
+            <EstadoVista estado="vacio" mensaje="No tienes reportes activos." compacto />
+          ) : (
+            MOCK_ACTIVOS.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
+          )}
 
-      <Text style={styles.section}>Cerrados</Text>
-      {MOCK_CERRADOS.map((r) => (
-        <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />
-      ))}
+          <Text style={styles.section}>Cerrados</Text>
+          {MOCK_CERRADOS.length === 0 ? (
+            <EstadoVista estado="vacio" mensaje="Ningún reporte cerrado todavía." compacto />
+          ) : (
+            MOCK_CERRADOS.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
+          )}
+        </>
+      )}
     </ScrollView>
   </View>
 );

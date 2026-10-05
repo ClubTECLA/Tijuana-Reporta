@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraIcon } from '@/components/icons/CameraIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
+import { useEnLinea } from '@/lib/red';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
 import { CategoriaChip } from '@/features/reportes/crear/CategoriaChip';
@@ -56,6 +57,7 @@ export default function CrearReporte() {
     seguirReportando,
   } = useCrearReporte();
   const setTarget = useMapaTargetStore((s) => s.setTarget);
+  const enLinea = useEnLinea();
   const [expandido, setExpandido] = useState(false);
   const [todasEtiquetas, setTodasEtiquetas] = useState(false);
   const slide = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -143,6 +145,7 @@ export default function CrearReporte() {
             reporte={duplicado.reporte}
             distanciaM={duplicado.distanciaM}
             confirmando={isSubmitting}
+            error={submitError}
             onConfirmar={() => void confirmarEsElMismo()}
             onRechazar={() => void seguirReportando()}
           />
@@ -242,7 +245,16 @@ export default function CrearReporte() {
           </ScrollView>
 
           <View style={[styles.pie, { paddingBottom: Math.max(insets.bottom, 0) + 12 }]}>
-            {!!submitError && <Text style={[styles.error, styles.errorEnvio]}>{submitError}</Text>}
+            {!!submitError && (
+              <Text style={[styles.error, styles.errorEnvio]} accessibilityLiveRegion="polite">
+                {submitError}
+              </Text>
+            )}
+            {!enLinea && !submitError && (
+              <Text style={styles.avisoSinConexion}>
+                Sin conexión: tu reporte no se podrá enviar hasta que vuelvas a estar en línea.
+              </Text>
+            )}
             <Pressable
               onPress={() => void submit()}
               disabled={isSubmitting}
@@ -366,6 +378,13 @@ const styles = StyleSheet.create({
   },
   errorEnvio: {
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  avisoSinConexion: {
+    marginBottom: 8,
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.slate,
     textAlign: 'center',
   },
 

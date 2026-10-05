@@ -13,6 +13,8 @@ interface ReporteDuplicadoProps {
   reporte: Reporte;
   distanciaM: number;
   confirmando: boolean;
+  /** Error al confirmar o al crear el reporte nuevo (p. ej. sin conexión). */
+  error?: string | null;
   onConfirmar: () => void;
   onRechazar: () => void;
 }
@@ -21,7 +23,14 @@ interface ReporteDuplicadoProps {
 // reporte cuando ya existe uno parecido cerca. "Sí" suma una confirmación al
 // reporte existente (useConfirmarDuplicado); "No" crea uno nuevo con los datos
 // que el usuario ya llenó.
-export function ReporteDuplicado({ reporte, distanciaM, confirmando, onConfirmar, onRechazar }: ReporteDuplicadoProps) {
+export function ReporteDuplicado({
+  reporte,
+  distanciaM,
+  confirmando,
+  error,
+  onConfirmar,
+  onRechazar,
+}: ReporteDuplicadoProps) {
   const categoriaPrincipal = reporte.categorias[0];
 
   return (
@@ -77,6 +86,11 @@ export function ReporteDuplicado({ reporte, distanciaM, confirmando, onConfirmar
       </View>
 
       <View style={styles.pie}>
+        {!!error && (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {error}
+          </Text>
+        )}
         <Pressable
           onPress={onConfirmar}
           disabled={confirmando}
@@ -232,6 +246,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: 16,
     color: colors.white,
+  },
+  error: {
+    fontFamily: fontFamily.regular,
+    fontSize: 13,
+    color: colors.estadoError,
+    textAlign: 'center',
   },
   botonRechazar: {
     backgroundColor: colors.white,

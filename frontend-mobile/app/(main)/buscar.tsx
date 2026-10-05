@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon } from '@/components/icons/ArrowLeftIcon';
 import { ClockIcon } from '@/components/icons/ClockIcon';
+import { EstadoVista } from '@/components/estado/EstadoVista';
 import { LugarResultado } from '@/features/mapa/buscar/LugarResultado';
 import { useLugares } from '@/features/lugares/hooks';
 import { useRecientesStore } from '@/features/lugares/recientesStore';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import type { LugarResultado as LugarResultadoType } from '@/features/lugares/types';
+import { estadoDeQuery } from '@/lib/estados';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
 
@@ -25,7 +27,9 @@ export default function BuscarScreen() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const { data: resultados = [], isLoading, isError } = useLugares(debounced);
+  const lugaresQuery = useLugares(debounced);
+  const resultados = lugaresQuery.data ?? [];
+  const estado = estadoDeQuery(lugaresQuery, (lugares) => lugares.length === 0);
   const recientes = useRecientesStore((s) => s.lugares);
   const agregarReciente = useRecientesStore((s) => s.agregar);
   const setTarget = useMapaTargetStore((s) => s.setTarget);
@@ -68,14 +72,30 @@ export default function BuscarScreen() {
         {mostrarResultados && (
           <View style={styles.seccion}>
             <Text style={styles.seccionLabel}>RESULTADOS</Text>
-            {isLoading && <ActivityIndicator color={colors.slate} style={styles.estado} />}
-            {isError && (
-              <Text style={styles.estadoTexto}>No se pudo buscar. Revisa tu conexión e intenta de nuevo.</Text>
+            {estado === 'cargando' && <EstadoVista estado="cargando" mensaje="Buscando…" compacto />}
+            {estado === 'sin-conexion' && (
+              <EstadoVista
+                estado="sin-conexion"
+                mensaje="Sin conexión. La búsqueda seguirá cuando vuelvas a estar en línea."
+                onReintentar={() => void lugaresQuery.refetch()}
+              />
             )}
-            {!isLoading && !isError && resultados.length === 0 && (
-              <Text style={styles.estadoTexto}>Sin resultados para &quot;{debounced}&quot;.</Text>
+            {estado === 'error' && (
+              <EstadoVista
+                estado="error"
+                titulo="No se pudo buscar"
+                mensaje="El servicio de direcciones no respondió. Intenta de nuevo."
+                onReintentar={() => void lugaresQuery.refetch()}
+              />
             )}
-            {resultados.length > 0 && (
+            {estado === 'vacio' && (
+              <EstadoVista
+                estado="vacio"
+                titulo="Sin resultados"
+                mensaje={`No encontramos "${debounced.trim()}". Prueba con una calle, colonia o lugar conocido.`}
+              />
+            )}
+            {estado === 'listo' && (
               <View style={styles.lista}>
                 {resultados.map((lugar, i) => (
                   <LugarResultado
@@ -164,14 +184,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 18,
     overflow: 'hidden',
-  },
-  estado: {
-    paddingVertical: 12,
-  },
-  estadoTexto: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.textMuted,
   },
   recienteFila: {
     flexDirection: 'row',

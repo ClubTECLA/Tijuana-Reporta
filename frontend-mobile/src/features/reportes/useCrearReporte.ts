@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { etiquetaPrincipal, etiquetasDe, tituloReporte } from './crear/categorias';
 import { buscarDuplicado } from './crear/duplicados';
@@ -71,6 +72,9 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const crear = useCrearReporteMutation();
   const confirmar = useConfirmarDuplicado();
   const enviando = useRef(false);
+  // La búsqueda de duplicados corre antes de cualquier mutación: sin esto el botón no mostraría
+  // que está trabajando mientras se consulta la lista de reportes.
+  const [buscandoDuplicado, setBuscandoDuplicado] = useState(false);
 
   // Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
   // quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
@@ -153,7 +157,9 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
       // Antes de crear, se cruza contra los reportes vigentes por si ya existe
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
+      setBuscandoDuplicado(true);
       const reportes = await reportesApi.listar().catch(() => []);
+      setBuscandoDuplicado(false);
       const match = buscarDuplicado(form.categorias, form.lat as number, form.lng as number, reportes);
       if (match) {
         setDuplicado(match);
@@ -164,6 +170,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
     } finally {
+      setBuscandoDuplicado(false);
       enviando.current = false;
     }
   };
@@ -202,8 +209,12 @@ export function useCrearReporte(): UseCrearReporteReturn {
   return {
     form,
     errors,
-    isSubmitting: crear.isPending || confirmar.isPending,
-    submitError: crear.isError || confirmar.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
+    isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending,
+    submitError: crear.isError
+      ? mensajeDeError(crear.error, 'No se pudo enviar el reporte. Intenta de nuevo.')
+      : confirmar.isError
+        ? mensajeDeError(confirmar.error, 'No se pudo confirmar el reporte. Intenta de nuevo.')
+        : null,
     creado,
     creadoViaDuplicado,
     duplicado,
