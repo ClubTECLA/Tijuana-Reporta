@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
+import { onlineManager } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
+import { AvisoFlotante, type TipoAviso } from '@/components/estado/AvisoFlotante';
 import { useReportes } from '@/features/reportes/hooks';
 import { ReporteDetalle } from '@/features/reportes/detalle/ReporteDetalle';
 import { MapMarker } from '@/features/mapa/MapMarker';
@@ -15,6 +17,8 @@ import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { distanciaMetros } from '@/lib/geo';
 import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
+import { esErrorDeRed } from '@/lib/estados';
+import { useEnLinea } from '@/lib/red';
 import type { Reporte } from '@/types/api';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -26,6 +30,7 @@ const AVISO_MS = 3500;
 // Pausa tras el último movimiento antes de volver a ensanchar "Reportar".
 const QUIETO_MS = 600;
 const SIN_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+const SEPARACION_AVISO_DATOS = 12;
 
 // Medidas de la pantalla "Ver reporte" (Figma 22).
 const BUSCADOR_ALTO = 60;
@@ -35,12 +40,42 @@ const SEPARACION_FAB = 31;
 // Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
 const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
 
+interface AvisoDatos {
+  tipo: TipoAviso;
+  mensaje: string;
+  conReintentar?: boolean;
+}
+
+// Qué decir sobre los reportes del mapa. El mapa nunca se tapa: si ya hay reportes cargados se
+// siguen mostrando aunque falle una recarga o se pierda la conexión.
+function avisoDeReportes(
+  query: Pick<ReturnType<typeof useReportes>, 'data' | 'isError' | 'error'>,
+  enLinea: boolean,
+): AvisoDatos | null {
+  const hayDatos = query.data !== undefined;
+  if (!enLinea) {
+    return {
+      tipo: 'sin-conexion',
+      mensaje: hayDatos ? 'Sin conexión · mostrando los últimos reportes' : 'Sin conexión · los reportes se cargarán al reconectar',
+    };
+  }
+  if (query.isError) {
+    const motivo = esErrorDeRed(query.error) ? 'No pudimos conectar con el servidor' : 'No pudimos cargar los reportes';
+    return { tipo: 'error', mensaje: hayDatos ? 'No se pudieron actualizar los reportes' : motivo, conReintentar: true };
+  }
+  if (query.data === undefined) return { tipo: 'cargando', mensaje: 'Cargando reportes…' };
+  if (query.data.length === 0) return { tipo: 'info', mensaje: 'Aún no hay reportes en la ciudad' };
+  return null;
+}
+
 /** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
-  const { data: reportes = [], isFetching: actualizandoReportes } = useReportes();
+  const reportesQuery = useReportes();
+  const { data: reportes = [], isFetching: actualizandoReportes } = reportesQuery;
+  const enLinea = useEnLinea();
 
   const [expandido, setExpandido] = useState(true);
   const [permisoUbicacion, setPermisoUbicacion] = useState(false);
@@ -49,6 +84,10 @@ export default function MainMap() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const cameraRef = useRef<MapLibreGL.CameraRef>(null);
+  // Para no quitarle el mapa al usuario cuando llega el fix refinado: se apaga al pedir la ubicación
+  // y se enciende en cuanto algo más lo mueve (un gesto, abrir una tarjeta o una búsqueda).
+  const huboGesto = useRef(false);
+  const posicionMostrada = useRef<Coordenadas | null>(null);
   const target = useMapaTargetStore((s) => s.target);
   const clearTarget = useMapaTargetStore((s) => s.clear);
 
@@ -56,6 +95,7 @@ export default function MainMap() {
   const fabBottom = Math.max(insets.bottom + 8, 42);
   const tarjetaTop = buscadorTop + BUSCADOR_ALTO + SEPARACION_BUSCADOR;
   const tarjetaBottom = fabBottom + FAB_ALTO + SEPARACION_FAB;
+  const avisoDatos = avisoDeReportes(reportesQuery, enLinea);
 
   /**
    * Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
@@ -63,6 +103,7 @@ export default function MainMap() {
    */
   const seleccionar = useCallback(
     (reporte: Reporte) => {
+      huboGesto.current = true;
       setSelectedReporte(reporte);
       cameraRef.current?.flyTo({
         center: [reporte.lng, reporte.lat],
@@ -89,10 +130,6 @@ export default function MainMap() {
   // una breve pausa, para no parpadear entre gesto y gesto). Los vuelos de cámara del propio
   // código (`userInteraction: false`) no lo contraen.
   const quietoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Para no quitarle el mapa al usuario cuando llega el fix refinado: se apaga al pedir la ubicación
-  // y se enciende en cuanto el usuario toca el mapa.
-  const huboGesto = useRef(false);
-  const posicionMostrada = useRef<Coordenadas | null>(null);
   /** Cancela la expansión pendiente del botón Reportar y libera el temporizador. */
   const cancelarQuieto = useCallback(() => {
     if (quietoTimer.current) clearTimeout(quietoTimer.current);
@@ -156,6 +193,11 @@ export default function MainMap() {
         duration: 800,
         padding: SIN_PADDING,
       });
+      // Sin red solo se ven los mosaicos ya descargados: si esa zona (o ese zoom) no se había
+      // visto antes, el mapa queda en blanco y conviene decir por qué. Se lee al momento del toque.
+      if (!onlineManager.isOnline()) {
+        setAviso('Sin conexión: el mapa de esta zona puede no verse.');
+      }
     } catch (err) {
       console.error('[MainMap] no se pudo obtener la ubicación actual:', err);
       setAviso('No pudimos obtener tu ubicación. Intenta de nuevo.');
@@ -168,6 +210,7 @@ export default function MainMap() {
   // ahí. No se marca el punto con ningún pin: es para explorar los reportes de esa zona.
   useEffect(() => {
     if (target && !target.reporteId) {
+      huboGesto.current = true;
       cameraRef.current?.flyTo({ center: [target.lng, target.lat], zoom: TARGET_ZOOM, duration: 1200, padding: SIN_PADDING });
       clearTarget();
     }
@@ -229,6 +272,19 @@ export default function MainMap() {
         <MapSearchBar onPress={() => router.push('/(main)/buscar')} />
       </View>
 
+      {avisoDatos && !selectedReporte && (
+        <View
+          style={[styles.avisoDatosWrapper, { top: buscadorTop + BUSCADOR_ALTO + SEPARACION_AVISO_DATOS }]}
+          pointerEvents="box-none"
+        >
+          <AvisoFlotante
+            tipo={avisoDatos.tipo}
+            mensaje={avisoDatos.mensaje}
+            accion={avisoDatos.conReintentar ? { etiqueta: 'Reintentar', onPress: () => void reportesQuery.refetch() } : undefined}
+          />
+        </View>
+      )}
+
       {selectedReporte ? (
         <>
           {/* Desvanecimiento del mapa: tocarlo cierra la tarjeta. */}
@@ -277,6 +333,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    alignItems: 'center',
+  },
+  avisoDatosWrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
     alignItems: 'center',
   },
   ubicacionWrapper: {

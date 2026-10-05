@@ -82,4 +82,22 @@ export const colors = {
   rescatista: '#d35456',
   rescatistaAvatar: '#e06d2f',
   captionGradient: 'rgba(31,39,51,0.8)',
+
+  // Bienvenida y pantallas de permisos (Figma 1-3).
+  bienvenidaCheck: '#1f8a5b',
+  bienvenidaUbicacionHalo: 'rgba(38,119,230,0.10)',
+  bienvenidaUbicacionHaloInterno: 'rgba(38,119,230,0.16)',
+  alertaEjemplo: '#ec5557',
+  alertaEjemploBorde: '#ff0000',
+  alertaEjemploIcono: 'rgba(255,0,0,0.6)',
+  alertaEjemploHace: '#d7d7d7',
+  alertaEjemploSombra: 'rgba(26,54,93,0.2)',
+
+  // Estados de carga, vacío, error y sin conexión. Provisionales: aún no hay diseño en Figma.
+  estadoIcono: '#64748b',
+  estadoIconoFondo: '#eef2f7',
+  estadoError: '#d92d20',
+  estadoErrorFondo: '#fdecea',
+  estadoAviso: '#1f2733',
+  estadoAvisoAccion: '#7cb4ff',
 } as const;

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { etiquetaPrincipal, etiquetasDe, tituloReporte } from './crear/categorias';
 import { buscarDuplicado } from './crear/duplicados';
@@ -179,6 +180,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
     } finally {
+      setBuscandoDuplicado(false);
       enviando.current = false;
     }
   };
@@ -226,7 +228,11 @@ export function useCrearReporte(): UseCrearReporteReturn {
     form,
     errors,
     isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending,
-    submitError: crear.isError || confirmar.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
+    submitError: crear.isError
+      ? mensajeDeError(crear.error, 'No se pudo enviar el reporte. Intenta de nuevo.')
+      : confirmar.isError
+        ? mensajeDeError(confirmar.error, 'No se pudo confirmar el reporte. Intenta de nuevo.')
+        : null,
     creado,
     creadoViaDuplicado,
     duplicado,
