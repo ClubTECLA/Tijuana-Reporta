@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
+import { useSesionCargada, useSessionStore } from '@/lib/session';
 import {
   useFonts,
   Inter_400Regular,
@@ -26,22 +27,36 @@ export default function RootLayout() {
     Inter_700Bold,
   });
   const fontsReady = fontsLoaded || !!fontError;
+  // La sesión guardada decide si se abre la Bienvenida o el mapa: hasta leerla sigue la splash.
+  const sesionCargada = useSesionCargada();
+  const modo = useSessionStore((s) => s.modo);
+  const listo = fontsReady && sesionCargada;
 
   useEffect(() => {
-    if (fontsReady) {
+    if (listo) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsReady]);
+  }, [listo]);
 
   // Si las fuentes fallan en cargar, seguimos con las del sistema en vez de
   // dejar la app trabada en la splash screen para siempre.
-  if (!fontsReady) {
+  if (!listo) {
     return null;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false }} />
+      {/* Sin sesión solo existe la Bienvenida; al elegir invitado o iniciar sesión se pasa al
+          mapa, y al cerrar sesión expo-router saca el mapa del historial y vuelve a la
+          Bienvenida. Login, registro y permisos quedan siempre disponibles. */}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={modo === null}>
+          <Stack.Screen name="index" />
+        </Stack.Protected>
+        <Stack.Protected guard={modo !== null}>
+          <Stack.Screen name="(main)" />
+        </Stack.Protected>
+      </Stack>
       <StatusBar style="dark" />
     </QueryClientProvider>
   );
