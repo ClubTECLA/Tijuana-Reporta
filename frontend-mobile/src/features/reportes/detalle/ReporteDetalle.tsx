@@ -32,6 +32,8 @@ interface ReporteDetalleProps {
   top: number;
   bottom: number;
   onClose: () => void;
+  /** Solo para el invitado: en lugar del campo de comentario se muestra un botón que llama a esto. */
+  onPedirCuenta?: () => void;
 }
 
 /** Extrae la primera letra del autor en mayúscula, o una cadena vacía si no hay nombre. */
@@ -61,7 +63,7 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
  * Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
  * comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
  */
-export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalleProps) {
+export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
   const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
   const comentariosQuery = useComentarios(reporte.id);
   const comentarios = comentariosQuery.data ?? [];
@@ -175,38 +177,49 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
         )}
       </View>
 
-      {comentar.isError && (
-        <Text style={styles.errorEnvio} accessibilityLiveRegion="polite">
-          {mensajeDeError(comentar.error, 'No se pudo publicar tu comentario. Intenta de nuevo.')}
-        </Text>
+      {onPedirCuenta ? (
+        // El invitado puede leer el hilo, pero para comentar necesita una cuenta.
+        <View style={styles.escribir}>
+          <Pressable onPress={onPedirCuenta} accessibilityRole="button" style={styles.pedirCuenta}>
+            <Text style={styles.pedirCuentaTexto}>Crea una cuenta para comentar</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {comentar.isError && (
+            <Text style={styles.errorEnvio} accessibilityLiveRegion="polite">
+              {mensajeDeError(comentar.error, 'No se pudo publicar tu comentario. Intenta de nuevo.')}
+            </Text>
+          )}
+          {!enLinea && !comentar.isError && (
+            <Text style={styles.avisoEnvio}>Sin conexión: podrás comentar cuando vuelvas a estar en línea.</Text>
+          )}
+          <View style={styles.escribir}>
+            <TextInput
+              value={texto}
+              onChangeText={(nuevo) => {
+                // El aviso era de lo que se intentó enviar: al editar deja de aplicar.
+                if (comentar.isError) comentar.reset();
+                setTexto(nuevo);
+              }}
+              onSubmitEditing={enviar}
+              placeholder="Escribe un comentario"
+              placeholderTextColor={colors.textMuted}
+              returnKeyType="send"
+              style={styles.campo}
+            />
+            <Pressable
+              onPress={enviar}
+              disabled={!puedeEnviar}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar comentario"
+              style={[styles.enviar, !puedeEnviar && styles.enviarInactivo]}
+            >
+              {comentar.isPending ? <ActivityIndicator color={colors.white} /> : <SendIcon size={20} />}
+            </Pressable>
+          </View>
+        </>
       )}
-      {!enLinea && !comentar.isError && (
-        <Text style={styles.avisoEnvio}>Sin conexión: podrás comentar cuando vuelvas a estar en línea.</Text>
-      )}
-      <View style={styles.escribir}>
-        <TextInput
-          value={texto}
-          onChangeText={(nuevo) => {
-            // El aviso era de lo que se intentó enviar: al editar deja de aplicar.
-            if (comentar.isError) comentar.reset();
-            setTexto(nuevo);
-          }}
-          onSubmitEditing={enviar}
-          placeholder="Escribe un comentario"
-          placeholderTextColor={colors.textMuted}
-          returnKeyType="send"
-          style={styles.campo}
-        />
-        <Pressable
-          onPress={enviar}
-          disabled={!puedeEnviar}
-          accessibilityRole="button"
-          accessibilityLabel="Enviar comentario"
-          style={[styles.enviar, !puedeEnviar && styles.enviarInactivo]}
-        >
-          {comentar.isPending ? <ActivityIndicator color={colors.white} /> : <SendIcon size={20} />}
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -375,6 +388,19 @@ const styles = StyleSheet.create({
     color: 'rgba(31,39,51,0.8)',
   },
 
+  pedirCuenta: {
+    flex: 1,
+    height: 48,
+    borderRadius: 31,
+    backgroundColor: colors.infoSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pedirCuentaTexto: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 15,
+    color: colors.brandText,
+  },
   escribir: {
     flexDirection: 'row',
     alignItems: 'center',
