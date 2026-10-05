@@ -1,6 +1,10 @@
 import { env } from './env';
 import { useSessionStore } from './session';
 
+// Sin respuesta en este tiempo se da la petición por perdida: sin esto, una red que "conecta"
+// pero no entrega (señal débil, wifi con portal cautivo) deja la pantalla cargando para siempre.
+const TIEMPO_LIMITE_MS = 15_000;
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -11,10 +15,32 @@ export class ApiError extends Error {
   }
 }
 
+/** La petición no llegó al servidor (sin internet, servidor caído o tiempo agotado). */
+export class ErrorRed extends Error {
+  constructor(message = 'No hay conexión con el servidor.') {
+    super(message);
+    this.name = 'ErrorRed';
+  }
+}
+
+/** `fetch` que convierte los fallos de red y el tiempo agotado en `ErrorRed`. */
+export async function fetchConRed(url: string, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIEMPO_LIMITE_MS);
+  try {
+    return await fetch(url, { ...init, signal: init.signal ?? controller.signal });
+  } catch {
+    // `fetch` solo rechaza cuando no hubo respuesta: los errores HTTP llegan como `response.ok === false`.
+    throw new ErrorRed();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function http<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = useSessionStore.getState().token;
 
-  const response = await fetch(`${env.apiUrl}${path}`, {
+  const response = await fetchConRed(`${env.apiUrl}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
