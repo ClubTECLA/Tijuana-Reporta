@@ -9,7 +9,7 @@
 # "crearReporte" antes de las que usan {{reporteId}} (igual "crearIncidente"
 # con {{incidenteId}}).
 
-@baseUrl = http://localhost:8080
+@baseUrl = http://localhost/api
 @email = test@example.com
 @password = password123
 
