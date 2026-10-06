@@ -7,27 +7,43 @@ import { CheckIcon } from '@/components/icons/CheckIcon';
 import { InfoIcon } from '@/components/icons/InfoIcon';
 import { UserIcon } from '@/components/icons/UserIcon';
 import { CategoriaBadge } from './CategoriaBadge';
+import { CerrarButton } from './CerrarButton';
 import { codigoReporte } from './codigo';
 
 interface ReporteDuplicadoProps {
   reporte: Reporte;
   distanciaM: number;
   confirmando: boolean;
+  /** Fallo del último intento de confirmar o crear; se muestra sobre los botones. */
+  error?: string | null;
   onConfirmar: () => void;
   onRechazar: () => void;
+  /** Cierra esta pantalla y vuelve al formulario, sin confirmar ni crear nada. */
+  onCerrar: () => void;
 }
 
 /**
  * Pantalla "¿Es el mismo incidente?" (Figma 19): aparece en vez de la hoja de
  * reporte cuando ya existe uno parecido cerca. "Sí" suma una confirmación al
  * reporte existente (useConfirmarDuplicado); "No" crea uno nuevo con los datos
- * que el usuario ya llenó.
+ * que el usuario ya llenó; la X vuelve al formulario sin enviar nada.
  */
-export function ReporteDuplicado({ reporte, distanciaM, confirmando, onConfirmar, onRechazar }: ReporteDuplicadoProps) {
+export function ReporteDuplicado({
+  reporte,
+  distanciaM,
+  confirmando,
+  error,
+  onConfirmar,
+  onRechazar,
+  onCerrar,
+}: ReporteDuplicadoProps) {
   const categoriaPrincipal = reporte.categorias[0];
 
   return (
     <View style={styles.sheet}>
+      <View style={styles.cerrar}>
+        <CerrarButton onPress={onCerrar} />
+      </View>
       <View style={styles.cabecera}>
         <Text style={styles.titulo}>¿Es el mismo incidente?</Text>
         <Text style={styles.subtitulo}>
@@ -79,6 +95,7 @@ export function ReporteDuplicado({ reporte, distanciaM, confirmando, onConfirmar
       </View>
 
       <View style={styles.pie}>
+        {!!error && <Text style={styles.error}>{error}</Text>}
         <Pressable
           onPress={onConfirmar}
           disabled={confirmando}
@@ -214,10 +231,22 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: colors.slate,
   },
+  cerrar: {
+    position: 'absolute',
+    top: 8,
+    right: 12,
+    zIndex: 1,
+  },
   pie: {
     paddingHorizontal: 24,
     paddingTop: 24,
     gap: 12,
+  },
+  error: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.errorLabel,
+    textAlign: 'center',
   },
   boton: {
     height: 60,

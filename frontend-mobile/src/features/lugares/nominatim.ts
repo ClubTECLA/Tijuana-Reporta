@@ -1,5 +1,7 @@
 import { reportesApi } from '@/features/reportes/api';
+import { reportesKeys } from '@/features/reportes/hooks';
 import { distanciaMetros } from '@/lib/geo';
+import { queryClient } from '@/lib/query-client';
 import type { LugarResultado, TonoLugar } from './types';
 import type { LugaresApi } from './port';
 
@@ -94,7 +96,11 @@ export const lugaresNominatim: LugaresApi = {
     if (!response.ok) throw new Error(`Nominatim respondió ${response.status}`);
     const resultados = (await response.json()) as NominatimResult[];
 
-    const reportes = await reportesApi.listar().catch(() => []);
+    // Comparte la lista con useReportes(): dentro de su `staleTime` sale de la caché y no se
+    // vuelve a pedir al backend por cada búsqueda.
+    const reportes = await queryClient
+      .fetchQuery({ queryKey: reportesKeys.all, queryFn: () => reportesApi.listar() })
+      .catch(() => []);
 
     const lugares = resultados.map((r): LugarResultado => {
       const lat = parseFloat(r.lat);

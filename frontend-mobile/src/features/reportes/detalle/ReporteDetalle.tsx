@@ -162,10 +162,17 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
         )}
       </View>
 
+      {comentar.isError && (
+        <Text style={styles.comentarioError}>No se pudo enviar el comentario. Intenta de nuevo.</Text>
+      )}
       <View style={styles.escribir}>
         <TextInput
           value={texto}
-          onChangeText={setTexto}
+          onChangeText={(nuevo) => {
+            // El aviso era de lo que se intentó enviar: al editar deja de aplicar.
+            if (comentar.isError) comentar.reset();
+            setTexto(nuevo);
+          }}
           onSubmitEditing={enviar}
           placeholder="Escribe un comentario"
           placeholderTextColor={colors.textMuted}
@@ -347,6 +354,12 @@ const styles = StyleSheet.create({
     color: 'rgba(31,39,51,0.8)',
   },
 
+  comentarioError: {
+    paddingHorizontal: 16,
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.errorLabel,
+  },
   escribir: {
     flexDirection: 'row',
     alignItems: 'center',
