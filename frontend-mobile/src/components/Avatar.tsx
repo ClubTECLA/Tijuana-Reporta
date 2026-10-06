@@ -12,7 +12,7 @@ const iniciales = (nombre: string) =>
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((p) => p.charAt(0).toUpperCase())
+    .map((p) => Array.from(p)[0].toUpperCase())
     .join('');
 
 export const Avatar = ({ nombre, size = 80 }: AvatarProps) => (
