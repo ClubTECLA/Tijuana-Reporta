@@ -17,10 +17,12 @@ interface ReporteDuplicadoProps {
   onRechazar: () => void;
 }
 
-// Pantalla "¿Es el mismo incidente?" (Figma 19): aparece en vez de la hoja de
-// reporte cuando ya existe uno parecido cerca. "Sí" suma una confirmación al
-// reporte existente (useConfirmarDuplicado); "No" crea uno nuevo con los datos
-// que el usuario ya llenó.
+/**
+ * Pantalla "¿Es el mismo incidente?" (Figma 19): aparece en vez de la hoja de
+ * reporte cuando ya existe uno parecido cerca. "Sí" suma una confirmación al
+ * reporte existente (useConfirmarDuplicado); "No" crea uno nuevo con los datos
+ * que el usuario ya llenó.
+ */
 export function ReporteDuplicado({ reporte, distanciaM, confirmando, onConfirmar, onRechazar }: ReporteDuplicadoProps) {
   const categoriaPrincipal = reporte.categorias[0];
 

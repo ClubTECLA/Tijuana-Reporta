@@ -12,9 +12,11 @@ interface CategoriaChipProps {
   onQuitar: () => void;
 }
 
-// Categoría elegida desde "+ Ver mas" que no está entre las 4 tarjetas
-// visibles: se muestra como un círculo pequeño arriba de la grilla, con un
-// botón rojo de "quitar" superpuesto (Figma: nodo "IncidentesSeleccionado").
+/**
+ * Categoría elegida desde "+ Ver mas" que no está entre las 4 tarjetas
+ * visibles: se muestra como un círculo pequeño arriba de la grilla, con un
+ * botón rojo de "quitar" superpuesto (Figma: nodo "IncidentesSeleccionado").
+ */
 export function CategoriaChip({ categoria, onQuitar }: CategoriaChipProps) {
   return (
     <View style={styles.wrap}>

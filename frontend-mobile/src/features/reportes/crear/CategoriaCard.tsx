@@ -16,6 +16,7 @@ interface CategoriaCardProps {
   onPress: () => void;
 }
 
+/** Muestra una categoría seleccionable con variantes compacta, seleccionada y atenuada. */
 export function CategoriaCard({ categoria, selected, dimmed = false, compact = false, onPress }: CategoriaCardProps) {
   const s = compact ? 0.9375 : 1;
   const label = CATEGORIA_LABEL[categoria];

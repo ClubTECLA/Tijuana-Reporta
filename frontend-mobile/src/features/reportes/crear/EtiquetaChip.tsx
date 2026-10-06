@@ -13,8 +13,10 @@ interface EtiquetaChipProps {
   onPress: () => void;
 }
 
-// Chip de "Información adicional" (Figma 16/17): pastilla blanca con un punto del color de su
-// categoría. Activa, toma un tinte de ese mismo color.
+/**
+ * Chip de "Información adicional" (Figma 16/17): pastilla blanca con un punto del color de su
+ * categoría. Activa, toma un tinte de ese mismo color.
+ */
 export function EtiquetaChip({ etiqueta, categoria, activa, onPress }: EtiquetaChipProps) {
   const color = markerSpecs[categoria].color;
   return (

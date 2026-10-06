@@ -1,5 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
+/** Dibuja un avión de papel para las acciones de envío con tamaño y color configurables. */
 export function SendIcon({ size = 20, color = '#ffffff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">

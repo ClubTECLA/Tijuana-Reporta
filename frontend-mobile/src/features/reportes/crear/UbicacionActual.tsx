@@ -30,6 +30,7 @@ interface UbicacionActualProps {
   onLocationChange: (lat: number, lng: number, address: string) => void;
 }
 
+/** Obtiene calle y ciudad por geocodificación inversa, o una etiqueta genérica si falla o tarda demasiado. */
 async function formatearDireccion(latitude: number, longitude: number): Promise<string> {
   try {
     const [r] = await conTiempoLimite(Location.reverseGeocodeAsync({ latitude, longitude }), GEOCODIFICAR_TIMEOUT_MS);
@@ -42,6 +43,7 @@ async function formatearDireccion(latitude: number, longitude: number): Promise<
   }
 }
 
+/** Detecta y muestra la ubicación del reporte y permite corregirla en el mapa. */
 export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualProps) {
   const [origen, setOrigen] = useState<Origen>('gps');
   const cameraRef = useRef<MapLibreGL.CameraRef>(null);
@@ -50,6 +52,7 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
   const origenRef = useRef<Origen>('gps');
   const posicionRef = useRef<{ lat: number; lng: number } | null>(lat !== null && lng !== null ? { lat, lng } : null);
 
+  /** Actualiza el origen y la posición, resuelve su dirección y notifica al formulario. */
   const aplicar = useCallback(
     async (latitude: number, longitude: number, nuevoOrigen: Origen) => {
       setOrigen(nuevoOrigen);
@@ -62,8 +65,10 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
     [onLocationChange],
   );
 
-  // Llega el fix nuevo tras haber mostrado la última posición conocida: se ajusta el pin, salvo que
-  // el usuario ya lo haya movido a mano.
+  /**
+   * Llega el fix nuevo tras haber mostrado la última posición conocida: se ajusta el pin, salvo que
+   * el usuario ya lo haya movido a mano.
+   */
   const afinar = useCallback(
     (fresca: PosicionActual) => {
       const actual = posicionRef.current;
@@ -74,6 +79,7 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
     [aplicar],
   );
 
+  /** Obtiene la posición del dispositivo y usa el centro de Tijuana si no está disponible. */
   const detectar = useCallback(async () => {
     try {
       const posicion = await obtenerPosicionActual({ alRefinar: afinar });
@@ -98,7 +104,7 @@ export function UbicacionActual({ lat, lng, onLocationChange }: UbicacionActualP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // El usuario corrigió el punto en el modal: se guarda y la cámara del mini-mapa lo sigue.
+  /** El usuario corrigió el punto en el modal: se guarda y la cámara del mini-mapa lo sigue. */
   const guardarManual = useCallback(
     async (latitude: number, longitude: number) => {
       setCorrigiendo(false);

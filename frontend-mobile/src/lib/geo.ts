@@ -2,6 +2,7 @@ const EARTH_RADIUS_M = 6_371_000;
 
 /** Distancia en metros entre dos coordenadas (fórmula de Haversine). */
 export function distanciaMetros(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  /** Convierte un ángulo en grados a radianes para la fórmula de Haversine. */
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);

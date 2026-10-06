@@ -18,6 +18,7 @@ const TONOS: Record<TonoLugar, { bg: string; text: string; dot?: string }> = {
   neutro: { bg: colors.bgCanvas, text: colors.textSecondary },
 };
 
+/** Muestra la cantidad de incidentes activos con los colores del tono indicado. */
 export function EtiquetaActivos({ activos, tono }: EtiquetaActivosProps) {
   const cfg = TONOS[tono];
   const texto = activos === 0 ? 'Sin incidentes' : `${activos} activo${activos === 1 ? '' : 's'}`;

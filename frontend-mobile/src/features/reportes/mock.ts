@@ -61,6 +61,7 @@ const seed: Reporte[] = [
   },
 ];
 
+/** Genera una fecha ISO anterior al momento actual por la cantidad de minutos indicada. */
 const haceMin = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
 // Hilos de ejemplo (Figma 22: "Inundación en Zona Centro"), por id de reporte.
@@ -124,6 +125,7 @@ export const reportesMock: ReportesApi = {
     return [...reportes];
   },
 
+  /** Crea un reporte pendiente en memoria y lo agrega al inicio de la lista de la sesión. */
   async crear(req) {
     await delay(800);
     const nuevo: Reporte = {
@@ -149,6 +151,7 @@ export const reportesMock: ReportesApi = {
     reportes = reportes.map((r) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r));
   },
 
+  /** Suma un apoyo, reemplaza la foto si se proporciona y devuelve el reporte; falla si no existe. */
   async confirmarDuplicado(id, imageBase64) {
     await delay(600);
     reportes = reportes.map((r) =>
@@ -161,11 +164,13 @@ export const reportesMock: ReportesApi = {
     return actualizado;
   },
 
+  /** Devuelve una copia del hilo guardado en memoria, o una lista vacía si no existe. */
   async comentarios(id) {
     await delay(300);
     return [...(comentariosPorReporte.get(id) ?? [])];
   },
 
+  /** Añade al hilo un comentario del usuario simulado y devuelve el comentario creado. */
   async comentar(id, texto) {
     await delay(300);
     const nuevo: ComentarioConAutor = {

@@ -8,7 +8,7 @@ interface UbicacionFabProps {
   cargando?: boolean;
 }
 
-// Botón "ir a mi ubicación" (Figma 10 · ubicacion-actual): círculo blanco de 49 px.
+/** Botón "ir a mi ubicación" (Figma 10 · ubicacion-actual): círculo blanco de 49 px. */
 export function UbicacionFab({ onPress, cargando = false }: UbicacionFabProps) {
   return (
     <Pressable

@@ -62,6 +62,7 @@ const INITIAL_FORM: FormState = {
 // Hook
 // ---------------------------------------------------------------------------
 
+/** Gestiona el formulario, su validación y la creación o confirmación de reportes duplicados. */
 export function useCrearReporte(): UseCrearReporteReturn {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -72,8 +73,10 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const confirmar = useConfirmarDuplicado();
   const enviando = useRef(false);
 
-  // Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
-  // quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
+  /**
+   * Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
+   * quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
+   */
   const toggleCategoria = (categoria: CategoriaReporte): void => {
     setForm((prev) => {
       if (prev.categorias.includes(categoria)) {
@@ -107,6 +110,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     setErrors((prev) => ({ ...prev, ubicacion: undefined }));
   }, []);
 
+  /** Devuelve los errores por falta de categorías o coordenadas en el formulario. */
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
 
@@ -121,6 +125,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     return newErrors;
   };
 
+  /** Envía los datos del formulario ya validado y guarda el reporte creado para la pantalla de éxito. */
   const crearNuevo = async (): Promise<Reporte | null> => {
     const categorias = form.categorias;
     const nuevo = await crear.mutateAsync({
@@ -139,6 +144,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
   // Candado síncrono: `isPending` solo cambia tras el siguiente render, así
   // que dos toques rápidos podrían disparar dos envíos.
+  /** Valida el formulario y propone un duplicado cercano o crea un reporte, bloqueando envíos simultáneos. */
   const submit = async (): Promise<void> => {
     if (enviando.current) return;
     enviando.current = true;
@@ -168,6 +174,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
+  /** Confirma el duplicado propuesto y guarda el resultado para mostrar el éxito. */
   const confirmarEsElMismo = async (): Promise<void> => {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
@@ -186,6 +193,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
+  /** Descarta el duplicado propuesto y crea un reporte con los datos del formulario. */
   const seguirReportando = async (): Promise<void> => {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
