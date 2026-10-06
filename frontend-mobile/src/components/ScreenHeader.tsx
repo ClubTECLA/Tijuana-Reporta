@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { perfilColors } from '../theme/perfilTokens';
 
 interface ScreenHeaderProps {
@@ -8,29 +9,29 @@ interface ScreenHeaderProps {
   right?: React.ReactNode;
 }
 
-const TOP_INSET = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 54;
-
-export const ScreenHeader = ({ title, onBack, right }: ScreenHeaderProps) => (
-  <View style={styles.container}>
-    <TouchableOpacity
-      onPress={onBack}
-      style={styles.backButton}
-      accessibilityRole="button"
-      accessibilityLabel="Volver"
-    >
-      <Text style={styles.backIcon}>‹</Text>
-    </TouchableOpacity>
-    {title ? <Text style={styles.title}>{title}</Text> : null}
-    <View style={styles.right}>{right}</View>
-  </View>
-);
+export const ScreenHeader = ({ title, onBack, right }: ScreenHeaderProps) => {
+  const { top } = useSafeAreaInsets();
+  return (
+    <View style={[styles.container, { paddingTop: top + 8 }]}>
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backButton}
+        accessibilityRole="button"
+        accessibilityLabel="Volver"
+      >
+        <Text style={styles.backIcon}>‹</Text>
+      </TouchableOpacity>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
+      <View style={styles.right}>{right}</View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'stretch',
-    paddingTop: TOP_INSET + 8,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
