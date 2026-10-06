@@ -55,6 +55,7 @@ export default function CrearReporte() {
     submit,
     confirmarEsElMismo,
     seguirReportando,
+    cancelarDuplicado,
   } = useCrearReporte();
   const setTarget = useMapaTargetStore((s) => s.setTarget);
   const [expandido, setExpandido] = useState(false);
@@ -144,8 +145,10 @@ export default function CrearReporte() {
             reporte={duplicado.reporte}
             distanciaM={duplicado.distanciaM}
             confirmando={isSubmitting}
+            error={submitError}
             onConfirmar={() => void confirmarEsElMismo()}
             onRechazar={() => void seguirReportando()}
+            onCerrar={cancelarDuplicado}
           />
         </View>
       ) : (

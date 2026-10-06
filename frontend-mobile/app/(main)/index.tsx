@@ -13,12 +13,15 @@ import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
 import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
+import { distanciaMetros } from '@/lib/geo';
 import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import type { Reporte } from '@/types/api';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const TARGET_ZOOM = 15;
 const MI_UBICACION_ZOOM = 16;
+// Un fix nuevo del GPS solo vuelve a centrar el mapa si se movió al menos esto respecto a la caché.
+const REFINAR_MIN_M = 25;
 const AVISO_MS = 3500;
 // Pausa tras el último movimiento antes de volver a ensanchar "Reportar".
 const QUIETO_MS = 600;
@@ -37,7 +40,7 @@ export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
-  const { data: reportes = [] } = useReportes();
+  const { data: reportes = [], isFetching: actualizandoReportes } = useReportes();
 
   const [expandido, setExpandido] = useState(true);
   const [permisoUbicacion, setPermisoUbicacion] = useState(false);
@@ -86,6 +89,10 @@ export default function MainMap() {
   // una breve pausa, para no parpadear entre gesto y gesto). Los vuelos de cámara del propio
   // código (`userInteraction: false`) no lo contraen.
   const quietoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Para no quitarle el mapa al usuario cuando llega el fix refinado: se apaga al pedir la ubicación
+  // y se enciende en cuanto el usuario toca el mapa.
+  const huboGesto = useRef(false);
+  const posicionMostrada = useRef<Coordenadas | null>(null);
   /** Cancela la expansión pendiente del botón Reportar y libera el temporizador. */
   const cancelarQuieto = useCallback(() => {
     if (quietoTimer.current) clearTimeout(quietoTimer.current);
@@ -96,6 +103,7 @@ export default function MainMap() {
   const alMoverse = useCallback(
     (e: { nativeEvent: { userInteraction: boolean } }) => {
       if (!e.nativeEvent.userInteraction) return;
+      huboGesto.current = true;
       cancelarQuieto();
       setExpandido(false);
     },
@@ -113,12 +121,30 @@ export default function MainMap() {
   /** Centra el mapa en la posición obtenida y muestra un aviso si no está disponible. */
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
+    huboGesto.current = false;
     try {
-      const posicion = await obtenerPosicionActual();
+      const posicion = await obtenerPosicionActual({
+        // Si la posición salió de la caché, el fix nuevo llega después: recentra el mapa solo si
+        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul real lo
+        // actualiza el nativo; la posición simulada ya no aplica si hay un fix real.
+        alRefinar: (fresca) => {
+          const previa = posicionMostrada.current;
+          if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
+          posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
+          setMiPosicionSimulada(null);
+          cameraRef.current?.flyTo({
+            center: [fresca.lng, fresca.lat],
+            zoom: MI_UBICACION_ZOOM,
+            duration: 600,
+            padding: SIN_PADDING,
+          });
+        },
+      });
       if (!posicion) {
         setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
         return;
       }
+      posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
       setPermisoUbicacion(true);
       // Sin GPS (emulador en PC) y con mocks, `posicion.simulada`: el punto azul lo dibujamos
       // nosotros porque el nativo no tiene posición que mostrar.
@@ -151,11 +177,18 @@ export default function MainMap() {
   useEffect(() => {
     if (!target?.reporteId) return;
     const reporte = reportes.find((r) => r.id === target.reporteId);
-    if (!reporte) return;
+    if (!reporte) {
+      // Recién creado, la lista puede estar refrescándose: se espera a que termine. Si ya terminó y
+      // el reporte no está, se vuela a sus coordenadas y se libera el target para no dejarlo colgado.
+      if (actualizandoReportes) return;
+      cameraRef.current?.flyTo({ center: [target.lng, target.lat], zoom: TARGET_ZOOM, duration: 1200, padding: SIN_PADDING });
+      clearTarget();
+      return;
+    }
     seleccionar(reporte);
     // Se libera el target para que no reabra la tarjeta cada vez que se refresque la lista.
     clearTarget();
-  }, [target, reportes, clearTarget, seleccionar]);
+  }, [target, reportes, actualizandoReportes, clearTarget, seleccionar]);
 
   return (
     <View style={styles.container}>

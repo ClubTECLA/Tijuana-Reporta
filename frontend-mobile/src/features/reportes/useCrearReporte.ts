@@ -43,6 +43,8 @@ export interface UseCrearReporteReturn {
   confirmarEsElMismo: () => Promise<void>;
   /** "No, es otro": descarta el parecido y crea el reporte nuevo con los datos ya llenados. */
   seguirReportando: () => Promise<void>;
+  /** Cierra "¿Es el mismo incidente?" y vuelve al formulario con lo ya llenado, sin enviar nada. */
+  cancelarDuplicado: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,9 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const [creado, setCreado] = useState<Reporte | null>(null);
   const [creadoViaDuplicado, setCreadoViaDuplicado] = useState(false);
   const [duplicado, setDuplicado] = useState<{ reporte: Reporte; distanciaM: number } | null>(null);
+  // Mientras se descargan los reportes vigentes para buscar un duplicado todavía no hay mutación
+  // en curso, pero el botón de enviar ya debe verse ocupado.
+  const [buscandoDuplicado, setBuscandoDuplicado] = useState(false);
   const crear = useCrearReporteMutation();
   const confirmar = useConfirmarDuplicado();
   const enviando = useRef(false);
@@ -159,7 +164,11 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
       // Antes de crear, se cruza contra los reportes vigentes por si ya existe
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
-      const reportes = await reportesApi.listar().catch(() => []);
+      setBuscandoDuplicado(true);
+      const reportes = await reportesApi
+        .listar()
+        .catch(() => [])
+        .finally(() => setBuscandoDuplicado(false));
       const match = buscarDuplicado(form.categorias, form.lat as number, form.lng as number, reportes);
       if (match) {
         setDuplicado(match);
@@ -207,10 +216,16 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
+  const cancelarDuplicado = (): void => {
+    if (enviando.current) return;
+    confirmar.reset();
+    setDuplicado(null);
+  };
+
   return {
     form,
     errors,
-    isSubmitting: crear.isPending || confirmar.isPending,
+    isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending,
     submitError: crear.isError || confirmar.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
     creado,
     creadoViaDuplicado,
@@ -221,5 +236,6 @@ export function useCrearReporte(): UseCrearReporteReturn {
     submit,
     confirmarEsElMismo,
     seguirReportando,
+    cancelarDuplicado,
   };
 }
