@@ -2,6 +2,7 @@ import { reportesApi } from '@/features/reportes/api';
 import { reportesKeys } from '@/features/reportes/hooks';
 import { distanciaMetros } from '@/lib/geo';
 import { queryClient } from '@/lib/query-client';
+import type { Reporte } from '@/types/api';
 import type { LugarResultado, TonoLugar } from './types';
 import type { LugaresApi } from './port';
 
@@ -97,18 +98,21 @@ export const lugaresNominatim: LugaresApi = {
     const resultados = (await response.json()) as NominatimResult[];
 
     // Comparte la lista con useReportes(): dentro de su `staleTime` sale de la caché y no se
-    // vuelve a pedir al backend por cada búsqueda.
-    const reportes = await queryClient
+    // vuelve a pedir al backend por cada búsqueda. `fetchQuery` lanza si la petición falla aunque
+    // haya datos vencidos, así que en ese caso se usa la lista en caché; si no hay ninguna, `null`
+    // (no se sabe cuántos incidentes hay, que no es lo mismo que cero).
+    const reportes: Reporte[] | null = await queryClient
       .fetchQuery({ queryKey: reportesKeys.all, queryFn: () => reportesApi.listar() })
-      .catch(() => []);
+      .catch(() => queryClient.getQueryData<Reporte[]>(reportesKeys.all) ?? null);
 
     const lugares = resultados.map((r): LugarResultado => {
       const lat = parseFloat(r.lat);
       const lng = parseFloat(r.lon);
       const { nombre, subtitulo } = nombreYSubtitulo(r);
-      const activos = reportes.filter(
-        (rep) => rep.status !== 'resuelto' && distanciaMetros({ lat, lng }, rep) <= RADIO_ACTIVOS_M,
-      ).length;
+      const activos =
+        reportes?.filter(
+          (rep) => rep.status !== 'resuelto' && distanciaMetros({ lat, lng }, rep) <= RADIO_ACTIVOS_M,
+        ).length ?? null;
       return {
         id: String(r.place_id),
         nombre,
@@ -116,7 +120,7 @@ export const lugaresNominatim: LugaresApi = {
         lat,
         lng,
         activos,
-        tono: tonoPorActivos(activos),
+        tono: activos === null ? 'neutro' : tonoPorActivos(activos),
       };
     });
 

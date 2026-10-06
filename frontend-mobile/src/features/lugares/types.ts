@@ -6,7 +6,8 @@ export interface LugarResultado {
   subtitulo: string;
   lat: number;
   lng: number;
-  /** Cantidad de reportes activos (no resueltos) cerca de este lugar. */
-  activos: number;
+  /** Cantidad de reportes activos (no resueltos) cerca de este lugar; `null` si no se pudo saber
+   * (sin red y sin lista en caché), que no es lo mismo que cero. */
+  activos: number | null;
   tono: TonoLugar;
 }
