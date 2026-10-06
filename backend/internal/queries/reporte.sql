@@ -50,3 +50,6 @@ UPDATE reporte
 SET avistamientos = avistamientos + 1 
 WHERE id = $1
 RETURNING id, avistamientos;
+
+-- name: CreateUserReporte :one
+INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING *;

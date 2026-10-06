@@ -83,6 +83,14 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 				return err
 			}
 		}
+
+		if _, err = q.CreateUserReporte(ctx, domain.CreateUserReporteParams{
+			UserID:    arg.UserID,
+			ReporteID: reporte.ID,
+		}); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {

@@ -116,6 +116,22 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 	return i, err
 }
 
+const createUserReporte = `-- name: CreateUserReporte :one
+INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING id, user_id, reporte_id
+`
+
+type CreateUserReporteParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+}
+
+func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error) {
+	row := q.db.QueryRow(ctx, createUserReporte, arg.UserID, arg.ReporteID)
+	var i UsersReport
+	err := row.Scan(&i.ID, &i.UserID, &i.ReporteID)
+	return i, err
+}
+
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
 SELECT latitude::float8 AS latitude, longitude::float8 AS longitude
 FROM puntos_origen WHERE reporte_id = $1
