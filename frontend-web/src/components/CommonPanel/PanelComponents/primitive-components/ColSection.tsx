@@ -23,6 +23,16 @@ type headerBtnsType = {
     color: 'green' | 'red' | 'blue'
 }[]
 
+const borders = {
+    'right': 'border-r-2',
+    'left' : 'border-l-2',
+    'top' : 'border-t-2',
+    'bottom': 'border-b-2',
+    'all': 'border-2'
+} as const satisfies Record<string, string>
+
+type borderType = keyof typeof borders;
+
 interface SectionProps {
     children: ReactNode,
     arrangementSubsections?: arrangementType
@@ -32,6 +42,7 @@ interface SectionProps {
     extraHeaderBtns?: headerBtnsType,
     className?: string
     footerText?: string
+    border?: borderType[]
 }
 
 export default function ColSection(
@@ -43,21 +54,36 @@ export default function ColSection(
         subtitle,
         extraHeaderBtns,
         className,
-        footerText
+        footerText,
+        border
     }: SectionProps
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
     
+    const brd = `${border ? border.map((b) => `${borders[b]} `) : ''} border-gray-200`;
+
     if(!title){
         return(
-            <section className={`h-full flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
+            <section 
+                className={`
+                    h-full flex flex-col 
+                    ${debug ? 'border-2 border-red-500' : ''} 
+                    ${arrangementNormalize[arrangementSubsections]} 
+                    items-center ${className}
+                    ${border ? brd : ''}     
+                `}>
                 {children}
             </section>
         )   
     }
 
     return(
-        <section className={`w-fit h-full flex flex-col ${debug ? 'border-2' : ''}`}>
+        <section className={`
+                w-fit h-full flex flex-col 
+                ${debug ? 'border-2' : ''}
+                ${border ? brd : ''}     
+            `}
+        >
             {title && 
                 <div className="flex flex-row items-center gap-2">
                     {hasPrevView && 

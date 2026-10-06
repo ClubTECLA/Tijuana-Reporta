@@ -5,8 +5,18 @@ import { Link } from "react-router-dom"
 import { GrDocumentText } from "react-icons/gr"
 import { GoAlert, GoPaperAirplane } from "react-icons/go"
 import type { NavItemsType } from "../types/utils-types"
+import { IoSettingsOutline } from "react-icons/io5"
+import { useCommonPanel } from "../hooks/contexts/CommonPanelContext"
 
-const navItems: NavItemsType = [
+
+
+export default function NavBar() {
+    const { setPanelView } = useCommonPanel();
+
+    const router = useRouter();
+    const currentPath = router.pathname;
+    
+    const navItems: NavItemsType = [
             {
                 icon: <GrDocumentText/>,
                 title: "Resumen",
@@ -22,13 +32,14 @@ const navItems: NavItemsType = [
                 icon: <GoPaperAirplane />,
                 title: "Avisos",
                 destinationPath: "/warnings"
+            },
+            {
+                icon: <IoSettingsOutline/>,
+                title: "Ajustes",
+                onClick: () => setPanelView('Ajustes')
             }
         ]
 
-export default function NavBar() {
-    const router = useRouter();
-    const currentPath = router.pathname;
-    
     return(
         <section 
             className="

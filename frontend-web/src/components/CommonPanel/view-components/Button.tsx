@@ -26,38 +26,21 @@ interface buttonProps extends subsectionProps {
 export default function Button({icon, title, format, debug, color = 'gray', onClick, to, type = 'button'} : buttonProps) {
     return(
         <SubSection
-            className={`p-1 ${buttonWrapped[color]} flex-row items-center justify-center min-w-30 rounded-3xl group hover:scale-105 transition-transform duration-300 ease-in-out`}
             debug={debug}
             format={format}
+            className={`
+                ${buttonWrapped[color]}
+                ${debug ? 'border-2' : ''}
+                flex flex-row items-center pr-4
+                justify-center gap-2 rounded-3xl
+                hover:scale-105 transition-transform duration-300 ease-in-out
+                `}
+            type={type}
+            onClick={onClick}
+            to={to} 
         >
-            {type === 'link' && to ? 
-                <Link
-                    to={to} 
-                    className={`
-                        w-fit h-full ${debug ? 'border-2' : ''}
-                        flex flex-row items-center 
-                        justify-center gap-2 rounded-2xl
-                        hover:scale-105 transition-transform duration-300 ease-in-out
-                    `}
-                    onClick={onClick}
-                >
-                    <span className="text-2xl">{icon}</span>
-                    <span className="text-md font-bold">{title}</span>
-                </Link>
-            :
-                <button 
-                    className={`
-                        w-fit h-full ${debug ? 'border-2' : ''}
-                        flex flex-row items-center 
-                        justify-center gap-2 rounded-2xl
-                        hover:scale-105 transition-transform duration-300 ease-in-out
-                    `}
-                    onClick={onClick}
-                >
-                    <span className="text-2xl">{icon}</span>
-                    <span className="text-md font-bold">{title}</span>
-                </button>
-            }
+            <span className="text-2xl">{icon}</span>
+            <span className="text-md font-bold whitespace-nowrap">{title}</span>
         </SubSection>
     )
 }
