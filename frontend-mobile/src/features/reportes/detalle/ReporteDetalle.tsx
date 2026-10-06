@@ -31,8 +31,10 @@ interface ReporteDetalleProps {
   onClose: () => void;
 }
 
+/** Extrae la primera letra del autor en mayúscula, o una cadena vacía si no hay nombre. */
 const inicial = (autor: string) => autor.trim().charAt(0).toUpperCase();
 
+/** Muestra autor, antigüedad y texto de un comentario, destacando a los rescatistas. */
 function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
   const rescatista = comentario.es_rescatista === true;
   return (
@@ -52,8 +54,10 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
   );
 }
 
-// Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
-// comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
+/**
+ * Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
+ * comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
+ */
 export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalleProps) {
   const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
   const { data: comentarios, isPending, isError } = useComentarios(reporte.id);
@@ -76,6 +80,7 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
 
   const puedeEnviar = texto.trim().length > 0 && !comentar.isPending;
 
+  /** Publica el texto válido y, al completarse, limpia el campo y desplaza el hilo al final. */
   const enviar = () => {
     if (!puedeEnviar) return;
     comentar.mutate(texto.trim(), {

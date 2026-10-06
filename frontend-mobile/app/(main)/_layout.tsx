@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+/** Configura la navegación principal y las pantallas de búsqueda y creación de reportes. */
 export default function MainLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>

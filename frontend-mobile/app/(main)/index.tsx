@@ -32,6 +32,7 @@ const SEPARACION_FAB = 31;
 // Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
 const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
 
+/** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
@@ -53,8 +54,10 @@ export default function MainMap() {
   const tarjetaTop = buscadorTop + BUSCADOR_ALTO + SEPARACION_BUSCADOR;
   const tarjetaBottom = fabBottom + FAB_ALTO + SEPARACION_FAB;
 
-  // Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
-  // (el `padding` superior reduce la zona "visible" del mapa a esa franja).
+  /**
+   * Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
+   * (el `padding` superior reduce la zona "visible" del mapa a esa franja).
+   */
   const seleccionar = useCallback(
     (reporte: Reporte) => {
       setSelectedReporte(reporte);
@@ -83,11 +86,13 @@ export default function MainMap() {
   // una breve pausa, para no parpadear entre gesto y gesto). Los vuelos de cámara del propio
   // código (`userInteraction: false`) no lo contraen.
   const quietoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Cancela la expansión pendiente del botón Reportar y libera el temporizador. */
   const cancelarQuieto = useCallback(() => {
     if (quietoTimer.current) clearTimeout(quietoTimer.current);
     quietoTimer.current = null;
   }, []);
 
+  /** Contrae Reportar al mover el mapa con un gesto del usuario. */
   const alMoverse = useCallback(
     (e: { nativeEvent: { userInteraction: boolean } }) => {
       if (!e.nativeEvent.userInteraction) return;
@@ -97,6 +102,7 @@ export default function MainMap() {
     [cancelarQuieto],
   );
 
+  /** Programa la expansión de Reportar tras una pausa sin movimiento del mapa. */
   const alQuedarseQuieto = useCallback(() => {
     cancelarQuieto();
     quietoTimer.current = setTimeout(() => setExpandido(true), QUIETO_MS);
@@ -104,6 +110,7 @@ export default function MainMap() {
 
   useEffect(() => cancelarQuieto, [cancelarQuieto]);
 
+  /** Centra el mapa en la posición obtenida y muestra un aviso si no está disponible. */
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
     try {

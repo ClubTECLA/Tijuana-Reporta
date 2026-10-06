@@ -32,6 +32,7 @@ export const comentariosKeys = {
   reporte: (id: string) => ['comentarios', id] as const,
 };
 
+/** Consulta el hilo de un reporte cuando su identificador está definido. */
 export function useComentarios(reporteId: string | undefined) {
   return useQuery({
     queryKey: comentariosKeys.reporte(reporteId ?? ''),
@@ -40,6 +41,7 @@ export function useComentarios(reporteId: string | undefined) {
   });
 }
 
+/** Publica un comentario e invalida la consulta del hilo correspondiente al completarse. */
 export function useComentar(reporteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -48,6 +50,7 @@ export function useComentar(reporteId: string) {
   });
 }
 
+/** Confirma un reporte existente con foto opcional e invalida la lista al completarse. */
 export function useConfirmarDuplicado() {
   const queryClient = useQueryClient();
   return useMutation({

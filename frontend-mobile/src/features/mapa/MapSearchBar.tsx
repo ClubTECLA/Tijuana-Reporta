@@ -9,8 +9,10 @@ interface MapSearchBarProps {
   onProfilePress?: () => void;
 }
 
-// Se ve como un input pero es un botón: al tocarlo se abre la pantalla
-// "Buscar dirección" (app/(main)/buscar.tsx), que sí tiene el TextInput real.
+/**
+ * Se ve como un input pero es un botón: al tocarlo se abre la pantalla
+ * "Buscar dirección" (app/(main)/buscar.tsx), que sí tiene el TextInput real.
+ */
 export function MapSearchBar({ onPress, onProfilePress }: MapSearchBarProps) {
   return (
     <View style={styles.pill}>

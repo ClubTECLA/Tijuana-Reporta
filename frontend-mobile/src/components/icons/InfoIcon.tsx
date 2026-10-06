@@ -1,5 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
+/** Dibuja un símbolo de información dentro de un círculo con tamaño y color configurables. */
 export function InfoIcon({ size = 24, color = '#64748b' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

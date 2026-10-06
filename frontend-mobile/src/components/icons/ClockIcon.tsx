@@ -1,5 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
+/** Dibuja un reloj para indicar antigüedad o búsquedas recientes con tamaño y color configurables. */
 export function ClockIcon({ size = 20, color = '#475569' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">

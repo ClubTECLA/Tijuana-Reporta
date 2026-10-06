@@ -1,6 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
-// Flecha de "ir a mi ubicación" (Figma 10 · ubicacion-actual).
+/** Flecha de "ir a mi ubicación" (Figma 10 · ubicacion-actual). */
 export function NavegacionIcon({ size = 19.8, color = '#5482d3' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 19.8001 19.8001" fill="none">

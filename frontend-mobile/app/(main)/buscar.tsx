@@ -15,6 +15,7 @@ import { fontFamily } from '@/theme/typography';
 const DEBOUNCE_MS = 500;
 const MIN_QUERY = 3;
 
+/** Muestra búsquedas de lugares con espera entre consultas y accesos a los lugares recientes. */
 export default function BuscarScreen() {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
@@ -30,6 +31,7 @@ export default function BuscarScreen() {
   const agregarReciente = useRecientesStore((s) => s.agregar);
   const setTarget = useMapaTargetStore((s) => s.setTarget);
 
+  /** Guarda el lugar en recientes, lo fija como destino del mapa y vuelve a la pantalla anterior. */
   const seleccionar = (lugar: LugarResultadoType) => {
     agregarReciente(lugar);
     setTarget({ lat: lugar.lat, lng: lugar.lng, nombre: lugar.nombre });

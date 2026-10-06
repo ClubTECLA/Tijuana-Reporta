@@ -42,6 +42,7 @@ interface NominatimResult {
   address?: NominatimAddress;
 }
 
+/** Obtiene el nombre del lugar y un subtítulo de dirección evitando repetir el nombre. */
 function nombreYSubtitulo(r: NominatimResult): { nombre: string; subtitulo: string } {
   const addr = r.address ?? {};
   // El nombre propio del lugar (el que Nominatim ya decidió que es el mejor
@@ -63,6 +64,7 @@ function nombreYSubtitulo(r: NominatimResult): { nombre: string; subtitulo: stri
   return { nombre, subtitulo };
 }
 
+/** Asigna tono neutro a cero incidentes, advertencia a uno y peligro a dos o más. */
 function tonoPorActivos(activos: number): TonoLugar {
   if (activos >= 2) return 'peligro';
   if (activos === 1) return 'advertencia';
@@ -70,6 +72,7 @@ function tonoPorActivos(activos: number): TonoLugar {
 }
 
 export const lugaresNominatim: LugaresApi = {
+  /** Busca en Nominatim dentro del área de Tijuana, añade incidentes activos cercanos y elimina resultados visualmente repetidos. */
   async buscar(query) {
     const q = query.trim();
     if (q.length < 3) return [];

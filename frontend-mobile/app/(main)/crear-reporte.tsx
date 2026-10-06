@@ -38,6 +38,7 @@ const pares = <T,>(items: T[]): T[][] => {
   return filas;
 };
 
+/** Presenta el formulario multicategoría y los pasos de duplicado y confirmación del reporte. */
 export default function CrearReporte() {
   const insets = useSafeAreaInsets();
   const {
