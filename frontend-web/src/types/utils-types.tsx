@@ -5,6 +5,11 @@ import { MdOutlineReportProblem } from "react-icons/md"
 
 //extra types
 
+export type componentProps = {
+  className?: string
+  onClick?: () => void
+}
+
 export type NavItem = {
   icon: ReactNode
   title: string
@@ -12,9 +17,17 @@ export type NavItem = {
   cantNoti?: number
 }
 
+export const subsectionFormats = {
+  'row': 'h-full w-fit',
+  'col': 'h-fit w-full',
+  'both-fit': 'h-fit w-fit',
+  'both-full': 'h-full w-full'
+} as const satisfies Record<string, string>
+
 export interface subsectionProps {
     debug?: boolean
-    format: "row" | "col"
+    format: keyof typeof subsectionFormats
+    subKey?: string | number;
 }
 
 export type NavItemsType = {

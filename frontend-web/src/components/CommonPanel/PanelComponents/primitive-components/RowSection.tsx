@@ -16,6 +16,16 @@ const headerButtonColors = {
     blue: 'bg-blue-500 hover:bg-blue-300'
 }
 
+const borders = {
+    right: 'border-r-2',
+    left: 'border-l-2',
+    top: 'border-t-2',
+    bottom: 'border-b-2',
+    all: 'border-2'
+} as const satisfies Record<string, string>
+
+type borderType = keyof typeof borders;
+
 type headerBtnsType = {
     title: string
     icon?: ReactNode
@@ -32,6 +42,7 @@ interface SectionProps {
     extraHeaderBtns?: headerBtnsType 
     className?: string
     footerText?: string
+    border?: borderType[]
 }
 
 export default function RowSection(
@@ -43,22 +54,23 @@ export default function RowSection(
         subtitle,
         extraHeaderBtns,
         className,
-        footerText
+        footerText,
+        border
     }: SectionProps
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
-
+    const borderClasses = `${border?.map((side) => borders[side]).join(' ') ?? ''} ${border ? 'border-gray-200' : ''}`;
 
     if(!title){
         return(
-            <section className={`h-full flex flex-row  ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
+            <section className={`${className} flex flex-row  ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center  ${borderClasses}`}>
                 {children}
             </section>
         )   
     }
 
     return(
-        <section className={`w-full h-full flex flex-col ${debug ? 'border-2' : ''}`}>
+        <section className={`w-full h-full flex flex-col ${debug ? 'border-2' : ''} ${borderClasses}`}>
             {title && 
                 <div className="flex flex-row items-center gap-2">
                     {hasPrevView && 
@@ -115,12 +127,14 @@ export default function RowSection(
                     }
                 </div>
             }
-            <div className={`h-full flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
+            <div className={`${className} flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${borderClasses}`}>
                 {children}
-                <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
-                    {footerText && <span className="text-xs text-gray-500">{footerText}</span>}
-                </div>
             </div>
+            {footerText && 
+                    <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
+                        <span className="text-xs text-gray-500">{footerText}</span>
+                    </div>
+                }
         </section>
     )
 }

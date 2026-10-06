@@ -18,6 +18,112 @@ export interface Roles {
   nombre: string
 }
 
+// API - Incident catalog schemas
+export type ApiTagCatalogo = {
+  id: number
+  nombre: string
+  peso: number
+}
+
+export type ApiIncidente = {
+  id: number
+  nombre: string
+  tiempo_limite: number | null
+  radio: number | null
+  color: string
+  tags: ApiTagCatalogo[]
+  esta_activo: boolean
+}
+
+// API - Incident creation requests
+export type ApiCrearTagRequest = {
+  nombre: string
+  peso?: number
+}
+
+export type ApiCrearIncidenteRequest = {
+  nombre: string
+  tiempo_limite?: number
+  radio?: number
+  esta_activo?: boolean
+  color?: string
+  tags?: ApiCrearTagRequest[]
+}
+
+// API - Report schemas linked to an incident
+export type ApiEstadoReporte =
+  | "Pendiente"
+  | "Probable"
+  | "Verificado"
+  | "Resuelto"
+  | "Descartado"
+  | "Expirado"
+
+export type ApiReporteResumen = {
+  id: string
+  incidente_id: number
+  estado_actual: ApiEstadoReporte
+  avistamientos: number
+  es_oficial: boolean
+  latitude: number
+  longitude: number
+}
+
+export type ApiCrearReporteRequest = {
+  incidente_id: number
+  latitude: number
+  longitude: number
+  image_path?: string
+}
+
+// API - Nested report schemas
+export type ApiComentario = {
+  id: number
+  reporte_id: string
+  user_id: string
+  comentario: string
+  created_at: string
+}
+
+export type ApiFoto = {
+  id: number
+  image_path: string
+  user_id: string
+  created_at: string
+}
+
+export type ApiTag = {
+  id: number
+  nombre: string
+  count: number
+}
+
+export type ApiLocation = {
+  id: number
+  latitude: number
+  longitude: number
+  user_id: string
+  created_at: string
+}
+
+export type ApiReporte = {
+  id: string
+  incidente_id: number
+  avistamientos: number
+  es_historico: boolean
+  es_oficial: boolean
+  estado_actual: ApiEstadoReporte
+  latitude: number
+  longitude: number
+  created_at: string
+  updated_at: string
+  expired_at?: string
+  comentarios: ApiComentario[]
+  fotos: ApiFoto[]
+  tags: ApiTag[]
+  locations: ApiLocation[]
+}
+
 // Users and authentication
 export interface Users {
   id: string
@@ -130,5 +236,4 @@ export interface Logs {
   started_at: string
   finished_at: string
 }
-
 

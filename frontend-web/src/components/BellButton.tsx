@@ -17,6 +17,7 @@ export default function BellButton({className, onClick, cantNotis}: BellButtonPr
                 hover:scale-105 transition-all duration-300
             `}
             onClick={onClick}
+            aria-label="Notificaciones"
         >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow-lg shadow-gray-600">
                 <LuBell className="text-2xl text-gray-600" />
