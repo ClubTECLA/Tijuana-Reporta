@@ -29,7 +29,10 @@ export const useSessionStore = create<SessionState>()(
       modo: null,
       setToken: (token) => set({ token }),
       entrarComoInvitado: () => set({ token: null, modo: 'invitado' }),
-      iniciarSesion: (token = TOKEN_SIMULADO) => set({ token, modo: 'usuario' }),
+      iniciarSesion: (token) => {
+        const efectivo = token ?? (env.useMocks ? TOKEN_SIMULADO : null);
+        if (efectivo !== null) set({ token: efectivo, modo: 'usuario' });
+      },
       clear: () => set({ token: null, modo: null }),
     }),
     {

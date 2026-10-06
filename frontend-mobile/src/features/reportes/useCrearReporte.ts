@@ -162,6 +162,9 @@ export function useCrearReporte(): UseCrearReporteReturn {
         return;
       }
       setErrors({});
+      // Un error viejo de la otra mutación no debe tapar el de este intento.
+      crear.reset();
+      confirmar.reset();
 
       // Antes de crear, se cruza contra los reportes vigentes por si ya existe
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
@@ -190,6 +193,8 @@ export function useCrearReporte(): UseCrearReporteReturn {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      crear.reset();
+      confirmar.reset();
       const actualizado = await confirmar.mutateAsync({
         id: duplicado.reporte.id,
         ...(form.imageBase64 !== null && { imageBase64: form.imageBase64 }),
@@ -209,6 +214,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      confirmar.reset();
       setDuplicado(null);
       await crearNuevo();
     } catch (err) {
