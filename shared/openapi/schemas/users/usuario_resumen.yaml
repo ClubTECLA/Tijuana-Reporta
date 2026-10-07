@@ -1,0 +1,17 @@
+type: object
+description: Un usuario del sistema.
+required:
+  - username
+  - email
+  - rol_name
+  - reportes_count
+properties:
+  username:
+    type: string
+  email:
+    type: string
+    format: email
+  rol_name:
+    type: string
+  reportes_count:
+    type: integer

@@ -1,0 +1,35 @@
+package api
+
+import (
+	"context"
+
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+)
+
+func toUsuarioResumen(u domain.ListAllUsersRow) UsuarioResumen {
+	var email openapi_types.Email
+	if u.Email != nil {
+		email = openapi_types.Email(*u.Email)
+	}
+
+	return UsuarioResumen{
+		Username:      u.Username,
+		Email:         email,
+		RolName:       u.RolName,
+		ReportesCount: u.ReportesCount,
+	}
+}
+
+func (s *Server) ListarUsuarios(ctx context.Context, request ListarUsuariosRequestObject) (ListarUsuariosResponseObject, error) {
+	usuarios, err := s.services.Usuarios.ListarUsuarios(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	usuarioResumenes := make([]UsuarioResumen, len(usuarios))
+	for i, u := range usuarios {
+		usuarioResumenes[i] = toUsuarioResumen(u)
+	}
+	return ListarUsuarios200JSONResponse(usuarioResumenes), nil
+}

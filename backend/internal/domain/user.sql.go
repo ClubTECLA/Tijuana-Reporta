@@ -63,55 +63,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const getAllUsers = `-- name: GetAllUsers :many
-SELECT
-    u.username,
-    u.email,
-    r.nombre AS rol_name,
-    COUNT(ur.reporte_id)::int AS reportes_count
-FROM
-    users u
-    JOIN roles r ON r.id = u.rol_id
-    LEFT JOIN users_reports ur ON ur.user_id = u.id
-GROUP BY
-    u.id,
-    r.nombre
-ORDER BY
-    u.username DESC
-`
-
-type GetAllUsersRow struct {
-	Username      string  `json:"username"`
-	Email         *string `json:"email"`
-	RolName       string  `json:"rol_name"`
-	ReportesCount int     `json:"reportes_count"`
-}
-
-func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
-	rows, err := q.db.Query(ctx, getAllUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllUsersRow
-	for rows.Next() {
-		var i GetAllUsersRow
-		if err := rows.Scan(
-			&i.Username,
-			&i.Email,
-			&i.RolName,
-			&i.ReportesCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
     id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
@@ -204,4 +155,53 @@ func (q *Queries) GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUser
 		&i.RolName,
 	)
 	return i, err
+}
+
+const listAllUsers = `-- name: ListAllUsers :many
+SELECT
+    u.username,
+    u.email,
+    r.nombre AS rol_name,
+    COUNT(ur.reporte_id)::int AS reportes_count
+FROM
+    users u
+    JOIN roles r ON r.id = u.rol_id
+    LEFT JOIN users_reports ur ON ur.user_id = u.id
+GROUP BY
+    u.id,
+    r.nombre
+ORDER BY
+    u.username DESC
+`
+
+type ListAllUsersRow struct {
+	Username      string  `json:"username"`
+	Email         *string `json:"email"`
+	RolName       string  `json:"rol_name"`
+	ReportesCount int     `json:"reportes_count"`
+}
+
+func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
+	rows, err := q.db.Query(ctx, listAllUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllUsersRow
+	for rows.Next() {
+		var i ListAllUsersRow
+		if err := rows.Scan(
+			&i.Username,
+			&i.Email,
+			&i.RolName,
+			&i.ReportesCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

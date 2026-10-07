@@ -29,6 +29,8 @@ paths:
     $ref: './paths/incidentes.yaml#/obtenerIncidente'
   /incidentes/{incidenteId}/tags:
     $ref: './paths/incidentes.yaml#/agregarTags'
+  /users:
+    $ref: './paths/usuarios.yaml#/listarUsuarios'
 
 components:
   schemas:
@@ -70,6 +72,8 @@ components:
       $ref: './schemas/incidentes/incidente.yaml'
     CrearIncidenteRequest:
       $ref: './schemas/incidentes/crear_incidente_request.yaml'
+    UsuarioResumen:
+      $ref: './schemas/users/usuario_resumen.yaml'
   securitySchemes:
     bearerAuth:
       type: http

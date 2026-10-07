@@ -24,7 +24,6 @@ type Querier interface {
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
-	GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
@@ -32,6 +31,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
+	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
 	ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
