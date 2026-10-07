@@ -5,15 +5,26 @@
 #   migraciones aplicadas (ver README)
 #   docker-compose.override.yml publicando 8080:8080
 #
-# Orden: corre "login" antes que cualquier petición autenticada, y
-# "crearReporte" antes de las que usan {{reporteId}} (igual "crearIncidente"
-# con {{incidenteId}}).
+# Usuarios:
+#   {{email}}      ciudadano (rol por defecto al registrarse)
+#   {{adminEmail}} admin. El registro siempre crea ciudadanos, así que después
+#                  de "Registro admin" hay que promoverlo una vez en la base:
+#                    UPDATE users SET rol_id = (SELECT id FROM roles WHERE nombre = 'admin')
+#                    WHERE email = 'admin@example.com';
+#                  y luego correr "loginAdmin" (el rol va dentro del token).
+#
+# Orden: corre "login" (y "loginAdmin" para las rutas de admin) antes que
+# cualquier petición autenticada, y "crearReporte" antes de las que usan
+# {{reporteId}} (igual "crearIncidente" con {{incidenteId}}).
 
 @baseUrl = http://localhost/api
 @email = test@example.com
 @password = password123
+@adminEmail = admin@example.com
+@adminPassword = admin12345
 
 @token = {{login.response.body.$.access_token}}
+@adminToken = {{loginAdmin.response.body.$.access_token}}
 @reporteId = {{crearReporte.response.body.$.id}}
 @incidenteId = {{crearIncidente.response.body.$.id}}
 
@@ -23,7 +34,7 @@ GET {{baseUrl}}/health
 ### Contrato OpenAPI
 GET {{baseUrl}}/v1/openapi.json
 
-# Auth 
+# Auth
 
 ### Registro (201; 409 si el email ya existe, p. ej. en la segunda corrida)
 POST {{baseUrl}}/v1/auth/register
@@ -61,7 +72,34 @@ Authorization: Bearer {{token}}
 ### Usuario actual sin token (401)
 GET {{baseUrl}}/v1/auth/me
 
-# Reportes 
+## Admin
+
+### Registro admin (201; 409 si el email ya existe, p. ej. en la segunda corrida)
+# Queda como ciudadano: promuévelo con el UPDATE del encabezado.
+POST {{baseUrl}}/v1/auth/register
+Content-Type: application/json
+
+{
+    "email": "{{adminEmail}}",
+    "username": "admin",
+    "password": "{{adminPassword}}"
+}
+
+### Login admin (200)
+# @name loginAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+}
+
+### Usuario actual admin (200; rol_name debe ser "admin")
+GET {{baseUrl}}/v1/auth/me
+Authorization: Bearer {{adminToken}}
+
+# Reportes
 ## incidente_id: 1 luz, 2 socavon, 3 arbol, 4 drenaje, 5 deslave
 
 ### Crear reporte (201)
@@ -111,7 +149,7 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/v1/reportes?min_lat=32.4
 Authorization: Bearer {{token}}
 
-# Comentarios 
+# Comentarios
 
 ### Comentar un reporte (201)
 POST {{baseUrl}}/v1/reportes/{{reporteId}}/comentarios
@@ -147,16 +185,12 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/v1/incidentes/999999
 Authorization: Bearer {{token}}
 
-## Crear y agregar tags: solo admin.
-## Con el usuario de {{email}} como ciudadano responden 403. Para probarlos,
-## hazlo admin y vuelve a correr "login" (el rol va dentro del token):
-##   UPDATE users SET rol_id = (SELECT id FROM roles WHERE nombre = 'admin')
-##   WHERE email = 'test@example.com';
+## Crear y agregar tags: solo admin (usan {{adminToken}}).
 
 ### Crear incidente con tags (201; 409 si el nombre ya existe, p. ej. en la segunda corrida)
 # @name crearIncidente
 POST {{baseUrl}}/v1/incidentes
-Authorization: Bearer {{token}}
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -170,9 +204,18 @@ Content-Type: application/json
     ]
 }
 
-### Crear incidente con tags repetidos (400)
+### Crear incidente como ciudadano (403)
 POST {{baseUrl}}/v1/incidentes
 Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "poste"
+}
+
+### Crear incidente con tags repetidos (400)
+POST {{baseUrl}}/v1/incidentes
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -185,7 +228,7 @@ Content-Type: application/json
 
 ### Crear incidente con color inválido (400)
 POST {{baseUrl}}/v1/incidentes
-Authorization: Bearer {{token}}
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -196,7 +239,7 @@ Content-Type: application/json
 ### Agregar tags a un incidente (201; 409 si ya los tiene, p. ej. en la segunda corrida)
 # Usa el incidente de "Crear incidente con tags".
 POST {{baseUrl}}/v1/incidentes/{{incidenteId}}/tags
-Authorization: Bearer {{token}}
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 [
@@ -206,15 +249,33 @@ Content-Type: application/json
 
 ### Agregar un tag que ya existe, con otras mayúsculas (409)
 POST {{baseUrl}}/v1/incidentes/{{incidenteId}}/tags
-Authorization: Bearer {{token}}
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 [
     { "nombre": "APAGADO" }
 ]
 
-# Logout 
+# Usuarios
+## Solo admin.
+
+### Listar usuarios (200)
+GET {{baseUrl}}/v1/users
+Authorization: Bearer {{adminToken}}
+
+### Listar usuarios como ciudadano (403)
+GET {{baseUrl}}/v1/users
+Authorization: Bearer {{token}}
+
+### Listar usuarios sin token (401)
+GET {{baseUrl}}/v1/users
+
+# Logout
 
 ### Logout (204)
 POST {{baseUrl}}/v1/auth/logout
 Authorization: Bearer {{token}}
+
+### Logout admin (204)
+POST {{baseUrl}}/v1/auth/logout
+Authorization: Bearer {{adminToken}}

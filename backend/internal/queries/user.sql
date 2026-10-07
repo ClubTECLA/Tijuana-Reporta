@@ -39,7 +39,7 @@ FROM
 WHERE
     u.id = $1;
 
--- name: GetAllUsers :many
+-- name: ListAllUsers :many
 SELECT
     u.username,
     u.email,

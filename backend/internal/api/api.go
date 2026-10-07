@@ -41,12 +41,17 @@ type IncidenteService interface {
 	AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error)
 }
 
+type UsuarioService interface {
+	ListarUsuarios(ctx context.Context) ([]domain.ListAllUsersRow, error)
+}
+
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
 	Comentarios ComentarioService
 	Reportes    ReporteService
 	Incidentes  IncidenteService
 	Auth        AuthService
+	Usuarios    UsuarioService
 }
 
 // Server implementa la interfaz que oapi-codegen genera a partir de
