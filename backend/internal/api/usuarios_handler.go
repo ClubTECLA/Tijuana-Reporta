@@ -7,6 +7,8 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// toUsuarioResumen converts a stored user summary to the API representation,
+// using an empty string when the email is nil.
 func toUsuarioResumen(u domain.ListAllUsersRow) UsuarioResumen {
 	var email openapi_types.Email
 	if u.Email != nil {
@@ -21,6 +23,9 @@ func toUsuarioResumen(u domain.ListAllUsersRow) UsuarioResumen {
 	}
 }
 
+// ListarUsuarios returns a 200 response containing user summaries, using an
+// empty array when the service returns no users. Service errors are propagated
+// unchanged with a nil response.
 func (s *Server) ListarUsuarios(ctx context.Context, request ListarUsuariosRequestObject) (ListarUsuariosResponseObject, error) {
 	usuarios, err := s.services.Usuarios.ListarUsuarios(ctx)
 	if err != nil {
