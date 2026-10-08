@@ -336,3 +336,34 @@ func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) 
 	}
 	return items, nil
 }
+
+const updateEstadoReporte = `-- name: UpdateEstadoReporte :one
+UPDATE reporte
+SET estado_actual = $2,
+    updated_at = now(),
+    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE expired_at END
+WHERE id = $1
+RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at
+`
+
+type UpdateEstadoReporteParams struct {
+	ID           uuid.UUID `json:"id"`
+	EstadoActual Estado    `json:"estado_actual"`
+}
+
+func (q *Queries) UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error) {
+	row := q.db.QueryRow(ctx, updateEstadoReporte, arg.ID, arg.EstadoActual)
+	var i Reporte
+	err := row.Scan(
+		&i.ID,
+		&i.IncidenteID,
+		&i.Avistamientos,
+		&i.EsHistorico,
+		&i.EsOficial,
+		&i.EstadoActual,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiredAt,
+	)
+	return i, err
+}

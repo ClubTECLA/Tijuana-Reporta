@@ -21,6 +21,7 @@ type ReporteService interface {
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
 	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
+	CambiarEstado(ctx context.Context, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error)
 }
 
 // AuthService devuelve, junto con el usuario, el access token ya firmado y
