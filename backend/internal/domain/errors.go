@@ -21,6 +21,7 @@ var (
 	ErrTagNameTaken       = errors.New("tag name taken")
 	ErrAreaIncompleta     = errors.New("area incompleta")
 	ErrAreaInvalida       = errors.New("area invalida")
+	ErrTransicionInvalida = errors.New("transicion invalida")
 )
 
 // Códigos de error de Postgres.

@@ -165,6 +165,79 @@ Content-Type: application/json
 PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/avistamientos
 Authorization: Bearer {{token}}
 
+# Estado
+## Solo admin (usan {{adminToken}}). Cualquier estado del enum, en cualquier orden:
+## Pendiente, Probable, Verificado, Resuelto, Descartado, Expirado.
+
+### Cambiar estado a Verificado (200)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "estado": "Verificado"
+}
+
+### Regresar el estado a Probable (200; los cambios no son lineales)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "estado": "Probable"
+}
+
+### Cambiar estado a Expirado (200; también llena expired_at)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "estado": "Expirado"
+}
+
+### Cambiar estado con un valor fuera del enum (400)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "estado": "Arreglado"
+}
+
+### Cambiar estado sin body (400)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}
+
+### Cambiar estado de un reporte inexistente (404)
+PATCH {{baseUrl}}/v1/reportes/00000000-0000-0000-0000-000000000000/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "estado": "Resuelto"
+}
+
+### Cambiar estado como ciudadano (403)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "estado": "Resuelto"
+}
+
+### Cambiar estado sin token (401)
+PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
+Content-Type: application/json
+
+{
+    "estado": "Resuelto"
+}
+
 
 # Incidentes
 ## Listar y obtener: cualquier usuario autenticado.

@@ -118,6 +118,16 @@ func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) 
 	return domain.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
 }
 
+func (f *fakeReporteStore) UpdateEstadoReporte(_ context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error) {
+	r, ok := f.byID[arg.ID]
+	if !ok {
+		return domain.Reporte{}, pgx.ErrNoRows
+	}
+	r.EstadoActual = arg.EstadoActual
+	f.byID[arg.ID] = r
+	return r, nil
+}
+
 func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)

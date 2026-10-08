@@ -124,3 +124,17 @@ func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistam
 	}
 	return AgregarAvistamiento200JSONResponse(toReporte(r)), nil
 }
+
+// CambiarEstadoReporte cambia el estado de un reporte a cualquier valor del
+// enum. El router no valida el body contra el contrato, así que un estado
+// fuera del enum (o ausente) se rechaza aquí con 400.
+func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
+	r, err := s.services.Reportes.CambiarEstado(ctx, request.ReporteId, domain.Estado(request.Body.Estado))
+	if err != nil {
+		if errors.Is(err, domain.ErrReporteNotFound) {
+			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
+		}
+		return nil, err
+	}
+	return CambiarEstadoReporte200JSONResponse(toReporte(r)), nil
+}
