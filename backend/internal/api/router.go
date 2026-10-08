@@ -11,6 +11,11 @@ import (
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
 )
 
+// maxRequestBodyBytes es el tamaño máximo del body en las rutas del contrato.
+// Todas reciben JSON chico (el campo de texto más largo es de 500 caracteres),
+// así que 1 MiB sobra.
+const maxRequestBodyBytes = 1 << 20
+
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
 // contrato bajo /v1 (con el middleware de auth) y /v1/openapi.json.
 //
@@ -77,6 +82,8 @@ func NewRouter(services Services, jwtSecret string) *gin.Engine {
 		Middlewares: []MiddlewareFunc{
 			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
 			middleware.RequireRole(string(BearerAuthScopes)),
+			// Antes del validador, que lee el body completo para validarlo.
+			middleware.BodyLimit(maxRequestBodyBytes),
 			MiddlewareFunc(validator),
 		},
 	})
