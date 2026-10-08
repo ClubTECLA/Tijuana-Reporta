@@ -341,7 +341,7 @@ const updateEstadoReporte = `-- name: UpdateEstadoReporte :one
 UPDATE reporte
 SET estado_actual = $2,
     updated_at = now(),
-    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE expired_at END
+    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE NULL END
 WHERE id = $1
 RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at
 `
