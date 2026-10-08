@@ -20,7 +20,7 @@ export default function UserCart({username, email, rolName, debug, format}: user
     }
 
     return(
-        <SubSection format={format} className="flex-row w-full rounded-2xl bg-blue-50 items-center" debug={debug}>
+        <SubSection format={format} className="flex-row w-full rounded-2xl bg-blue-50 items-center p-2" debug={debug}>
             <div className="rounded-full flex items-center justify-center bg-blue-700 text-white w-10 h-10 font-bold">
                 {iconName}
             </div>

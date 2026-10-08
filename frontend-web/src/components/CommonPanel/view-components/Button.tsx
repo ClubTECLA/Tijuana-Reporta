@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { subsectionProps } from "../../../types/utils-types";
 import SubSection from "../PanelComponents/primitive-components/SubSection";
-import { Link } from "react-router-dom";
 
 
 const buttonWrapped: Record<string, string> = {
@@ -34,6 +33,7 @@ export default function Button({icon, title, format, debug, color = 'gray', onCl
                 flex flex-row items-center pr-4
                 justify-center gap-2 rounded-3xl
                 hover:scale-105 transition-transform duration-300 ease-in-out
+                p-2
                 `}
             type={type}
             onClick={onClick}

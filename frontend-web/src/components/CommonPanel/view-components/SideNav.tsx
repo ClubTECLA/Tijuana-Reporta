@@ -5,7 +5,7 @@ import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 
 interface ItemProps extends Omit<subsectionProps, "format"> {
     format?: subsectionProps["format"]
-    icon?: ReactNode,
+    icon?: ReactNode | null,
     title: string,
     isSelected: boolean 
     onClick?: () => void

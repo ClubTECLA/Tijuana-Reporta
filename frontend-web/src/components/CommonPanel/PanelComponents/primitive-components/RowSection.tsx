@@ -70,7 +70,7 @@ export default function RowSection(
     }
 
     return(
-        <section className={`w-full h-full flex flex-col ${debug ? 'border-2' : ''} ${borderClasses}`}>
+        <section className={`w-full h-full flex flex-col max-h-full max-w-full ${debug ? 'border-2' : ''} ${borderClasses}`}>
             {title && 
                 <div className="flex flex-row items-center gap-2">
                     {hasPrevView && 
@@ -127,7 +127,7 @@ export default function RowSection(
                     }
                 </div>
             }
-            <div className={`${className} flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${borderClasses}`}>
+            <div className={`${className} max-w-full max-h-full flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${borderClasses}`}>
                 {children}
             </div>
             {footerText && 

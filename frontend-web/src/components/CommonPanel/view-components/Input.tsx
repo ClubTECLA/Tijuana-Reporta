@@ -2,11 +2,14 @@ import { useId, type ChangeEventHandler } from "react";
 import type { subsectionProps } from "../../../types/utils-types";
 import SubSection from "../PanelComponents/primitive-components/SubSection";
 
-type inputTypes = 'text' | 'checkbox';
+type inputTypes = 'text' | 'checkbox' | 'text2';
+
+type labelPositionType = 'top' | 'left';
 
 interface inputProps extends subsectionProps {
     type?: inputTypes
     label?: string
+    labelPosition?: labelPositionType
     value?: string | number
     checked?: boolean
     defaultChecked?: boolean
@@ -31,7 +34,7 @@ export default function Input({
 
     const checkboxBetween = !!label && type === 'checkbox' ? true : false;  
     return(
-        <SubSection debug={debug} format={format}>
+        <SubSection debug={debug} format={format} className="p-2">
             {type === 'text' &&
                 <div className="flex flex-col gap-1 w-full">
                     {label && <label htmlFor={inputId} className="text-md text-gray-700 font-semibold">{label}</label>}
@@ -79,6 +82,20 @@ export default function Input({
                         />
                     </span>
                 </label>
+            }
+            {type === 'text2' &&
+                <div className="flex flex-col gap-1 w-full">
+                    {label && <label htmlFor={inputId} className="text-md text-gray-700 font-semibold">{label}</label>}
+                    <input 
+                        id={inputId}
+                        className="rounded-full px-3 py-1 outline-1 outline-gray-300"
+                        type="text"
+                        value={value}
+                        onChange={onChange}
+                        name={name}
+                        key={key}
+                    />
+                </div>
             }
         </SubSection>
     )

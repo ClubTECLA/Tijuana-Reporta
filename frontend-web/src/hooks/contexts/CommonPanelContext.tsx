@@ -78,7 +78,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
                         max-w-3/4 min-w-1/4
                         bg-white rounded-2xl
                         shadow-lg shadow-gray-600 p-4
-                        flex flex-col overflow-auto
+                        flex flex-col
                         z-50
                     "
                 >
