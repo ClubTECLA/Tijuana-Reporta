@@ -11,6 +11,7 @@ properties:
   email:
     type: string
     format: email
+    nullable: true
   rol_name:
     type: string
   reportes_count:
