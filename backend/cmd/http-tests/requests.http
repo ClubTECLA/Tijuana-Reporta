@@ -17,7 +17,7 @@
 # cualquier petición autenticada, y "crearReporte" antes de las que usan
 # {{reporteId}} (igual "crearIncidente" con {{incidenteId}}).
 
-@baseUrl = http://localhost/api
+@baseUrl = http://localhost:8080
 @email = test@example.com
 @password = password123
 @adminEmail = admin@example.com
