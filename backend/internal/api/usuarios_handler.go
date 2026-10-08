@@ -8,11 +8,12 @@ import (
 )
 
 // toUsuarioResumen converts a stored user summary to the API representation,
-// using an empty string when the email is nil.
+// leaving the email nil (serialized as null) when the user has none.
 func toUsuarioResumen(u domain.ListAllUsersRow) UsuarioResumen {
-	var email openapi_types.Email
+	var email *openapi_types.Email
 	if u.Email != nil {
-		email = openapi_types.Email(*u.Email)
+		e := openapi_types.Email(*u.Email)
+		email = &e
 	}
 
 	return UsuarioResumen{
