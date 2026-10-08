@@ -3,10 +3,10 @@ import { Children, isValidElement, type ElementType, type ReactNode } from "reac
 export function validateChildren(
     children: ReactNode,
     componentName: string,
-    allowedChildType?: ElementType,
+    allowedChildType?: ElementType[],
     allowedChildName?: string,
 ) {
-    const childArray = Children.toArray(children);
+    const childArray = Children.toArray(children).filter((c) => c !== null && c !== undefined);
     const expectedChild = allowedChildName ?? "React element";
 
     if (childArray.length === 0) {
@@ -16,10 +16,10 @@ export function validateChildren(
     childArray.forEach((child, index) => {
         if (
             !isValidElement(child)
-            || (allowedChildType !== undefined && child.type !== allowedChildType)
+            || (allowedChildType !== undefined && !allowedChildType.includes(child.type as ElementType))
         ) {
             throw new Error(
-                `${componentName} only accepts direct ${expectedChild} children. `
+                `${componentName} only accepts direct ${allowedChildName} children. `
                 + `Invalid child at position ${index + 1}.`,
             );
         }

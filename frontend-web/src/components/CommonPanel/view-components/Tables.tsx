@@ -30,44 +30,44 @@ export function SimpleStatistics({ statistics }: SimpleStatisticsProps) {
 
 interface CheckboxProps {
     name: string;
-    value: boolean;
+    checked: boolean;
     onChange: ChangeEventHandler<HTMLInputElement>;
+    id?: string;
 }
 
-export function Checkbox({ name, value, onChange }: CheckboxProps) {
+export function Checkbox({ name, checked, onChange, id }: CheckboxProps) {
     const inputId = useId();
+    const checkboxId = id ?? inputId;
 
     return (
         <div className="flex items-center justify-center p-2">
             <input
-                id={inputId}
+                id={checkboxId}
                 type="checkbox"
                 role="switch"
-                checked={value}
+                checked={checked}
                 onChange={onChange}
                 name={name}
                 className="peer sr-only"
             />
             <label
-                htmlFor={inputId}
+                htmlFor={checkboxId}
                 className="inline-flex cursor-pointer items-center"
             >
                 <span className="sr-only">{name}</span>
                 <span
                     aria-hidden="true"
-                    className="
-                        relative block h-7 w-14 rounded-full bg-gray-300
+                    className={`
+                        relative block h-7 w-14 rounded-full
                         transition-colors
                         after:absolute after:left-1 after:top-1
                         after:h-5 after:w-5 after:rounded-full
                         after:bg-white after:shadow after:transition-transform
                         after:content-['']
-                        peer-checked:bg-blue-600
-                        peer-checked:after:translate-x-7
-                        peer-focus-visible:outline-2
-                        peer-focus-visible:outline-offset-2
-                        peer-focus-visible:outline-blue-600
-                    "
+                        ${checked
+                            ? "bg-blue-600 after:translate-x-7"
+                            : "bg-gray-300 after:translate-x-0"}
+                    `}
                 />
             </label>
         </div>
@@ -106,7 +106,7 @@ export function TdButton({color = 'transparent', content, onClick} : TdButtonPro
                 flex flex-row items-center pr-4
                 justify-center gap-2 rounded-3xl
                 p-2
-                hover:scale-105 transition-transform duration-300 ease-in-out
+                hover:scale-110 transition-transform duration-300 ease-in-out
                 `}
 
             onClick={onClick}
@@ -217,38 +217,38 @@ export function Table({ format, debug, headers, children }: TableProps) {
     });
 
     return (
-        <SubSection debug={debug} format={format}>
-            <div className="w-full overflow-x-auto rounded-xl border border-gray-300">
-                <table className="w-full border-separate border-spacing-0">
-                    {headers && (
-                        <thead>
-                            <tr>
-                                {headers.map((header, index) => (
-                                    <th
-                                        key={`${header.title}-${index}`}
-                                        scope="col"
-                                        className={`
-                                            bg-gray-100 px-2 py-1 text-left
-                                            ${index === 0 ? "rounded-tl-xl" : ""}
-                                            ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
-                                        `}
-                                    >
-                                        <span className={`text-sm font-medium ${header.badge ? "text-gray-800" : "text-gray-500"}`}>
-                                            {header.title.toUpperCase()}
+        <SubSection debug={debug} format={format}
+            className="rounded-xl border border-gray-300"
+        >
+            <table className="w-full border-separate border-spacing-0">
+                {headers && (
+                    <thead>
+                        <tr>
+                            {headers.map((header, index) => (
+                                <th
+                                    key={`${header.title}-${index}`}
+                                    scope="col"
+                                    className={`
+                                        bg-gray-100 px-2 py-1 text-left whitespace-nowrap
+                                        ${index === 0 ? "rounded-tl-xl" : ""}
+                                        ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
+                                    `}
+                                >
+                                    <span className={`text-sm font-medium ${header.badge ? "text-gray-800" : "text-gray-500"}`}>
+                                        {header.title.toUpperCase()}
+                                    </span>
+                                    {header.badge && (
+                                        <span className="block text-xs font-medium text-gray-400">
+                                            {header.badge}
                                         </span>
-                                        {header.badge && (
-                                            <span className="block text-xs font-medium text-gray-400">
-                                                {header.badge}
-                                            </span>
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                    )}
-                    <tbody>{rows}</tbody>
-                </table>
-            </div>
+                                    )}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                )}
+                <tbody>{rows}</tbody>
+            </table>
         </SubSection>
     );
 }

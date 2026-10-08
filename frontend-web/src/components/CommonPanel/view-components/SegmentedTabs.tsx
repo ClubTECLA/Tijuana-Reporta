@@ -1,6 +1,7 @@
 import { Children, cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 import type { subsectionProps } from "../../../types/utils-types";
 import { validateChildren } from "./validateChildren";
+import SubSection from "../PanelComponents/primitive-components/SubSection";
 
 interface TabItemProps extends Omit<subsectionProps, "format"> {
     format?: subsectionProps["format"]
@@ -53,11 +54,12 @@ export function SegmentedTabs({
     defaultTab = 0,
 }: SegmentedTabsProps) {
     const [activeTab, setActiveTab] = useState(defaultTab);
-    validateChildren(children, "SegmentedTabs", TabItem, "TabItem");
+    validateChildren(children, "SegmentedTabs", [TabItem], "TabItem");
 
     return(
-        <div
-            role="tablist"
+        <SubSection
+            format={format}
+            debug={debug}
             className={`
                 flex w-full rounded-full bg-slate-200 p-2
                 mb-3
@@ -81,6 +83,6 @@ export function SegmentedTabs({
                     onClick,
                 });
             })}
-        </div>
+        </SubSection>
     )
 }

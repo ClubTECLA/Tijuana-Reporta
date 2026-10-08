@@ -19,7 +19,7 @@ export default function SubSection({children, className, debug, format, type='di
             <Link 
                 className={`
                     flex  ${frt} 
-                    ${className ?? ''} p-2 ${debug ? 'border-2 border-blue-400' : ''}
+                    ${className ?? ''}  ${debug ? 'border-2 border-blue-400' : ''}
                 `}
                 to={to}
                 key={subKey}
@@ -34,7 +34,7 @@ export default function SubSection({children, className, debug, format, type='di
             <button
                 className={`
                     flex  ${frt} 
-                    ${className ?? ''} p-2 ${debug ? 'border-2 border-blue-400' : ''}
+                    ${className ?? ''}  ${debug ? 'border-2 border-blue-400' : ''}
                 `}
                 onClick={onClick}
                 key={subKey}
@@ -48,7 +48,7 @@ export default function SubSection({children, className, debug, format, type='di
         <div 
             className={`
                 flex  ${frt} ${className ?? ''} 
-                p-2 ${debug ? 'border-2 border-blue-400' : ''}
+                 ${debug ? 'border-2 border-blue-400' : ''}
             `}
             key={subKey}
         >

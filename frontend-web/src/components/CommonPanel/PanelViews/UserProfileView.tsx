@@ -58,7 +58,7 @@ export default function UserProfileView() {
             arrangementSubsections="toDown"
             title="Mi perfil"
             subtitle="Cuenta institucional - Proteccion Civil"
-            className="pb-10"
+            className="pb-10 overflow-y-auto px-2"
         >
             <UserCart
                 format={"col"}

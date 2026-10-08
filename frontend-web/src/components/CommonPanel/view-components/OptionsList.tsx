@@ -91,7 +91,7 @@ interface optionsListProps extends subsectionProps {
 
 
 export function OptionList({ debug, format, title, children} : optionsListProps) {
-    validateChildren(children, "OptionList", ListTile, "ListTile");
+    validateChildren(children, "OptionList", [ListTile], "ListTile");
 
     return(
         <SubSection 

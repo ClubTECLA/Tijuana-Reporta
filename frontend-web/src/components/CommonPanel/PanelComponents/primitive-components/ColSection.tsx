@@ -79,7 +79,7 @@ export default function ColSection(
 
     return(
         <section className={`
-                w-fit h-full flex flex-col 
+                w-fit h-full flex flex-col max-h-full max-w-full
                 ${debug ? 'border-2' : ''}
                 ${border ? brd : ''}     
             `}
@@ -140,7 +140,7 @@ export default function ColSection(
                     }
                 </div>
             }
-            <div className={`w-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
+            <div className={`max-w-full max-h-full w-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
                 {children}
                 <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
                     {footerText && <span className="text-xs text-gray-500">{footerText}</span>}

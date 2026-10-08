@@ -21,7 +21,8 @@ export const subsectionFormats = {
   'row': 'h-full w-fit',
   'col': 'h-fit w-full',
   'both-fit': 'h-fit w-fit',
-  'both-full': 'h-full w-full'
+  'both-full': 'h-full w-full',
+  'nothing': ''
 } as const satisfies Record<string, string>
 
 export interface subsectionProps {
@@ -45,3 +46,5 @@ export const NotiIcons = {
 } as const satisfies Record<string, ReactNode>
 
 export type NotiType = keyof typeof NotiIcons;
+
+export type HexColor = `#${string}`;
