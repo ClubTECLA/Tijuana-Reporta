@@ -63,12 +63,12 @@ function NotificationItem ( { title, description, type, read, id, created_at, on
             >
                 {NotiIcons[type]}
             </div>
-            <div className={`flex flex-col`}>
-                <div className="flex flex-row justify-between items-center gap-2">
-                    <h3 className="text-md font-bold text-gray-800">{title}</h3>
-                    <span className="text-xs font-semibold text-gray-500">{getTimeSinceCreated(created_at)}</span>
+            <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2">
+                    <h3 className="min-w-0 break-words text-md font-bold text-gray-800">{title}</h3>
+                    <span className="shrink-0 text-xs font-semibold text-gray-500">{getTimeSinceCreated(created_at)}</span>
                 </div>
-                {description && <p className="text-sm text-gray-700">{description}</p>}
+                {description && <p className="break-words text-sm text-gray-700">{description}</p>}
             </div>
             {!read && 
                 <div className="flex flex-col items-start justify-start h-15">
@@ -112,13 +112,14 @@ export default function NotificationsMenu() {
     return (
         <section
             className="
-                fixed right-5 top-20
-                max-w-100 w-100
+                fixed right-3 top-[6.5rem]
+                w-[calc(100vw-1.5rem)] max-w-100
                 pointer-events-auto
-                flex h-[32rem] max-h-[calc(100vh-6rem)] flex-col
+                flex h-[32rem] max-h-[calc(100dvh-7.5rem)] flex-col
                 p-4 rounded-3xl shadow-lg shadow-gray-600
                 overflow-hidden
                 bg-gray-100 
+                sm:right-5 sm:top-20 sm:max-h-[calc(100dvh-6rem)]
             "
         >
             <div className="flex flex-row justify-between  px-2 pt-1">

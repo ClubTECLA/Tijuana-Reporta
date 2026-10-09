@@ -1,48 +1,17 @@
-import type { ReactNode } from "react";
+import { isValidElement, cloneElement, Children } from "react";
 import { IoIosArrowBack, IoIosClose } from "react-icons/io";
 import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
+import { borders, type SectionProps, type subsectionProps, headerButtonColors } from "../../../../types/utils-types";
 
-type arrangementType = 'toRight' | 'toLeft' | 'center'
 
 const arrangementNormalize = {
     toRight: 'justify-start w-full',
     toLeft: 'justify-end w-full',
     center: 'justify-center w-full'
-}
-
-const headerButtonColors = {
-    green: 'bg-green-500 hover:bg-green-300',
-    red: 'bg-red-500 hover:bg-red-300',
-    blue: 'bg-blue-500 hover:bg-blue-300'
-}
-
-const borders = {
-    right: 'border-r-2',
-    left: 'border-l-2',
-    top: 'border-t-2',
-    bottom: 'border-b-2',
-    all: 'border-2'
 } as const satisfies Record<string, string>
 
-type borderType = keyof typeof borders;
-
-type headerBtnsType = {
-    title: string
-    icon?: ReactNode
-    onClick?: () => void
-    color: 'green' | 'red' | 'blue'
-}[]
-
-interface SectionProps {
-    children: ReactNode,
-    arrangementSubsections?: arrangementType
-    debug?: boolean
-    title?: string
-    subtitle?: string
-    extraHeaderBtns?: headerBtnsType 
-    className?: string
-    footerText?: string
-    border?: borderType[]
+interface RowSectionProps extends SectionProps {
+    arrangementSubsections?: keyof typeof arrangementNormalize
 }
 
 export default function RowSection(
@@ -56,7 +25,7 @@ export default function RowSection(
         className,
         footerText,
         border
-    }: SectionProps
+    }: RowSectionProps
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
     const borderClasses = `${border?.map((side) => borders[side]).join(' ') ?? ''} ${border ? 'border-gray-200' : ''}`;
@@ -64,7 +33,15 @@ export default function RowSection(
     if(!title){
         return(
             <section className={`${className} flex flex-row  ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center  ${borderClasses}`}>
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps | SectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+
+                    return child;
+                })}
             </section>
         )   
     }
@@ -128,7 +105,15 @@ export default function RowSection(
                 </div>
             }
             <div className={`${className} max-w-full max-h-full flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${borderClasses}`}>
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps | SectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+                
+                    return child;
+                })}
             </div>
             {footerText && 
                     <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>

@@ -38,13 +38,14 @@ export default function UserMenu() {
     return (
         <section 
             className="
-                rounded-3xl bg-white w-fit h-fit 
+                rounded-3xl bg-white w-auto h-fit
                 p-4 shadow-lg shadow-gray-600 
                 pointer-events-auto
-                fixed top-16 right-5
+                fixed left-3 right-3 top-[6.5rem]
+                sm:left-auto sm:right-5 sm:top-16 sm:w-fit
             "
         >
-            <div className="flex flex-row gap-3 items-center">
+            <div className="flex min-w-0 flex-row gap-3 items-center">
                 {!user?.username ? (
                     <div
                         className="
@@ -59,10 +60,10 @@ export default function UserMenu() {
                         <FaUser />
                     </div>
                 )}
-                <div className="flex flex-col w-50">
-                    <span className="text-md font-bold text-gray-800">{user?.username || "Usuario"}</span>
-                    <span className="text-sm text-gray-500">{user?.email || "email@email.com"}</span>
-                    <span className="text-sm text-blue-600 font-bold">{user?.rol_name || "Rol"}</span>
+                <div className="flex min-w-0 flex-1 flex-col sm:w-50 sm:flex-none">
+                    <span className="truncate text-md font-bold text-gray-800">{user?.username || "Usuario"}</span>
+                    <span className="break-all text-sm text-gray-500">{user?.email || "email@email.com"}</span>
+                    <span className="truncate text-sm text-blue-600 font-bold">{user?.rol_name || "Rol"}</span>
                 </div>
                 <button 
                     type='button'

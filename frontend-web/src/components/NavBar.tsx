@@ -52,7 +52,7 @@ export default function NavBar() {
             {navItems.map((item, idx) => 
                 <div
                     key={idx}
-                    className="flex min-w-0 flex-1 flex-1"
+                    className="flex min-w-0 flex-1"
                 >
                     {item.destinationPath && !item.onClick &&
                         <Link
@@ -64,10 +64,12 @@ export default function NavBar() {
                                 hover:bg-gray-800 hover:text-white transition-all duration-300
                                 ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
                             `}
+                            aria-label={item.title}
+                            title={item.title}
                             to={item.destinationPath}
                         >
                             {item.icon}
-                            <span>{item.title}</span>
+                            <span className="hidden md:inline">{item.title}</span>
                         </Link>
                     }
                     {!item.destinationPath && item.onClick &&
@@ -80,10 +82,12 @@ export default function NavBar() {
                                 hover:bg-gray-800 hover:text-white transition-all duration-300
                                 ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
                             `}
+                            aria-label={item.title}
+                            title={item.title}
                             onClick={item.onClick}
                         >
                             {item.icon}
-                            <span>{item.title}</span>
+                            <span className="hidden md:inline">{item.title}</span>
                         </button>
                     }
                 </div>

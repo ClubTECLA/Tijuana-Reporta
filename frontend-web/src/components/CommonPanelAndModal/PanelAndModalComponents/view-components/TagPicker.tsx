@@ -1,4 +1,4 @@
-import { Children, cloneElement, type ReactElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import type { HexColor, subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 import { FiPlus } from "react-icons/fi";
@@ -41,10 +41,10 @@ export function Tag({debug, name, badge, color = '#FFF'} : TagProps){
                 className="rounded-full w-2 h-2 shrink-0"
                 style={{ backgroundColor: color }}
             />
-            <span className="text-lg text-slate-800 h-8">{name}</span>
+            <span className="text-md text-slate-800">{name}</span>
             {badge && (
                 <span
-                    className=" text-lg ml-2 text-slate-800"
+                    className=" text-md ml-2 text-slate-800"
                 >
                     {badge}
                 </span>
@@ -70,13 +70,13 @@ export function TagPicker({ format, debug, title, children }:TagPickerProps) {
                     className="mb-2 font-semibold text-gray-700"
                 >{title}</span>
             }
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1 minmax(0,1fr)">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1 minmax(0,1fr)">
                 {Children.map(children, (child) => {
 
-                    if(!child) return;
-                    return cloneElement(child as ReactElement<subsectionProps>, {
+                    if (!isValidElement<subsectionProps>(child)) return child;
+                    return cloneElement(child, {
                         format: 'both-full',
-                        debug: debug 
+                        debug: debug || child.props.debug
                     })
                 })}    
             </div>  

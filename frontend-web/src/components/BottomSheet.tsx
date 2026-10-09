@@ -18,14 +18,14 @@ export default function BottomSheet({ isVisible, onClose, children }: BottomShee
         onClick={onClose}
       />
       <section
-        className="relative max-h-[85vh] min-h-[300px] w-full overflow-auto rounded-t-[24px] bg-white pb-8 shadow-[0_-2px_16px_rgb(0_0_0_/_10%)]"
+        className="relative max-h-[85dvh] min-h-[min(300px,50dvh)] w-full overflow-auto rounded-t-[24px] bg-white pb-8 shadow-[0_-2px_16px_rgb(0_0_0_/_10%)]"
         role="dialog"
         aria-modal="true"
       >
         <div className="flex justify-center py-3">
           <div className="h-1 w-10 rounded-full bg-[#c5cbd3]" />
         </div>
-        <div className="px-6">{children}</div>
+        <div className="px-4 sm:px-6">{children}</div>
       </section>
     </div>
   )

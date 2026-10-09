@@ -57,7 +57,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         showMessage("Categoria de incidente creada exitosamente!!", {'color': 'green', 'showTime': 3000, 'type': 'float'});
         onClose?.()
     }
-    console.log(categoryForEdit)
+
     return (
         <SubSection
             format={format}

@@ -48,3 +48,38 @@ export const NotiIcons = {
 export type NotiType = keyof typeof NotiIcons;
 
 export type HexColor = `#${string}`;
+
+
+export const headerButtonColors = {
+    green: 'bg-green-500 hover:bg-green-300',
+    red: 'bg-red-500 hover:bg-red-300',
+    blue: 'bg-blue-500 hover:bg-blue-300'
+} as const satisfies Record<string, string>;
+
+export const borders = {
+    right: 'border-r-2',
+    left: 'border-l-2',
+    top: 'border-t-2',
+    bottom: 'border-b-2',
+    all: 'border-2'
+} as const satisfies Record<string, string>
+
+type borderType = keyof typeof borders;
+
+export type headerBtnsType = {
+    title: string
+    icon?: ReactNode
+    onClick?: () => void
+    color: keyof typeof headerButtonColors
+}[]
+
+export interface SectionProps {
+    children: ReactNode,
+    debug?: boolean
+    title?: string
+    subtitle?: string
+    extraHeaderBtns?: headerBtnsType 
+    className?: string
+    footerText?: string
+    border?: borderType[]
+}
