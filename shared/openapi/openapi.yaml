@@ -15,6 +15,8 @@ paths:
     $ref: './paths/reportes.yaml#/agregarAvistamiento'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
+  /reportes/{reporteId}/estado:
+    $ref: './paths/reportes.yaml#/cambiarEstadoReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:
@@ -29,6 +31,8 @@ paths:
     $ref: './paths/incidentes.yaml#/obtenerIncidente'
   /incidentes/{incidenteId}/tags:
     $ref: './paths/incidentes.yaml#/agregarTags'
+  /users:
+    $ref: './paths/usuarios.yaml#/listarUsuarios'
 
 components:
   schemas:
@@ -40,6 +44,8 @@ components:
       $ref: './schemas/reportes/reporte.yaml'
     ReporteResumen:
       $ref: './schemas/reportes/reporte_resumen.yaml'
+    CambiarEstadoReporteRequest:
+      $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
     Foto:
@@ -70,6 +76,8 @@ components:
       $ref: './schemas/incidentes/incidente.yaml'
     CrearIncidenteRequest:
       $ref: './schemas/incidentes/crear_incidente_request.yaml'
+    UsuarioResumen:
+      $ref: './schemas/users/usuario_resumen.yaml'
   securitySchemes:
     bearerAuth:
       type: http

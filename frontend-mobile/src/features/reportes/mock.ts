@@ -1,7 +1,14 @@
+import { onlineManager } from '@tanstack/react-query';
+import { ErrorRed } from '@/lib/http';
 import type { ComentarioConAutor, Reporte } from '@/types/api';
 import type { ReportesApi } from './port';
 
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+// Simula la latencia y, sin conexión, falla como lo haría `http` (ErrorRed): así los estados
+// de "sin conexión" se pueden probar con mocks apagando el wifi/datos del dispositivo.
+const delay = async (ms: number) => {
+  await new Promise<void>((resolve) => setTimeout(resolve, ms));
+  if (!onlineManager.isOnline()) throw new ErrorRed();
+};
 
 const seed: Reporte[] = [
   {

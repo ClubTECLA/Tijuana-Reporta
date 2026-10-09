@@ -50,3 +50,14 @@ UPDATE reporte
 SET avistamientos = avistamientos + 1 
 WHERE id = $1
 RETURNING id, avistamientos;
+
+-- name: CreateUserReporte :one
+INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING *;
+
+-- name: UpdateEstadoReporte :one
+UPDATE reporte
+SET estado_actual = $2,
+    updated_at = now(),
+    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE NULL END
+WHERE id = $1
+RETURNING *;

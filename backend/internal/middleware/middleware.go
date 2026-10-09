@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
@@ -134,5 +137,32 @@ func RequireRole(scopesKey string) func(c *gin.Context) {
 			c.Abort()
 			return
 		}
+	}
+}
+
+// BodyLimit rechaza con 413 las peticiones cuyo body pase de maxBytes, antes
+// de que el validador de OpenAPI (que lee el body completo) lo procese.
+//
+// Lee el body con http.MaxBytesReader en vez de confiar en Content-Length,
+// que puede faltar (chunked) o mentir; si cabe, lo deja en un buffer para que
+// los siguientes handlers lo lean de nuevo.
+func BodyLimit(maxBytes int64) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if c.Request.Body == nil || c.Request.Body == http.NoBody {
+			return
+		}
+
+		body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes))
+		if err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": "request body too large"})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+			}
+			c.Abort()
+			return
+		}
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
 	}
 }

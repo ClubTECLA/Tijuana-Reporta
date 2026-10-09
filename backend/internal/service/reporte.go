@@ -18,6 +18,7 @@ type ReporteStore interface {
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
+	UpdateEstadoReporte(ctx context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error)
 }
 
 type ReporteService struct {
@@ -131,4 +132,15 @@ func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) 
 		return domain.AddAvistamientoByIdRow{}, err
 	}
 	return a, nil
+}
+
+func (s *ReporteService) CambiarEstado(ctx context.Context, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+	_, err := s.store.UpdateEstadoReporte(ctx, domain.UpdateEstadoReporteParams{ID: id, EstadoActual: estado})
+	if domain.IsNotFound(err) {
+		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
+	}
+	if err != nil {
+		return domain.ReporteDetalle{}, err
+	}
+	return s.Obtener(ctx, id)
 }

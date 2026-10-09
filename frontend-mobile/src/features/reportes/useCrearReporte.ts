@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { etiquetaPrincipal, etiquetasDe, tituloReporte } from './crear/categorias';
 import { buscarDuplicado } from './crear/duplicados';
@@ -161,6 +162,9 @@ export function useCrearReporte(): UseCrearReporteReturn {
         return;
       }
       setErrors({});
+      // Un error viejo de la otra mutación no debe tapar el de este intento.
+      crear.reset();
+      confirmar.reset();
 
       // Antes de crear, se cruza contra los reportes vigentes por si ya existe
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
@@ -179,6 +183,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } catch (err) {
       console.error('[useCrearReporte] submit error:', err);
     } finally {
+      setBuscandoDuplicado(false);
       enviando.current = false;
     }
   };
@@ -188,6 +193,8 @@ export function useCrearReporte(): UseCrearReporteReturn {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      crear.reset();
+      confirmar.reset();
       const actualizado = await confirmar.mutateAsync({
         id: duplicado.reporte.id,
         ...(form.imageBase64 !== null && { imageBase64: form.imageBase64 }),
@@ -207,6 +214,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      confirmar.reset();
       setDuplicado(null);
       await crearNuevo();
     } catch (err) {
@@ -226,7 +234,11 @@ export function useCrearReporte(): UseCrearReporteReturn {
     form,
     errors,
     isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending,
-    submitError: crear.isError || confirmar.isError ? 'No se pudo enviar el reporte. Intenta de nuevo.' : null,
+    submitError: crear.isError
+      ? mensajeDeError(crear.error, 'No se pudo enviar el reporte. Intenta de nuevo.')
+      : confirmar.isError
+        ? mensajeDeError(confirmar.error, 'No se pudo confirmar el reporte. Intenta de nuevo.')
+        : null,
     creado,
     creadoViaDuplicado,
     duplicado,

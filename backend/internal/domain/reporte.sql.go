@@ -116,6 +116,22 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 	return i, err
 }
 
+const createUserReporte = `-- name: CreateUserReporte :one
+INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING id, user_id, reporte_id
+`
+
+type CreateUserReporteParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+}
+
+func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error) {
+	row := q.db.QueryRow(ctx, createUserReporte, arg.UserID, arg.ReporteID)
+	var i UsersReport
+	err := row.Scan(&i.ID, &i.UserID, &i.ReporteID)
+	return i, err
+}
+
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
 SELECT latitude::float8 AS latitude, longitude::float8 AS longitude
 FROM puntos_origen WHERE reporte_id = $1
@@ -319,4 +335,35 @@ func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateEstadoReporte = `-- name: UpdateEstadoReporte :one
+UPDATE reporte
+SET estado_actual = $2,
+    updated_at = now(),
+    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE NULL END
+WHERE id = $1
+RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at
+`
+
+type UpdateEstadoReporteParams struct {
+	ID           uuid.UUID `json:"id"`
+	EstadoActual Estado    `json:"estado_actual"`
+}
+
+func (q *Queries) UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error) {
+	row := q.db.QueryRow(ctx, updateEstadoReporte, arg.ID, arg.EstadoActual)
+	var i Reporte
+	err := row.Scan(
+		&i.ID,
+		&i.IncidenteID,
+		&i.Avistamientos,
+		&i.EsHistorico,
+		&i.EsOficial,
+		&i.EstadoActual,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiredAt,
+	)
+	return i, err
 }

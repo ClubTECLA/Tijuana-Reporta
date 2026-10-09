@@ -18,6 +18,9 @@ import { fontFamily } from '@/theme/typography';
 import { hace } from '@/lib/time';
 import { LocationPinIcon } from '@/components/icons/LocationPinIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
+import { EstadoVista } from '@/components/estado/EstadoVista';
+import { estadoDeQuery, mensajeDeError } from '@/lib/estados';
+import { useEnLinea } from '@/lib/red';
 import { CategoriaBadge } from '../crear/CategoriaBadge';
 import { CerrarButton } from '../crear/CerrarButton';
 import { etiquetaLabel } from '../crear/categorias';
@@ -29,6 +32,8 @@ interface ReporteDetalleProps {
   top: number;
   bottom: number;
   onClose: () => void;
+  /** Solo para el invitado: en lugar del campo de comentario se muestra un botón que llama a esto. */
+  onPedirCuenta?: () => void;
 }
 
 /** Extrae la primera letra del autor en mayúscula, o una cadena vacía si no hay nombre. */
@@ -58,10 +63,13 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
  * Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
  * comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
  */
-export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalleProps) {
+export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
   const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
-  const { data: comentarios, isPending, isError } = useComentarios(reporte.id);
+  const comentariosQuery = useComentarios(reporte.id);
+  const comentarios = comentariosQuery.data ?? [];
+  const estadoHilo = estadoDeQuery(comentariosQuery, (lista) => lista.length === 0);
   const comentar = useComentar(reporte.id);
+  const enLinea = useEnLinea();
   const [texto, setTexto] = useState('');
   const hilo = useRef<ScrollView>(null);
   const [teclado, setTeclado] = useState(0);
@@ -142,12 +150,19 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
       )}
 
       <View style={styles.hilo}>
-        {isPending ? (
-          <ActivityIndicator style={styles.hiloEstado} color={colors.brand} />
-        ) : isError ? (
-          <Text style={[styles.hiloEstado, styles.hiloVacio]}>No se pudieron cargar los comentarios.</Text>
-        ) : comentarios.length === 0 ? (
-          <Text style={[styles.hiloEstado, styles.hiloVacio]}>Sé el primero en comentar.</Text>
+        {estadoHilo === 'cargando' ? (
+          <EstadoVista estado="cargando" mensaje="Cargando comentarios…" compacto />
+        ) : estadoHilo === 'sin-conexion' ? (
+          <EstadoVista estado="sin-conexion" mensaje="Sin conexión: los comentarios se cargarán al reconectar." compacto />
+        ) : estadoHilo === 'error' ? (
+          <EstadoVista
+            estado="error"
+            mensaje="No se pudieron cargar los comentarios."
+            onReintentar={() => void comentariosQuery.refetch()}
+            compacto
+          />
+        ) : estadoHilo === 'vacio' ? (
+          <EstadoVista estado="vacio" mensaje="Aún no hay comentarios. Sé el primero en comentar." compacto />
         ) : (
           <ScrollView
             ref={hilo}
@@ -162,33 +177,49 @@ export function ReporteDetalle({ reporte, top, bottom, onClose }: ReporteDetalle
         )}
       </View>
 
-      {comentar.isError && (
-        <Text style={styles.comentarioError}>No se pudo enviar el comentario. Intenta de nuevo.</Text>
+      {onPedirCuenta ? (
+        // El invitado puede leer el hilo, pero para comentar necesita una cuenta.
+        <View style={styles.escribir}>
+          <Pressable onPress={onPedirCuenta} accessibilityRole="button" style={styles.pedirCuenta}>
+            <Text style={styles.pedirCuentaTexto}>Crea una cuenta para comentar</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {comentar.isError && (
+            <Text style={styles.errorEnvio} accessibilityLiveRegion="polite">
+              {mensajeDeError(comentar.error, 'No se pudo publicar tu comentario. Intenta de nuevo.')}
+            </Text>
+          )}
+          {!enLinea && !comentar.isError && (
+            <Text style={styles.avisoEnvio}>Sin conexión: podrás comentar cuando vuelvas a estar en línea.</Text>
+          )}
+          <View style={styles.escribir}>
+            <TextInput
+              value={texto}
+              onChangeText={(nuevo) => {
+                // El aviso era de lo que se intentó enviar: al editar deja de aplicar.
+                if (comentar.isError) comentar.reset();
+                setTexto(nuevo);
+              }}
+              onSubmitEditing={enviar}
+              placeholder="Escribe un comentario"
+              placeholderTextColor={colors.textMuted}
+              returnKeyType="send"
+              style={styles.campo}
+            />
+            <Pressable
+              onPress={enviar}
+              disabled={!puedeEnviar}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar comentario"
+              style={[styles.enviar, !puedeEnviar && styles.enviarInactivo]}
+            >
+              {comentar.isPending ? <ActivityIndicator color={colors.white} /> : <SendIcon size={20} />}
+            </Pressable>
+          </View>
+        </>
       )}
-      <View style={styles.escribir}>
-        <TextInput
-          value={texto}
-          onChangeText={(nuevo) => {
-            // El aviso era de lo que se intentó enviar: al editar deja de aplicar.
-            if (comentar.isError) comentar.reset();
-            setTexto(nuevo);
-          }}
-          onSubmitEditing={enviar}
-          placeholder="Escribe un comentario"
-          placeholderTextColor={colors.textMuted}
-          returnKeyType="send"
-          style={styles.campo}
-        />
-        <Pressable
-          onPress={enviar}
-          disabled={!puedeEnviar}
-          accessibilityRole="button"
-          accessibilityLabel="Enviar comentario"
-          style={[styles.enviar, !puedeEnviar && styles.enviarInactivo]}
-        >
-          {comentar.isPending ? <ActivityIndicator color={colors.white} /> : <SendIcon size={20} />}
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -298,14 +329,17 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 12,
   },
-  hiloEstado: {
-    marginTop: 24,
-  },
-  hiloVacio: {
-    textAlign: 'center',
+  errorEnvio: {
+    paddingHorizontal: 16,
     fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.labelMuted,
+    fontSize: 13,
+    color: colors.estadoError,
+  },
+  avisoEnvio: {
+    paddingHorizontal: 16,
+    fontFamily: fontFamily.regular,
+    fontSize: 13,
+    color: colors.slate,
   },
   comentario: {
     flexDirection: 'row',
@@ -354,11 +388,18 @@ const styles = StyleSheet.create({
     color: 'rgba(31,39,51,0.8)',
   },
 
-  comentarioError: {
-    paddingHorizontal: 16,
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: colors.errorLabel,
+  pedirCuenta: {
+    flex: 1,
+    height: 48,
+    borderRadius: 31,
+    backgroundColor: colors.infoSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pedirCuentaTexto: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 15,
+    color: colors.brandText,
   },
   escribir: {
     flexDirection: 'row',
