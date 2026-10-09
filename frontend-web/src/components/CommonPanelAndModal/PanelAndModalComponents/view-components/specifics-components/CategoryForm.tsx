@@ -44,9 +44,15 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         }
     }, [category])
 
-    const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
-        setCategoryForEdit({...categoryForEdit, [e.target.name]: e.target.value})
-    }
+     const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setCategoryForEdit(prev => ({
+            ...prev,
+            [name]: name === 'radio'
+                ? value === '' ? null : Number(value)
+                : value,
+        }))
+     }
 
     const handleSubmitForm = () => {
         if(categoryForEdit.nombre === ""){
@@ -69,7 +75,6 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             className="
                 flex-col items-start 
                 justify-center bg-gray-100 rounded-xl px-2 py-4
-                
             "
         >  
             <div className="flex flex-row gap-2 items-center justify-center">
