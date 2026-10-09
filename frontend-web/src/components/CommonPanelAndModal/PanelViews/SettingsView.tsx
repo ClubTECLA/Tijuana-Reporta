@@ -1,17 +1,17 @@
 import { FiLayers } from "react-icons/fi";
-import ColSection from "../PanelComponents/primitive-components/ColSection";
-import RowSection from "../PanelComponents/primitive-components/RowSection";
-import { SideNav, SideNavItem } from "../PanelComponents/view-components/SideNav";
+import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
+import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
+import { SideNav, SideNavItem } from "../PanelAndModalComponents/view-components/SideNav";
 import { useState, type ChangeEvent } from "react";
 import { LuShieldCheck } from "react-icons/lu";
-import SubsectionTitle from "../PanelComponents/view-components/SubsectionTitle";
-import Button from "../PanelComponents/view-components/Button";
+import SubsectionTitle from "../PanelAndModalComponents/view-components/SubsectionTitle";
+import Button from "../PanelAndModalComponents/view-components/Button";
 import { BiPlus } from "react-icons/bi";
-import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "../PanelComponents/view-components/Tables";
+import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "../PanelAndModalComponents/view-components/Tables";
 import { GoPencil } from "react-icons/go";
 import type { ApiIncidente } from "../../../types/db-types";
-import CategoryForm from "../PanelComponents/view-components/specifics-components/CategoryForm";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
+import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 
 function CategoriesSection() {
     const [categories, setCategories] = useState<ApiIncidente[]>([

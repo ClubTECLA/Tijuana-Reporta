@@ -61,9 +61,9 @@ export function SegmentedTabs({
             format={format}
             debug={debug}
             className={`
-                flex w-full rounded-full bg-slate-200 p-2
-                mb-3
-                ${format === "row" ? "flex-row" : "flex-col"}
+                flex rounded-full bg-slate-200 p-2
+                mb-3 
+                ${format === "row" ? "flex-row max-h-15 w-full" : "flex-col w-fit"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
             `}
         >

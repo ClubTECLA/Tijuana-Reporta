@@ -1,9 +1,9 @@
 import { MdOutlineReportProblem } from "react-icons/md"
-import ColSection from "../PanelComponents/primitive-components/ColSection"
-import { ListTile, OptionList } from "../PanelComponents/view-components/OptionsList"
+import ColSection from "../PanelAndModalComponents/primitive-components/ColSection"
+import { ListTile, OptionList } from "../PanelAndModalComponents/view-components/OptionsList"
 import type { ReactNode } from "react";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import Button from "../PanelComponents/view-components/Button";
+import Button from "../PanelAndModalComponents/view-components/Button";
 import { LuSun } from "react-icons/lu";
 
 const QueQuieresRecibirItems: {

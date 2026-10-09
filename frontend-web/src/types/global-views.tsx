@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import UserProfileView from "../components/CommonPanel/PanelViews/UserProfileView";
-import HelpAndGuidesView from "../components/CommonPanel/PanelViews/HelpAndGuidesView";
-import NotificationsView from "../components/CommonPanel/PanelViews/NotificationsView";
-import SettingView from "../components/CommonPanel/PanelViews/SettingsView";
+import UserProfileView from "../components/CommonPanelAndModal/PanelViews/UserProfileView";
+import HelpAndGuidesView from "../components/CommonPanelAndModal/PanelViews/HelpAndGuidesView";
+import NotificationsView from "../components/CommonPanelAndModal/PanelViews/NotificationsView";
+import SettingView from "../components/CommonPanelAndModal/PanelViews/SettingsView";
 
 export const panelViews = {
     "Mi perfil": <UserProfileView />,

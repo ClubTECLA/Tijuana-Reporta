@@ -1,6 +1,6 @@
-import SearchBar from '../PanelComponents/view-components/SearchBar';
-import ColSection from '../PanelComponents/primitive-components/ColSection';
-import { ListTile, OptionList } from '../PanelComponents/view-components/OptionsList';
+import SearchBar from '../PanelAndModalComponents/view-components/SearchBar';
+import ColSection from '../PanelAndModalComponents/primitive-components/ColSection';
+import { ListTile, OptionList } from '../PanelAndModalComponents/view-components/OptionsList';
 import { HiOutlineDocumentReport, HiOutlinePaperAirplane } from 'react-icons/hi';
 import { MdOutlineReportProblem } from 'react-icons/md';
 import { FiFlag } from 'react-icons/fi';
