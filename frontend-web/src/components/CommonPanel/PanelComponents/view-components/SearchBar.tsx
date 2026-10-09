@@ -1,6 +1,6 @@
 import { IoSearch } from 'react-icons/io5';
-import SubSection from '../PanelComponents/primitive-components/SubSection';
-import type { subsectionProps } from '../../../types/utils-types';
+import SubSection from '../primitive-components/SubSection';
+import type { subsectionProps } from '../../../../types/utils-types';
 import { useState } from 'react';
 
 interface SearchBarProps extends subsectionProps {

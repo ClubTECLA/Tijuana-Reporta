@@ -27,7 +27,7 @@ export const subsectionFormats = {
 
 export interface subsectionProps {
     debug?: boolean
-    format: keyof typeof subsectionFormats
+    format?: keyof typeof subsectionFormats
     subKey?: string | number;
 }
 

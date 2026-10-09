@@ -1,5 +1,5 @@
-import type { subsectionProps } from "../../../types/utils-types";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import type { subsectionProps } from "../../../../types/utils-types";
+import SubSection from "../primitive-components/SubSection";
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 
 

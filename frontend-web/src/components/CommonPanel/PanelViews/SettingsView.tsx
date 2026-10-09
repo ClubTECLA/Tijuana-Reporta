@@ -1,16 +1,16 @@
 import { FiLayers } from "react-icons/fi";
 import ColSection from "../PanelComponents/primitive-components/ColSection";
 import RowSection from "../PanelComponents/primitive-components/RowSection";
-import { SideNav, SideNavItem } from "../view-components/SideNav";
+import { SideNav, SideNavItem } from "../PanelComponents/view-components/SideNav";
 import { useState, type ChangeEvent } from "react";
 import { LuShieldCheck } from "react-icons/lu";
-import SubsectionTitle from "../view-components/SubsectionTitle";
-import Button from "../view-components/Button";
+import SubsectionTitle from "../PanelComponents/view-components/SubsectionTitle";
+import Button from "../PanelComponents/view-components/Button";
 import { BiPlus } from "react-icons/bi";
-import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "../view-components/Tables";
+import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "../PanelComponents/view-components/Tables";
 import { GoPencil } from "react-icons/go";
 import type { ApiIncidente } from "../../../types/db-types";
-import CategoryForm from "../view-components/specifics-components/CategoryForm";
+import CategoryForm from "../PanelComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelComponents/primitive-components/SubSection";
 
 function CategoriesSection() {
@@ -77,7 +77,7 @@ function CategoriesSection() {
             esta_activo: false,
         },
     ])
-    const [openForm, setOpenForm ] = useState(true);
+    const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
 
     const handleChangeIsActive = (e: ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +91,7 @@ function CategoriesSection() {
     return(
         <ColSection className="gap-2 overflow-x-auto">
             <RowSection
-                className="h-fit gap-10"
+                className="h-fit gap-10 p-2"
             >
                 <SubsectionTitle
                     title="Categorias de incidentes"
@@ -112,7 +112,6 @@ function CategoriesSection() {
             <RowSection className="gap-2 overflow-x-auto max-w-full min-h-130 items-start">
                 <SubSection
                     format={'nothing'}
-                    debug={true}
                     className="overflow-y-auto overflow-x-hidden min-w-150 max-w-180 max-h-120"
                 >
                     <Table
@@ -168,13 +167,13 @@ function CategoriesSection() {
                         }
                     </Table>
                 </SubSection>
-                {openForm && (
+                {openForm && 
                     <CategoryForm
                         format='col'
-                        debug={true}
                         category={selectedCategory}
+                        onClose={() => setOpenForm(false)}
                     />
-                )}
+                }
             </RowSection>
         </ColSection>
     )
