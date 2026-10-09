@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SegmentedTabs, TabItem } from "../../CommonPanel/view-components/SegmentedTabs";
-import { type NotiType, NotiIcons } from "../../../types/utils-types";
+import { SegmentedTabs, TabItem } from "../CommonPanel/PanelComponents/view-components/SegmentedTabs";
+import { type NotiType, NotiIcons } from "../../types/utils-types";
 import { FiSun } from "react-icons/fi";
 
 interface NotiProps {

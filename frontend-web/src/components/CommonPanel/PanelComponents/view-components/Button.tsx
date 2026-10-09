@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { subsectionProps } from "../../../types/utils-types";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import type { subsectionProps } from "../../../../types/utils-types";
+import SubSection from "../primitive-components/SubSection";
 
 
 const buttonWrapped: Record<string, string> = {

@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
-import type { subsectionProps } from "../../../types/utils-types";
+import type { subsectionProps } from "../../../../types/utils-types";
 import { validateChildren } from "./validateChildren";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import SubSection from "../primitive-components/SubSection";
 
 interface TabItemProps extends Omit<subsectionProps, "format"> {
     format?: subsectionProps["format"]

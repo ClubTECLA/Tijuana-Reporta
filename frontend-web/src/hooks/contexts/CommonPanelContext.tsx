@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { panelViews, type PanelViewKey } from "../../types/global-views";
-import { validateChildren } from "../../components/CommonPanel/view-components/validateChildren";
+import { validateChildren } from "../../components/CommonPanel/PanelComponents/view-components/validateChildren";
 
 interface CommonPanelContextType {
     setPanelView: (newView: PanelViewKey | null) => void;

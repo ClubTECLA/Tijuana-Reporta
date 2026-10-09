@@ -1,10 +1,10 @@
 import { FaUser } from "react-icons/fa6";
-import { useAuth } from "../../../hooks/contexts/AuthContext";
+import { useAuth } from "../../hooks/contexts/AuthContext";
 import type { ReactNode } from "react";
 import { FiUser } from "react-icons/fi";
 import { IoIosArrowForward, IoIosClose } from "react-icons/io";
-import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
-import useModals from "../../../hooks/useModals";
+import { useCommonPanel } from "../../hooks/contexts/CommonPanelContext";
+import useModals from "../../hooks/useModals";
 import { MdLogout } from "react-icons/md";
 
 type OptionsColor = "red" | "blue" | "green";

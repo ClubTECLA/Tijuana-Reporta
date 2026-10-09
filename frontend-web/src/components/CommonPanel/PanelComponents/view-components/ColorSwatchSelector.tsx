@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode, useRef, useState } from "react";
-import type { HexColor, subsectionProps } from "../../../types/utils-types";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import type { HexColor, subsectionProps } from "../../../../types/utils-types";
+import SubSection from "../primitive-components/SubSection";
 
 interface ColorSwatchesItem extends Omit<subsectionProps, 'format'>{
     color?: HexColor
@@ -67,7 +67,7 @@ export function CustomColorPickerButton({
         className={`
           group relative w-8 h-8 rounded-full p-[2.5px]
           transition-all duration-200 cursor-pointer outline-none select-none
-          ${active ? 'ring-4 ring-slate-900 ring-offset-2 scale-110 z-10' : 'hover:scale-105'}
+          ${active ? 'ring-4 ring-slate-900' : 'hover:scale-105'}
           ${disabled ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''}
           ${className}
         `}
@@ -106,7 +106,7 @@ export function SwatchItem({format = 'both-fit', debug, active = false, color, o
             onClick={onClick}
         >
             <span 
-                className={`group-hover:border-4 h-8 w-8 rounded-full group-hover:border-black ${active ? 'border-4 border-black' : ''}`} 
+                className={` h-8 w-8 rounded-full group-hover:ring-4 group-hover:ring-slate-900 ${active ? 'ring-4 ring-slate-900' : ''}`} 
                 style={{background: color}}
             />
         </SubSection>
@@ -134,7 +134,7 @@ export function ColorSwatchSelector({format, debug, children, onChangeColor, tit
                     className="text-lg font-semibold text-gray-800 mb-1"
                 >{title}</span>
             }
-            <div className="grid grid-cols-5">
+            <div className="grid grid-cols-7 gap-1">
                 {Children.map(children, (child, index) => {
                     if(!isValidElement<SwatchItemProps | ColorSwatchSelectorProps>(child)){
                         throw new Error('ColorSwatchSelector only accept SwatchItem component')

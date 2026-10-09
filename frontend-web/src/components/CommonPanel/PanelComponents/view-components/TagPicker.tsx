@@ -1,6 +1,6 @@
 import { Children, cloneElement, type ReactElement, type ReactNode } from "react";
-import type { HexColor, subsectionProps } from "../../../types/utils-types";
-import SubSection from "../PanelComponents/primitive-components/SubSection";
+import type { HexColor, subsectionProps } from "../../../../types/utils-types";
+import SubSection from "../primitive-components/SubSection";
 import { FiPlus } from "react-icons/fi";
 
 interface CreateTagButton extends Omit<subsectionProps, 'format'>{
@@ -13,7 +13,7 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} 
         <SubSection
             format={format}
             debug={debug}
-            className="rounded-3xl bg-blue-600 text-white font-bold flex-row px-1 items-center justify-center"
+            className="rounded-3xl bg-blue-600 text-white font-bold flex-row px-3 py-1 items-center justify-center"
             type='button'
         >
             <FiPlus className="text-lg"/>
@@ -23,29 +23,28 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} 
 }
 
 interface TagProps extends Omit<subsectionProps, 'format'>{
-    format?: subsectionProps['format'];
     name: string;
     badge?: string | number;
     color?: HexColor
 }
 
-export function Tag({format = 'both-fit', debug, name, badge, color = '#FFF'} : TagProps){
+export function Tag({debug, name, badge, color = '#FFF'} : TagProps){
     return(
         <SubSection
             format={'col'}
             debug={debug}
-            className="flex-row items-center justify-start gap-1 rounded-3xl bg-white px-3 py-1
-                shadow-md shadow-gray-300 font-extrabold
+            className="flex-row items-center justify-start gap-1 rounded-3xl bg-white px-3
+                shadow-md shadow-gray-300 font-bold 
             "
         >
             <span
                 className="rounded-full w-2 h-2 shrink-0"
                 style={{ backgroundColor: color }}
             />
-            <span className="text-[10px] text-black">{name}</span>
+            <span className="text-lg text-slate-800 h-8">{name}</span>
             {badge && (
                 <span
-                    className=" text-[10px] text-black"
+                    className=" text-lg ml-2 text-slate-800"
                 >
                     {badge}
                 </span>

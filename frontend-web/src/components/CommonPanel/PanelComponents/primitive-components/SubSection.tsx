@@ -10,7 +10,7 @@ interface generalSubsectionProps extends subsectionProps{
     to?: string
 }
 
-export default function SubSection({children, className, debug, format, type='div', onClick, to, subKey}: generalSubsectionProps){
+export default function SubSection({children, className, debug, format='both-fit', type='div', onClick, to, subKey}: generalSubsectionProps){
     
     const frt = subsectionFormats[format];
 

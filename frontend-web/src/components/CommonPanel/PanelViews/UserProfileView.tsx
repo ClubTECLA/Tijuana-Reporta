@@ -1,15 +1,15 @@
 import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
 import ColSection from "../PanelComponents/primitive-components/ColSection";
-import Input from "../view-components/Input";
-import { ListTile, OptionList } from "../view-components/OptionsList";
-import UserCart from "../view-components/UserCart";
+import Input from "../PanelComponents/view-components/Input";
+import { ListTile, OptionList } from "../PanelComponents/view-components/OptionsList";
+import UserCart from "../PanelComponents/view-components/UserCart";
 import { GoShieldCheck } from "react-icons/go";
 import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
-import Button from "../view-components/Button";
+import Button from "../PanelComponents/view-components/Button";
 import RowSection from "../PanelComponents/primitive-components/RowSection";
 import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
 
