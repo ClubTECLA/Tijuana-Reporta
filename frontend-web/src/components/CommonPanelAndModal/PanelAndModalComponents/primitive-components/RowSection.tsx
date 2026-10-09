@@ -93,6 +93,7 @@ export default function RowSection(
                                     <button 
                                         key={idx}
                                         onClick={btn.onClick}
+                                        type='button'
                                         className={`${style} flex flex-row items-center justify-center gap-2 rounded-4xl px-4 py-1`}
                                     >
                                     {btn.icon}

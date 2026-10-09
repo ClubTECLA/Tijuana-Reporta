@@ -44,6 +44,7 @@ export default function SubSection({children, className, debug, format='both-fit
                     flex  ${frt} 
                     ${className ?? ''}  ${debug ? 'border-2 border-blue-400' : ''}
                 `}
+                type='button'
                 onClick={onClick}
                 key={subKey}
             >
