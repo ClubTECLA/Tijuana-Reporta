@@ -76,6 +76,7 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
                                 type='checkbox'
                                 format='col'
                                 debug={debug}
+                                onChange={onChange}
                             />
                         </div>
 

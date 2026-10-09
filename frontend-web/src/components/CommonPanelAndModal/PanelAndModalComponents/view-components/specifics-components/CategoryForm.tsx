@@ -16,6 +16,7 @@ interface CategoryFormProp extends subsectionProps {
 
 export default function CategoryForm({format, debug, category, onClose } : CategoryFormProp) {
     const {showMessage} = useSysMessage();
+    const isEdit = !!category;
     const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
         id: 0,
         nombre: "",
@@ -43,8 +44,8 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         }
     }, [category])
 
-    const handleChangeCatName = (e: ChangeEvent<HTMLInputElement>) => {
-        setCategoryForEdit({...categoryForEdit, 'nombre': e.target.value})
+    const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
+        setCategoryForEdit({...categoryForEdit, [e.target.name]: e.target.value})
     }
 
     const handleSubmitForm = () => {
@@ -54,7 +55,10 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         }
         //edit or created incident in db whith fetch
 
-        showMessage("Categoria de incidente creada exitosamente!!", {'color': 'green', 'showTime': 3000, 'type': 'float'});
+        showMessage(
+            isEdit ? "Categoria editada exitosamente!!" :
+            "Categoria de incidente creada exitosamente!!",
+             {'color': 'green', 'showTime': 3000, 'type': 'float'});
         onClose?.()
     }
 
@@ -64,7 +68,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             debug={debug}
             className="
                 flex-col items-start 
-                justify-center bg-gray-100 rounded-xl p-2
+                justify-center bg-gray-100 rounded-xl px-2 py-4
                 
             "
         >  
@@ -135,11 +139,11 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             </ColorSwatchSelector>
             <Input
                 type='text'
-                name="Nombre"
+                name="nombre"
                 format='col'
                 label="Nombre"
                 value={categoryForEdit.nombre}
-                onChange={handleChangeCatName}
+                onChange={handleChangeInputs}
             />
             <TagPicker
                 format={format}
@@ -163,6 +167,9 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                 suffix="metros"
                 labelPosition='left'
                 description="Radio visual de la categoria del incidente."
+                value={!categoryForEdit.radio ? undefined : categoryForEdit.radio}
+                onChange={handleChangeInputs}
+                name='radio'
             />
             <SubSection
                 format={format}
@@ -174,8 +181,8 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                 />
                 <Button
                     color='blue'
-                    icon={<FiPlus/>}
-                    title="Crear Categoria"
+                    icon={isEdit ? null : <FiPlus/>}
+                    title={isEdit ? "Aceptar" : "Crear Categoria"}
                     onClick={handleSubmitForm}
                 />
             </SubSection>

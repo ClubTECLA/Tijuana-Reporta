@@ -29,7 +29,7 @@ export default function ColSection(
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
     
-    const brd = `${border ? border.map((b) => `${borders[b]} `) : ''} border-gray-200`;
+    const brd = `${border?.map((b) => borders[b]).join(' ') ?? ''} border-gray-200`;
 
     if(!title){
         return(
@@ -105,6 +105,7 @@ export default function ColSection(
                                 return (
                                     <button 
                                         key={idx}
+                                        type='button'
                                         onClick={btn.onClick}
                                         className={`${style} flex flex-row items-center justify-center gap-2 rounded-4xl px-4 py-1`}
                                     >
