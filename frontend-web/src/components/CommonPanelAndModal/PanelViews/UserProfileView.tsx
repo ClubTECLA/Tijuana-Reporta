@@ -1,16 +1,16 @@
 import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
-import ColSection from "../PanelComponents/primitive-components/ColSection";
-import Input from "../PanelComponents/view-components/Input";
-import { ListTile, OptionList } from "../PanelComponents/view-components/OptionsList";
-import UserCart from "../PanelComponents/view-components/UserCart";
+import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
+import Input from "../PanelAndModalComponents/view-components/Input";
+import { ListTile, OptionList } from "../PanelAndModalComponents/view-components/OptionsList";
+import UserCart from "../PanelAndModalComponents/view-components/UserCart";
 import { GoShieldCheck } from "react-icons/go";
 import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
-import Button from "../PanelComponents/view-components/Button";
-import RowSection from "../PanelComponents/primitive-components/RowSection";
+import Button from "../PanelAndModalComponents/view-components/Button";
+import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
 import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
 
 type FormState = {
