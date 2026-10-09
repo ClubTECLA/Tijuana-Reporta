@@ -14,17 +14,17 @@ export default function NavigationWrapper() {
         return null
     }
     return (
-        <section className="pointer-events-none z-50 fixed top-0 left-0 w-screen h-screen"> 
-            <div className="pointer-events-auto fixed top-2 w-full h-13 flex flex-row justify-end pr-10">
-                <div className="flex flex-5/6 w-100 gap-2">
-                    <div className="flex flex-1/3">
+        <section className="pointer-events-none fixed inset-0 z-50">
+            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 sm:flex sm:justify-end">
+                <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
+                    <div className="min-w-0 flex-1 sm:flex-1/3">
                         <SearchBar/>
                     </div> 
-                    <div className="flex flex-2/3">
+                    <div className="hidden min-w-0 sm:flex sm:flex-2/3">
                         <NavBar />
                     </div>
                 </div>
-                <div className="flex flex-row flex-1/6 items-end justify-end gap-2">
+                <div className="col-start-2 row-start-1 flex items-center justify-end gap-1 sm:flex-1/6 sm:gap-2">
                     <BellButton 
                         onClick={() => setModal(
                             currentModal === 'Menu de Notificaciones'
@@ -36,6 +36,9 @@ export default function NavigationWrapper() {
                         className="" 
                         onClick={() => setModal('Menu de Usuario')}
                     />    
+                </div>
+                <div className="col-span-2 row-start-2 w-full sm:hidden">
+                    <NavBar />
                 </div>
             </div>
 

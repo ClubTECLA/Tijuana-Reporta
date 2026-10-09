@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import type { subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 import { IoIosArrowForward } from "react-icons/io";
@@ -6,6 +6,7 @@ import Input from "./Input";
 import { validateChildren } from "./validateChildren";
 
 interface listTileProps {
+    debug?: boolean
     icon?: ReactNode
     tileName: string
     tileDescription?: string
@@ -15,13 +16,13 @@ interface listTileProps {
     onChange?: () => void
 }
 
-export function ListTile({icon, tileName, type = 'button', tileDescription, valueBagde, onChange, onClick} : listTileProps) {
+export function ListTile({debug, icon, tileName, type = 'button', tileDescription, valueBagde, onChange, onClick} : listTileProps) {
     return(
         <>
             {type === 'button' && 
                 <button
                     onClick={onClick}
-                    className="flex flex-row items-center w-full px-2 py-1 hover:bg-gray-300 rounded-2xl"
+                    className={`flex flex-row items-center w-full px-2 py-1 hover:bg-gray-300 rounded-2xl ${debug ? 'border-2 border-blue-400' : ''}`}
                 >
                     {icon &&
                         <div 
@@ -51,7 +52,7 @@ export function ListTile({icon, tileName, type = 'button', tileDescription, valu
             }
             {type === 'checkbox' && 
                 <div
-                    className="flex flex-row items-center w-full px-2 py-1 rounded-2xl"
+                    className={`flex flex-row items-center w-full px-2 py-1 rounded-2xl ${debug ? 'border-2 border-blue-400' : ''}`}
                 >
                     <div 
                         className="
@@ -74,6 +75,7 @@ export function ListTile({icon, tileName, type = 'button', tileDescription, valu
                             <Input
                                 type='checkbox'
                                 format='col'
+                                debug={debug}
                             />
                         </div>
 
@@ -101,7 +103,15 @@ export function OptionList({ debug, format, title, children} : optionsListProps)
         >
             {title && <span className="text-md text-gray-500 font-semibold">{title}</span>}
             <div className="outline-1 outline-gray-300 mt-2 rounded-2xl p-2">
-                {children}
+                {Children.map(children, (child) => {
+                    if (isValidElement<listTileProps>(child) && child.type === ListTile) {
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+
+                    return child;
+                })}
             </div>
         </SubSection>
     )

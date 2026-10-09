@@ -12,8 +12,9 @@ import { GoPencil } from "react-icons/go";
 import type { ApiIncidente } from "../../../types/db-types";
 import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
+import type { subsectionProps } from "../../../types/utils-types";
 
-function CategoriesSection() {
+function CategoriesSection({debug} : subsectionProps) {
     const [categories, setCategories] = useState<ApiIncidente[]>([
         {
             id: 1,
@@ -89,9 +90,11 @@ function CategoriesSection() {
     }
 
     return(
-        <ColSection className="gap-2 overflow-x-auto">
+        <ColSection className="min-w-0 w-full gap-2 overflow-x-hidden"
+            debug={debug}
+        >
             <RowSection
-                className="h-fit gap-10 p-2"
+                className="h-fit items-center justify-between gap-3 p-2"
             >
                 <SubsectionTitle
                     title="Categorias de incidentes"
@@ -109,10 +112,10 @@ function CategoriesSection() {
                     }}
                 />
             </RowSection>
-            <RowSection className="gap-2 overflow-x-auto max-w-full min-h-130 items-start">
+            <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
                 <SubSection
                     format={'nothing'}
-                    className="overflow-y-auto overflow-x-hidden min-w-150 max-w-180 max-h-120"
+                    className="max-h-120 min-w-0 w-full overflow-y-auto overflow-x-hidden min-w-150"
                 >
                     <Table
                         format='col'
@@ -201,11 +204,12 @@ export default function SettingView () {
             title="Ajustes"
             subtitle="Configuración general del sistema · solo administradores"  
             debug={false}  
-            className="h-full gap-2"    
+            className="h-full min-h-0 min-w-0 gap-2 max-sm:flex-col"
         >
             <ColSection
                 border={['right']}
-            >
+            className="max-sm:border-r-0 max-sm:border-b-2"
+        >
                 <SideNav 
                     format='col'
                 >

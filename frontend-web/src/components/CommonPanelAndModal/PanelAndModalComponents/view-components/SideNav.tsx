@@ -52,7 +52,7 @@ export function SideNav({format, debug, children} : SideNavProps) {
 
         return cloneElement(child, {
             format: child.props.format ?? format,
-            debug: child.props.debug ?? debug
+            debug: debug || child.props.debug
         });
     });
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, isValidElement, cloneElement, Children } from "react";
 import { subsectionFormats, type subsectionProps } from "../../../../types/utils-types";
 import { Link } from "react-router-dom";
 
@@ -24,7 +24,15 @@ export default function SubSection({children, className, debug, format='both-fit
                 to={to}
                 key={subKey}
             >
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+                
+                    return child;
+                })}
             </Link>
         )
     }
@@ -39,7 +47,15 @@ export default function SubSection({children, className, debug, format='both-fit
                 onClick={onClick}
                 key={subKey}
             >
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+                
+                    return child;
+                })}
             </button>
         )
     }
@@ -52,7 +68,15 @@ export default function SubSection({children, className, debug, format='both-fit
             `}
             key={subKey}
         >
-            {children}
+            {Children.map(children, (child) => {
+                if(isValidElement<subsectionProps>(child)){
+                    return cloneElement(child, {
+                        debug: debug || child.props.debug
+                    })
+                }
+            
+                return child;
+            })}
         </div>
     )
 }

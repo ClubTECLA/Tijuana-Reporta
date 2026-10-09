@@ -34,7 +34,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
             </div>  
 
             <div 
-                className={`flex h-12 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity,transform,padding] duration-700 ease-out ${
+                className={`hidden h-12 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity,transform,padding] duration-700 ease-out sm:flex ${
                     open
                     ? "w-36 scale-100 pr-2 opacity-100"
                     : "pointer-events-none w-0 scale-95 pr-0 opacity-0"

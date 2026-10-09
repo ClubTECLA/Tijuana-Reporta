@@ -47,7 +47,7 @@ export default function MapContainer() {
       zoom: 11,
     });
 
-    mapRef.current.addControl(new NavigationControl(), 'top-right');
+    mapRef.current.addControl(new NavigationControl(), 'bottom-right');
 
     // Remove the map instance when the component is unmounted.
     return () => {
@@ -61,7 +61,7 @@ export default function MapContainer() {
   return (
     <div
       ref={mapContainerRef}
-      className="h-screen w-screen "
+      className="h-dvh w-full"
     />
   );
 }

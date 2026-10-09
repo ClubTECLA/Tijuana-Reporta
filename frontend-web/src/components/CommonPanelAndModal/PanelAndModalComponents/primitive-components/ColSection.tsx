@@ -1,48 +1,17 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement} from "react";
 import { IoIosArrowBack, IoIosClose } from "react-icons/io";
 import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
-
-type arrangementType = 'toUp' | 'toDown' | 'center'
+import { borders, headerButtonColors, type SectionProps, type subsectionProps } from "../../../../types/utils-types";
 
 const arrangementNormalize = {
     toDown: 'justify-start h-fit',
     toUp: 'justify-end h-full',
     center: 'justify-center h-full'
-}
-
-const headerButtonColors = {
-    green: 'bg-green-500 hover:bg-green-300',
-    red: 'bg-red-500 hover:bg-red-300',
-    blue: 'bg-blue-500 hover:bg-blue-300'
-}
-
-type headerBtnsType = {
-    title: string
-    icon?: ReactNode
-    onClick?: () => void
-    color: 'green' | 'red' | 'blue'
-}[]
-
-const borders = {
-    'right': 'border-r-2',
-    'left' : 'border-l-2',
-    'top' : 'border-t-2',
-    'bottom': 'border-b-2',
-    'all': 'border-2'
 } as const satisfies Record<string, string>
 
-type borderType = keyof typeof borders;
 
-interface SectionProps {
-    children: ReactNode,
-    arrangementSubsections?: arrangementType
-    debug?: boolean
-    title?: string
-    subtitle?: string
-    extraHeaderBtns?: headerBtnsType,
-    className?: string
-    footerText?: string
-    border?: borderType[]
+interface ColSectionProps extends SectionProps {
+    arrangementSubsections?: keyof typeof arrangementNormalize
 }
 
 export default function ColSection(
@@ -56,7 +25,7 @@ export default function ColSection(
         className,
         footerText,
         border
-    }: SectionProps
+    }: ColSectionProps
 ) {
     const { backView, hasPrevView, closePanel } = useCommonPanel();
     
@@ -72,7 +41,15 @@ export default function ColSection(
                     items-center ${className}
                     ${border ? brd : ''}     
                 `}>
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps | SectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+
+                    return child;
+                })}
             </section>
         )   
     }
@@ -141,7 +118,15 @@ export default function ColSection(
                 </div>
             }
             <div className={`max-w-full max-h-full w-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
-                {children}
+                {Children.map(children, (child) => {
+                    if(isValidElement<subsectionProps | SectionProps>(child)){
+                        return cloneElement(child, {
+                            debug: debug || child.props.debug
+                        })
+                    }
+
+                    return child;
+                })}
                 <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
                     {footerText && <span className="text-xs text-gray-500">{footerText}</span>}
                 </div>
