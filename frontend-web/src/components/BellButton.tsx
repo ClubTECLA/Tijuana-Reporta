@@ -19,7 +19,7 @@ export default function BellButton({className, onClick, cantNotis}: BellButtonPr
             onClick={onClick}
             aria-label="Notificaciones"
         >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow-lg shadow-gray-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
                 <LuBell className="text-2xl text-gray-600" />
             </div>
             {Number(cantNotis) > 0 && 
