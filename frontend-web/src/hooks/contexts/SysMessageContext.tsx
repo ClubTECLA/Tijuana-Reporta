@@ -68,7 +68,7 @@ const config: Record<MessageColor, { icon: React.ReactNode; barClass: string; wr
     red: {
         icon: <FiAlertTriangle className="text-red-500 text-4xl"/>,
         barClass: "border-l-red-500",
-        wrapped: "break-words whitespace-normal text-red-500 bg-red-100",
+        wrapped: "break-words whitespace-normal text-[#d93f3f] bg-[#ffe9e9]",
     },
     yellow: {
         icon: <FiAlertCircle className="text-yellow-500 text-4xl"/>,
@@ -112,26 +112,27 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
         'start': 'left-10'
     }
 
+    // Aviso en línea con el diseño de "Error de acceso" del Figma (iniciar sesión).
     if (type === "inline") {
         return (
             <div className={`
-                flex flex-row items-center gap-3 px-5 py-1 w-full
-                rounded-2xl transition-all duration-300 ease-out
+                flex flex-row items-center gap-3 px-3.5 py-3 w-full
+                rounded-[14px] transition-all duration-300 ease-out
                 ${currentStyle.wrapped}
                 ${animate ? "opacity-100 scale-100" : "opacity-0 scale-95"}
             `}>
-                {currentStyle.icon}
-                <div className={`flex flex-col`}>
-                    {title && <span className="text-md font-bold">{title}</span>}
-                    <span className="text-xs font-medium leading-snug">{message}</span>
+                <span className="shrink-0 [&>svg]:size-5 [&>svg]:text-inherit">{currentStyle.icon}</span>
+                <div className="flex flex-1 flex-col gap-0.5">
+                    {title && <span className="text-sm font-semibold">{title}</span>}
+                    <span className="text-[13px]">{message}</span>
                 </div>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="ml-auto rounded-md p-1"
+                    className="ml-auto shrink-0 rounded-md p-1"
                     aria-label="Cerrar mensaje"
                 >
-                    <IoCloseOutline className="text-3xl" />
+                    <IoCloseOutline className="text-xl" />
                 </button>
             </div>
         );
