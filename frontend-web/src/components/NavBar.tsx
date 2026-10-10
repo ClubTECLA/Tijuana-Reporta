@@ -1,15 +1,31 @@
+import { Fragment, type ReactNode } from "react"
 import { useRouter } from "../hooks/useRouter"
 import { Link } from "react-router-dom"
 
 //import icons
-import { GrDocumentText } from "react-icons/gr"
-import { GoAlert, GoPaperAirplane } from "react-icons/go"
+import { LuMap, LuSun, LuTent, LuTrendingUp, LuTriangleAlert, LuUsers } from "react-icons/lu"
 import type { NavItemsType } from "../types/utils-types"
-import { IoSettingsOutline } from "react-icons/io5"
 import { useCommonPanel } from "../hooks/contexts/CommonPanelContext"
 
 
+const navItemStyle = (isActive: boolean) => `
+    flex h-11 shrink-0 flex-row items-center gap-2
+    rounded-full px-4 text-sm
+    transition-colors duration-200
+    ${isActive ? 'bg-[#0b1220] font-bold text-white' : 'font-semibold text-slate-700 hover:bg-slate-100'}
+`
 
+function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: string, cantNoti?: number }) {
+    return (
+        <>
+            <span className="text-lg">{icon}</span>
+            <span>{title}</span>
+            {!!cantNoti &&
+                <span className="rounded-full bg-[#c30508] px-1.75 py-px text-[11px] font-bold text-white">{cantNoti}</span>
+            }
+        </>
+    )
+}
 export default function NavBar() {
     const { setPanelView } = useCommonPanel();
 
@@ -18,23 +34,33 @@ export default function NavBar() {
     
     const navItems: NavItemsType = [
             {
-                icon: <GrDocumentText/>,
+                icon: <LuMap/>,
                 title: "Resumen",
                 cantNoti: 12,
                 destinationPath: "/reports"    
             },
             {
-                icon: <GoAlert />,
+                icon: <LuTriangleAlert />,
                 title: "Incidentes",
                 destinationPath: "/incidents"
             },
             {
-                icon: <GoPaperAirplane />,
-                title: "Avisos",
-                destinationPath: "/warnings"
+                icon: <LuTent />,
+                title: "Refugios",
+                destinationPath: "/shelters"
             },
             {
-                icon: <IoSettingsOutline/>,
+                icon: <LuTrendingUp />,
+                title: "Riesgo",
+                destinationPath: "/risk"
+            },
+            {
+                icon: <LuUsers />,
+                title: "Usuarios",
+                destinationPath: "/users"
+            },
+            {
+                icon: <LuSun/>,
                 title: "Ajustes",
                 onClick: () => setPanelView('Ajustes')
             }
@@ -43,54 +69,32 @@ export default function NavBar() {
     return(
         <section 
             className="
-                flex flex-row gap-2 bg-white 
-                px-4 py-1 rounded-full shadow-lg 
-                shadow-gray-600 w-full
-                items-center
+                mx-auto flex h-14 w-fit flex-row items-center gap-0.5 p-1
+                rounded-full border border-white/70 bg-white
+                font-['Plus_Jakarta_Sans',sans-serif]
+                shadow-[0_2px_8px_rgba(11,18,32,0.06),0_8px_24px_-6px_rgba(11,18,32,0.05)]
             "
         >
-            {navItems.map((item, idx) => 
-                <div
-                    key={idx}
-                    className="flex min-w-0 flex-1"
-                >
+    {navItems.map((item, idx) =>
+                <Fragment key={idx}>
                     {item.destinationPath && !item.onClick &&
                         <Link
-                            className={`
-                                flex flex-row items-center 
-                                justify-center gap-2  
-                                rounded-full px-3 py-1
-                                font-bold  w-full
-                                hover:bg-gray-800 hover:text-white transition-all duration-300
-                                ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
-                            `}
-                            aria-label={item.title}
-                            title={item.title}
+                            className={navItemStyle(currentPath === item.destinationPath)}
                             to={item.destinationPath}
                         >
-                            {item.icon}
-                            <span className="hidden md:inline">{item.title}</span>
+                            <NavItemContent {...item} />
                         </Link>
                     }
                     {!item.destinationPath && item.onClick &&
                         <button
-                            className={`
-                                flex flex-row items-center 
-                                justify-center gap-2  
-                                rounded-full px-3 py-1
-                                font-bold w-full
-                                hover:bg-gray-800 hover:text-white transition-all duration-300
-                                ${currentPath === item.destinationPath ? 'text-white bg-gray-800' : 'text-gray-600'}
-                            `}
-                            aria-label={item.title}
-                            title={item.title}
+                            type="button"
+                            className={navItemStyle(currentPath === item.destinationPath)}
                             onClick={item.onClick}
                         >
-                            {item.icon}
-                            <span className="hidden md:inline">{item.title}</span>
+                            <NavItemContent {...item} />
                         </button>
                     }
-                </div>
+                </Fragment>
             )}
         </section>
     )
