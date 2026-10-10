@@ -1,57 +1,73 @@
 import { useState } from "react";
 import type { componentProps } from "../types/utils-types";
 import { useAuth } from "../hooks/contexts/AuthContext";
-import { MdLogin } from "react-icons/md";
+import { LuLogIn } from "react-icons/lu";
 import { Link } from "react-router-dom";
+
+const rolLabels: Record<string, string> = {
+    admin: "Administrador",
+    moderador: "Moderador",
+    analista: "Analista",
+    proteccion_civil: "Protección Civil",
+    rescatista: "Rescatista",
+    ciudadano: "Ciudadano",
+}
+
+function initials(username: string) {
+    const [first = "", second = ""] = username.trim().split(/\s+/)
+    return (second ? first[0] + second[0] : first.slice(0, 2)).toUpperCase()
+}
 
 export default function UserProfileWidget({className, onClick} : componentProps) {
     const { isAuthenticated, user } = useAuth();
 
-    const [ open, setOpen ] = useState(false);
+    const [ open, setOpen ] = useState(true);
 
     return(
         <Link
             className={`
-                relative flex h-12 max-w-50 shrink-0 
-                flex-row items-center justify-center 
-                gap-2 rounded-full bg-white pl-1
-                py-1 shadow-lg shadow-gray-600
+                relative flex h-14 shrink-0
+                flex-row items-center gap-2.5
+                rounded-full border border-white bg-white
+                py-1.5 pl-1.5 ${open ? 'pr-4.5' : 'pr-1.5'}
+                font-['Inter',sans-serif]
+                shadow-[0_1px_3px_rgba(0,0,0,0.15)]
+                transition-[padding] duration-700 ease-out
                 ${className ?? ''}
             `}
             onClick={() => {
                 if(isAuthenticated)
                     onClick?.()
             }}
-            
+
             to={!isAuthenticated ? '/auth' : '#'}
             onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setOpen(false)}
-        >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-center">
-                {!isAuthenticated ? <MdLogin className="text-2xl text-white font-bold"/> : <span className="text-xl text-center text-white font-bold">{user?.username.slice(0,2).toUpperCase()}</span>}
-            </div>  
 
-            <div 
-                className={`hidden h-12 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity,transform,padding] duration-700 ease-out sm:flex ${
+        >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#2677e6] text-white">
+                {!isAuthenticated
+                    ? <LuLogIn className="text-xl" />
+                    : <span className="text-sm font-semibold">{initials(user?.username ?? "")}</span>
+                }
+            </div>
+
+            <div
+                className={`flex shrink-0 flex-col items-start overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-700 ease-out ${
                     open
-                    ? "w-36 scale-100 pr-2 opacity-100"
-                    : "pointer-events-none w-0 scale-95 pr-0 opacity-0"
+                    ? "max-w-48 opacity-100"
+                    : "pointer-events-none max-w-0 opacity-0"
                 }`}
             >
-                <div className="flex flex-col h-12 justify-center items-start py-1">
-                    {!isAuthenticated ? 
-                        <>
-                        <span className="truncate w-full text-center text-md font-bold text-gray-700 ">Iniciar Sesion</span>
-                        </>
-                    :
-                        <>
-                        <span className="truncate text-md font-bold text-gray-700 ">{user?.username || "Usuario"}</span>
-                        <span className="truncate text-sm font-semibold text-gray-600">{user?.rol_name || "Invitado"}</span>
-                        </>
-                    }
-                </div>
+                {!isAuthenticated ?
+                    <span className="text-[13px] font-semibold text-[#111827]">Iniciar sesión</span>
+                :
+                    <>
+                    <span className="max-w-48 truncate text-[13px] font-semibold text-[#111827]">{user?.username || "Usuario"}</span>
+                    <span className="max-w-48 truncate text-xs text-[#64748b]">
+                        {(user?.rol_name && rolLabels[user.rol_name]) || user?.rol_name || "Invitado"}
+                    </span>
+                    </>
+                }
             </div>
         </Link>
     )
