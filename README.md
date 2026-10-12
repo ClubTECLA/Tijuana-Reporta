@@ -176,6 +176,36 @@ migrate -path backend/internal/database/migrations -database "$DATABASE_URL" up
 migrate -path backend/internal/database/migrations -database "$DATABASE_URL" down 1
 ```
 
+`001_baseline` es todo el esquema con sus datos semilla en un solo `up`/`down`. Reemplaza a las migraciones 001–006 anteriores, que siguen en el historial de git.
+
+**Versión.** Es el número del archivo (`001_baseline` = 1). `migrate` la guarda en la tabla `schema_migrations` de la propia base y en cada `up` aplica solo las migraciones con número mayor.
+
+**Arranque con Docker.** El orden es `postgres → dbcheck → migrate → backend`. `dbcheck` lee la versión y frena todo si la base:
+
+- tiene el esquema anterior (migraciones 001–006 sueltas) o tablas sin `schema_migrations`;
+- quedó a medias (`dirty`);
+- es más nueva que el código.
+
+Si está vacía o en una versión menor pasa, y `migrate` la crea o la actualiza. Para recrearla: `docker compose down -v && docker compose up -d --build` (borra los datos).
+
+**Agregar un cambio.** Crea `002_nombre.up.sql` y `002_nombre.down.sql` en `backend/internal/database/migrations/` y levanta el stack; no hay que tocar nada más. No edites `001_baseline` una vez desplegada.
+
+**Verificar la base.**
+
+```bash
+# tests (los de integración levantan su propio Postgres y aplican la migración)
+cd backend && go test -count=1 ./...
+
+# levantar el stack aparte de tu base local (el puerto 5432 suele estar ocupado)
+POSTGRES_PORT=5436 docker compose -p verif up -d --build postgres dbcheck migrate backend
+docker compose -p verif logs dbcheck migrate
+
+# ver la versión y la tabla de multimedia
+docker compose -p verif exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT * FROM schema_migrations;" -c "\d multimedia"'
+
+docker compose -p verif down -v
+```
+
 ## Generación de código (OpenAPI / SQL)
 
 ```bash

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -13,7 +15,7 @@ type ReporteStore interface {
 	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
-	ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.FotosReporte, error)
+	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedium, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
@@ -31,12 +33,13 @@ func NewReporteService(store ReporteStore) *ReporteService {
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
-// usuario y, si la hay, su foto. fotos_reportes admite una sola foto por
-// usuario por reporte, así que al crear solo puede venir una.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.ReporteDetalle, error) {
-	var imagePaths []string
-	if imagePath != nil {
-		imagePaths = []string{*imagePath}
+// usuario y, si la hay, su foto o video. multimedia admite un solo archivo
+// por usuario por reporte, así que al crear solo puede venir uno.
+func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.MultimediaNueva) (domain.ReporteDetalle, error) {
+	if multimedia != nil {
+		if strings.TrimSpace(multimedia.Path) == "" {
+			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)
+		}
 	}
 
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
@@ -44,7 +47,7 @@ func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteI
 		UserID:     userID,
 		Latitude:   latitude,
 		Longitude:  longitude,
-		ImagePaths: imagePaths,
+		Multimedia: multimedia,
 	})
 	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
 		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound
@@ -75,7 +78,7 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 		return domain.ReporteDetalle{}, err
 	}
 
-	fotos, err := s.store.ListFotosByReporteId(ctx, id)
+	multimedia, err := s.store.ListMultimediaByReporteId(ctx, id)
 	if err != nil {
 		return domain.ReporteDetalle{}, err
 	}
@@ -95,7 +98,7 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 		Latitude:    punto.Latitude,
 		Longitude:   punto.Longitude,
 		Comentarios: comentarios,
-		Fotos:       fotos,
+		Multimedia:  multimedia,
 		Tags:        tags,
 		Locations:   locations}, nil
 }

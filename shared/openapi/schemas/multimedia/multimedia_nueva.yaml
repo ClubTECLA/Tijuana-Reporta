@@ -1,0 +1,7 @@
+type: object
+description: Archivo (foto o video) que se adjunta al crear un reporte.
+required: [path]
+properties:
+  path:
+    type: string
+    minLength: 1
