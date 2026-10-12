@@ -17,7 +17,7 @@ type ComentarioService interface {
 // ReporteService es la interfaz que el handler de reportes necesita del
 // servicio.
 type ReporteService interface {
-	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.ReporteDetalle, error)
+	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.MultimediaNueva) (domain.ReporteDetalle, error)
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
 	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)

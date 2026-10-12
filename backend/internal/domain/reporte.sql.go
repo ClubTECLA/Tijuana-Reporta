@@ -31,31 +31,6 @@ func (q *Queries) AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvi
 	return i, err
 }
 
-const createFotoReporte = `-- name: CreateFotoReporte :one
-INSERT INTO fotos_reportes (reporte_id, image_path, user_id)
-VALUES ($1, $2, $3)
-RETURNING id, reporte_id, image_path, user_id, created_at
-`
-
-type CreateFotoReporteParams struct {
-	ReporteID uuid.UUID `json:"reporte_id"`
-	ImagePath string    `json:"image_path"`
-	UserID    uuid.UUID `json:"user_id"`
-}
-
-func (q *Queries) CreateFotoReporte(ctx context.Context, arg CreateFotoReporteParams) (FotosReporte, error) {
-	row := q.db.QueryRow(ctx, createFotoReporte, arg.ReporteID, arg.ImagePath, arg.UserID)
-	var i FotosReporte
-	err := row.Scan(
-		&i.ID,
-		&i.ReporteID,
-		&i.ImagePath,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const createLocation = `-- name: CreateLocation :one
 INSERT INTO location (reporte_id, latitude, longitude, user_id)
 VALUES ($1, $3::float8, $4::float8, $2)
@@ -88,10 +63,35 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 	return i, err
 }
 
+const createMultimedia = `-- name: CreateMultimedia :one
+INSERT INTO multimedia (reporte_id, path, user_id)
+VALUES ($1, $2, $3)
+RETURNING id, reporte_id, path, user_id, created_at
+`
+
+type CreateMultimediaParams struct {
+	ReporteID uuid.UUID `json:"reporte_id"`
+	Path      string    `json:"path"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedium, error) {
+	row := q.db.QueryRow(ctx, createMultimedia, arg.ReporteID, arg.Path, arg.UserID)
+	var i Multimedium
+	err := row.Scan(
+		&i.ID,
+		&i.ReporteID,
+		&i.Path,
+		&i.UserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createReporte = `-- name: CreateReporte :one
 INSERT INTO reporte (incidente_id, es_oficial)
 VALUES ($1, $2)
-RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at
+RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
 `
 
 type CreateReporteParams struct {
@@ -111,7 +111,6 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 		&i.EstadoActual,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ExpiredAt,
 	)
 	return i, err
 }
@@ -150,7 +149,7 @@ func (q *Queries) GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.
 }
 
 const getReporteById = `-- name: GetReporteById :one
-SELECT id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at FROM reporte WHERE id = $1
+SELECT id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at FROM reporte WHERE id = $1
 `
 
 func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error) {
@@ -165,39 +164,8 @@ func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, er
 		&i.EstadoActual,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ExpiredAt,
 	)
 	return i, err
-}
-
-const listFotosByReporteId = `-- name: ListFotosByReporteId :many
-SELECT id, reporte_id, image_path, user_id, created_at FROM fotos_reportes WHERE reporte_id = $1 ORDER BY created_at
-`
-
-func (q *Queries) ListFotosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]FotosReporte, error) {
-	rows, err := q.db.Query(ctx, listFotosByReporteId, reporteID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FotosReporte
-	for rows.Next() {
-		var i FotosReporte
-		if err := rows.Scan(
-			&i.ID,
-			&i.ReporteID,
-			&i.ImagePath,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many
@@ -228,6 +196,36 @@ func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.U
 			&i.ReporteID,
 			&i.Latitude,
 			&i.Longitude,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMultimediaByReporteId = `-- name: ListMultimediaByReporteId :many
+SELECT id, reporte_id, path, user_id, created_at FROM multimedia WHERE reporte_id = $1 ORDER BY created_at
+`
+
+func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedium, error) {
+	rows, err := q.db.Query(ctx, listMultimediaByReporteId, reporteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Multimedium
+	for rows.Next() {
+		var i Multimedium
+		if err := rows.Scan(
+			&i.ID,
+			&i.ReporteID,
+			&i.Path,
 			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
@@ -340,10 +338,9 @@ func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) 
 const updateEstadoReporte = `-- name: UpdateEstadoReporte :one
 UPDATE reporte
 SET estado_actual = $2,
-    updated_at = now(),
-    expired_at = CASE WHEN $2 = 'Expirado' THEN now() ELSE NULL END
+    updated_at = now()
 WHERE id = $1
-RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at, expired_at
+RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
 `
 
 type UpdateEstadoReporteParams struct {
@@ -363,7 +360,6 @@ func (q *Queries) UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoRepor
 		&i.EstadoActual,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ExpiredAt,
 	)
 	return i, err
 }

@@ -167,7 +167,7 @@ Authorization: Bearer {{token}}
 
 # Estado
 ## Solo admin (usan {{adminToken}}). Cualquier estado del enum, en cualquier orden:
-## Pendiente, Probable, Verificado, Resuelto, Descartado, Expirado.
+## Pendiente, Probable, Verificado, Resuelto, Descartado.
 
 ### Cambiar estado a Verificado (200)
 PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
@@ -185,15 +185,6 @@ Content-Type: application/json
 
 {
     "estado": "Probable"
-}
-
-### Cambiar estado a Expirado (200; también llena expired_at)
-PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/estado
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-    "estado": "Expirado"
 }
 
 ### Cambiar estado con un valor fuera del enum (400)

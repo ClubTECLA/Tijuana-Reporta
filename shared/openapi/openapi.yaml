@@ -48,8 +48,10 @@ components:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
-    Foto:
-      $ref: './schemas/fotos/foto.yaml'
+    Multimedia:
+      $ref: './schemas/multimedia/multimedia.yaml'
+    MultimediaNueva:
+      $ref: './schemas/multimedia/multimedia_nueva.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
     TagCatalogo:

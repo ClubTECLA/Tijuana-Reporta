@@ -12,7 +12,7 @@ import (
 )
 
 // fakeReporteStore implementa ReporteStore en memoria.
-// CreateReporte imita a la transacción real (reporte + location + foto) y al
+// CreateReporte imita a la transacción real (reporte + location + multimedia) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
 // realista.
 // Guarda los últimos parámetros de CreateReporte y ListReportesResumen para
@@ -21,7 +21,7 @@ type fakeReporteStore struct {
 	byID        map[uuid.UUID]domain.Reporte
 	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
 	comentarios map[uuid.UUID][]domain.Comentario
-	fotos       map[uuid.UUID][]domain.FotosReporte
+	multimedia  map[uuid.UUID][]domain.Multimedium
 	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
 	locations   map[uuid.UUID][]domain.ListLocationsByReporteIdRow
 	resumen     []domain.ListReportesResumenRow
@@ -39,7 +39,7 @@ func newFakeReporteStore() *fakeReporteStore {
 		byID:        map[uuid.UUID]domain.Reporte{},
 		puntos:      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow{},
 		comentarios: map[uuid.UUID][]domain.Comentario{},
-		fotos:       map[uuid.UUID][]domain.FotosReporte{},
+		multimedia:  map[uuid.UUID][]domain.Multimedium{},
 		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
 		locations:   map[uuid.UUID][]domain.ListLocationsByReporteIdRow{},
 	}
@@ -61,8 +61,8 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 	}
 	// Con una sola location, el centroide es esa misma location.
 	f.puntos[r.ID] = domain.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
-	for i, path := range arg.ImagePaths {
-		f.fotos[r.ID] = append(f.fotos[r.ID], domain.FotosReporte{ID: i + 1, ReporteID: r.ID, ImagePath: path, UserID: arg.UserID})
+	if m := arg.Multimedia; m != nil {
+		f.multimedia[r.ID] = []domain.Multimedium{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
 	}
 	return r, nil
 }
@@ -87,8 +87,8 @@ func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid
 	return f.comentarios[id], nil
 }
 
-func (f *fakeReporteStore) ListFotosByReporteId(_ context.Context, id uuid.UUID) ([]domain.FotosReporte, error) {
-	return f.fotos[id], nil
+func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedium, error) {
+	return f.multimedia[id], nil
 }
 
 func (f *fakeReporteStore) ListTagsByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListTagsByReporteIdRow, error) {
@@ -132,9 +132,9 @@ func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 	userID := uuid.New()
-	imagePath := "/srv/photos/0001.jpg"
+	multimedia := &domain.MultimediaNueva{Path: "/srv/media/0001.jpg"}
 
-	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371, &imagePath)
+	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371, multimedia)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -142,32 +142,56 @@ func TestReporteService_Crear(t *testing.T) {
 		t.Fatalf("Crear() = %+v, want incidenteID=%d", r.Reporte, 42)
 	}
 	// Crear relee el reporte con Obtener: el detalle ya trae el centroide,
-	// la location inicial y la foto.
+	// la location inicial y su multimedia.
 	if r.Latitude != 32.5027 || r.Longitude != -117.00371 {
 		t.Fatalf("Crear() centroide = (%v, %v), want (%v, %v)", r.Latitude, r.Longitude, 32.5027, -117.00371)
 	}
-	if len(r.Locations) != 1 || len(r.Fotos) != 1 || r.Fotos[0].ImagePath != imagePath {
-		t.Fatalf("Crear() locations = %v fotos = %v, want 1 location y la foto %q", r.Locations, r.Fotos, imagePath)
+	if len(r.Locations) != 1 || len(r.Multimedia) != 1 || r.Multimedia[0].Path != multimedia.Path {
+		t.Fatalf("Crear() locations = %v multimedia = %v, want 1 location y %+v", r.Locations, r.Multimedia, *multimedia)
 	}
 
 	arg := store.lastArg
 	if arg.UserID != userID || arg.Latitude != 32.5027 || arg.Longitude != -117.00371 {
 		t.Fatalf("CreateReporte() arg = %+v, want userID=%v lat=%v lng=%v", arg, userID, 32.5027, -117.00371)
 	}
-	if len(arg.ImagePaths) != 1 || arg.ImagePaths[0] != imagePath {
-		t.Fatalf("CreateReporte() ImagePaths = %v, want [%q]", arg.ImagePaths, imagePath)
+	if arg.Multimedia == nil || *arg.Multimedia != *multimedia {
+		t.Fatalf("CreateReporte() Multimedia = %v, want %+v", arg.Multimedia, *multimedia)
 	}
 }
 
-func TestReporteService_Crear_SinFoto(t *testing.T) {
+func TestReporteService_Crear_MultimediaInvalida(t *testing.T) {
+	tests := []struct {
+		name       string
+		multimedia domain.MultimediaNueva
+	}{
+		{"path vacío", domain.MultimediaNueva{Path: ""}},
+		{"path solo espacios", domain.MultimediaNueva{Path: "  "}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+
+			_, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, &tt.multimedia)
+			if !errors.Is(err, domain.ErrMultimediaInvalida) {
+				t.Fatalf("Crear() error = %v, want %v", err, domain.ErrMultimediaInvalida)
+			}
+			if len(store.byID) != 0 {
+				t.Fatalf("CreateReporte() creó %d reportes, want 0", len(store.byID))
+			}
+		})
+	}
+}
+
+func TestReporteService_Crear_SinMultimedia(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
 	if _, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, nil); err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
-	if len(store.lastArg.ImagePaths) != 0 {
-		t.Fatalf("CreateReporte() ImagePaths = %v, want empty", store.lastArg.ImagePaths)
+	if store.lastArg.Multimedia != nil {
+		t.Fatalf("CreateReporte() Multimedia = %v, want empty", store.lastArg.Multimedia)
 	}
 }
 
@@ -204,9 +228,9 @@ func TestReporteService_Obtener(t *testing.T) {
 	if r.Latitude != 32.5027 || r.Longitude != -117.00371 {
 		t.Fatalf("Obtener() centroide = (%v, %v), want (%v, %v)", r.Latitude, r.Longitude, 32.5027, -117.00371)
 	}
-	if len(r.Comentarios) != 1 || len(r.Tags) != 1 || len(r.Locations) != 1 || len(r.Fotos) != 0 {
-		t.Fatalf("Obtener() comentarios=%d tags=%d locations=%d fotos=%d, want 1, 1, 1, 0",
-			len(r.Comentarios), len(r.Tags), len(r.Locations), len(r.Fotos))
+	if len(r.Comentarios) != 1 || len(r.Tags) != 1 || len(r.Locations) != 1 || len(r.Multimedia) != 0 {
+		t.Fatalf("Obtener() comentarios=%d tags=%d locations=%d multimedia=%d, want 1, 1, 1, 0",
+			len(r.Comentarios), len(r.Tags), len(r.Locations), len(r.Multimedia))
 	}
 }
 
