@@ -32,9 +32,9 @@ export const MenuRow = ({
   return (
     <TouchableOpacity
       style={styles.row}
-      onPress={onPress}
+      onPress={isSwitchRow ? undefined : onPress}
       activeOpacity={isSwitchRow ? 1 : 0.7}
-      disabled={isSwitchRow}
+      accessibilityRole={isSwitchRow ? undefined : 'button'}
     >
       <View
         style={[

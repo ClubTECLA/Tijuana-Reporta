@@ -9,6 +9,8 @@ import { PrimaryButton } from '../../src/components/auth/PrimaryButton';
 import { GoogleButton } from '../../src/components/auth/GoogleButton';
 import { TermsCheckbox } from '../../src/components/auth/TermsCheckbox';
 import { useGoogleSignIn } from '../../src/hooks/useGoogleSignIn';
+import { iniciarSesionYEntrar } from '../../src/features/sesion/entrar';
+import { puedeSimularSesion } from '../../src/lib/session';
 import { colors } from '../../src/theme/colors';
 import { fontFamily } from '../../src/theme/typography';
 
@@ -22,7 +24,7 @@ export default function AuthScreen() {
       Alert.alert(
         'Sesión iniciada con Google',
         `Bienvenido${profile.name ? `, ${profile.name}` : ''}${profile.email ? `\n${profile.email}` : ''}`,
-        [{ text: 'OK', onPress: () => router.replace('/') }]
+        [{ text: 'OK', onPress: () => iniciarSesionYEntrar() }]
       );
     },
   });
@@ -100,10 +102,13 @@ export default function AuthScreen() {
             showArrow={false}
             disabled={!canSubmitLogin}
             onPress={() =>
-              Alert.alert(
-                'Inicio de sesión no disponible todavía',
-                'Esta pantalla es solo de diseño por ahora — el inicio de sesión con teléfono y contraseña se conecta cuando el backend tenga el endpoint de auth.'
-              )
+              // Con mocks se entra con una sesión simulada para poder probar la app como usuario.
+              puedeSimularSesion
+                ? iniciarSesionYEntrar()
+                : Alert.alert(
+                    'Inicio de sesión no disponible todavía',
+                    'Esta pantalla es solo de diseño por ahora — el inicio de sesión con teléfono y contraseña se conecta cuando el backend tenga el endpoint de auth.'
+                  )
             }
           />
         </>

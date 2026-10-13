@@ -1,2 +1,2 @@
 type: string
-enum: [Pendiente, Probable, Verificado, Resuelto, Descartado, Expirado]
+enum: [Pendiente, Probable, Verificado, Resuelto, Descartado]

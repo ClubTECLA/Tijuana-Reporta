@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { NotificationRow } from '../components/NotificationRow';
 import { SegmentedTabs } from '../components/SegmentedTabs';
 import { Card } from '../components/Card';
+import { EstadoVista } from '../components/estado/EstadoVista';
 import { Notificacion } from '../types/notificacion';
 import { perfilColors } from '../theme/perfilTokens';
 
@@ -55,21 +56,30 @@ const MOCK_NOTIFICACIONES: Notificacion[] = [
   },
 ];
 
-const TABS = ['Todas', 'Alertas', 'Mis reportes'];
+const TABS = ['Todas', 'Alertas', 'Mis reportes'] as const;
+type Tab = (typeof TABS)[number];
+
+const VACIO_POR_TAB: Record<Tab, { titulo: string; mensaje: string }> = {
+  Todas: { titulo: 'Sin notificaciones', mensaje: 'Aquí verás alertas cercanas y novedades de tus reportes.' },
+  Alertas: { titulo: 'Sin alertas', mensaje: 'Te avisaremos si ocurre algo cerca de ti.' },
+  'Mis reportes': { titulo: 'Sin novedades', mensaje: 'Cuando tus reportes cambien de estado lo verás aquí.' },
+};
 
 interface NotificacionesScreenProps {
   onBack?: () => void;
 }
 
 export const NotificacionesScreen = ({ onBack }: NotificacionesScreenProps) => {
-  const [tab, setTab] = useState('Todas');
+  const [tab, setTab] = useState<Tab>('Todas');
+  const [notificaciones, setNotificaciones] = useState(MOCK_NOTIFICACIONES);
 
-  const filtradas = MOCK_NOTIFICACIONES.filter((n) => {
-    if (tab === 'Todas') return true;
+  const filtradas = notificaciones.filter((n) => {
     if (tab === 'Alertas') return n.tipo === 'alerta' || n.tipo === 'aviso';
     if (tab === 'Mis reportes') return n.tipo === 'info' || n.tipo === 'exito' || n.tipo === 'comentario';
     return true;
   });
+
+  const marcarLeidas = () => setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
 
   const grupos: Array<'Hoy' | 'Ayer'> = ['Hoy', 'Ayer'];
 
@@ -85,7 +95,7 @@ export const NotificacionesScreen = ({ onBack }: NotificacionesScreenProps) => {
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>Notificaciones</Text>
-        <TouchableOpacity style={styles.marcarBtn}>
+        <TouchableOpacity style={styles.marcarBtn} onPress={marcarLeidas} accessibilityRole="button">
           <Text style={styles.marcarText}>Marcar leídas</Text>
         </TouchableOpacity>
       </View>
@@ -95,6 +105,9 @@ export const NotificacionesScreen = ({ onBack }: NotificacionesScreenProps) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {filtradas.length === 0 && (
+          <EstadoVista estado="vacio" titulo={VACIO_POR_TAB[tab].titulo} mensaje={VACIO_POR_TAB[tab].mensaje} />
+        )}
         {grupos.map((grupo) => {
           const items = filtradas.filter((n) => n.grupo === grupo);
           if (items.length === 0) return null;

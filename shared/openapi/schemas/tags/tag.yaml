@@ -5,6 +5,8 @@ properties:
     type: integer
   nombre:
     type: string
+    minLength: 1
+    maxLength: 50
   count:
     type: integer
     description: Cuántos usuarios han confirmado este tag en el reporte.

@@ -21,7 +21,6 @@ const (
 	EstadoVerificado Estado = "Verificado"
 	EstadoResuelto   Estado = "Resuelto"
 	EstadoDescartado Estado = "Descartado"
-	EstadoExpirado   Estado = "Expirado"
 )
 
 func (e *Estado) Scan(src interface{}) error {
@@ -124,14 +123,6 @@ type Comentario struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-type FotosReporte struct {
-	ID        int       `json:"id"`
-	ReporteID uuid.UUID `json:"reporte_id"`
-	ImagePath string    `json:"image_path"`
-	UserID    uuid.UUID `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type Historial struct {
 	ID           uuid.UUID `json:"id"`
 	UserID       uuid.UUID `json:"user_id"`
@@ -142,11 +133,12 @@ type Historial struct {
 }
 
 type Incidente struct {
-	ID           int            `json:"id"`
-	Nombre       string         `json:"nombre"`
-	TiempoLimite pgtype.Int2    `json:"tiempo_limite"`
-	Radio        pgtype.Numeric `json:"radio"`
-	EstaActivo   pgtype.Bool    `json:"esta_activo"`
+	ID           int      `json:"id"`
+	Nombre       string   `json:"nombre"`
+	TiempoLimite *int     `json:"tiempo_limite"`
+	Radio        *float64 `json:"radio"`
+	EstaActivo   bool     `json:"esta_activo"`
+	Color        string   `json:"color"`
 }
 
 type IncidenteTag struct {
@@ -174,6 +166,14 @@ type Log struct {
 	Peso        int            `json:"peso"`
 	StartedAt   time.Time      `json:"started_at"`
 	FinishedAt  time.Time      `json:"finished_at"`
+}
+
+type Multimedium struct {
+	ID        int       `json:"id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+	Path      string    `json:"path"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Notificacione struct {
@@ -205,15 +205,14 @@ type RefreshToken struct {
 }
 
 type Reporte struct {
-	ID            uuid.UUID  `json:"id"`
-	IncidenteID   int        `json:"incidente_id"`
-	Avistamientos int        `json:"avistamientos"`
-	EsHistorico   bool       `json:"es_historico"`
-	EsOficial     bool       `json:"es_oficial"`
-	EstadoActual  Estado     `json:"estado_actual"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
-	ExpiredAt     *time.Time `json:"expired_at"`
+	ID            uuid.UUID `json:"id"`
+	IncidenteID   int       `json:"incidente_id"`
+	Avistamientos int       `json:"avistamientos"`
+	EsHistorico   bool      `json:"es_historico"`
+	EsOficial     bool      `json:"es_oficial"`
+	EstadoActual  Estado    `json:"estado_actual"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type ReporteTagCount struct {

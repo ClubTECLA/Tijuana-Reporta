@@ -16,13 +16,12 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 		EsHistorico:   r.Reporte.EsHistorico,
 		EsOficial:     r.Reporte.EsOficial,
 		EstadoActual:  EstadoReporte(r.Reporte.EstadoActual),
-		ExpiredAt:     r.Reporte.ExpiredAt,
-		Fotos:         make([]Foto, 0, len(r.Fotos)),
 		Id:            r.Reporte.ID,
 		IncidenteId:   r.Reporte.IncidenteID,
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
 		Locations:     make([]Location, 0, len(r.Locations)),
+		Multimedia:    make([]Multimedia, 0, len(r.Multimedia)),
 		Tags:          make([]Tag, 0, len(r.Tags)),
 		UpdatedAt:     r.Reporte.UpdatedAt,
 	}
@@ -31,8 +30,8 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 		out.Comentarios = append(out.Comentarios, toComentario(c))
 	}
 
-	for _, f := range r.Fotos {
-		out.Fotos = append(out.Fotos, Foto{CreatedAt: f.CreatedAt, Id: f.ID, ImagePath: f.ImagePath, UserId: f.UserID})
+	for _, m := range r.Multimedia {
+		out.Multimedia = append(out.Multimedia, Multimedia{CreatedAt: m.CreatedAt, Id: m.ID, Path: m.Path, UserId: m.UserID})
 	}
 
 	for _, t := range r.Tags {
@@ -46,7 +45,7 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 	return out
 }
 
-// CrearReporte crea un reporte con la ubicación y foto del usuario autenticado.
+// CrearReporte crea un reporte con la ubicación y la multimedia del usuario autenticado.
 func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
@@ -54,10 +53,18 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	}
 
 	b := request.Body
-	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, b.ImagePath)
+	var multimedia *domain.MultimediaNueva
+	if b.Multimedia != nil {
+		multimedia = &domain.MultimediaNueva{Path: b.Multimedia.Path}
+	}
+
+	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, multimedia)
 	if err != nil {
 		if errors.Is(err, domain.ErrIncidenteNotFound) {
 			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
+		}
+		if errors.Is(err, domain.ErrMultimediaInvalida) {
+			return CrearReporte400JSONResponse{Message: err.Error()}, nil
 		}
 		return nil, err
 	}
@@ -108,4 +115,33 @@ func (s *Server) ListarReportes(ctx context.Context, request ListarReportesReque
 		res = append(res, toReporteResumen(row))
 	}
 	return res, nil
+}
+
+func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error) {
+	if _, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId); err != nil {
+		if errors.Is(err, domain.ErrReporteNotFound) {
+			return AgregarAvistamiento404JSONResponse{Message: "reporte no encontrado"}, nil
+		}
+		return nil, err
+	}
+
+	r, err := s.services.Reportes.Obtener(ctx, request.ReporteId)
+	if err != nil {
+		return nil, err
+	}
+	return AgregarAvistamiento200JSONResponse(toReporte(r)), nil
+}
+
+// CambiarEstadoReporte cambia el estado de un reporte a cualquier valor del
+// enum. El router no valida el body contra el contrato, así que un estado
+// fuera del enum (o ausente) se rechaza aquí con 400.
+func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
+	r, err := s.services.Reportes.CambiarEstado(ctx, request.ReporteId, domain.Estado(request.Body.Estado))
+	if err != nil {
+		if errors.Is(err, domain.ErrReporteNotFound) {
+			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
+		}
+		return nil, err
+	}
+	return CambiarEstadoReporte200JSONResponse(toReporte(r)), nil
 }

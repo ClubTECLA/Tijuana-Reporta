@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { perfilColors, perfilRadius } from '../theme/perfilTokens';
 
-interface SegmentedTabsProps {
-  options: string[];
-  selected: string;
-  onSelect: (option: string) => void;
+interface SegmentedTabsProps<T extends string> {
+  options: readonly T[];
+  selected: T;
+  onSelect: (option: T) => void;
 }
 
-export const SegmentedTabs = ({ options, selected, onSelect }: SegmentedTabsProps) => (
-  <View style={styles.container}>
+export const SegmentedTabs = <T extends string>({ options, selected, onSelect }: SegmentedTabsProps<T>) => (
+  <View style={styles.container} accessibilityRole="tablist">
     {options.map((option) => {
       const active = option === selected;
       return (
@@ -17,6 +17,8 @@ export const SegmentedTabs = ({ options, selected, onSelect }: SegmentedTabsProp
           key={option}
           style={[styles.tab, active && styles.tabActive]}
           onPress={() => onSelect(option)}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: active }}
         >
           <Text style={[styles.text, active && styles.textActive]}>{option}</Text>
         </TouchableOpacity>

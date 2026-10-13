@@ -11,8 +11,12 @@ paths:
     $ref: './paths/reportes.yaml#/crearReporte'
   /reportes/{reporteId}:
     $ref: './paths/reportes.yaml#/obtenerReporte'
+  /reportes/{reporteId}/avistamientos:
+    $ref: './paths/reportes.yaml#/agregarAvistamiento'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
+  /reportes/{reporteId}/estado:
+    $ref: './paths/reportes.yaml#/cambiarEstadoReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:
@@ -21,6 +25,14 @@ paths:
     $ref: './paths/auth.yaml#/me'
   /auth/logout:
     $ref: './paths/auth.yaml#/logout'
+  /incidentes:
+    $ref: './paths/incidentes.yaml#/crearIncidente'
+  /incidentes/{incidenteId}:
+    $ref: './paths/incidentes.yaml#/obtenerIncidente'
+  /incidentes/{incidenteId}/tags:
+    $ref: './paths/incidentes.yaml#/agregarTags'
+  /users:
+    $ref: './paths/usuarios.yaml#/listarUsuarios'
 
 components:
   schemas:
@@ -32,12 +44,20 @@ components:
       $ref: './schemas/reportes/reporte.yaml'
     ReporteResumen:
       $ref: './schemas/reportes/reporte_resumen.yaml'
+    CambiarEstadoReporteRequest:
+      $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
-    Foto:
-      $ref: './schemas/fotos/foto.yaml'
+    Multimedia:
+      $ref: './schemas/multimedia/multimedia.yaml'
+    MultimediaNueva:
+      $ref: './schemas/multimedia/multimedia_nueva.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
+    TagCatalogo:
+      $ref: './schemas/tags/tag_catalogo.yaml'
+    CrearTagRequest:
+      $ref: './schemas/tags/crear_tag_request.yaml'
     Location:
       $ref: './schemas/locations/location.yaml'
     CrearReporteRequest:
@@ -54,6 +74,12 @@ components:
       $ref: './schemas/auth/usuario.yaml'
     UsuarioMeResponse:
       $ref: './schemas/auth/usuario_me_response.yaml'
+    Incidente:
+      $ref: './schemas/incidentes/incidente.yaml'
+    CrearIncidenteRequest:
+      $ref: './schemas/incidentes/crear_incidente_request.yaml'
+    UsuarioResumen:
+      $ref: './schemas/users/usuario_resumen.yaml'
   securitySchemes:
     bearerAuth:
       type: http

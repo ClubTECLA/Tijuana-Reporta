@@ -1,0 +1,34 @@
+listarUsuarios:
+  get:
+    operationId: listarUsuarios
+    description: Obtiene la lista de usuarios del sistema.
+    security:
+      - bearerAuth: [admin]
+    responses:
+      '200':
+        description: Lista de usuarios
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/UsuarioResumen'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    UsuarioResumen:
+      $ref: '../schemas/users/usuario_resumen.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

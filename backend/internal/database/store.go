@@ -54,8 +54,10 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg domain.Crea
 	return user, nil
 }
 
-// CreateReporte inserta el reporte, la ubicación inicial y sus fotos en la
-// misma transacción
+// CreateReporte inserts and returns a report, saving its initial location,
+// multimedia, and association with arg.UserID in the same transaction.
+// It returns a zero-value report and propagates errors from starting the
+// transaction, inserting any record, or committing the transaction.
 func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error) {
 	var reporte domain.Reporte
 
@@ -74,15 +76,23 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 			return err
 		}
 
-		for _, path := range arg.ImagePaths {
-			if _, err = q.CreateFotoReporte(ctx, domain.CreateFotoReporteParams{
+		if arg.Multimedia != nil {
+			if _, err = q.CreateMultimedia(ctx, domain.CreateMultimediaParams{
 				ReporteID: reporte.ID,
-				ImagePath: path,
+				Path:      arg.Multimedia.Path,
 				UserID:    arg.UserID,
 			}); err != nil {
 				return err
 			}
 		}
+
+		if _, err = q.CreateUserReporte(ctx, domain.CreateUserReporteParams{
+			UserID:    arg.UserID,
+			ReporteID: reporte.ID,
+		}); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -90,4 +100,56 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 	}
 
 	return reporte, nil
+}
+
+// CreateIncidenteConTags inserta el incidente y sus tags en la misma
+// transacción: si un tag falla (p. ej. nombre repetido), no queda un
+// incidente a medias.
+func (s *Store) CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error) {
+	detalle := domain.IncidenteDetalle{Tags: make([]domain.Tag, 0, len(arg.Tags))}
+
+	err := s.execTx(ctx, func(q *domain.Queries) error {
+		var err error
+		if detalle.Incidente, err = q.CreateIncidente(ctx, arg.Incidente); err != nil {
+			return err
+		}
+
+		for _, t := range arg.Tags {
+			t.IncidenteID = detalle.Incidente.ID
+			tag, err := q.CreateTag(ctx, t)
+			if err != nil {
+				return err
+			}
+			detalle.Tags = append(detalle.Tags, tag)
+		}
+		return nil
+	})
+	if err != nil {
+		return domain.IncidenteDetalle{}, err
+	}
+
+	return detalle, nil
+}
+
+// CreateTags inserta varios tags del catálogo de un incidente en la misma
+// transacción: o se crean todos o ninguno. Los IncidenteID de arg ya deben
+// venir llenos.
+func (s *Store) CreateTags(ctx context.Context, arg []domain.CreateTagParams) ([]domain.Tag, error) {
+	tags := make([]domain.Tag, 0, len(arg))
+
+	err := s.execTx(ctx, func(q *domain.Queries) error {
+		for _, t := range arg {
+			tag, err := q.CreateTag(ctx, t)
+			if err != nil {
+				return err
+			}
+			tags = append(tags, tag)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return tags, nil
 }

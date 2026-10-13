@@ -32,10 +32,11 @@ type AuthStore interface {
 }
 
 type AuthService struct {
-	store         AuthStore
-	secret        []byte
-	ttl           time.Duration
-	defaultRoleID int
+	store           AuthStore
+	secret          []byte
+	ttl             time.Duration
+	defaultRoleID   int
+	defaultRoleName string
 }
 
 // NewAuthService resuelve el id del rol "ciudadano" contra la base una sola
@@ -45,7 +46,7 @@ func NewAuthService(ctx context.Context, store AuthStore, secret []byte, ttl tim
 	if err != nil {
 		return nil, fmt.Errorf("resolving default role: %w", err)
 	}
-	return &AuthService{store: store, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID}, nil
+	return &AuthService{store: store, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID, defaultRoleName: defaultRole.Nombre}, nil
 }
 
 // Register crea el usuario con password local y devuelve el token de acceso
@@ -72,7 +73,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 		return domain.User{}, "", 0, err
 	}
 
-	token, err := s.issueToken(user)
+	token, err := s.issueToken(user, s.defaultRoleName)
 	if err != nil {
 		return domain.User{}, "", 0, err
 	}
@@ -103,7 +104,12 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (domain
 		return domain.User{}, "", 0, domain.ErrInvalidCredentials
 	}
 
-	token, err := s.issueToken(user)
+	row, err := s.store.GetUserWithRolByID(ctx, user.ID)
+	if err != nil {
+		return domain.User{}, "", 0, err
+	}
+
+	token, err := s.issueToken(user, row.RolName)
 	if err != nil {
 		return domain.User{}, "", 0, err
 	}
@@ -128,13 +134,24 @@ func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.UserWit
 	}, nil
 }
 
-// issueToken genera un JWT firmado con el id del usuario y la fecha de expiración.
-func (s *AuthService) issueToken(user domain.User) (string, error) {
+// tokenClaims son los claims del access token. middleware.Auth lee "sub" y
+// "rol"; si cambias un nombre aquí, cámbialo allá también.
+type tokenClaims struct {
+	Rol string `json:"rol"`
+	jwt.RegisteredClaims
+}
+
+// issueToken genera un JWT firmado con el id del usuario, su rol y la fecha
+// de expiración.
+func (s *AuthService) issueToken(user domain.User, rol string) (string, error) {
 	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Subject:   user.ID.String(),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
+	claims := tokenClaims{
+		Rol: rol,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.ID.String(),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
+		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }

@@ -1,64 +1,103 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 import type { Reporte } from '@/types/api';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
+import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon';
+import { FileTextIcon } from '@/components/icons/FileTextIcon';
+import { MapIcon } from '@/components/icons/MapIcon';
 import { CategoriaBadge } from './CategoriaBadge';
-import { etiquetaLabel } from './categorias';
+import { CATEGORIA_LABEL, etiquetaLabel } from './categorias';
+import { codigoReporte } from './codigo';
 
 interface ReporteCreadoProps {
   reporte: Reporte;
+  /** true si se llegó aquí confirmando "¿Es el mismo incidente?" en vez de crear uno nuevo. */
+  viaDuplicado?: boolean;
+  onVer: () => void;
   onVolver: () => void;
 }
 
-const RING = 99.285;
-const RING_BORDER = 6;
+/** Une los nombres de las categorías en minúsculas, separados por comas y una «y» final. */
+const listarCategorias = (reporte: Reporte) => {
+  const nombres = reporte.categorias.map((c) => CATEGORIA_LABEL[c].toLowerCase());
+  return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
+};
 
-export function ReporteCreado({ reporte, onVolver }: ReporteCreadoProps) {
+/** Formatea la hora local de una fecha como HH:mm. */
+const hora = (fecha: Date) =>
+  `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
+
+/**
+ * Hoja "Reporte creado" (Figma 1396:9541) sobre el mapa oscurecido; con
+ * `viaDuplicado` es la variante "Reporte enviado" (Figma 1505:1650).
+ */
+export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }: ReporteCreadoProps) {
   const insets = useSafeAreaInsets();
+  const categoriaPrincipal = reporte.categorias[0];
+  const recibido = viaDuplicado ? new Date() : new Date(reporte.created_at);
 
   return (
     <View style={styles.root}>
-      <View pointerEvents="none" style={styles.marco} />
-
-      <View style={[styles.contenido, { paddingTop: insets.top + 55 }]}>
-        <Svg width={177} height={177} viewBox="0 0 177 177" fill="none">
-          <Circle cx={88.5} cy={88.5} r={84.1149} fill="#6ED354" stroke="#C8C8C8" strokeWidth={8.77027} />
-          <Path
-            d="M49.4324 98.8302L69.9195 126.146L127.966 51.027"
-            stroke="white"
-            strokeWidth={16.7432}
-            strokeLinecap="round"
-          />
-        </Svg>
-
-        <Text style={styles.titulo}>Reporte Creado</Text>
-        <Text style={styles.subtitulo}>Gracias por apoyar a tu comunidad</Text>
-
-        <View style={styles.tarjeta}>
-          <View style={styles.anillo}>
-            <CategoriaBadge categoria={reporte.categoria} size={RING - RING_BORDER * 2} glyphScale={1.45} />
-          </View>
-          <Text style={styles.tarjetaTitulo} numberOfLines={2}>
-            {reporte.titulo}
-          </Text>
-          {reporte.tags.length > 0 && (
-            <View style={styles.chips}>
-              {reporte.tags.map((tag) => (
-                <View key={tag} style={styles.chip}>
-                  <Text style={styles.chipTexto}>{etiquetaLabel(tag)}</Text>
-                </View>
-              ))}
+      <View style={styles.hoja}>
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.contenido, { paddingBottom: Math.max(insets.bottom, 0) + 32 }]}
+        >
+          <View style={styles.encabezado}>
+            <View style={styles.icono}>
+              <CheckCircleIcon size={40} color={colors.successIcon} />
             </View>
-          )}
-        </View>
-      </View>
+            <Text style={styles.titulo}>{viaDuplicado ? '¡Reporte Enviado!' : '¡Reporte Creado!'}</Text>
+            <Text style={styles.subtitulo}>
+              {viaDuplicado
+                ? `Confirmaste el reporte de ${listarCategorias(reporte)} con éxito`
+                : `Tu reporte de ${listarCategorias(reporte)} fue creado con éxito`}
+            </Text>
+          </View>
 
-      <View style={[styles.pie, { bottom: Math.max(insets.bottom, 0) + 41 }]}>
-        <Pressable onPress={onVolver} accessibilityRole="button" style={styles.boton}>
-          <Text style={styles.botonTexto}>Volver al Mapa</Text>
-        </Pressable>
+          <View style={styles.tarjeta}>
+            {reporte.image_url ? (
+              <Image source={{ uri: reporte.image_url }} style={styles.foto} resizeMode="cover" />
+            ) : (
+              <View style={[styles.foto, styles.fotoVacia]}>
+                <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />
+              </View>
+            )}
+            <View style={styles.cuerpo}>
+              <View style={styles.filaTitulo}>
+                <CategoriaBadge categoria={categoriaPrincipal} size={32} />
+                <View style={styles.titulos}>
+                  <Text style={styles.codigo}>{codigoReporte(reporte.id)}</Text>
+                  <Text style={styles.recibido}>Recibido hoy {hora(recibido)} · pendiente de revisión</Text>
+                </View>
+              </View>
+              <View style={styles.probable}>
+                <View style={styles.punto} />
+                <Text style={styles.probableTexto}>Probable</Text>
+              </View>
+              {reporte.tags.length > 0 && (
+                <View style={styles.etiquetas}>
+                  {reporte.tags.map((tag) => (
+                    <View key={tag} style={styles.etiqueta}>
+                      <Text style={styles.etiquetaTexto}>{etiquetaLabel(tag)}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          <Pressable onPress={onVer} accessibilityRole="button" style={[styles.boton, styles.botonRojo]}>
+            <FileTextIcon size={22} color={colors.white} />
+            <Text style={styles.botonTexto}>Ver reporte</Text>
+          </Pressable>
+          <Pressable onPress={onVolver} accessibilityRole="button" style={[styles.boton, styles.botonAzul]}>
+            <MapIcon size={22} color={colors.white} />
+            <Text style={styles.botonTexto}>Volver al mapa</Text>
+          </Pressable>
+        </ScrollView>
       </View>
     </View>
   );
@@ -67,107 +106,147 @@ export function ReporteCreado({ reporte, onVolver }: ReporteCreadoProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.creadoBackground,
+    justifyContent: 'flex-end',
+    backgroundColor: colors.scrim,
   },
-  // Marco punteado de la pantalla del Figma (borde de 6 px, inset de 17 px).
-  marco: {
-    position: 'absolute',
-    top: 18,
-    bottom: 18,
-    left: 17,
-    right: 17,
-    borderWidth: 6,
-    borderStyle: 'dashed',
-    borderColor: '#e0e0e0',
+  hoja: {
+    maxHeight: '88%',
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    elevation: 16,
   },
   contenido: {
-    flex: 1,
+    paddingTop: 38,
+    paddingHorizontal: 24,
+    gap: 21,
+  },
+  encabezado: {
     alignItems: 'center',
-    paddingHorizontal: 32,
+    gap: 9,
+  },
+  icono: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.successSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titulo: {
-    marginTop: 26,
-    fontFamily: fontFamily.semiBold,
-    fontSize: 40,
-    lineHeight: 48,
-    color: colors.creadoInk,
-    textAlign: 'center',
+    marginTop: 4,
+    fontFamily: fontFamily.bold,
+    fontSize: 21,
+    color: colors.textPrimary,
   },
   subtitulo: {
-    marginTop: 8,
     fontFamily: fontFamily.regular,
-    fontSize: 20,
-    lineHeight: 26,
-    color: colors.creadoInk,
+    fontSize: 14,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   tarjeta: {
-    marginTop: 30,
-    width: '100%',
-    maxWidth: 311,
-    alignItems: 'center',
-    paddingTop: 19,
-    paddingBottom: 23,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    backgroundColor: colors.creadoCard,
-  },
-  anillo: {
-    width: RING,
-    height: RING,
-    borderRadius: RING / 2,
-    borderWidth: RING_BORDER,
-    borderColor: '#bebebe',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.white,
+    backgroundColor: colors.cardSecondary,
     overflow: 'hidden',
   },
-  tarjetaTitulo: {
-    marginTop: 16,
-    fontFamily: fontFamily.medium,
-    fontSize: 20,
-    lineHeight: 26,
-    color: colors.creadoInk,
-    textAlign: 'center',
+  foto: {
+    width: '100%',
+    height: 170,
+    borderRadius: 16,
   },
-  chips: {
-    marginTop: 16,
+  fotoVacia: {
+    backgroundColor: colors.photoBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cuerpo: {
+    paddingTop: 14,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filaTitulo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  titulos: {
+    flex: 1,
+    gap: 2,
+  },
+  codigo: {
+    fontFamily: fontFamily.bold,
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  recibido: {
+    fontFamily: fontFamily.regular,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  probable: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.etiquetaAdvertenciaBg,
+  },
+  punto: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.etiquetaAdvertenciaText,
+  },
+  probableTexto: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 11,
+    color: colors.etiquetaAdvertenciaText,
+  },
+  etiquetas: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
+    gap: 8,
+    marginTop: 4,
   },
-  chip: {
-    paddingHorizontal: 14.7,
-    paddingVertical: 7.4,
+  etiqueta: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
-    borderWidth: 1.434,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.white,
-    elevation: 1,
+    backgroundColor: colors.infoSubtle,
   },
-  chipTexto: {
-    fontFamily: fontFamily.medium,
-    fontSize: 15.95,
-    lineHeight: 23.9,
-    color: colors.chipText,
-  },
-  pie: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+  etiquetaTexto: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 12,
+    color: colors.brandText,
   },
   boton: {
-    width: 311,
-    maxWidth: '85%',
-    height: 84,
-    borderRadius: 57,
-    backgroundColor: colors.creadoButton,
+    height: 60,
+    borderRadius: 999,
+    paddingHorizontal: 28,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    elevation: 4,
+  },
+  botonRojo: {
+    backgroundColor: colors.reportRed,
+    shadowColor: colors.reportRed,
+  },
+  botonAzul: {
+    backgroundColor: colors.brand,
+    shadowColor: colors.brand,
   },
   botonTexto: {
     fontFamily: fontFamily.bold,
-    fontSize: 24,
+    fontSize: 18,
     color: colors.white,
   },
 });

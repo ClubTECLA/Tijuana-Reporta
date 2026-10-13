@@ -94,8 +94,8 @@ Si el endpoint necesita una tabla o columna nueva, crea un par de archivos con e
 siguiente número de la secuencia:
 
 ```
-internal/database/migrations/006_agregar_algo.up.sql
-internal/database/migrations/006_agregar_algo.down.sql
+internal/database/migrations/002_agregar_algo.up.sql
+internal/database/migrations/002_agregar_algo.down.sql
 ```
 
 - `up` aplica el cambio; `down` lo revierte **exactamente** (una migración sin `down`
@@ -301,7 +301,7 @@ declaradas en `internal/api/api.go`. Agrega ahí el método nuevo:
 
 ```go
 type ReporteService interface {
-    Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, imagePath *string) (domain.Reporte, error)
+    Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.MultimediaNueva) (domain.Reporte, error)
     Obtener(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 }
 ```
@@ -354,7 +354,6 @@ Reglas del handler:
           EstadoActual:  string(r.EstadoActual),
           CreatedAt:     r.CreatedAt,
           UpdatedAt:     r.UpdatedAt,
-          ExpiredAt:     r.ExpiredAt,
       }
   }
   ```

@@ -1,15 +1,23 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthMapBackground } from '../src/components/auth/AuthMapBackground';
-import { PrimaryButton } from '../src/components/auth/PrimaryButton';
+import { BotonPildora } from '../src/components/BotonPildora';
 import { LocationPinIcon } from '../src/components/icons/LocationPinIcon';
+import { usePermisosVistos } from '../src/features/bienvenida/permisosVistos';
+import { useSessionStore } from '../src/lib/session';
 import { colors } from '../src/theme/colors';
 import { fontFamily } from '../src/theme/typography';
 
 export default function Bienvenida() {
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
+  const permisosVistos = usePermisosVistos();
+  const entrarComoInvitado = useSessionStore((s) => s.entrarComoInvitado);
+
+  // La primera vez se pasa antes por "Activa tu ubicación" y "Recibe alertas cercanas".
+  if (permisosVistos === null) return <View style={styles.root} />;
+  if (!permisosVistos) return <Redirect href="/permisos/ubicacion" />;
 
   return (
     <View style={styles.root}>
@@ -25,9 +33,9 @@ export default function Bienvenida() {
         <View style={styles.content}>
           <View style={styles.brandRow}>
             <View style={styles.brandBadge}>
-              <LocationPinIcon size={24} />
+              <LocationPinIcon size={42.778} />
             </View>
-            <Text style={styles.brandTitle}>Tijuana Reporta</Text>
+            <Text style={styles.brandTitle}>CimAlert</Text>
           </View>
 
           <Text style={styles.tagline}>Alerta ciudadana · temporada El Niño</Text>
@@ -38,19 +46,20 @@ export default function Bienvenida() {
           </Text>
 
           <View style={styles.actions}>
-            <PrimaryButton
-              label="Crear cuenta"
-              showArrow={false}
-              style={styles.createAccountButton}
-              onPress={() => router.push('/(auth)/auth?tab=signup')}
+            <BotonPildora etiqueta="Crear cuenta" onPress={() => router.push('/(auth)/auth?tab=signup')} />
+            <BotonPildora
+              etiqueta="Ya tengo cuenta"
+              variante="secundario"
+              style={styles.loginButton}
+              onPress={() => router.push('/(auth)/auth?tab=login')}
             />
-            <Pressable style={styles.loginOutline} onPress={() => router.push('/(auth)/auth?tab=login')}>
-              <Text style={styles.loginOutlineLabel}>Ya tengo cuenta</Text>
-            </Pressable>
-            {/* El mapa como invitado no está en el alcance de este flujo todavía. */}
-            <Pressable onPress={() => router.push('/(main)')}>
-              <Text style={styles.guestLink}>Ver el mapa como invitado</Text>
-            </Pressable>
+            {/* Al entrar como invitado, app/_layout.tsx cambia la Bienvenida por el mapa. */}
+            <BotonPildora
+              etiqueta="Ver el mapa como invitado"
+              variante="texto"
+              style={styles.guestButton}
+              onPress={entrarComoInvitado}
+            />
           </View>
         </View>
       </SafeAreaView>
@@ -75,65 +84,54 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
+  // Medidas del Figma 3 (Bienvenida).
   content: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingHorizontal: 28,
+    paddingBottom: 60,
     gap: 16,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 24,
+    marginLeft: -9,
   },
   brandBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 77,
+    height: 77,
+    borderRadius: 38.5,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandTitle: {
     fontFamily: fontFamily.bold,
-    fontSize: 27,
-    color: colors.headingDark,
+    fontSize: 36.822,
+    lineHeight: 36.822,
+    letterSpacing: -0.9206,
+    color: colors.ink,
   },
   tagline: {
+    marginTop: 9,
     fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.textMuted,
+    fontSize: 17.359,
+    lineHeight: 26.039,
+    color: colors.slate,
   },
   description: {
+    marginTop: 10,
     fontFamily: fontFamily.regular,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 15.285,
+    lineHeight: 21.836,
     color: colors.black,
   },
   actions: {
-    marginTop: 12,
-    gap: 14,
+    marginTop: 60,
   },
-  createAccountButton: {
-    backgroundColor: colors.primary,
+  loginButton: {
+    marginTop: 29,
   },
-  loginOutline: {
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginOutlineLabel: {
-    fontFamily: fontFamily.bold,
-    fontSize: 16,
-    color: colors.black,
-  },
-  guestLink: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-    color: colors.link,
-    textAlign: 'center',
-    marginTop: 4,
+  guestButton: {
+    marginTop: -4,
   },
 });

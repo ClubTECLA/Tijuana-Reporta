@@ -1,0 +1,13 @@
+description: Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte.
+type: object
+required: [id, nombre, peso]
+properties:
+  id:
+    type: integer
+  nombre:
+    type: string
+    minLength: 1
+    maxLength: 50
+  peso:
+    type: integer
+    minimum: 1

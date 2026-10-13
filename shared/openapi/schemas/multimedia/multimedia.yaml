@@ -1,0 +1,14 @@
+type: object
+description: Archivo (foto o video) que un usuario adjuntó a un reporte.
+required: [id, path, user_id, created_at]
+properties:
+  id:
+    type: integer
+  path:
+    type: string
+  user_id:
+    type: string
+    format: uuid
+  created_at:
+    type: string
+    format: date-time

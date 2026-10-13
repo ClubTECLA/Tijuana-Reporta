@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { panelViews, type PanelViewKey } from "../../types/global-views";
+import { validateChildren } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/validateChildren";
 
 interface CommonPanelContextType {
     setPanelView: (newView: PanelViewKey | null) => void;
@@ -11,12 +12,16 @@ interface CommonPanelContextType {
 const CommonPanelContext = createContext<CommonPanelContextType | undefined>(undefined);
 
 export function CommonPanelProvider({ children }: { children: ReactNode }) {
+    validateChildren(children, "CommonPanelProvider");
+
     const [currentPanelView, setCurrentPanelView] = useState<PanelViewKey | null>(null);
     const [previousView, setPreviousView] = useState<PanelViewKey[]>([]);
     const [ open, setOpen ] = useState(true);
 
     const closePanel = () => {
         setOpen(false);
+        setCurrentPanelView(null);
+        setPreviousView([]);
     }
 
     const backView = () => {
@@ -55,7 +60,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
 
         setCurrentPanelView(view);
     };
-    console.log(previousView);
+
     return (
         <CommonPanelContext.Provider
             value={{
@@ -69,17 +74,16 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
             {currentPanelView && open && (
                 <section
                     className="
-                        fixed left-3 top-20 bottom-5
-                        max-w-3/4 min-w-1/4
-                        bg-white rounded-2xl
-                        z-50 w-fit
-                        shadow-lg shadow-gray-600 p-4
-                        flex flex-col overflow-auto
+                        fixed left-2 right-2 top-20 bottom-2
+                        min-w-0 max-w-none
+                        bg-white/90 rounded-2xl
+                        shadow-lg shadow-gray-600 p-3
+                        z-50 
+                        sm:left-3 sm:right-auto sm:bottom-5 
+                        sm:w-fit sm:max-w-3/4 sm:min-w-1/4 sm:p-4
                     "
                 >
-                    <div className="text-bold text-gray-700 flex items-center justify-center h-full">
-                        {panelViews[currentPanelView]}
-                    </div>
+                    {panelViews[currentPanelView]}
                 </section>
             )}
         </CommonPanelContext.Provider>
