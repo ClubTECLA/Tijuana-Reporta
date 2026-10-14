@@ -10,6 +10,16 @@ interface generalSubsectionProps extends subsectionProps{
     to?: string
 }
 
+function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
+    if (!isValidElement<subsectionProps>(child) || typeof child.type === "string") {
+        return child;
+    }
+
+    return cloneElement(child, {
+        debug: debug || child.props.debug,
+    });
+}
+
 export default function SubSection({children, className, debug, format='both-fit', type='div', onClick, to, subKey}: generalSubsectionProps){
     
     const frt = subsectionFormats[format];
@@ -25,13 +35,7 @@ export default function SubSection({children, className, debug, format='both-fit
                 key={subKey}
             >
                 {Children.map(children, (child) => {
-                    if(isValidElement<subsectionProps>(child)){
-                        return cloneElement(child, {
-                            debug: debug || child.props.debug
-                        })
-                    }
-                
-                    return child;
+                    return cloneWithDebug(child, debug)
                 })}
             </Link>
         )
@@ -49,13 +53,7 @@ export default function SubSection({children, className, debug, format='both-fit
                 key={subKey}
             >
                 {Children.map(children, (child) => {
-                    if(isValidElement<subsectionProps>(child)){
-                        return cloneElement(child, {
-                            debug: debug || child.props.debug
-                        })
-                    }
-                
-                    return child;
+                    return cloneWithDebug(child, debug)
                 })}
             </button>
         )
@@ -70,13 +68,7 @@ export default function SubSection({children, className, debug, format='both-fit
             key={subKey}
         >
             {Children.map(children, (child) => {
-                if(isValidElement<subsectionProps>(child)){
-                    return cloneElement(child, {
-                        debug: debug || child.props.debug
-                    })
-                }
-            
-                return child;
+                return cloneWithDebug(child, debug)
             })}
         </div>
     )

@@ -1,13 +1,20 @@
 import type { subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 
+const bgColor = {
+    "transparent": "",
+    "blue": "bg-blue-50",
+    "red" : "bg-red-50"
+} as const satisfies Record<string, string>
+
 interface userCartProps extends subsectionProps {
     username: string,
     email?: string | null,
     rolName?: string | null | number
+    bg_color?: keyof typeof bgColor;
 }
 
-export default function UserCart({username, email, rolName, debug, format}: userCartProps) {
+export default function UserCart({username, email, rolName, debug, format, bg_color = 'transparent'}: userCartProps) {
     const usernameArray = username.split(' ');
     let iconName:string;
     if(username.length === 0){
@@ -20,7 +27,7 @@ export default function UserCart({username, email, rolName, debug, format}: user
     }
 
     return(
-        <SubSection format={format} className="flex-row w-full rounded-2xl bg-blue-50 items-center p-2" debug={debug}>
+        <SubSection format={format} className={`flex-row w-full rounded-2xl items-center p-2 ${bgColor[bg_color]}`} debug={debug}>
             <div className="rounded-full flex items-center justify-center bg-blue-700 text-white w-10 h-10 font-bold">
                 {iconName}
             </div>

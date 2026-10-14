@@ -65,6 +65,7 @@ export default function UserProfileView() {
                 username={user.username}
                 email={user.email}
                 rolName={user.rol_name}
+                bg_color='blue'
             />
             <Input
                 format={"col"}

@@ -90,7 +90,7 @@ function CategoriesSection({debug} : subsectionProps) {
     }
 
     return(
-        <ColSection className="min-w-0 w-full gap-2 overflow-x-hidden"
+        <ColSection className="min-w-0 w-full gap-2"
             debug={debug}
         >
             <RowSection

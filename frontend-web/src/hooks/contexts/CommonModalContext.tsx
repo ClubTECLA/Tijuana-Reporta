@@ -105,7 +105,7 @@ export function ModalOverlay() {
             className="
                 fixed right-3 top-[6.5rem] z-[60]
                 sm:right-5 sm:top-20
-                w-fit max-w-[calc(100vw-1.5rem)]
+                w-fit max-w-1/2
                 pointer-events-auto
                 flex flex-col items-center justify-center
                 rounded-xl bg-white shadow-lg
