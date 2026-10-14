@@ -66,6 +66,112 @@ const seed: Reporte[] = [
     user_id: '123e4567-e89b-12d3-a456-426614174003',
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // hace 2 días
   },
+  // Casos para probar "Capas y filtros": cubren drenaje y deslave (sin ellos esos chips no cambian
+  // nada), reportes con varias categorías, categorías fuera del picker y cada ventana de período.
+  {
+    id: '5d1f2c3e-1a2b-4c3d-8e4f-0a1b2c3d4e51',
+    titulo: 'Drenaje colapsado en Col. Libertad',
+    categorias: ['drenaje'],
+    tags: ['aguas_negras', 'mal_olor'],
+    lat: 32.5345,
+    lng: -117.005,
+    direccion: 'Col. Libertad, 22300 Tijuana, B.C.',
+    status: 'pendiente',
+    upvotes: 9,
+    user_id: '123e4567-e89b-12d3-a456-426614174004',
+    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // hace 45 min (Ahora)
+  },
+  {
+    id: '6e2a3d4f-2b3c-4d4e-9f50-1b2c3d4e5f62',
+    titulo: 'Deslave sobre camino en Camino Verde',
+    categorias: ['deslave'],
+    tags: ['tierra', 'camino_bloqueado'],
+    lat: 32.4905,
+    lng: -116.982,
+    direccion: 'Camino Verde, 22205 Tijuana, B.C.',
+    status: 'en_proceso',
+    upvotes: 31,
+    user_id: '123e4567-e89b-12d3-a456-426614174005',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // hace 5 horas (24 h)
+  },
+  {
+    id: '7f3b4e50-3c4d-4e5f-a061-2c3d4e5f6073',
+    titulo: 'Drenaje tapado e inundación en Zona Río',
+    categorias: ['drenaje', 'inundacion'], // varias categorías: coincide si cualquiera está activa
+    tags: ['coladera', 'charco'],
+    lat: 32.5231,
+    lng: -117.009,
+    direccion: 'Zona Río, 22010 Tijuana, B.C.',
+    status: 'pendiente',
+    upvotes: 17,
+    user_id: '123e4567-e89b-12d3-a456-426614174006',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // hace 3 días (7 días)
+  },
+  {
+    id: '8a4c5f61-4d5e-4f60-b172-3d4e5f607184',
+    titulo: 'Deslave en acantilado de Playas de Tijuana',
+    categorias: ['deslave'],
+    tags: ['acantilado', 'riesgo'],
+    lat: 32.529,
+    lng: -117.1235,
+    direccion: 'Playas de Tijuana, 22500 Tijuana, B.C.',
+    status: 'resuelto',
+    upvotes: 6,
+    user_id: '123e4567-e89b-12d3-a456-426614174007',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(), // hace 6 días (7 días)
+  },
+  {
+    id: '9b5d6072-5e6f-4071-8283-4e5f60718295',
+    titulo: 'Cables sueltos en Av. Revolución',
+    categorias: ['peligro'], // fuera del picker: solo se ve con las 6 categorías activas
+    tags: ['cables', 'peligro'],
+    lat: 32.5322,
+    lng: -117.0378,
+    direccion: 'Av. Revolución, Zona Centro, 22000',
+    status: 'pendiente',
+    upvotes: 24,
+    user_id: '123e4567-e89b-12d3-a456-426614174008',
+    created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // hace 1 hora (Ahora)
+  },
+  {
+    id: 'ac6e7183-6f70-4182-9394-5f60718293a6',
+    titulo: 'Falta de agua en Otay Centenario',
+    categorias: ['servicios'], // fuera del picker y más viejo que 7 días: ningún período lo muestra
+    tags: ['sin_agua'],
+    lat: 32.5442,
+    lng: -116.9618,
+    direccion: 'Otay Centenario, 22430 Tijuana, B.C.',
+    status: 'en_proceso',
+    upvotes: 52,
+    user_id: '123e4567-e89b-12d3-a456-426614174009',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(), // hace 10 días (fuera de todo)
+  },
+  {
+    id: 'bd7f8294-7081-4293-a4a5-60718293a4b7',
+    titulo: 'Socavón y luminaria apagada en Blvd. Díaz Ordaz',
+    categorias: ['socavon', 'luz'], // varias categorías
+    tags: ['bache_profundo', 'sin_luz'],
+    lat: 32.5071,
+    lng: -117.0148,
+    direccion: 'Blvd. Díaz Ordaz, 22044 Tijuana, B.C.',
+    status: 'pendiente',
+    upvotes: 14,
+    user_id: '123e4567-e89b-12d3-a456-426614174010',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(), // hace 20 horas (24 h)
+  },
+  {
+    id: 'ce8093a5-8192-43a4-b5b6-718293a4b5c8',
+    titulo: 'Basura acumulada en Mesa de Otay',
+    categorias: ['otro'], // fuera del picker
+    tags: ['basura'],
+    lat: 32.546,
+    lng: -116.942,
+    direccion: 'Mesa de Otay, 22457 Tijuana, B.C.',
+    status: 'pendiente',
+    upvotes: 3,
+    user_id: '123e4567-e89b-12d3-a456-426614174011',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), // hace 12 horas (24 h)
+  },
 ];
 
 /** Genera una fecha ISO anterior al momento actual por la cantidad de minutos indicada. */
