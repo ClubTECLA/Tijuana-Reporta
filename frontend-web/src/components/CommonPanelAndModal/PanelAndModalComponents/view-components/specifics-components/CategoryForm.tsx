@@ -172,7 +172,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                 suffix="metros"
                 labelPosition='left'
                 description="Radio visual de la categoria del incidente."
-                value={!categoryForEdit.radio ? undefined : categoryForEdit.radio}
+                value={categoryForEdit.radio ?? ""}
                 onChange={handleChangeInputs}
                 name='radio'
             />

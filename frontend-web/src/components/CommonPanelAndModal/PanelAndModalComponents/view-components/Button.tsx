@@ -15,7 +15,7 @@ type wrappedColor = keyof typeof buttonWrapped;
 
 interface buttonProps extends subsectionProps {
     icon?: ReactNode
-    title: string;
+    title?: string;
     color?: wrappedColor
     type?:  "button" | 'link'
     onClick?: () => void
@@ -23,6 +23,7 @@ interface buttonProps extends subsectionProps {
 }
 
 export default function Button({icon, title, format, debug, color = 'gray', onClick, to, type = 'button'} : buttonProps) {
+    
     return(
         <SubSection
             debug={debug}
@@ -30,7 +31,7 @@ export default function Button({icon, title, format, debug, color = 'gray', onCl
             className={`
                 ${buttonWrapped[color]}
                 ${debug ? 'border-2' : ''}
-                flex flex-row items-center pr-4
+                flex flex-row items-center
                 justify-center gap-2 rounded-3xl
                 hover:scale-105 transition-transform duration-300 ease-in-out
                 p-2
@@ -39,8 +40,8 @@ export default function Button({icon, title, format, debug, color = 'gray', onCl
             onClick={onClick}
             to={to} 
         >
-            <span className="text-2xl">{icon}</span>
-            <span className="text-md font-bold whitespace-nowrap">{title}</span>
+            {icon != null && <span className="text-2xl">{icon}</span>}
+            {title && <span className="text-md font-bold whitespace-nowrap">{title}</span>}
         </SubSection>
     )
 }
