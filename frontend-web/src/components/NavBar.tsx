@@ -5,14 +5,18 @@ import { Link } from "react-router-dom"
 //import icons
 import { LuMap, LuSun, LuTent, LuTrendingUp, LuTriangleAlert, LuUsers } from "react-icons/lu"
 import type { NavItemsType } from "../types/utils-types"
-import { useCommonPanel } from "../hooks/contexts/CommonPanelContext"
+import { useCommonPanel } from "../hooks/useCommonPanel"
 
 
 const navItemStyle = (isActive: boolean) => `
     flex h-11 shrink-0 flex-row items-center gap-2
     rounded-full px-4 text-sm
     transition-colors duration-200
-    ${isActive ? 'bg-[#0b1220] font-bold text-white' : 'font-semibold text-slate-700 hover:bg-slate-100'}
+    ${isActive ? 
+        'bg-[#0b1220] font-bold text-white' 
+        : 
+        'font-semibold text-slate-700 hover:bg-slate-100'
+    }
 `
 
 function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: string, cantNoti?: number }) {
@@ -37,27 +41,27 @@ export default function NavBar() {
                 icon: <LuMap/>,
                 title: "Resumen",
                 cantNoti: 12,
-                destinationPath: "/reports"    
+                onClick: () => {}
             },
             {
                 icon: <LuTriangleAlert />,
                 title: "Incidentes",
-                destinationPath: "/incidents"
+                onClick: () => {}
             },
             {
                 icon: <LuTent />,
                 title: "Refugios",
-                destinationPath: "/shelters"
+                onClick: () => {}
             },
             {
                 icon: <LuTrendingUp />,
                 title: "Riesgo",
-                destinationPath: "/risk"
+                onClick: () => {}
             },
             {
                 icon: <LuUsers />,
                 title: "Usuarios",
-                destinationPath: "/users"
+                onClick: () => {}
             },
             {
                 icon: <LuSun/>,

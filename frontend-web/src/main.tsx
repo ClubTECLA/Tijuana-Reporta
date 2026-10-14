@@ -7,7 +7,7 @@ import { SysMessageProvider } from './hooks/contexts/SysMessageContext.tsx'
 import NavigationWrapper from './components/NavigationWrapper.tsx'
 import { BrowserRouter } from 'react-router-dom'
 import { CommonPanelProvider } from './hooks/contexts/CommonPanelContext.tsx'
-import { ModalsProvider } from './hooks/contexts/ModalContext.tsx'
+import { ModalOverlay, ModalsProvider } from './hooks/contexts/CommonModalContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -16,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <ModalsProvider>
             <CommonPanelProvider>
+              <ModalOverlay />
               <NavigationWrapper />
               <App />
             </CommonPanelProvider>
