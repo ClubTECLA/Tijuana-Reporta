@@ -112,11 +112,10 @@ export default function NotificationsMenu() {
     return (
         <section
             className="
-                fixed right-3 top-[6.5rem]
-                w-[calc(100vw-1.5rem)] max-w-100
+                w-fit
                 pointer-events-auto
                 flex h-[32rem] max-h-[calc(100dvh-7.5rem)] flex-col
-                p-4 rounded-3xl shadow-lg shadow-gray-600
+                p-4
                 overflow-hidden
                 bg-gray-100 
                 sm:right-5 sm:top-20 sm:max-h-[calc(100dvh-6rem)]

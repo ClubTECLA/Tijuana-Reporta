@@ -100,7 +100,7 @@ export function OptionList({ debug, format, title, children} : optionsListProps)
         <SubSection 
             debug={debug} 
             format={format}
-            className="flex flex-col"
+            className="flex flex-col mt-2"
         >
             {title && <span className="text-md text-gray-500 font-semibold">{title}</span>}
             <div className="outline-1 outline-gray-300 mt-2 rounded-2xl p-2">

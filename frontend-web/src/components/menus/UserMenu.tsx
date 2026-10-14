@@ -3,7 +3,7 @@ import { useAuth } from "../../hooks/contexts/AuthContext";
 import type { ReactNode } from "react";
 import { FiUser } from "react-icons/fi";
 import { IoIosArrowForward, IoIosClose } from "react-icons/io";
-import { useCommonPanel } from "../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../hooks/useCommonPanel";
 import useModals from "../../hooks/useModals";
 import { MdLogout } from "react-icons/md";
 
@@ -37,13 +37,13 @@ export default function UserMenu() {
 
     return (
         <section 
-            className="
-                rounded-3xl bg-white w-auto h-fit
-                p-4 shadow-lg shadow-gray-600 
-                pointer-events-auto
-                fixed left-3 right-3 top-[6.5rem]
-                sm:left-auto sm:right-5 sm:top-16 sm:w-fit
-            "
+            // className="
+            //     rounded-3xl bg-white w-auto h-fit
+            //     p-4 shadow-lg shadow-gray-600 
+            //     pointer-events-auto
+            //     fixed left-3 right-3 top-[6.5rem]
+            //     sm:left-auto sm:right-5 sm:top-16 sm:w-fit
+            // "
         >
             <div className="flex min-w-0 flex-row gap-3 items-center">
                 {!user?.username ? (

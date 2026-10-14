@@ -11,7 +11,7 @@ import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../PanelAndModalComponents/view-components/Button";
 import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
-import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../hooks/useCommonPanel";
 
 type FormState = {
     username: string;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
 import { panelViews, type PanelViewKey } from "../../types/global-views";
 import { validateChildren } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/validateChildren";
 
@@ -9,7 +9,7 @@ interface CommonPanelContextType {
     closePanel: () => void;
 }
 
-const CommonPanelContext = createContext<CommonPanelContextType | undefined>(undefined);
+export const CommonPanelContext = createContext<CommonPanelContextType | undefined>(undefined);
 
 export function CommonPanelProvider({ children }: { children: ReactNode }) {
     validateChildren(children, "CommonPanelProvider");
@@ -89,13 +89,3 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
         </CommonPanelContext.Provider>
     );
 }
-
-export const useCommonPanel = () => {
-    const context = useContext(CommonPanelContext);
-
-    if (context === undefined) {
-        throw new Error("useCommonPanel must be used within a CommonPanelProvider");
-    }
-
-    return context;
-};

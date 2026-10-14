@@ -1,6 +1,6 @@
 import { isValidElement, cloneElement, Children } from "react";
 import { IoIosArrowBack, IoIosClose } from "react-icons/io";
-import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../../hooks/useCommonPanel";
 import { borders, type SectionProps, type subsectionProps, headerButtonColors } from "../../../../types/utils-types";
 
 

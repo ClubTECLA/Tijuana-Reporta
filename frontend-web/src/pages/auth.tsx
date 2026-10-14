@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {FaLocationDot} from "react-icons/fa6"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { useAuth } from '../hooks/contexts/AuthContext'
-import { useCommonPanel } from '../hooks/contexts/CommonPanelContext'
+import { useCommonPanel } from '../hooks/useCommonPanel'
 import useModals from '../hooks/useModals'
 
 
