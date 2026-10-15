@@ -53,9 +53,9 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	}
 
 	b := request.Body
-	var multimedia *domain.MultimediaNueva
+	var multimedia *domain.CrearMultimediaRequest
 	if b.Multimedia != nil {
-		multimedia = &domain.MultimediaNueva{Path: b.Multimedia.Path}
+		multimedia = &domain.CrearMultimediaRequest{Path: b.Multimedia.Path}
 	}
 
 	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, multimedia)

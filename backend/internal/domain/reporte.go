@@ -13,12 +13,12 @@ type CreateReporteTxParams struct {
 	UserID     uuid.UUID
 	Latitude   float64
 	Longitude  float64
-	Multimedia *MultimediaNueva
+	Multimedia *CrearMultimediaRequest
 }
 
-// MultimediaNueva es el archivo (foto o video) que se adjunta al crear un
+// CrearMultimediaRequest es el archivo (foto o video) que se adjunta al crear un
 // reporte. Path es donde quedó guardado; el backend no recibe el archivo.
-type MultimediaNueva struct {
+type CrearMultimediaRequest struct {
 	Path string
 }
 
@@ -28,7 +28,7 @@ type ReporteDetalle struct {
 	Latitude    float64
 	Longitude   float64
 	Comentarios []Comentario
-	Multimedia  []Multimedium
+	Multimedia  []Multimedia
 	Tags        []ListTagsByReporteIdRow
 	Locations   []ListLocationsByReporteIdRow
 }

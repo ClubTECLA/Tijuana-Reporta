@@ -21,7 +21,7 @@ type fakeReporteStore struct {
 	byID        map[uuid.UUID]domain.Reporte
 	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
 	comentarios map[uuid.UUID][]domain.Comentario
-	multimedia  map[uuid.UUID][]domain.Multimedium
+	multimedia  map[uuid.UUID][]domain.Multimedia
 	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
 	locations   map[uuid.UUID][]domain.ListLocationsByReporteIdRow
 	resumen     []domain.ListReportesResumenRow
@@ -39,7 +39,7 @@ func newFakeReporteStore() *fakeReporteStore {
 		byID:        map[uuid.UUID]domain.Reporte{},
 		puntos:      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow{},
 		comentarios: map[uuid.UUID][]domain.Comentario{},
-		multimedia:  map[uuid.UUID][]domain.Multimedium{},
+		multimedia:  map[uuid.UUID][]domain.Multimedia{},
 		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
 		locations:   map[uuid.UUID][]domain.ListLocationsByReporteIdRow{},
 	}
@@ -62,7 +62,7 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 	// Con una sola location, el centroide es esa misma location.
 	f.puntos[r.ID] = domain.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
 	if m := arg.Multimedia; m != nil {
-		f.multimedia[r.ID] = []domain.Multimedium{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
+		f.multimedia[r.ID] = []domain.Multimedia{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
 	}
 	return r, nil
 }
@@ -87,7 +87,7 @@ func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid
 	return f.comentarios[id], nil
 }
 
-func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedium, error) {
+func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedia, error) {
 	return f.multimedia[id], nil
 }
 
@@ -132,7 +132,7 @@ func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 	userID := uuid.New()
-	multimedia := &domain.MultimediaNueva{Path: "/srv/media/0001.jpg"}
+	multimedia := &domain.CrearMultimediaRequest{Path: "/srv/media/0001.jpg"}
 
 	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371, multimedia)
 	if err != nil {
@@ -162,10 +162,10 @@ func TestReporteService_Crear(t *testing.T) {
 func TestReporteService_Crear_MultimediaInvalida(t *testing.T) {
 	tests := []struct {
 		name       string
-		multimedia domain.MultimediaNueva
+		multimedia domain.CrearMultimediaRequest
 	}{
-		{"path vacío", domain.MultimediaNueva{Path: ""}},
-		{"path solo espacios", domain.MultimediaNueva{Path: "  "}},
+		{"path vacío", domain.CrearMultimediaRequest{Path: ""}},
+		{"path solo espacios", domain.CrearMultimediaRequest{Path: "  "}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

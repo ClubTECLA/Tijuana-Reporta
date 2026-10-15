@@ -15,7 +15,7 @@ type ReporteStore interface {
 	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
-	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedium, error)
+	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
@@ -35,7 +35,7 @@ func NewReporteService(store ReporteStore) *ReporteService {
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario y, si la hay, su foto o video. multimedia admite un solo archivo
 // por usuario por reporte, así que al crear solo puede venir uno.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.MultimediaNueva) (domain.ReporteDetalle, error) {
+func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.ReporteDetalle, error) {
 	if multimedia != nil {
 		if strings.TrimSpace(multimedia.Path) == "" {
 			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)

@@ -50,8 +50,8 @@ components:
       $ref: './schemas/reportes/estado_reporte.yaml'
     Multimedia:
       $ref: './schemas/multimedia/multimedia.yaml'
-    MultimediaNueva:
-      $ref: './schemas/multimedia/multimedia_nueva.yaml'
+    CrearMultimediaRequest:
+      $ref: './schemas/multimedia/crear_multimedia_request.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
     TagCatalogo:
