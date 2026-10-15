@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SegmentedTabs, TabItem } from "../CommonPanelAndModal/PanelAndModalComponents/view-components/SegmentedTabs";
 import { type NotiType } from "../../types/utils-types";
 import { FiSun } from "react-icons/fi";
-import {NotificationTile, NotificationList} from "../CommonPanelAndModal/PanelAndModalComponents/view-components/NotificationTile";
+import {NotificationTile, NotificationList} from "../CommonPanelAndModal/PanelAndModalComponents/view-components/NotificationList";
 import TextButton from "../CommonPanelAndModal/PanelAndModalComponents/view-components/TextButton";
 import RowSection from "../CommonPanelAndModal/PanelAndModalComponents/primitive-components/RowSection";
 import SubsectionTitle from "../CommonPanelAndModal/PanelAndModalComponents/view-components/SubsectionTitle";

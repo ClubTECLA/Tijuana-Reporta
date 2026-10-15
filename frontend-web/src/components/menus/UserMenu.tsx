@@ -17,8 +17,7 @@ export default function UserMenu() {
 
     return (
         <ColSection
-            arrangementSubsections="toDown"
-            className="h-fit w-fit gap-3 rounded-3xl bg-white p-4 shadow-lg shadow-gray-600"
+            className="px-4 pb-2"
         >
             <RowSection arrangementSubsections="toLeft">
                 <UserCart

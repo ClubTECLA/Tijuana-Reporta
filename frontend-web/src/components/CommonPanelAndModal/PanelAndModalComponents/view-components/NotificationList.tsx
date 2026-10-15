@@ -33,7 +33,11 @@ function getTimeSinceCreated(createdAt: string): string {
         return `hace ${elapsedMinutes} min`;
     }
 
-    return `hace ${Math.floor(elapsedMinutes / 60)} hrs`;
+    const elapsedHours = Math.floor(elapsedMinutes / 60); 
+    if(elapsedHours < 24){
+        return `hace ${elapsedHours} hrs`
+    }
+    return `hace ${Math.floor(elapsedHours / 24)} d`;
 }
 
 export function NotificationTile({
@@ -58,8 +62,8 @@ export function NotificationTile({
                 transition-colors hover:bg-gray-200 w-full
             "
         >
-            <span className="sr-only">Notificación {id}</span>
-            <span
+            <SubSection className="sr-only">Notificación {id}</SubSection>
+            <SubSection
                 aria-hidden="true"
                 className={`
                     flex size-10 shrink-0 items-center justify-center
@@ -67,28 +71,28 @@ export function NotificationTile({
                 `}
             >
                 {NotiIcons[type]}
-            </span>
-            <span className="min-w-0 flex-1">
-                <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-2">
-                    <span className="min-w-0 break-words font-bold text-gray-800">{title}</span>
+            </SubSection>
+            <SubSection className="flex flex-col min-w-0 flex-1">
+                <SubSection className="flex min-w-0 flex-wrap items-center justify-between gap-x-2">
+                    <SubSection className="min-w-0 break-words font-bold text-gray-800">{title}</SubSection>
                     <time
                         dateTime={createdAt}
                         className="shrink-0 text-xs font-semibold text-gray-500"
                     >
                         {getTimeSinceCreated(createdAt)}
                     </time>
-                </span>
+                </SubSection>
                 {description && (
-                    <span className="block break-words text-sm text-gray-700">
+                    <SubSection className="block break-words text-sm text-gray-700">
                         {description}
-                    </span>
+                    </SubSection>
                 )}
-            </span>
+            </SubSection>
             {!read && (
-                <span className="flex h-15 flex-col items-start justify-start">
-                    <span className="size-2 rounded-full bg-blue-700" />
-                    <span className="sr-only">No leída</span>
-                </span>
+                <SubSection format="nothing" className="h-15 flex-col items-start justify-start">
+                    <SubSection className="size-2 rounded-full bg-blue-700" />
+                    <SubSection className="sr-only">No leída</SubSection>
+                </SubSection>
             )}
         </SubSection>
     );

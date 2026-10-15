@@ -3,7 +3,7 @@ import { subsectionFormats, type subsectionProps } from "../../../../types/utils
 import { Link } from "react-router-dom";
 
 interface generalSubsectionProps extends subsectionProps{
-    children: ReactNode
+    children?: ReactNode
     className?: string
     type?: "div" | "button" | 'link' 
     onClick?: () => void
@@ -20,7 +20,7 @@ function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
     });
 }
 
-export default function SubSection({children, className, debug, format='both-fit', type='div', onClick, to, subKey}: generalSubsectionProps){
+export default function SubSection({children, className, debug, format='nothing', type='div', onClick, to, subKey}: generalSubsectionProps){
     
     const frt = subsectionFormats[format];
 
