@@ -101,7 +101,7 @@ export function SwatchItem({format = 'both-fit', debug, active = false, color, o
         <SubSection
             format={format}
             debug={debug}
-            type='button'
+            as='button'
             className="hover:scale-105 transition-all duration-300 group px-1"
             onClick={onClick}
         >

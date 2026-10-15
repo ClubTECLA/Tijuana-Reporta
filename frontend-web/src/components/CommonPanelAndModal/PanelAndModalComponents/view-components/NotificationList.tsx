@@ -53,7 +53,7 @@ export function NotificationTile({
 }: NotificationTileProps) {
     return (
         <SubSection
-            type="button"
+            as="button"
             format={format}
             debug={debug}
             onClick={onClick}
@@ -62,8 +62,11 @@ export function NotificationTile({
                 transition-colors hover:bg-gray-200 w-full
             "
         >
-            <SubSection className="sr-only">Notificación {id}</SubSection>
+            <SubSection 
+                as='span'
+                className="sr-only">Notificación {id}</SubSection>
             <SubSection
+                as='span'
                 aria-hidden="true"
                 className={`
                     flex size-10 shrink-0 items-center justify-center
@@ -72,9 +75,18 @@ export function NotificationTile({
             >
                 {NotiIcons[type]}
             </SubSection>
-            <SubSection className="flex flex-col min-w-0 flex-1">
-                <SubSection className="flex min-w-0 flex-wrap items-center justify-between gap-x-2">
-                    <SubSection className="min-w-0 break-words font-bold text-gray-800">{title}</SubSection>
+            <SubSection 
+                as='span'
+                className="flex flex-col min-w-0 flex-1"
+            >
+                <SubSection 
+                    as='span'
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-x-2"
+                >
+                    <SubSection 
+                        as='span'
+                        className="min-w-0 break-words font-bold text-gray-800"
+                    >{title}</SubSection>
                     <time
                         dateTime={createdAt}
                         className="shrink-0 text-xs font-semibold text-gray-500"
@@ -83,15 +95,22 @@ export function NotificationTile({
                     </time>
                 </SubSection>
                 {description && (
-                    <SubSection className="block break-words text-sm text-gray-700">
+                    <SubSection 
+                        as='span'
+                        className="block break-words text-sm text-gray-700"
+                    >
                         {description}
                     </SubSection>
                 )}
             </SubSection>
             {!read && (
-                <SubSection format="nothing" className="h-15 flex-col items-start justify-start">
-                    <SubSection className="size-2 rounded-full bg-blue-700" />
-                    <SubSection className="sr-only">No leída</SubSection>
+                <SubSection 
+                    as='span'
+                    format="nothing" 
+                    className="h-15 flex-col items-start justify-start"
+                >
+                    <SubSection as='span' className="size-2 rounded-full bg-blue-700" />
+                    <SubSection as='span' className="sr-only">No leída</SubSection>
                 </SubSection>
             )}
         </SubSection>
