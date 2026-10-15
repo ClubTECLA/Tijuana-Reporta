@@ -19,6 +19,7 @@ import { useEnLinea } from '@/lib/red';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
 import { CategoriaChip } from '@/features/reportes/crear/CategoriaChip';
+import { AvisoEmergencia } from '@/features/reportes/crear/AvisoEmergencia';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { ReporteCreado } from '@/features/reportes/crear/ReporteCreado';
 import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
@@ -62,6 +63,7 @@ export default function CrearReporte() {
   const enLinea = useEnLinea();
   const [expandido, setExpandido] = useState(false);
   const [todasEtiquetas, setTodasEtiquetas] = useState(false);
+  const [avisoEmergenciaCerrado, setAvisoEmergenciaCerrado] = useState(false);
   const slide = useRef(new Animated.Value(Dimensions.get('window').height)).current;
 
   useEffect(() => {
@@ -79,15 +81,19 @@ export default function CrearReporte() {
 
   if (creado) {
     return (
-      <ReporteCreado
-        reporte={creado}
-        viaDuplicado={creadoViaDuplicado}
-        onVer={() => {
-          setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo, reporteId: creado.id });
-          router.back();
-        }}
-        onVolver={() => router.back()}
-      />
+      <>
+        <ReporteCreado
+          reporte={creado}
+          viaDuplicado={creadoViaDuplicado}
+          onVer={() => {
+            setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo, reporteId: creado.id });
+            router.back();
+          }}
+          onVolver={() => router.back()}
+        />
+        {/* Sugerencia de marcar al 911 encima de la confirmación; se muestra una vez por reporte. */}
+        <AvisoEmergencia visible={!avisoEmergenciaCerrado} onCerrar={() => setAvisoEmergenciaCerrado(true)} />
+      </>
     );
   }
 
