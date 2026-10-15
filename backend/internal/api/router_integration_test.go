@@ -262,6 +262,55 @@ func TestCrearYObtenerReporte(t *testing.T) {
 	}
 }
 
+func TestCrearReporteConMultimedia(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+
+	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"multimedia": map[string]any{"path": "/media/socavon.jpg"},
+	})
+	creado := decode[api.Reporte](t, rec)
+	if len(creado.Multimedia) != 1 {
+		t.Fatalf("multimedia = %d archivos, quería 1", len(creado.Multimedia))
+	}
+	if creado.Multimedia[0].Path != "/media/socavon.jpg" {
+		t.Errorf("multimedia[0] = %+v, quería /media/socavon.jpg", creado.Multimedia[0])
+	}
+
+	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
+	if obtenido := decode[api.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
+		t.Errorf("multimedia al obtener = %d archivos, quería 1", len(obtenido.Multimedia))
+	}
+}
+
+func TestCrearReporteMultimediaInvalida(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+
+	c.expect(http.StatusBadRequest, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"multimedia": map[string]any{"path": "  "},
+	})
+}
+
+func TestCambiarEstadoReporte(t *testing.T) {
+	admin := newTestClient(t)
+	admin.loginComo("admin")
+	creado := admin.crearReporte()
+
+	rec := admin.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Verificado"})
+	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Verificado {
+		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Verificado)
+	}
+
+	admin.expect(http.StatusNotFound, http.MethodPatch, "/v1/reportes/"+uuid.NewString()+"/estado", map[string]any{"estado": "Verificado"})
+
+	ciudadano := newTestClient(t)
+	ciudadano.login()
+	ciudadano.expect(http.StatusForbidden, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Verificado"})
+}
+
 func TestListarReportes(t *testing.T) {
 	c := newTestClient(t)
 	c.login()

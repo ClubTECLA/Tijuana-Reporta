@@ -18,6 +18,7 @@ interface ReportarFabProps {
   expandido?: boolean;
 }
 
+/** Anima el botón Reportar entre círculo y píldora con texto según el estado expandido. */
 export function ReportarFab({ onPress, expandido = false }: ReportarFabProps) {
   const progreso = useRef(new Animated.Value(expandido ? 1 : 0)).current;
 

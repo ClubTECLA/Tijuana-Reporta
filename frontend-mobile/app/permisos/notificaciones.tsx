@@ -21,7 +21,10 @@ export default function PermisoNotificaciones() {
     } catch (err) {
       console.warn('[permisos] no se pudo pedir el permiso de notificaciones:', err);
     } finally {
-      await marcarPermisosVistos();
+      // Si no se puede guardar que ya los vio, igual se avanza: solo volvería a verlos.
+      await marcarPermisosVistos().catch((err) =>
+        console.warn('[permisos] no se pudo guardar que ya vio los permisos:', err),
+      );
       setPidiendo(false);
       router.replace('/');
     }

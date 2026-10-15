@@ -18,17 +18,20 @@ interface ReporteCreadoProps {
   onVolver: () => void;
 }
 
-// "inundación", "inundación y socavón", "inundación, socavón y árbol".
+/** Une los nombres de las categorías en minúsculas, separados por comas y una «y» final. */
 const listarCategorias = (reporte: Reporte) => {
   const nombres = reporte.categorias.map((c) => CATEGORIA_LABEL[c].toLowerCase());
   return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
 };
 
+/** Formatea la hora local de una fecha como HH:mm. */
 const hora = (fecha: Date) =>
   `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
 
-// Hoja "Reporte creado" (Figma 1396:9541) sobre el mapa oscurecido; con
-// `viaDuplicado` es la variante "Reporte enviado" (Figma 1505:1650).
+/**
+ * Hoja "Reporte creado" (Figma 1396:9541) sobre el mapa oscurecido; con
+ * `viaDuplicado` es la variante "Reporte enviado" (Figma 1505:1650).
+ */
 export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }: ReporteCreadoProps) {
   const insets = useSafeAreaInsets();
   const categoriaPrincipal = reporte.categorias[0];

@@ -17,10 +17,12 @@ var (
 	ErrReporteNotFound    = errors.New("reporte not found")
 	ErrIncidenteNotFound  = errors.New("incidente not found")
 	ErrIncidenteInvalido  = errors.New("invalid incidente")
+	ErrMultimediaInvalida = errors.New("invalid multimedia")
 	ErrIncidenteNameTaken = errors.New("incidente name taken")
 	ErrTagNameTaken       = errors.New("tag name taken")
 	ErrAreaIncompleta     = errors.New("area incompleta")
 	ErrAreaInvalida       = errors.New("area invalida")
+	ErrTransicionInvalida = errors.New("transicion invalida")
 )
 
 // Códigos de error de Postgres.

@@ -11,6 +11,7 @@ interface LugarResultadoProps {
   conBorde?: boolean;
 }
 
+/** Presenta un lugar seleccionable con su dirección, incidentes activos y separador opcional. */
 export function LugarResultado({ lugar, onPress, conBorde = true }: LugarResultadoProps) {
   return (
     <Pressable

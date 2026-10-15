@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
@@ -34,7 +34,6 @@ export const PerfilScreen = ({
   onCerrarSesion,
 }: PerfilScreenProps) => {
   const u = MOCK_USUARIO;
-  const [modoOscuro, setModoOscuro] = useState(false);
 
   return (
     <View style={styles.screen}>
@@ -71,14 +70,6 @@ export const PerfilScreen = ({
 
         <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
-          <MenuRow
-            icon="🌙"
-            title="Modo oscuro"
-            subtitle="Usa la versión oscura de la aplicación"
-            switchValue={modoOscuro}
-            onSwitchChange={setModoOscuro}
-          />
-          <View style={styles.divider} />
           <MenuRow
             icon="🔔"
             title="Alertas y lugares"

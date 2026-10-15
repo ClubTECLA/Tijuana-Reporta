@@ -4,8 +4,10 @@ import { colors } from '@/theme/colors';
 const PUNTO = 18;
 const HALO = 44;
 
-// Punto azul con halo de la posición del usuario (Figma 10). El mapa lo usa cuando la
-// posición es simulada; con GPS real lo dibuja `MapLibreGL.UserLocation`.
+/**
+ * Punto azul con halo de la posición del usuario (Figma 10). El mapa lo usa cuando la
+ * posición es simulada; con GPS real lo dibuja `MapLibreGL.UserLocation`.
+ */
 export function PuntoUsuario() {
   return (
     <View style={styles.halo}>

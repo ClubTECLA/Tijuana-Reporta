@@ -46,6 +46,7 @@ export async function tienePermisoUbicacion(): Promise<boolean> {
   return status === 'granted';
 }
 
+/** Extrae latitud y longitud de una posición de Expo al formato usado por la aplicación. */
 const aCoordenadas = (posicion: Location.LocationObject): Coordenadas => ({
   lat: posicion.coords.latitude,
   lng: posicion.coords.longitude,

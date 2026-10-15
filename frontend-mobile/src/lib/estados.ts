@@ -1,4 +1,4 @@
-import type { UseQueryResult } from '@tanstack/react-query';
+import { onlineManager, type UseQueryResult } from '@tanstack/react-query';
 import { ErrorRed } from './http';
 
 export type EstadoDatos = 'cargando' | 'sin-conexion' | 'error' | 'vacio' | 'listo';
@@ -15,7 +15,11 @@ export function estadoDeQuery<T>(
   esVacio: (data: T) => boolean,
 ): EstadoDatos {
   if (query.data !== undefined) return esVacio(query.data) ? 'vacio' : 'listo';
-  if (query.status === 'error') return esErrorDeRed(query.error) ? 'sin-conexion' : 'error';
+  // `ErrorRed` también cubre servidor caído o tiempo agotado: solo es "sin conexión" si el
+  // dispositivo de verdad está desconectado.
+  if (query.status === 'error') {
+    return esErrorDeRed(query.error) && !onlineManager.isOnline() ? 'sin-conexion' : 'error';
+  }
   if (query.fetchStatus === 'paused') return 'sin-conexion';
   return 'cargando';
 }

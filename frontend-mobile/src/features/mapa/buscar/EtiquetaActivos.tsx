@@ -4,7 +4,8 @@ import { fontFamily } from '@/theme/typography';
 import type { TonoLugar } from '@/features/lugares/types';
 
 interface EtiquetaActivosProps {
-  activos: number;
+  /** `null` = no disponible: no se pinta nada, para no afirmar "Sin incidentes" sin saberlo. */
+  activos: number | null;
   tono: TonoLugar;
 }
 
@@ -18,7 +19,9 @@ const TONOS: Record<TonoLugar, { bg: string; text: string; dot?: string }> = {
   neutro: { bg: colors.bgCanvas, text: colors.textSecondary },
 };
 
+/** Muestra la cantidad de incidentes activos con los colores del tono indicado. */
 export function EtiquetaActivos({ activos, tono }: EtiquetaActivosProps) {
+  if (activos === null) return null;
   const cfg = TONOS[tono];
   const texto = activos === 0 ? 'Sin incidentes' : `${activos} activo${activos === 1 ? '' : 's'}`;
   return (

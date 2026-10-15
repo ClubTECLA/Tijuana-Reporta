@@ -16,6 +16,20 @@ services:
       timeout: 5s
       retries: 10
 
+  # Frena el arranque si la base no se puede migrar (esquema anterior, sin
+  # versión o a medias).
+  dbcheck:
+    image: postgres:16
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - ./backend/internal/database/migrations:/migrations:ro
+      - ./backend/scripts/dbcheck.sh:/dbcheck.sh:ro
+    command: ["sh", "/dbcheck.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Aplica las migraciones pendientes antes de levantar el backend.
   migrate:
     image: migrate/migrate:v4.18.1
@@ -23,8 +37,8 @@ services:
       - ./backend/internal/database/migrations:/migrations:ro
     command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      dbcheck:
+        condition: service_completed_successfully
 
   backend:
     build: ./backend

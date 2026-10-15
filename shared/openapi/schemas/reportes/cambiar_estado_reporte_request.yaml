@@ -1,0 +1,5 @@
+type: object
+required: [estado]
+properties:
+  estado:
+    $ref: '../../openapi.yaml#/components/schemas/EstadoReporte'

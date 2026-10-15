@@ -54,8 +54,10 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg domain.Crea
 	return user, nil
 }
 
-// CreateReporte inserta el reporte, la ubicación inicial y sus fotos en la
-// misma transacción
+// CreateReporte inserts and returns a report, saving its initial location,
+// multimedia, and association with arg.UserID in the same transaction.
+// It returns a zero-value report and propagates errors from starting the
+// transaction, inserting any record, or committing the transaction.
 func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error) {
 	var reporte domain.Reporte
 
@@ -74,15 +76,23 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 			return err
 		}
 
-		for _, path := range arg.ImagePaths {
-			if _, err = q.CreateFotoReporte(ctx, domain.CreateFotoReporteParams{
+		if arg.Multimedia != nil {
+			if _, err = q.CreateMultimedia(ctx, domain.CreateMultimediaParams{
 				ReporteID: reporte.ID,
-				ImagePath: path,
+				Path:      arg.Multimedia.Path,
 				UserID:    arg.UserID,
 			}); err != nil {
 				return err
 			}
 		}
+
+		if _, err = q.CreateUserReporte(ctx, domain.CreateUserReporteParams{
+			UserID:    arg.UserID,
+			ReporteID: reporte.ID,
+		}); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {

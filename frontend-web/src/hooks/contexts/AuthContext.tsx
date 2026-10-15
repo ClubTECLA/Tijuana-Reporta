@@ -9,7 +9,7 @@ import type {
     AuthResponseFor,
     MeResponse,
 } from '../../types/api-types'
-import { apiUrl} from '../../types/global-variables'
+import { apiUrl, userTest} from '../../types/global-variables'
 
 const accessTokenKey = 'access_token'
 
@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [])
 
     const authenticate = async <T extends AuthEndpoint>(endpoint: T, body: AuthRequest<T>) => {
+        setUser(toUser(userTest));return
         const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticate('register', { email, username, password })
 
     const logout = async () => {
-
+        setUser(null);return
         try{
             await fetch(`${apiUrl}/auth/logout`,{
                 method: 'POST',

@@ -44,6 +44,7 @@ export interface EtiquetaDeCategoria {
   categoria: CategoriaReporte;
 }
 
+/** Devuelve las etiquetas con su categoría de origen, o una lista vacía si no hay etiquetas. */
 export const etiquetasDe = (categoria: CategoriaReporte): EtiquetaDeCategoria[] =>
   (ETIQUETAS_POR_CATEGORIA[categoria] ?? []).map((id) => ({ id, categoria }));
 
@@ -51,6 +52,7 @@ export const etiquetasDe = (categoria: CategoriaReporte): EtiquetaDeCategoria[] 
 export const etiquetaPrincipal = (categoria: CategoriaReporte): string | undefined =>
   ETIQUETAS_POR_CATEGORIA[categoria]?.[0];
 
+/** Convierte guiones bajos en espacios y pone en mayúscula la primera letra de la etiqueta. */
 export function etiquetaLabel(tag: string): string {
   const texto = tag.replaceAll('_', ' ');
   return texto.charAt(0).toUpperCase() + texto.slice(1);

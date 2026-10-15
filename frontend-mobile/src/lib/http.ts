@@ -27,13 +27,21 @@ export class ErrorRed extends Error {
 export async function fetchConRed(url: string, init: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIEMPO_LIMITE_MS);
+  // La señal del llamador también cancela, sin quitarle el tiempo límite a la petición.
+  const delLlamador = init.signal;
+  const cancelar = () => controller.abort();
+  if (delLlamador?.aborted) controller.abort();
+  else delLlamador?.addEventListener('abort', cancelar);
   try {
-    return await fetch(url, { ...init, signal: init.signal ?? controller.signal });
-  } catch {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    // Cancelación pedida por el llamador: no es un fallo de red.
+    if (delLlamador?.aborted) throw err;
     // `fetch` solo rechaza cuando no hubo respuesta: los errores HTTP llegan como `response.ok === false`.
     throw new ErrorRed();
   } finally {
     clearTimeout(timer);
+    delLlamador?.removeEventListener('abort', cancelar);
   }
 }
 

@@ -5,8 +5,16 @@ import (
 	"net/http"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
+	ginmiddleware "github.com/oapi-codegen/gin-middleware"
 )
+
+// maxRequestBodyBytes es el tamaño máximo del body en las rutas del contrato.
+// Todas reciben JSON chico (el campo de texto más largo es de 500 caracteres),
+// así que 1 MiB sobra.
+const maxRequestBodyBytes = 1 << 20
 
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
 // contrato bajo /v1 (con el middleware de auth) y /v1/openapi.json.
@@ -50,12 +58,33 @@ func NewRouter(services Services, jwtSecret string) *gin.Engine {
 				responderError(c, err, http.StatusInternalServerError)
 			},
 		})
+
+	swagger, err := GetSwagger()
+	if err != nil {
+		log.Fatalf("error loading swagger spec: %v", err)
+	}
+
+	swagger.Servers = openapi3.Servers{{URL: "/v1"}}
+
+	validator := ginmiddleware.OapiRequestValidatorWithOptions(swagger, &ginmiddleware.Options{
+		Options: openapi3filter.Options{
+			// Auth and roles are already checked by middleware.Auth/RequireRole.
+			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+		},
+		ErrorHandler: func(c *gin.Context, message string, statusCode int) {
+			c.AbortWithStatusJSON(statusCode, ErrorResponse{Message: message})
+		},
+	})
+
 	RegisterHandlersWithOptions(r, strict, GinServerOptions{
 		BaseURL:      "/v1",
 		ErrorHandler: responderError,
 		Middlewares: []MiddlewareFunc{
 			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
 			middleware.RequireRole(string(BearerAuthScopes)),
+			// Antes del validador, que lee el body completo para validarlo.
+			middleware.BodyLimit(maxRequestBodyBytes),
+			MiddlewareFunc(validator),
 		},
 	})
 

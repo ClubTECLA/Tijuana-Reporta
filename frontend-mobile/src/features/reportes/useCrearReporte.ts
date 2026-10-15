@@ -44,6 +44,8 @@ export interface UseCrearReporteReturn {
   confirmarEsElMismo: () => Promise<void>;
   /** "No, es otro": descarta el parecido y crea el reporte nuevo con los datos ya llenados. */
   seguirReportando: () => Promise<void>;
+  /** Cierra "¿Es el mismo incidente?" y vuelve al formulario con lo ya llenado, sin enviar nada. */
+  cancelarDuplicado: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,21 +65,24 @@ const INITIAL_FORM: FormState = {
 // Hook
 // ---------------------------------------------------------------------------
 
+/** Gestiona el formulario, su validación y la creación o confirmación de reportes duplicados. */
 export function useCrearReporte(): UseCrearReporteReturn {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [creado, setCreado] = useState<Reporte | null>(null);
   const [creadoViaDuplicado, setCreadoViaDuplicado] = useState(false);
   const [duplicado, setDuplicado] = useState<{ reporte: Reporte; distanciaM: number } | null>(null);
+  // Mientras se descargan los reportes vigentes para buscar un duplicado todavía no hay mutación
+  // en curso, pero el botón de enviar ya debe verse ocupado.
+  const [buscandoDuplicado, setBuscandoDuplicado] = useState(false);
   const crear = useCrearReporteMutation();
   const confirmar = useConfirmarDuplicado();
   const enviando = useRef(false);
-  // La búsqueda de duplicados corre antes de cualquier mutación: sin esto el botón no mostraría
-  // que está trabajando mientras se consulta la lista de reportes.
-  const [buscandoDuplicado, setBuscandoDuplicado] = useState(false);
 
-  // Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
-  // quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
+  /**
+   * Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
+   * quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
+   */
   const toggleCategoria = (categoria: CategoriaReporte): void => {
     setForm((prev) => {
       if (prev.categorias.includes(categoria)) {
@@ -111,6 +116,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     setErrors((prev) => ({ ...prev, ubicacion: undefined }));
   }, []);
 
+  /** Devuelve los errores por falta de categorías o coordenadas en el formulario. */
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
 
@@ -125,6 +131,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     return newErrors;
   };
 
+  /** Envía los datos del formulario ya validado y guarda el reporte creado para la pantalla de éxito. */
   const crearNuevo = async (): Promise<Reporte | null> => {
     const categorias = form.categorias;
     const nuevo = await crear.mutateAsync({
@@ -143,6 +150,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
   // Candado síncrono: `isPending` solo cambia tras el siguiente render, así
   // que dos toques rápidos podrían disparar dos envíos.
+  /** Valida el formulario y propone un duplicado cercano o crea un reporte, bloqueando envíos simultáneos. */
   const submit = async (): Promise<void> => {
     if (enviando.current) return;
     enviando.current = true;
@@ -154,12 +162,17 @@ export function useCrearReporte(): UseCrearReporteReturn {
         return;
       }
       setErrors({});
+      // Un error viejo de la otra mutación no debe tapar el de este intento.
+      crear.reset();
+      confirmar.reset();
 
       // Antes de crear, se cruza contra los reportes vigentes por si ya existe
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
       setBuscandoDuplicado(true);
-      const reportes = await reportesApi.listar().catch(() => []);
-      setBuscandoDuplicado(false);
+      const reportes = await reportesApi
+        .listar()
+        .catch(() => [])
+        .finally(() => setBuscandoDuplicado(false));
       const match = buscarDuplicado(form.categorias, form.lat as number, form.lng as number, reportes);
       if (match) {
         setDuplicado(match);
@@ -175,10 +188,13 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
+  /** Confirma el duplicado propuesto y guarda el resultado para mostrar el éxito. */
   const confirmarEsElMismo = async (): Promise<void> => {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      crear.reset();
+      confirmar.reset();
       const actualizado = await confirmar.mutateAsync({
         id: duplicado.reporte.id,
         ...(form.imageBase64 !== null && { imageBase64: form.imageBase64 }),
@@ -193,10 +209,12 @@ export function useCrearReporte(): UseCrearReporteReturn {
     }
   };
 
+  /** Descarta el duplicado propuesto y crea un reporte con los datos del formulario. */
   const seguirReportando = async (): Promise<void> => {
     if (!duplicado || enviando.current) return;
     enviando.current = true;
     try {
+      confirmar.reset();
       setDuplicado(null);
       await crearNuevo();
     } catch (err) {
@@ -204,6 +222,12 @@ export function useCrearReporte(): UseCrearReporteReturn {
     } finally {
       enviando.current = false;
     }
+  };
+
+  const cancelarDuplicado = (): void => {
+    if (enviando.current) return;
+    confirmar.reset();
+    setDuplicado(null);
   };
 
   return {
@@ -224,5 +248,6 @@ export function useCrearReporte(): UseCrearReporteReturn {
     submit,
     confirmarEsElMismo,
     seguirReportando,
+    cancelarDuplicado,
   };
 }

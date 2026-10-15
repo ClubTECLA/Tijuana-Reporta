@@ -43,6 +43,7 @@ func main() {
 	reportes := service.NewReporteService(store)
 	incidentes := service.NewIncidenteService(store)
 	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
+	usuarios := service.NewUsuarioService(store)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth service: %v", err)
 	}
@@ -52,6 +53,7 @@ func main() {
 		Reportes:    reportes,
 		Incidentes:  incidentes,
 		Auth:        auth,
+		Usuarios:    usuarios,
 	}, cfg.JWTSecret)
 
 	log.Printf("server listening on:%s", cfg.APIPort)

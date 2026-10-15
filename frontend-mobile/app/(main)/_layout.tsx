@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { useEsInvitado } from '@/lib/session';
 
+/** Configura la navegación principal y las pantallas de búsqueda y creación de reportes. */
 export default function MainLayout() {
   const esInvitado = useEsInvitado();
 

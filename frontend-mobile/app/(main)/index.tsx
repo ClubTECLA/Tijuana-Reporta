@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { onlineManager } from '@tanstack/react-query';
@@ -9,6 +9,10 @@ import { fontFamily } from '@/theme/typography';
 import { AvisoFlotante, type TipoAviso } from '@/components/estado/AvisoFlotante';
 import { useReportes } from '@/features/reportes/hooks';
 import { ReporteDetalle } from '@/features/reportes/detalle/ReporteDetalle';
+import { CapasFab } from '@/features/mapa/CapasFab';
+import { aplicarFiltros } from '@/features/mapa/filtros/aplicarFiltros';
+import { useFiltrosStore } from '@/features/mapa/filtros/filtrosStore';
+import { HojaFiltros } from '@/features/mapa/filtros/HojaFiltros';
 import { MapMarker } from '@/features/mapa/MapMarker';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
 import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
@@ -16,9 +20,9 @@ import { ReportarFab } from '@/features/mapa/ReportarFab';
 import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { HojaCrearCuenta, type MotivoCuenta } from '@/features/sesion/HojaCrearCuenta';
+import { distanciaMetros } from '@/lib/geo';
 import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import { esErrorDeRed } from '@/lib/estados';
-import { distanciaMetros } from '@/lib/geo';
 import { useEnLinea } from '@/lib/red';
 import { useEsInvitado } from '@/lib/session';
 import type { Reporte } from '@/types/api';
@@ -26,13 +30,13 @@ import type { Reporte } from '@/types/api';
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const TARGET_ZOOM = 15;
 const MI_UBICACION_ZOOM = 16;
+// Un fix nuevo del GPS solo vuelve a centrar el mapa si se movió al menos esto respecto a la caché.
+const REFINAR_MIN_M = 25;
 const AVISO_MS = 3500;
 // Pausa tras el último movimiento antes de volver a ensanchar "Reportar".
 const QUIETO_MS = 600;
 const SIN_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 const SEPARACION_AVISO_DATOS = 12;
-// Si el fix nuevo del GPS cae a menos de esto de la posición en caché, no vale la pena mover el mapa.
-const REFINAR_UBICACION_M = 25;
 
 // Medidas de la pantalla "Ver reporte" (Figma 22).
 const BUSCADOR_ALTO = 60;
@@ -53,6 +57,7 @@ interface AvisoDatos {
 function avisoDeReportes(
   query: Pick<ReturnType<typeof useReportes>, 'data' | 'isError' | 'error'>,
   enLinea: boolean,
+  sinCoincidencias: boolean,
 ): AvisoDatos | null {
   const hayDatos = query.data !== undefined;
   if (!enLinea) {
@@ -67,19 +72,22 @@ function avisoDeReportes(
   }
   if (query.data === undefined) return { tipo: 'cargando', mensaje: 'Cargando reportes…' };
   if (query.data.length === 0) return { tipo: 'info', mensaje: 'Aún no hay reportes en la ciudad' };
+  if (sinCoincidencias) return { tipo: 'info', mensaje: 'Ningún reporte coincide con tus filtros' };
   return null;
 }
 
+/** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
   const reportesQuery = useReportes();
-  const { data: reportes = [] } = reportesQuery;
+  const { data: reportes = [], isFetching: actualizandoReportes } = reportesQuery;
   const enLinea = useEnLinea();
   const esInvitado = useEsInvitado();
   // Hoja "Crea una cuenta" cuando el invitado intenta reportar, comentar o abrir su perfil.
   const [motivoCuenta, setMotivoCuenta] = useState<MotivoCuenta | null>(null);
+  const [hojaFiltrosAbierta, setHojaFiltrosAbierta] = useState(false);
 
   const [expandido, setExpandido] = useState(true);
   const [permisoUbicacion, setPermisoUbicacion] = useState(false);
@@ -88,9 +96,10 @@ export default function MainMap() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const cameraRef = useRef<MapLibreGL.CameraRef>(null);
-  // true desde que "mi ubicación" centra el mapa hasta que algo más lo mueve (gesto, tarjeta,
-  // búsqueda): solo mientras siga así se aplica el fix nuevo del GPS que llega después.
-  const siguiendoUbicacion = useRef(false);
+  // Para no quitarle el mapa al usuario cuando llega el fix refinado: se apaga al pedir la ubicación
+  // y se enciende en cuanto algo más lo mueve (un gesto, abrir una tarjeta o una búsqueda).
+  const huboGesto = useRef(false);
+  const posicionMostrada = useRef<Coordenadas | null>(null);
   const target = useMapaTargetStore((s) => s.target);
   const clearTarget = useMapaTargetStore((s) => s.clear);
 
@@ -98,13 +107,22 @@ export default function MainMap() {
   const fabBottom = Math.max(insets.bottom + 8, 42);
   const tarjetaTop = buscadorTop + BUSCADOR_ALTO + SEPARACION_BUSCADOR;
   const tarjetaBottom = fabBottom + FAB_ALTO + SEPARACION_FAB;
-  const avisoDatos = avisoDeReportes(reportesQuery, enLinea);
+  const filtros = useFiltrosStore((s) => s.filtros);
+  const reportesVisibles = useMemo(() => aplicarFiltros(reportes, filtros, new Date()), [reportes, filtros]);
+  const avisoDatos = avisoDeReportes(reportesQuery, enLinea, reportes.length > 0 && reportesVisibles.length === 0);
 
-  // Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
-  // (el `padding` superior reduce la zona "visible" del mapa a esa franja).
+  // Si los filtros dejan fuera al reporte abierto, se cierra su tarjeta.
+  useEffect(() => {
+    if (selectedReporte && !reportesVisibles.some((r) => r.id === selectedReporte.id)) setSelectedReporte(null);
+  }, [reportesVisibles, selectedReporte]);
+
+  /**
+   * Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
+   * (el `padding` superior reduce la zona "visible" del mapa a esa franja).
+   */
   const seleccionar = useCallback(
     (reporte: Reporte) => {
-      siguiendoUbicacion.current = false;
+      huboGesto.current = true;
       setSelectedReporte(reporte);
       cameraRef.current?.flyTo({
         center: [reporte.lng, reporte.lat],
@@ -131,21 +149,24 @@ export default function MainMap() {
   // una breve pausa, para no parpadear entre gesto y gesto). Los vuelos de cámara del propio
   // código (`userInteraction: false`) no lo contraen.
   const quietoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Cancela la expansión pendiente del botón Reportar y libera el temporizador. */
   const cancelarQuieto = useCallback(() => {
     if (quietoTimer.current) clearTimeout(quietoTimer.current);
     quietoTimer.current = null;
   }, []);
 
+  /** Contrae Reportar al mover el mapa con un gesto del usuario. */
   const alMoverse = useCallback(
     (e: { nativeEvent: { userInteraction: boolean } }) => {
       if (!e.nativeEvent.userInteraction) return;
-      siguiendoUbicacion.current = false;
+      huboGesto.current = true;
       cancelarQuieto();
       setExpandido(false);
     },
     [cancelarQuieto],
   );
 
+  /** Programa la expansión de Reportar tras una pausa sin movimiento del mapa. */
   const alQuedarseQuieto = useCallback(() => {
     cancelarQuieto();
     quietoTimer.current = setTimeout(() => setExpandido(true), QUIETO_MS);
@@ -153,31 +174,38 @@ export default function MainMap() {
 
   useEffect(() => cancelarQuieto, [cancelarQuieto]);
 
+  /** Centra el mapa en la posición obtenida y muestra un aviso si no está disponible. */
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
+    huboGesto.current = false;
     try {
-      // La primera respuesta puede ser la última posición conocida (llega al instante); cuando
-      // llega el fix nuevo del GPS se corrige el mapa, salvo que el usuario ya lo haya movido.
-      let mostrada: Coordenadas | null = null;
       const posicion = await obtenerPosicionActual({
+        // Si la posición salió de la caché, el fix nuevo llega después: recentra el mapa solo si
+        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul real lo
+        // actualiza el nativo; la posición simulada ya no aplica si hay un fix real.
         alRefinar: (fresca) => {
-          if (!siguiendoUbicacion.current || !mostrada) return;
-          if (distanciaMetros(mostrada, fresca) < REFINAR_UBICACION_M) return;
+          const previa = posicionMostrada.current;
+          if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
+          posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
           setMiPosicionSimulada(null);
-          cameraRef.current?.flyTo({ center: [fresca.lng, fresca.lat], duration: 600, padding: SIN_PADDING });
+          cameraRef.current?.flyTo({
+            center: [fresca.lng, fresca.lat],
+            zoom: MI_UBICACION_ZOOM,
+            duration: 600,
+            padding: SIN_PADDING,
+          });
         },
       });
       if (!posicion) {
         setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
         return;
       }
+      posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
       setPermisoUbicacion(true);
       // Sin GPS (emulador en PC) y con mocks, `posicion.simulada`: el punto azul lo dibujamos
       // nosotros porque el nativo no tiene posición que mostrar.
       setMiPosicionSimulada(posicion.simulada ? { lat: posicion.lat, lng: posicion.lng } : null);
       setExpandido(true);
-      siguiendoUbicacion.current = true;
-      mostrada = posicion;
       cameraRef.current?.flyTo({
         center: [posicion.lng, posicion.lat],
         zoom: MI_UBICACION_ZOOM,
@@ -201,7 +229,7 @@ export default function MainMap() {
   // ahí. No se marca el punto con ningún pin: es para explorar los reportes de esa zona.
   useEffect(() => {
     if (target && !target.reporteId) {
-      siguiendoUbicacion.current = false;
+      huboGesto.current = true;
       cameraRef.current?.flyTo({ center: [target.lng, target.lat], zoom: TARGET_ZOOM, duration: 1200, padding: SIN_PADDING });
       clearTarget();
     }
@@ -211,11 +239,18 @@ export default function MainMap() {
   useEffect(() => {
     if (!target?.reporteId) return;
     const reporte = reportes.find((r) => r.id === target.reporteId);
-    if (!reporte) return;
+    if (!reporte) {
+      // Recién creado, la lista puede estar refrescándose: se espera a que termine. Si ya terminó y
+      // el reporte no está, se vuela a sus coordenadas y se libera el target para no dejarlo colgado.
+      if (actualizandoReportes) return;
+      cameraRef.current?.flyTo({ center: [target.lng, target.lat], zoom: TARGET_ZOOM, duration: 1200, padding: SIN_PADDING });
+      clearTarget();
+      return;
+    }
     seleccionar(reporte);
     // Se libera el target para que no reabra la tarjeta cada vez que se refresque la lista.
     clearTarget();
-  }, [target, reportes, clearTarget, seleccionar]);
+  }, [target, reportes, actualizandoReportes, clearTarget, seleccionar]);
 
   return (
     <View style={styles.container}>
@@ -240,7 +275,7 @@ export default function MainMap() {
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}
-        {reportes.map((reporte) => (
+        {reportesVisibles.map((reporte) => (
           <MapLibreGL.Marker
             key={reporte.id}
             id={reporte.id}
@@ -296,6 +331,7 @@ export default function MainMap() {
                 <Text style={styles.avisoTexto}>{aviso}</Text>
               </View>
             )}
+            <CapasFab onPress={() => setHojaFiltrosAbierta(true)} />
             <UbicacionFab onPress={() => void irAMiUbicacion()} cargando={buscandoUbicacion} />
           </View>
           <View style={[styles.fabWrapper, { bottom: fabBottom }]} pointerEvents="box-none">
@@ -308,6 +344,10 @@ export default function MainMap() {
       )}
 
       <HojaCrearCuenta motivo={motivoCuenta} onCerrar={() => setMotivoCuenta(null)} />
+      <HojaFiltros
+        visible={hojaFiltrosAbierta}
+        onClose={() => setHojaFiltrosAbierta(false)}
+      />
     </View>
   );
 }
@@ -338,7 +378,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 10,
   },
   aviso: {
     maxWidth: 260,

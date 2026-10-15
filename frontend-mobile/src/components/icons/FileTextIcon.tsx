@@ -1,5 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
+/** Dibuja un documento con líneas de texto con tamaño y color configurables. */
 export function FileTextIcon({ size = 24, color = '#ffffff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

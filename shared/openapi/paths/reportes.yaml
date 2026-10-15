@@ -136,10 +136,65 @@ agregarAvistamiento:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+cambiarEstadoReporte:
+  patch:
+    operationId: cambiarEstadoReporte
+    security:
+    - bearerAuth: [admin]
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CambiarEstadoReporteRequest'
+    responses:
+      '200':
+        description: Estado del reporte cambiado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Reporte:
       $ref: '../schemas/reportes/reporte.yaml'
+    CambiarEstadoReporteRequest:
+      $ref: '../schemas/reportes/cambiar_estado_reporte_request.yaml'
     ReporteResumen:
       $ref: '../schemas/reportes/reporte_resumen.yaml'
     CrearReporteRequest:

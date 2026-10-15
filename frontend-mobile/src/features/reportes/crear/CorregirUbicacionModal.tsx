@@ -31,9 +31,11 @@ interface CorregirUbicacionModalProps {
   onGuardar: (lat: number, lng: number) => void;
 }
 
-// Modal "Corregir ubicación" (Figma 1460:11951). El marcador queda fijo al
-// centro del mapa y se "arrastra" moviendo el mapa por debajo: el punto que
-// queda bajo el marcador al guardar es la ubicación corregida.
+/**
+ * Modal "Corregir ubicación" (Figma 1460:11951). El marcador queda fijo al
+ * centro del mapa y se "arrastra" moviendo el mapa por debajo: el punto que
+ * queda bajo el marcador al guardar es la ubicación corregida.
+ */
 export function CorregirUbicacionModal({ visible, lat, lng, onCancelar, onGuardar }: CorregirUbicacionModalProps) {
   const centro = useRef({ lat, lng });
   const { height: pantallaAlto } = useWindowDimensions();
@@ -43,6 +45,7 @@ export function CorregirUbicacionModal({ visible, lat, lng, onCancelar, onGuarda
   const mapaAlto = Math.min(503, pantallaAlto * 0.55);
   const tarjetaMaxAlto = pantallaAlto - insets.top - insets.bottom - MARGEN_TARJETA * 2;
 
+  /** Conserva el centro del mapa como coordenadas que se entregarán al guardar. */
   const alMover = useCallback((event: NativeSyntheticEvent<MapLibreGL.ViewStateChangeEvent>) => {
     const [longitude, latitude] = event.nativeEvent.center;
     centro.current = { lat: latitude, lng: longitude };

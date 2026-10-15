@@ -22,7 +22,7 @@ const submitButtonStyle = `
     bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:focus:ring-0
 `
 const formsStyle = `
-    flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-8 px-10 shadow-xl items-center justify-center
+    flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-6 px-5 shadow-xl items-center justify-center
 `
 function SignInPage() {
     const { showMessage, cleanMessage } = useSysMessage();
@@ -89,7 +89,7 @@ function SignInPage() {
                 onSubmit={handleSubmit}  
             >
                 <div className={formsInputsDivsStyle}>
-                    <h1 className="text-4xl font-bold">Iniciar sesión</h1>
+                    <h1 className="text-3xl font-bold sm:text-4xl">Iniciar sesión</h1>
                     <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
                 </div>
                 <SysMessage />
@@ -113,9 +113,9 @@ function SignInPage() {
                         name={"password"}
                     />
                 </div>
-                <div className="flex flex-rowtext-sm text-gray-600">
-                    <label className="w-1/3"><input type="checkbox"/> Recordar este equipo </label>
-                    <a href="#" className="w-2/3 text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
+                <div className="flex w-full flex-wrap items-start justify-between gap-2 text-sm text-gray-600">
+                    <label><input type="checkbox"/> Recordar este equipo </label>
+                    <a href="#" className="text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
                 </div>
                 <div className={formsInputsDivsStyle}>
                     <button 
@@ -180,7 +180,7 @@ function RegisterPage() {
         <div className="w-full flex items-center justify-center">
             <form className={formsStyle} onSubmit={handleSubmit}>
                 <div className={formsInputsDivsStyle}>
-                    <h1 className="text-4xl font-bold">Crear cuenta</h1>
+                    <h1 className="text-3xl font-bold sm:text-4xl">Crear cuenta</h1>
                     <span className="text-sm text-gray-600">
                         Regístrate para comenzar a reportar incidentes en Tijuana
                     </span>
@@ -273,11 +273,11 @@ export default function AuthPage() {
 
     return(
         <>
-        <div className="pointer-events-none fixed h-screen w-screen bg-gradient-to-r from-blue-900/80 from-0% via-blue-400/20 via-50% to-blue-400/10 to-100%"/>
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-r from-blue-900/80 from-0% via-blue-400/20 via-50% to-blue-400/10 to-100%"/>
 
-        <div className="flex flex-row items-center  min-h-screen bg-gray-300">
+        <div className="flex min-h-dvh flex-col items-center bg-gray-300 px-4 py-6 md:flex-row md:px-0 md:py-0">
             
-            <div className="relative h-screen w-2/4">
+            <div className="relative hidden h-dvh w-2/4 md:block">
                 <div className="absolute top-1/3 left-10 flex flex-col gap-4 w-2/3 h-2/5">
                     <div className="flex flex-row items-center gap-6">
                         <div className="bg-blue-500 rounded-xl p-3">
@@ -307,7 +307,7 @@ export default function AuthPage() {
                 </span>
             </div>
 
-            <div className="flex items-center justify-center w-2/4">
+            <div className="flex w-full items-center justify-center md:w-2/4">
                     {tab === 'login' ? <SignInPage /> : <RegisterPage />}
             </div>
         </div>

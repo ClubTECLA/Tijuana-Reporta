@@ -1,6 +1,9 @@
 import { reportesApi } from '@/features/reportes/api';
+import { reportesKeys } from '@/features/reportes/hooks';
 import { distanciaMetros } from '@/lib/geo';
 import { fetchConRed } from '@/lib/http';
+import { queryClient } from '@/lib/query-client';
+import type { Reporte } from '@/types/api';
 import type { LugarResultado, TonoLugar } from './types';
 import type { LugaresApi } from './port';
 
@@ -43,6 +46,7 @@ interface NominatimResult {
   address?: NominatimAddress;
 }
 
+/** Obtiene el nombre del lugar y un subtítulo de dirección evitando repetir el nombre. */
 function nombreYSubtitulo(r: NominatimResult): { nombre: string; subtitulo: string } {
   const addr = r.address ?? {};
   // El nombre propio del lugar (el que Nominatim ya decidió que es el mejor
@@ -64,6 +68,7 @@ function nombreYSubtitulo(r: NominatimResult): { nombre: string; subtitulo: stri
   return { nombre, subtitulo };
 }
 
+/** Asigna tono neutro a cero incidentes, advertencia a uno y peligro a dos o más. */
 function tonoPorActivos(activos: number): TonoLugar {
   if (activos >= 2) return 'peligro';
   if (activos === 1) return 'advertencia';
@@ -71,6 +76,7 @@ function tonoPorActivos(activos: number): TonoLugar {
 }
 
 export const lugaresNominatim: LugaresApi = {
+  /** Busca en Nominatim dentro del área de Tijuana, añade incidentes activos cercanos y elimina resultados visualmente repetidos. */
   async buscar(query) {
     const q = query.trim();
     if (q.length < 3) return [];
@@ -92,15 +98,22 @@ export const lugaresNominatim: LugaresApi = {
     if (!response.ok) throw new Error(`Nominatim respondió ${response.status}`);
     const resultados = (await response.json()) as NominatimResult[];
 
-    const reportes = await reportesApi.listar().catch(() => []);
+    // Comparte la lista con useReportes(): dentro de su `staleTime` sale de la caché y no se
+    // vuelve a pedir al backend por cada búsqueda. `fetchQuery` lanza si la petición falla aunque
+    // haya datos vencidos, así que en ese caso se usa la lista en caché; si no hay ninguna, `null`
+    // (no se sabe cuántos incidentes hay, que no es lo mismo que cero).
+    const reportes: Reporte[] | null = await queryClient
+      .fetchQuery({ queryKey: reportesKeys.all, queryFn: () => reportesApi.listar() })
+      .catch(() => queryClient.getQueryData<Reporte[]>(reportesKeys.all) ?? null);
 
     const lugares = resultados.map((r): LugarResultado => {
       const lat = parseFloat(r.lat);
       const lng = parseFloat(r.lon);
       const { nombre, subtitulo } = nombreYSubtitulo(r);
-      const activos = reportes.filter(
-        (rep) => rep.status !== 'resuelto' && distanciaMetros({ lat, lng }, rep) <= RADIO_ACTIVOS_M,
-      ).length;
+      const activos =
+        reportes?.filter(
+          (rep) => rep.status !== 'resuelto' && distanciaMetros({ lat, lng }, rep) <= RADIO_ACTIVOS_M,
+        ).length ?? null;
       return {
         id: String(r.place_id),
         nombre,
@@ -108,7 +121,7 @@ export const lugaresNominatim: LugaresApi = {
         lat,
         lng,
         activos,
-        tono: tonoPorActivos(activos),
+        tono: activos === null ? 'neutro' : tonoPorActivos(activos),
       };
     });
 

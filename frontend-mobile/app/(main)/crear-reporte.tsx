@@ -39,6 +39,7 @@ const pares = <T,>(items: T[]): T[][] => {
   return filas;
 };
 
+/** Presenta el formulario multicategoría y los pasos de duplicado y confirmación del reporte. */
 export default function CrearReporte() {
   const insets = useSafeAreaInsets();
   const {
@@ -55,6 +56,7 @@ export default function CrearReporte() {
     submit,
     confirmarEsElMismo,
     seguirReportando,
+    cancelarDuplicado,
   } = useCrearReporte();
   const setTarget = useMapaTargetStore((s) => s.setTarget);
   const enLinea = useEnLinea();
@@ -148,6 +150,7 @@ export default function CrearReporte() {
             error={submitError}
             onConfirmar={() => void confirmarEsElMismo()}
             onRechazar={() => void seguirReportando()}
+            onCerrar={cancelarDuplicado}
           />
         </View>
       ) : (

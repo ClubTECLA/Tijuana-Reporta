@@ -13,6 +13,5 @@ properties:
     format: double
     minimum: -180
     maximum: 180
-  image_path:
-    type: string
-    minLength: 1
+  multimedia:
+    $ref: '../../openapi.yaml#/components/schemas/CrearMultimediaRequest'

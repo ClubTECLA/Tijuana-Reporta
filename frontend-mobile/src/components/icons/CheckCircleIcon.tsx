@@ -1,5 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
+/** Dibuja una marca de confirmación dentro de un círculo con tamaño y color configurables. */
 export function CheckCircleIcon({ size = 24, color = '#1f9460' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

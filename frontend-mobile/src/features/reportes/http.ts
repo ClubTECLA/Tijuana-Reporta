@@ -16,8 +16,14 @@ export const reportesHttp: ReportesApi = {
       body: JSON.stringify({ image_base64: imageBase64 }),
     }),
   // El contrato solo define POST; falta el GET del hilo, y que cada comentario incluya
-  // el nombre del autor y si es rescatista (hoy solo trae `user_id`).
-  comentarios: (id) => http<ComentarioConAutor[]>(`/reportes/${id}/comentarios`),
+  // el nombre del autor y si es rescatista (hoy solo trae `user_id`). Mientras tanto no se
+  // promete un `autor` que la respuesta no trae: si falta, se muestra "Anónimo".
+  comentarios: async (id) => {
+    const hilo = await http<Array<Comentario & Partial<Pick<ComentarioConAutor, 'autor' | 'es_rescatista'>>>>(
+      `/reportes/${id}/comentarios`,
+    );
+    return hilo.map((c): ComentarioConAutor => ({ ...c, autor: c.autor ?? 'Anónimo' }));
+  },
   comentar: (id, texto) =>
     http<Comentario>(`/reportes/${id}/comentarios`, {
       method: 'POST',

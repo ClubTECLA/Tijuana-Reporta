@@ -38,3 +38,19 @@ FROM
     JOIN roles r ON r.id = u.rol_id
 WHERE
     u.id = $1;
+
+-- name: ListAllUsers :many
+SELECT
+    u.username,
+    u.email,
+    r.nombre AS rol_name,
+    COUNT(ur.reporte_id)::int AS reportes_count
+FROM
+    users u
+    JOIN roles r ON r.id = u.rol_id
+    LEFT JOIN users_reports ur ON ur.user_id = u.id
+GROUP BY
+    u.id,
+    r.nombre
+ORDER BY
+    u.username DESC;

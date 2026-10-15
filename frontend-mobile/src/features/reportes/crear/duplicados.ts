@@ -13,6 +13,7 @@ export interface Duplicado {
   distanciaM: number;
 }
 
+/** Devuelve el reporte no resuelto más cercano que comparte categoría, dentro de 150 m y la ventana de seis horas, o null. */
 export function buscarDuplicado(
   categorias: CategoriaReporte[],
   lat: number,

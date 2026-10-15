@@ -8,8 +8,8 @@ INSERT INTO location (reporte_id, latitude, longitude, user_id)
 VALUES ($1, sqlc.arg(latitude)::float8, sqlc.arg(longitude)::float8, $2)
 RETURNING *;
 
--- name: CreateFotoReporte :one
-INSERT INTO fotos_reportes (reporte_id, image_path, user_id)
+-- name: CreateMultimedia :one
+INSERT INTO multimedia (reporte_id, path, user_id)
 VALUES ($1, $2, $3)
 RETURNING *;
 
@@ -20,8 +20,8 @@ FROM location WHERE reporte_id = $1 ORDER BY created_at;
 -- name: GetReporteById :one
 SELECT * FROM reporte WHERE id = $1;
 
--- name: ListFotosByReporteId :many
-SELECT * FROM fotos_reportes WHERE reporte_id = $1 ORDER BY created_at;
+-- name: ListMultimediaByReporteId :many
+SELECT * FROM multimedia WHERE reporte_id = $1 ORDER BY created_at;
 
 -- name: ListTagsByReporteId :many
 SELECT t.id, t.nombre, rtc.count
@@ -50,3 +50,13 @@ UPDATE reporte
 SET avistamientos = avistamientos + 1 
 WHERE id = $1
 RETURNING id, avistamientos;
+
+-- name: CreateUserReporte :one
+INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING *;
+
+-- name: UpdateEstadoReporte :one
+UPDATE reporte
+SET estado_actual = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING *;

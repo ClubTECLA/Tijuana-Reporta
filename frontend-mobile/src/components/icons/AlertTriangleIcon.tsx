@@ -1,6 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
-// Triángulo de peligro del botón "Reportar" expandido (Figma 10).
+/** Triángulo de peligro del botón "Reportar" expandido (Figma 10). */
 export function AlertTriangleIcon({ size = 20, color = '#ffffff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
