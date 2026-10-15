@@ -75,9 +75,9 @@ type CreateMultimediaParams struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedium, error) {
+func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error) {
 	row := q.db.QueryRow(ctx, createMultimedia, arg.ReporteID, arg.Path, arg.UserID)
-	var i Multimedium
+	var i Multimedia
 	err := row.Scan(
 		&i.ID,
 		&i.ReporteID,
@@ -213,15 +213,15 @@ const listMultimediaByReporteId = `-- name: ListMultimediaByReporteId :many
 SELECT id, reporte_id, path, user_id, created_at FROM multimedia WHERE reporte_id = $1 ORDER BY created_at
 `
 
-func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedium, error) {
+func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error) {
 	rows, err := q.db.Query(ctx, listMultimediaByReporteId, reporteID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Multimedium
+	var items []Multimedia
 	for rows.Next() {
-		var i Multimedium
+		var i Multimedia
 		if err := rows.Scan(
 			&i.ID,
 			&i.ReporteID,

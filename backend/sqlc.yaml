@@ -11,6 +11,10 @@ sql:
         emit_interface: true
         # El proyecto usa pgx/v5, no database/sql.
         sql_package: "pgx/v5"
+        # sqlc singulariza "multimedia" como si fuera plural en inglés y
+        # generaría "Multimedium"; el contrato y el resto del código usan Multimedia.
+        rename:
+          multimedium: "Multimedia"
         overrides:
           # Mismo tipo UUID que genera oapi-codegen para la capa HTTP
           # (ver openapi-codegen-config.yaml), para no convertir en cada borde.

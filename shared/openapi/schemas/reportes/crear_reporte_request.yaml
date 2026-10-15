@@ -14,4 +14,4 @@ properties:
     minimum: -180
     maximum: 180
   multimedia:
-    $ref: '../../openapi.yaml#/components/schemas/MultimediaNueva'
+    $ref: '../../openapi.yaml#/components/schemas/CrearMultimediaRequest'

@@ -144,8 +144,8 @@ CREATE TABLE public.multimedia (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
--- Name: fotos_reportes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
-CREATE SEQUENCE public.fotos_reportes_id_seq
+-- Name: multimedia_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+CREATE SEQUENCE public.multimedia_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -153,8 +153,8 @@ CREATE SEQUENCE public.fotos_reportes_id_seq
     NO MAXVALUE
     CACHE 1;
 
--- Name: fotos_reportes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
-ALTER SEQUENCE public.fotos_reportes_id_seq OWNED BY public.multimedia.id;
+-- Name: multimedia_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+ALTER SEQUENCE public.multimedia_id_seq OWNED BY public.multimedia.id;
 
 -- Name: historial; Type: TABLE; Schema: public; Owner: -
 -- Historial de acciones realizadas por los usuarios (mas que nada dirigida a usuarios con roles superiores a ciudadano)
@@ -417,7 +417,7 @@ ALTER TABLE ONLY public.incidentes ALTER COLUMN id SET DEFAULT nextval('public.i
 ALTER TABLE ONLY public.location ALTER COLUMN id SET DEFAULT nextval('public.location_id_seq'::regclass);
 
 -- Name: multimedia id; Type: DEFAULT; Schema: public; Owner: -
-ALTER TABLE ONLY public.multimedia ALTER COLUMN id SET DEFAULT nextval('public.fotos_reportes_id_seq'::regclass);
+ALTER TABLE ONLY public.multimedia ALTER COLUMN id SET DEFAULT nextval('public.multimedia_id_seq'::regclass);
 
 -- Name: notificaciones id; Type: DEFAULT; Schema: public; Owner: -
 ALTER TABLE ONLY public.notificaciones ALTER COLUMN id SET DEFAULT nextval('public.notificaciones_id_seq'::regclass);
@@ -451,13 +451,13 @@ ALTER TABLE ONLY public.auth_providers
 ALTER TABLE ONLY public.comentarios
     ADD CONSTRAINT comentarios_pkey PRIMARY KEY (id);
 
--- Name: multimedia fotos_reportes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT multimedia_pkey PRIMARY KEY (id);
 
--- Name: multimedia fotos_reportes_reporte_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_reporte_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_reporte_id_user_id_key UNIQUE (reporte_id, user_id);
+    ADD CONSTRAINT multimedia_reporte_id_user_id_key UNIQUE (reporte_id, user_id);
 
 -- Name: historial historial_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.historial
@@ -594,13 +594,13 @@ ALTER TABLE ONLY public.comentarios
 ALTER TABLE ONLY public.comentarios
     ADD CONSTRAINT comentarios_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
--- Name: multimedia fotos_reportes_reporte_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_reporte_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_reporte_id_fkey FOREIGN KEY (reporte_id) REFERENCES public.reporte(id) ON DELETE CASCADE;
+    ADD CONSTRAINT multimedia_reporte_id_fkey FOREIGN KEY (reporte_id) REFERENCES public.reporte(id) ON DELETE CASCADE;
 
--- Name: multimedia fotos_reportes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT multimedia_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 -- Name: historial historial_accion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.historial
