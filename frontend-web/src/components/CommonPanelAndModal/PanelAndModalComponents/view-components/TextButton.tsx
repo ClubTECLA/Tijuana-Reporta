@@ -19,7 +19,7 @@ export default function TextButton({
 }: TextButtonProps) {
     return (
         <SubSection
-            type="button"
+            as="button"
             format={format}
             debug={debug}
             onClick={onClick}

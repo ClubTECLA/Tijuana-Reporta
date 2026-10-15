@@ -23,7 +23,7 @@ export function SideNavItem ({format = "col", debug, icon, title, isSelected, on
                 py-3
             `}
             onClick={onClick}
-            type='button'
+            as='button'
             subKey={subKey}
         >
             

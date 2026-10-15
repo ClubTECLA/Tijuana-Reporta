@@ -1,14 +1,43 @@
-import { type ReactNode, isValidElement, cloneElement, Children } from "react";
+import {
+    Children,
+    cloneElement,
+    isValidElement,
+    type ComponentPropsWithoutRef,
+    type ReactNode,
+} from "react";
+import { Link, type LinkProps } from "react-router-dom";
 import { subsectionFormats, type subsectionProps } from "../../../../types/utils-types";
-import { Link } from "react-router-dom";
 
-interface generalSubsectionProps extends subsectionProps{
-    children?: ReactNode
-    className?: string
-    type?: "div" | "button" | 'link' 
-    onClick?: () => void
-    to?: string
+type ElementKind = "div" | "button" | "span" | "link";
+
+interface SharedProps extends subsectionProps {
+    children?: ReactNode;
+    className?: string;
+    as?: ElementKind;
+    ariaLabel?: string;
 }
+
+type DivSubSectionProps = SharedProps
+    & Omit<ComponentPropsWithoutRef<"div">, keyof SharedProps | "key">
+    & { as?: "div" };
+
+type ButtonSubSectionProps = SharedProps
+    & Omit<ComponentPropsWithoutRef<"button">, keyof SharedProps | "key">
+    & { as: "button" };
+
+type SpanSubSectionProps = SharedProps
+    & Omit<ComponentPropsWithoutRef<"span">, keyof SharedProps | "key">
+    & { as: "span" };
+
+type LinkSubSectionProps = SharedProps
+    & Omit<LinkProps, keyof SharedProps | "key">
+    & { as: "link"; to: LinkProps["to"] };
+
+export type SubSectionProps =
+    | DivSubSectionProps
+    | ButtonSubSectionProps
+    | SpanSubSectionProps
+    | LinkSubSectionProps;
 
 function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
     if (!isValidElement<subsectionProps>(child) || typeof child.type === "string") {
@@ -20,56 +49,117 @@ function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
     });
 }
 
-export default function SubSection({children, className, debug, format='nothing', type='div', onClick, to, subKey}: generalSubsectionProps){
-    
-    const frt = subsectionFormats[format];
+export default function SubSection(props: SubSectionProps) {
+    const getClassName = (className?: string, format?: keyof typeof subsectionFormats, debug?: boolean) => `
+        flex ${subsectionFormats[format ?? "nothing"]}
+        ${className ?? ""}
+        ${debug ? "border-2 border-blue-400" : ""}
+    `;
+    if (props.as === "link") {
+        const {
+            children,
+            className,
+            debug,
+            format,
+            subKey,
+            ariaLabel,
+            as: _as,
+            to,
+            "aria-label": nativeAriaLabel,
+            ...linkProps
+        } = props;
+        void _as;
+        const linkChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
 
-    if(type === 'link' && to){
-        return(
-            <Link 
-                className={`
-                    flex  ${frt} 
-                    ${className ?? ''}  ${debug ? 'border-2 border-blue-400' : ''}
-                `}
+        return (
+            <Link
+                {...linkProps}
+                className={getClassName(className, format, debug)}
                 to={to}
                 key={subKey}
+                aria-label={ariaLabel ?? nativeAriaLabel}
             >
-                {Children.map(children, (child) => {
-                    return cloneWithDebug(child, debug)
-                })}
+                {linkChildren}
             </Link>
-        )
+        );
     }
 
-    if(type === 'button'){
-        return(
+    if (props.as === "button") {
+        const {
+            children,
+            className,
+            debug,
+            format,
+            subKey,
+            ariaLabel,
+            as: _as,
+            "aria-label": nativeAriaLabel,
+            ...buttonProps
+        } = props;
+        void _as;
+        const buttonChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
+
+        return (
             <button
-                className={`
-                    flex  ${frt} 
-                    ${className ?? ''}  ${debug ? 'border-2 border-blue-400' : ''}
-                `}
-                type='button'
-                onClick={onClick}
+                {...buttonProps}
+                className={getClassName(className, format, debug)}
                 key={subKey}
+                aria-label={ariaLabel ?? nativeAriaLabel}
             >
-                {Children.map(children, (child) => {
-                    return cloneWithDebug(child, debug)
-                })}
+                {buttonChildren}
             </button>
-        )
+        );
     }
 
-    return(
-        <div 
-            className={`
-                flex  ${frt} ${className ?? ''} 
-                 ${debug ? 'border-2 border-blue-400' : ''}
-            `}
+    if (props.as === "span") {
+        const {
+            children,
+            className,
+            debug,
+            format,
+            subKey,
+            ariaLabel,
+            as: _as,
+            "aria-label": nativeAriaLabel,
+            ...spanProps
+        } = props;
+        void _as;
+        const spanChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
+
+        return (
+            <span
+                {...spanProps}
+                className={getClassName(className, format, debug)}
+                key={subKey}
+                aria-label={ariaLabel ?? nativeAriaLabel}
+            >
+                {spanChildren}
+            </span>
+        );
+    }
+
+    const {
+        children,
+        className,
+        debug,
+        format,
+        subKey,
+        ariaLabel,
+        as: _as,
+        "aria-label": nativeAriaLabel,
+        ...divProps
+    } = props;
+    void _as;
+    const divChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
+
+    return (
+        <div
+            {...divProps}
+            className={getClassName(className, format, debug)}
             key={subKey}
+            aria-label={ariaLabel ?? nativeAriaLabel}
         >
-            {Children.map(children, (child) => {
-                return cloneWithDebug(child, debug)
-            })}
+            {divChildren}
         </div>
-    )
+    );
 }
