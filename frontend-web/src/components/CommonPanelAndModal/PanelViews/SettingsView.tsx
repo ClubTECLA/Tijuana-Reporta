@@ -208,8 +208,8 @@ export default function SettingView () {
         >
             <ColSection
                 border={['right']}
-            className="max-sm:border-r-0 max-sm:border-b-2"
-        >
+                className="max-sm:border-r-0 max-sm:border-b-2 h-full"
+            >
                 <SideNav 
                     format='col'
                 >
