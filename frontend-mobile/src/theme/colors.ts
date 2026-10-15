@@ -93,6 +93,9 @@ export const colors = {
   alertaEjemploHace: '#d7d7d7',
   alertaEjemploSombra: 'rgba(26,54,93,0.2)',
 
+  // Hoja de filtros (Figma 14 / Modal - Filtros) y botón de capas (Figma 10.1).
+  iconoOscuro: '#334155',
+
   // Estados de carga, vacío, error y sin conexión. Provisionales: aún no hay diseño en Figma.
   estadoIcono: '#64748b',
   estadoIconoFondo: '#eef2f7',

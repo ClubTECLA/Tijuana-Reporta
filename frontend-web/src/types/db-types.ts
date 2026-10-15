@@ -57,7 +57,6 @@ export type ApiEstadoReporte =
   | "Verificado"
   | "Resuelto"
   | "Descartado"
-  | "Expirado"
 
 export type ApiReporteResumen = {
   id: string
@@ -73,7 +72,7 @@ export type ApiCrearReporteRequest = {
   incidente_id: number
   latitude: number
   longitude: number
-  image_path?: string
+  multimedia?: ApiCrearMultimediaRequest
 }
 
 // API - Nested report schemas
@@ -85,9 +84,13 @@ export type ApiComentario = {
   created_at: string
 }
 
-export type ApiFoto = {
+export type ApiCrearMultimediaRequest = {
+  path: string
+}
+
+export type ApiMultimedia = {
   id: number
-  image_path: string
+  path: string
   user_id: string
   created_at: string
 }
@@ -117,9 +120,8 @@ export type ApiReporte = {
   longitude: number
   created_at: string
   updated_at: string
-  expired_at?: string
   comentarios: ApiComentario[]
-  fotos: ApiFoto[]
+  multimedia: ApiMultimedia[]
   tags: ApiTag[]
   locations: ApiLocation[]
 }
@@ -146,13 +148,12 @@ export interface AuthProviders {
 }
 
 // Report status
-export type Estado = 'Sin revisar' | 'En revision' | 'Arreglado' | 'Expirado'
+export type Estado = 'Sin revisar' | 'En revision' | 'Arreglado'
 
 export const Estado = {
   SinRevisar: 'Sin revisar',
   EnRevision: 'En revision',
   Arreglado: 'Arreglado',
-  Expirado: 'Expirado',
 } as const satisfies Record<string, Estado>
 
 // Reports
@@ -164,7 +165,6 @@ export interface Reporte {
   estado_actual: Estado
   created_at: string
   updated_at: string
-  expired_at: string | null
 }
 
 export interface Location {
@@ -184,10 +184,10 @@ export interface PuntosOrigen {
   updated_at: string
 }
 
-export interface FotosReporte {
+export interface Multimedia {
   id: number
   reporte_id: string
-  image_path: string
+  path: string
   user_id: string
   created_at: string
 }

@@ -168,7 +168,7 @@ type Log struct {
 	FinishedAt  time.Time      `json:"finished_at"`
 }
 
-type Multimedium struct {
+type Multimedia struct {
 	ID        int       `json:"id"`
 	ReporteID uuid.UUID `json:"reporte_id"`
 	Path      string    `json:"path"`
