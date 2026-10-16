@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/cercanos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano. */
+        get: operations["listarReportesCercanos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}": {
         parameters: {
             query?: never;
@@ -226,6 +243,7 @@ export interface components {
         CrearComentarioRequest: components["schemas"]["crear_comentario_request"];
         Reporte: components["schemas"]["reporte"];
         ReporteResumen: components["schemas"]["reporte_resumen"];
+        ReporteCercano: components["schemas"]["reporte_cercano"];
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
         Multimedia: components["schemas"]["multimedia"];
@@ -343,6 +361,13 @@ export interface components {
             multimedia: components["schemas"]["multimedia"][];
             tags: components["schemas"]["tag"][];
             locations: components["schemas"]["location"][];
+        };
+        reporte_cercano: components["schemas"]["reporte_resumen"] & {
+            /**
+             * Format: double
+             * @description Distancia en metros desde el punto consultado.
+             */
+            distancia_m: number;
         };
         crear_comentario_request: {
             comentario: string;
@@ -503,6 +528,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarReportesCercanos: {
+        parameters: {
+            query: {
+                lat: number;
+                lng: number;
+                radio: number;
+                incidente_id?: number[];
+                estado?: components["schemas"]["estado_reporte"][];
+                desde?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de reportes cercanos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_cercano"][];
                 };
             };
             /** @description Datos inválidos */

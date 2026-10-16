@@ -9,6 +9,8 @@ security:
 paths:
   /reportes:
     $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/cercanos:
+    $ref: './paths/reportes.yaml#/listarReportesCercanos'
   /reportes/{reporteId}:
     $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/avistamientos:
@@ -44,6 +46,8 @@ components:
       $ref: './schemas/reportes/reporte.yaml'
     ReporteResumen:
       $ref: './schemas/reportes/reporte_resumen.yaml'
+    ReporteCercano:
+      $ref: './schemas/reportes/reporte_cercano.yaml'
     CambiarEstadoReporteRequest:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:

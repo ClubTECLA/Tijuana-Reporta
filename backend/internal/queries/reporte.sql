@@ -60,3 +60,21 @@ SET estado_actual = $2,
     updated_at = now()
 WHERE id = $1
 RETURNING *;
+
+-- name: ListReportesPorUbicacion :many
+-- sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
+-- cast explícito; sin él se generaría como interface{}.
+-- ST_DWithin usa el índice GiST de puntos_origen.geom.
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
+       p.latitude::float8 AS latitude, p.longitude::float8 AS longitude,
+       ST_Distance(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography)::float8 AS distancia_m
+FROM reporte r
+JOIN puntos_origen p ON p.reporte_id = r.id
+WHERE NOT r.es_historico
+AND ST_DWithin(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography, sqlc.arg(radio)::float8)
+AND (sqlc.narg(incidente_ids)::int[] IS NULL OR r.incidente_id = ANY(sqlc.narg(incidente_ids)::int[]))
+-- estados viaja como text[]: pgx no sabe codificar el arreglo del enum estado.
+AND (sqlc.narg(estados)::text[] IS NULL OR r.estado_actual = ANY(sqlc.narg(estados)::text[]::estado[]))
+AND (sqlc.narg(desde)::timestamptz IS NULL OR r.created_at >= sqlc.narg(desde)::timestamptz)
+ORDER BY distancia_m
+LIMIT sqlc.arg(limite)::int;

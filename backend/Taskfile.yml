@@ -21,7 +21,7 @@ tasks:
     desc: Falla si el código generado no está al día con el contrato
     cmds:
       - task: generate
-      - git diff --exit-code -- internal/api/generated.go internal/database/db
+      - git diff --exit-code -- internal/api/generated.go internal/domain
 
   migrate-up:
     desc: Aplica migraciones pendientes

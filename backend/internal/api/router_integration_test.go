@@ -13,6 +13,7 @@ package api_test
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -203,6 +204,12 @@ func TestStatus(t *testing.T) {
 		{name: "obtener reporte con id que no es UUID", method: http.MethodGet, path: "/v1/reportes/5", want: http.StatusBadRequest},
 		{name: "listar con área incompleta", method: http.MethodGet, path: "/v1/reportes?min_lat=32.4", want: http.StatusBadRequest},
 		{name: "avistamiento en reporte inexistente", method: http.MethodPatch, path: "/v1/reportes/" + uuid.Nil.String() + "/avistamientos", want: http.StatusNotFound},
+		{name: "cercanos sin radio", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382", want: http.StatusBadRequest},
+		{name: "cercanos con radio mayor al máximo", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=50001", want: http.StatusBadRequest},
+		{name: "cercanos con latitud fuera de rango", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=91&lng=-117.0382&radio=2000", want: http.StatusBadRequest},
+		{name: "cercanos con estado fuera del enum", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&estado=Arreglado", want: http.StatusBadRequest},
+		{name: "cercanos con límite 0", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&limite=0", want: http.StatusBadRequest},
+		{name: "cercanos sin token", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000", noAuth: true, want: http.StatusUnauthorized},
 		{name: "logout", method: http.MethodPost, path: "/v1/auth/logout", want: http.StatusNoContent},
 	}
 
@@ -344,6 +351,87 @@ func TestListarReportes(t *testing.T) {
 		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=10&max_lat=11&min_lng=10&max_lng=11", nil)
 		if contiene(decode[[]api.ReporteResumen](t, rec)) {
 			t.Errorf("el listado de otra área incluye el reporte %v", creado.Id)
+		}
+	})
+}
+
+func TestListarReportesCercanos(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+	// crearReporte lo pone en (32.5149, -117.0382), el centro de cada búsqueda.
+	creado := c.crearReporte()
+	const base = "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382"
+
+	// Otros tests crean reportes en el mismo punto, así que se busca el propio
+	// en vez de asumir que es el único o el primero.
+	buscar := func(rs []api.ReporteCercano) (api.ReporteCercano, bool) {
+		i := slices.IndexFunc(rs, func(r api.ReporteCercano) bool { return r.Id == creado.Id })
+		if i < 0 {
+			return api.ReporteCercano{}, false
+		}
+		return rs[i], true
+	}
+	listar := func(t *testing.T, query string) []api.ReporteCercano {
+		tc := *c
+		tc.t = t
+		return decode[[]api.ReporteCercano](t, tc.expect(http.StatusOK, http.MethodGet, base+query, nil))
+	}
+
+	t.Run("dentro del radio", func(t *testing.T) {
+		rs := listar(t, "&radio=2000")
+		r, ok := buscar(rs)
+		if !ok {
+			t.Fatalf("el listado no incluye el reporte %v", creado.Id)
+		}
+		if r.DistanciaM > 1 {
+			t.Errorf("distancia_m = %v, quería ~0 (el reporte está en el centro)", r.DistanciaM)
+		}
+		if !slices.IsSortedFunc(rs, func(a, b api.ReporteCercano) int { return cmp.Compare(a.DistanciaM, b.DistanciaM) }) {
+			t.Errorf("el listado no está ordenado por distancia")
+		}
+	})
+
+	t.Run("fuera del radio", func(t *testing.T) {
+		// Ensenada, a ~90 km.
+		tc := *c
+		tc.t = t
+		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/cercanos?lat=31.8667&lng=-116.5964&radio=100", nil)
+		if _, ok := buscar(decode[[]api.ReporteCercano](t, rec)); ok {
+			t.Errorf("el listado de Ensenada incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por incidente", func(t *testing.T) {
+		if _, ok := buscar(listar(t, fmt.Sprintf("&radio=2000&incidente_id=%d&incidente_id=4", incidenteSocavon))); !ok {
+			t.Errorf("filtrando por su incidente, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&incidente_id=4")); ok {
+			t.Errorf("filtrando por otro incidente, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por estado", func(t *testing.T) {
+		// Un reporte nuevo queda en Pendiente.
+		if _, ok := buscar(listar(t, "&radio=2000&estado=Pendiente&estado=Probable")); !ok {
+			t.Errorf("filtrando por Pendiente, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&estado=Verificado")); ok {
+			t.Errorf("filtrando por Verificado, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por fecha", func(t *testing.T) {
+		if _, ok := buscar(listar(t, "&radio=2000&desde=2000-01-01T00:00:00Z")); !ok {
+			t.Errorf("con desde en el pasado, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&desde=2999-01-01T00:00:00Z")); ok {
+			t.Errorf("con desde en el futuro, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("límite", func(t *testing.T) {
+		if rs := listar(t, "&radio=50000&limite=1"); len(rs) > 1 {
+			t.Errorf("con limite=1 regresó %d reportes", len(rs))
 		}
 	})
 }
