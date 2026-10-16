@@ -27,7 +27,7 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
     )
 }
 export default function NavBar() {
-    const { setPanelView } = useCommonPanel();
+    const { currentPanelView, setPanelView } = useCommonPanel();
 
     const router = useRouter();
     const currentPath = router.pathname;
@@ -42,7 +42,8 @@ export default function NavBar() {
             {
                 icon: <LuTriangleAlert />,
                 title: "Incidentes",
-                destinationPath: "/incidents"
+                panelView: 'Incidentes',
+                activeOnPanelViews: ['Nuevo Incidente']
             },
             {
                 icon: <LuTent />,
@@ -62,7 +63,7 @@ export default function NavBar() {
             {
                 icon: <LuSun/>,
                 title: "Ajustes",
-                onClick: () => setPanelView('Ajustes')
+                panelView: 'Ajustes'
             }
         ]
 
@@ -75,27 +76,38 @@ export default function NavBar() {
                 shadow-[0_2px_8px_rgba(11,18,32,0.06),0_8px_24px_-6px_rgba(11,18,32,0.05)]
             "
         >
-    {navItems.map((item, idx) =>
+    {navItems.map((item, idx) => {
+                const panelView = item.panelView
+                const onClick = panelView ? () => setPanelView(panelView) : item.onClick
+                // Las secciones que abren un panel se marcan mientras su panel está abierto; las demás, por la ruta.
+                const isActive = panelView
+                    ? currentPanelView === panelView || (!!currentPanelView && !!item.activeOnPanelViews?.includes(currentPanelView))
+                    : currentPath === item.destinationPath
+
+                return (
                 <Fragment key={idx}>
-                    {item.destinationPath && !item.onClick &&
+                    {item.destinationPath && !onClick &&
                         <Link
-                            className={navItemStyle(currentPath === item.destinationPath)}
+                            className={navItemStyle(isActive)}
                             to={item.destinationPath}
+                            aria-current={isActive ? 'page' : undefined}
                         >
                             <NavItemContent {...item} />
                         </Link>
                     }
-                    {!item.destinationPath && item.onClick &&
+                    {!item.destinationPath && onClick &&
                         <button
                             type="button"
-                            className={navItemStyle(currentPath === item.destinationPath)}
-                            onClick={item.onClick}
+                            className={navItemStyle(isActive)}
+                            onClick={onClick}
+                            aria-pressed={isActive}
                         >
                             <NavItemContent {...item} />
                         </button>
                     }
                 </Fragment>
-            )}
+                )
+            })}
         </section>
     )
 }

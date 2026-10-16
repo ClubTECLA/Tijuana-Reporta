@@ -7,6 +7,9 @@ import {
 import { LuLayers, LuMinus, LuNavigation, LuPlus } from 'react-icons/lu';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { useMap } from '../hooks/contexts/MapContext';
+import ActionDock from './ActionDock';
+import IncidentsLayer from './map/IncidentsLayer';
 
 setWorkerUrl(workerUrl);
 
@@ -43,6 +46,8 @@ export default function MapContainer() {
   const [atMinZoom, setAtMinZoom] = useState(false);
   const [atMaxZoom, setAtMaxZoom] = useState(false);
 
+  const { setMap } = useMap();
+
   useEffect(() => {
     // Create the map once the container is available.
     if (mapRef.current || !mapContainerRef.current) return;
@@ -56,6 +61,8 @@ export default function MapContainer() {
       attributionControl: { compact: true },
     });
   mapRef.current = map;
+    // Shares the map with the panels (MapContext).
+    setMap(map);
 
     map.on('zoom', () => {
       setAtMinZoom(map.getZoom() <= map.getMinZoom());
@@ -63,12 +70,13 @@ export default function MapContainer() {
     });
     // Remove the map instance when the component is unmounted.
     return () => {
+      setMap(null);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [setMap]);
   const controlButtonStyle = `
     flex size-11 items-center justify-center rounded-full
     text-xl text-slate-700 transition-colors duration-200
@@ -104,6 +112,9 @@ export default function MapContainer() {
           <LuNavigation />
         </button>
       </div>
+
+      <ActionDock />
+      <IncidentsLayer />
     </div>
   );
 }

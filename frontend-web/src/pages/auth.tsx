@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import {FaLocationDot} from "react-icons/fa6"
+import { useNavigate } from 'react-router-dom'
+import { LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { useAuth } from '../hooks/contexts/AuthContext'
 import { useCommonPanel } from '../hooks/contexts/CommonPanelContext'
@@ -8,22 +8,32 @@ import useModals from '../hooks/useModals'
 
 
 const formsInputsDivsStyle = `
-    flex flex-col gap-2 w-full
+    flex flex-col gap-1.5 w-full
 `
 const inputsLabelsStyle = `
-    text-sm font-medium text-gray-600
+    text-sm font-semibold text-[#111827]
 `
 
 const inputsStyle = `
-    border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    h-11 w-full rounded-[31px] border border-[#d9e0e8] bg-white px-3
+    text-sm text-[#111827] outline-none transition-colors duration-200
+    focus:border-[#2677e6]
 `
 
 const submitButtonStyle = `
-    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:focus:ring-0
+    h-15 w-full rounded-full bg-[#2677e6] px-7 text-lg font-bold text-white
+    drop-shadow-[0_3px_1.55px_rgba(38,119,230,0.35)] transition-colors duration-200
+    hover:bg-[#1f6bd4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2677e6] focus-visible:ring-offset-2
+    disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:drop-shadow-none disabled:hover:bg-slate-300
 `
 const formsStyle = `
-    flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-6 px-5 shadow-xl items-center justify-center
+    flex w-full max-w-130 flex-col items-start gap-4.5
+    rounded-[28px] bg-white px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-9
+    shadow-[0_6px_18px_-4px_rgba(0,0,0,0.12)]
 `
+const titleStyle = `text-2xl font-bold text-[#111827] sm:text-[28px]`
+const subtitleStyle = `text-[15px] leading-5.5 text-[#475569]`
+
 function SignInPage() {
     const { showMessage, cleanMessage } = useSysMessage();
     const { login } = useAuth();
@@ -38,10 +48,10 @@ function SignInPage() {
         if(remainingAttempts >= 0)
             cleanMessage();
         setForm({
-            ...form, 
+            ...form,
             [e.target.name]: e.target.value
         })
-    }   
+    }
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -83,187 +93,80 @@ function SignInPage() {
     }
 
     return (
-        <div className="w-full flex items-center justify-center">
-            <form 
-                className={formsStyle}
-                onSubmit={handleSubmit}  
+        <form
+            className={formsStyle}
+            onSubmit={handleSubmit}
+        >
+            <h1 className={titleStyle}>Iniciar sesión</h1>
+            <span className={subtitleStyle}>Usa tu correo institucional. Las cuentas las crea un administrador</span>
+            <SysMessage />
+            <div className={formsInputsDivsStyle}>
+                <label className={inputsLabelsStyle}>Correo institucional</label>
+                <input
+                    type="text"
+                    className={inputsStyle}
+                    value={form.email}
+                    onChange={handleChangeInput}
+                    name={"email"}
+                />
+            </div>
+            <div className={formsInputsDivsStyle}>
+                <label className={inputsLabelsStyle}>Contraseña</label>
+                <input
+                    type="password"
+                    className={inputsStyle}
+                    value={form.password}
+                    onChange={handleChangeInput}
+                    name={"password"}
+                />
+            </div>
+            <div className="flex w-full items-center gap-2 text-sm text-[#475569]">
+                <label className="flex flex-1 cursor-pointer items-center gap-2">
+                    <input type="checkbox" className="size-4.5 cursor-pointer accent-[#2677e6]"/> Recordar este equipo
+                </label>
+                <a href="#" className="font-semibold text-[#176edf] hover:underline">¿Olvidaste tu contraseña?</a>
+            </div>
+            <button
+                type="submit"
+                className={submitButtonStyle}
+                disabled={remainingAttempts === 0}
+                aria-disabled={remainingAttempts === 0}
+            >Iniciar sesión</button>
+            <div className="flex w-full items-center gap-4.75">
+                <span className="h-px flex-1 bg-[#e2e8f0]" />
+                <span className="text-sm text-[#6c7278]">O</span>
+                <span className="h-px flex-1 bg-[#e2e8f0]" />
+            </div>
+            {/* El inicio de sesión con Google aún no está conectado. */}
+            <button
+                type="button"
+                disabled
+                title="Próximamente"
+                className="
+                    flex h-15 w-full items-center justify-center gap-3 rounded-[51px]
+                    border border-[#eff0f6] bg-white px-7
+                    text-base font-semibold text-[#1a1c1e]
+                    shadow-[0_1px_3px_rgba(0,0,0,0.15)] disabled:cursor-not-allowed
+                "
             >
-                <div className={formsInputsDivsStyle}>
-                    <h1 className="text-3xl font-bold sm:text-4xl">Iniciar sesión</h1>
-                    <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
-                </div>
-                <SysMessage />
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Correo institucional</label>
-                    <input 
-                        type="text"  
-                        className={inputsStyle} 
-                        value={form.email} 
-                        onChange={handleChangeInput}
-                        name={"email"}
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Contraseña</label>
-                    <input 
-                        type="password"  
-                        className={inputsStyle} 
-                        value={form.password} 
-                        onChange={handleChangeInput}
-                        name={"password"}
-                    />
-                </div>
-                <div className="flex w-full flex-wrap items-start justify-between gap-2 text-sm text-gray-600">
-                    <label><input type="checkbox"/> Recordar este equipo </label>
-                    <a href="#" className="text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <button 
-                        type="submit" 
-                        className={submitButtonStyle}
-                        disabled={remainingAttempts === 0}
-                        aria-disabled={remainingAttempts === 0}
-                    >Iniciar sesión</button>
-                </div>                
-                <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
-                    <div className="text-center font-bold w-full">**Boton de Google**</div>
-                <Link
-                    to="/auth?tab=register"
-                    className="w-full text-center border border-blue-500 text-blue-500 font-semibold py-2 px-4 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                    Crear cuenta
-                </Link>
-            </form>
-        </div>
-    )
-}
-
-function RegisterPage() {
-    const { register } = useAuth();
-    const navigate = useNavigate();
-    const { showMessage } = useSysMessage();
-    const [form, setForm] = useState({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-    })
-
-    const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        })
-    }
-
-    const handleSubmit = async (e: React.SubmitEvent) => {
-        e.preventDefault()
-        if (form.password !== form.confirmPassword) {
-            showMessage('Las contraseñas no coinciden.', 'red', 'Registro')
-            return
-        }
-
-        try {
-            await register(form.email, form.username, form.password)
-            navigate('/')
-        } catch (error) {
-            console.error('Registration failed:', error)
-            showMessage(
-                error instanceof Error ? error.message : 'No se pudo crear la cuenta.',
-                'red',
-                'Registro'
-            )
-        }
-    }
-
-    return(
-        <div className="w-full flex items-center justify-center">
-            <form className={formsStyle} onSubmit={handleSubmit}>
-                <div className={formsInputsDivsStyle}>
-                    <h1 className="text-3xl font-bold sm:text-4xl">Crear cuenta</h1>
-                    <span className="text-sm text-gray-600">
-                        Regístrate para comenzar a reportar incidentes en Tijuana
-                    </span>
-                </div>
-                <SysMessage />
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-username">Nombre de usuario</label>
-                    <input
-                        id="register-username"
-                        name="username"
-                        type="text"
-                        className={inputsStyle}
-                        value={form.username}
-                        onChange={handleChangeInput}
-                        autoComplete="username"
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-email">Correo electrónico</label>
-                    <input
-                        id="register-email"
-                        name="email"
-                        type="email"
-                        className={inputsStyle}
-                        value={form.email}
-                        onChange={handleChangeInput}
-                        autoComplete="email"
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-password">Contraseña</label>
-                    <input
-                        id="register-password"
-                        name="password"
-                        type="password"
-                        className={inputsStyle}
-                        value={form.password}
-                        onChange={handleChangeInput}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-confirm-password">Confirmar contraseña</label>
-                    <input
-                        id="register-confirm-password"
-                        name="confirmPassword"
-                        type="password"
-                        className={inputsStyle}
-                        value={form.confirmPassword}
-                        onChange={handleChangeInput}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <button type="submit" className={submitButtonStyle}>Registrarse</button>
-                </div>
-                <Link
-                    to="/auth?tab=login"
-                    className="text-center text-sm text-blue-500 hover:underline"
-                >
-                    Ya tengo una cuenta
-                </Link>
-            </form>
-        </div>
+                <img src="/auth/google.svg" alt="" className="size-5.25" />
+                Continuar con Google
+            </button>
+            <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-[#f1f5f9] px-3.5 py-3">
+                <LuShield className="size-4.5 shrink-0 text-[#475569]" />
+                <span className="text-[13px] text-[#475569]">¿Eres ciudadano? Descarga la app Tijuana Reporta para reportar incidentes.</span>
+            </div>
+        </form>
     )
 }
 
 export default function AuthPage() {
     const {closePanel} = useCommonPanel();
     const {closeModal} = useModals();
-    const [searchParams] = useSearchParams()
-    const tabParam = searchParams.get('tab');
-    const tab = tabParam === 'register' ? 'register' : 'login';
 
 
     const trendLineChartDivStyle = `
-        bg-gray-200/10 shadow-md rounded-xl flex flex-col px-4 py-1
+        flex flex-1 flex-col gap-0.5 rounded-2xl bg-white/12 px-4 py-3 lg:flex-none
     `
 
     useEffect(() => {
@@ -272,46 +175,54 @@ export default function AuthPage() {
     }, []);
 
     return(
-        <>
-        <div className="pointer-events-none fixed inset-0 bg-gradient-to-r from-blue-900/80 from-0% via-blue-400/20 via-50% to-blue-400/10 to-100%"/>
+        <div className="relative min-h-screen w-full font-['Inter',sans-serif]">
+            {/* Captura del fondo del Figma */}
+            <img src="/auth/fondo.webp" alt="" aria-hidden="true" className="pointer-events-none fixed inset-0 size-full object-cover object-left lg:object-center" />
 
-        <div className="flex min-h-dvh flex-col items-center bg-gray-300 px-4 py-6 md:flex-row md:px-0 md:py-0">
-            
-            <div className="relative hidden h-dvh w-2/4 md:block">
-                <div className="absolute top-1/3 left-10 flex flex-col gap-4 w-2/3 h-2/5">
-                    <div className="flex flex-row items-center gap-6">
-                        <div className="bg-blue-500 rounded-xl p-3">
-                            <FaLocationDot className="text-2xl text-white"/>
+            <div className="relative flex min-h-screen flex-col px-4 py-8 sm:px-8 lg:py-10 lg:pl-[7.29%] lg:pr-[10.42%]">
+                {/*
+                  Móvil: marca → tarjeta → métricas, en una columna.
+                  Escritorio (lg): composición del Figma, marca y métricas a la izquierda y la tarjeta a la derecha.
+                */}
+                <div
+                    className="
+                        mx-auto my-auto grid w-full max-w-130 gap-6
+                        [grid-template-areas:'brand'_'card'_'stats']
+                        lg:max-w-none lg:grid-cols-[minmax(0,560px)_minmax(0,520px)] lg:justify-between lg:gap-x-10 lg:gap-y-5
+                        lg:[grid-template-areas:'brand_card'_'stats_card']
+                    "
+                >
+                    <div className="flex flex-col gap-4 [grid-area:brand] lg:gap-5 lg:self-end">
+                        <div className="flex flex-row items-center gap-3 lg:gap-4">
+                            <div className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-[#2677e6] lg:size-16 lg:rounded-[18px]">
+                                <LuMapPin className="size-6.5 text-white lg:size-8.5"/>
+                            </div>
+                            <h1 className="text-[32px] font-bold text-white lg:text-[40px]">ClimAlert</h1>
                         </div>
-                        <h1 className="text-3xl font-bold text-white">Tijuana Reporta</h1>                        
+                        <h2 className="text-[22px] font-semibold leading-7.5 text-white lg:text-[30px] lg:leading-9.5">Panel de operación para Protección Civil y personal autorizado</h2>
+                        <h2 className="text-[15px] leading-6 text-[#dbeafe] lg:text-[17px] lg:leading-6.5">Revisa reportes ciudadanos, verifica incidentes y avisa a la comunidad en tiempo real durante la temporada de el Niño.</h2>
                     </div>
-                    <div>
-                        <h2 className="text-xl text-white">Panel de operación para Protección Civil y personal autorizado</h2>
+
+                    <div className="flex justify-center [grid-area:card] lg:items-center lg:justify-end">
+                        <SignInPage />
                     </div>
-                    <div>
-                        <h2 className="text-sm text-blue-100">Reporta incidentes ocasionados en la ciudad. La comunidad confirma y todos se enteran antes de salir.</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <div className="flex flex-row gap-3 whitespace-nowrap [grid-area:stats] lg:self-start">
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-gray-100 font-bold text-xl'>{23}</span>
-                            <span className="text-xs text-white">Incidentes activos</span>
+                            <span className='text-[22px] font-bold text-white'>{23}</span>
+                            <span className="text-[13px] text-[#dbeafe]">Incidentes activos</span>
                         </div>
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-gray-100 font-bold text-xl'>{1240}</span>
-                            <span className="text-xs text-white">Personas notificadas hoy</span>
+                            <span className='text-[22px] font-bold text-white'>{1240}</span>
+                            <span className="text-[13px] text-[#dbeafe]">Personas notificadas hoy</span>
                         </div>
                     </div>
                 </div>
-                <span className="absolute bottom-2 left-10 text-xs text-gray-200">
+
+                <span className="mx-auto mt-8 w-full max-w-130 text-[13px] text-[#e2e8f0] lg:absolute lg:bottom-6 lg:left-[7.29%] lg:mt-0 lg:w-auto lg:max-w-none">
                     Uso exclusivo de personal autorizado · Actividad registrada en bitácora
                 </span>
             </div>
-
-            <div className="flex w-full items-center justify-center md:w-2/4">
-                    {tab === 'login' ? <SignInPage /> : <RegisterPage />}
-            </div>
         </div>
-        
-        </>  
     )
 }
