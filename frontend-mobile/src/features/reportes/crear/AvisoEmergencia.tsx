@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BotonPildora } from '@/components/BotonPildora';
 import { AlertTriangleIcon } from '@/components/icons/AlertTriangleIcon';
 import { colors } from '@/theme/colors';
@@ -10,27 +9,10 @@ interface AvisoEmergenciaProps {
   onCerrar: () => void;
 }
 
-// Popup que aparece después de crear el reporte: solo sugiere marcar al 911 si el incidente es muy
-// peligroso, porque la app no sustituye a los servicios de emergencia. Sin diseño en Figma todavía:
-// sigue el estilo de las hojas y botones existentes.
+// Popup que aparece después de crear el reporte: solo avisa que, si el incidente es muy peligroso,
+// hay que marcar al 911, porque la app no sustituye a los servicios de emergencia. Sin diseño en
+// Figma todavía: sigue el estilo de las hojas y botones existentes.
 export function AvisoEmergencia({ visible, onCerrar }: AvisoEmergenciaProps) {
-  const [errorLlamada, setErrorLlamada] = useState(false);
-
-  useEffect(() => {
-    if (visible) setErrorLlamada(false);
-  }, [visible]);
-
-  // El aviso solo se cierra si el marcador abrió; si no (p. ej. tablet sin telefonía), se queda
-  // abierto con instrucciones para marcar a mano.
-  const llamar911 = async () => {
-    try {
-      await Linking.openURL('tel:911');
-      onCerrar();
-    } catch {
-      setErrorLlamada(true);
-    }
-  };
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar} statusBarTranslucent>
       <View style={styles.root}>
@@ -43,17 +25,11 @@ export function AvisoEmergencia({ visible, onCerrar }: AvisoEmergenciaProps) {
             ¿El incidente es muy peligroso?
           </Text>
           <Text style={styles.texto}>
-            Tu reporte ya fue enviado. Si hay personas en riesgo o necesitas ayuda inmediata, te sugerimos
-            marcar al 911: la app no sustituye una llamada de emergencia.
+            Tu reporte ya fue enviado. Si hay personas en riesgo o necesitas ayuda inmediata, marca al 911:
+            la app no sustituye una llamada de emergencia.
           </Text>
-          {errorLlamada && (
-            <Text style={styles.error} accessibilityLiveRegion="assertive">
-              No se pudo abrir el marcador. Marca al 911 desde la app de teléfono.
-            </Text>
-          )}
           <View style={styles.acciones}>
-            <BotonPildora etiqueta="Llamar al 911" onPress={() => void llamar911()} style={styles.botonLlamar} />
-            <BotonPildora etiqueta="Entendido" variante="secundario" onPress={onCerrar} />
+            <BotonPildora etiqueta="Entendido" onPress={onCerrar} />
           </View>
         </View>
       </View>
@@ -75,9 +51,8 @@ const styles = StyleSheet.create({
   tarjeta: {
     width: '100%',
     maxWidth: 400,
-    paddingHorizontal: 24,
+    padding: 24,
     paddingTop: 28,
-    paddingBottom: 12,
     borderRadius: 24,
     backgroundColor: colors.white,
     alignItems: 'center',
@@ -107,21 +82,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  error: {
-    marginTop: 12,
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.errorLabel,
-    textAlign: 'center',
-  },
   acciones: {
     marginTop: 24,
     alignSelf: 'stretch',
-    gap: 12,
-  },
-  botonLlamar: {
-    backgroundColor: colors.reportRed,
-    shadowColor: colors.reportRed,
   },
 });
