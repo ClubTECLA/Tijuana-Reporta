@@ -128,9 +128,11 @@ export default function ColSection(
 
                     return child;
                 })}
-                <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
-                    {footerText && <span className="text-xs text-gray-500">{footerText}</span>}
-                </div>
+                {footerText &&
+                    <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
+                        <span className="text-xs text-gray-500">{footerText}</span>
+                    </div>
+                }
             </div>
         </section>
     )
