@@ -3,7 +3,10 @@ import { panelViews, type PanelViewKey } from "../../types/global-views";
 import { validateChildren } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/validateChildren";
 
 interface CommonPanelContextType {
-    setPanelView: (newView: PanelViewKey | null) => void;
+    /** Panel abierto en este momento (null si no hay ninguno), p. ej. para marcar su sección en la NavBar. */
+    currentPanelView: PanelViewKey | null;
+    /** Con `replace`, el panel nuevo sustituye al actual sin apilarlo en el historial (p. ej. volver a la lista tras publicar). */
+    setPanelView: (newView: PanelViewKey | null, options?: { replace?: boolean }) => void;
     backView: () => void;
     hasPrevView: boolean;
     closePanel: () => void;
@@ -36,9 +39,9 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
         setPreviousView(nextPrevious);
     };
 
-    const setPanelView = (view: PanelViewKey | null) => {
+    const setPanelView = (view: PanelViewKey | null, options?: { replace?: boolean }) => {
         setOpen(true);
-        
+
         if(view === currentPanelView) return;
         if (!view) {
             setCurrentPanelView(null);
@@ -46,9 +49,12 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
         }
 
         if (!(view in panelViews)) return;
-        
 
-        if (currentPanelView) {
+
+        if (options?.replace) {
+            // Sin apilar el panel actual; y si el destino ya estaba en el historial, se quita para no volver a él con "atrás".
+            setPreviousView((prev) => prev.filter((item) => item !== view));
+        } else if (currentPanelView) {
             setPreviousView((prev) => {
                 const nextPrev = prev.includes(currentPanelView)
                     ? prev.filter((item) => item !== currentPanelView)
@@ -64,6 +70,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
     return (
         <CommonPanelContext.Provider
             value={{
+                currentPanelView: open ? currentPanelView : null,
                 setPanelView,
                 backView,
                 hasPrevView: previousView.length !== 0,
