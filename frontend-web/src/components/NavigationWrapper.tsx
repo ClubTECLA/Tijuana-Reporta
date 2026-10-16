@@ -3,11 +3,10 @@ import BellButton from './BellButton';
 import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "./UserProfileWidget";
-import { modals } from '../types/global-modals';
 import useModals from '../hooks/useModals';
 
 export default function NavigationWrapper() {
-    const { setModal, currentModal} = useModals()
+    const { setModalView, currentModal} = useModals()
     const { pathname } = useRouter();
 
     if(pathname === '/auth'){
@@ -26,7 +25,7 @@ export default function NavigationWrapper() {
                 </div>
                 <div className="col-start-2 row-start-1 flex items-center justify-end gap-1 sm:flex-1/6 sm:gap-2">
                     <BellButton 
-                        onClick={() => setModal(
+                        onClick={() => setModalView(
                             currentModal === 'Menu de Notificaciones'
                                 ? null
                                 : 'Menu de Notificaciones'
@@ -34,15 +33,13 @@ export default function NavigationWrapper() {
                     />
                     <UserProfileWidget 
                         className="" 
-                        onClick={() => setModal('Menu de Usuario')}
+                        onClick={() => setModalView('Menu de Usuario')}
                     />    
                 </div>
                 <div className="col-span-2 row-start-2 w-full sm:hidden">
                     <NavBar />
                 </div>
             </div>
-
-            {currentModal && modals[currentModal]}
         </section>
     )
 }

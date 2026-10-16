@@ -1,13 +1,14 @@
 import { isValidElement, cloneElement, Children } from "react";
 import { IoIosArrowBack, IoIosClose } from "react-icons/io";
-import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../../hooks/useCommonPanel";
 import { borders, type SectionProps, type subsectionProps, headerButtonColors } from "../../../../types/utils-types";
 
 
 const arrangementNormalize = {
     toRight: 'justify-start w-full',
     toLeft: 'justify-end w-full',
-    center: 'justify-center w-full'
+    center: 'justify-center w-full',
+    between: 'justify-between w-full'
 } as const satisfies Record<string, string>
 
 interface RowSectionProps extends SectionProps {

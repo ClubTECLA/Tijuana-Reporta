@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { useAuth } from '../hooks/contexts/AuthContext'
-import { useCommonPanel } from '../hooks/contexts/CommonPanelContext'
+import { useCommonPanel } from '../hooks/useCommonPanel'
 import useModals from '../hooks/useModals'
 
 

@@ -1,6 +1,6 @@
 import { LuPlus } from "react-icons/lu";
 import { useAuth } from "../hooks/contexts/AuthContext";
-import { useCommonPanel } from "../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../hooks/useCommonPanel";
 
 // "Dock de acciones" del Figma: acciones principales sobre el mapa.
 // El analista tiene la vista de solo lectura en el Figma, por eso no ve el botón.

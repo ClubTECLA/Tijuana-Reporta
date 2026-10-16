@@ -11,7 +11,7 @@ import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../PanelAndModalComponents/view-components/Button";
 import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
-import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../hooks/useCommonPanel";
 
 type FormState = {
     username: string;
@@ -65,6 +65,7 @@ export default function UserProfileView() {
                 username={user.username}
                 email={user.email}
                 rolName={user.rol_name}
+                bg_color='blue'
             />
             <Input
                 format={"col"}

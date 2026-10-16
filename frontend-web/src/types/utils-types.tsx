@@ -1,4 +1,7 @@
-import type { ReactNode } from "react"
+import {
+  type ReactNode,
+  type HTMLAttributes,
+} from "react"
 import type { PanelViewKey } from "./global-views"
 import { IoDocumentTextOutline } from "react-icons/io5"
 import { LuMessageCircle } from "react-icons/lu"
@@ -26,10 +29,24 @@ export const subsectionFormats = {
   'nothing': ''
 } as const satisfies Record<string, string>
 
-export interface subsectionProps {
+export interface subsectionProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  | "children"
+  | "className"
+  | "key"
+  | "id"
+  | "onChange"
+  | "onReset"
+  | "onResetCapture"
+  | "onSubmit"
+  | "onSubmitCapture"
+  | "prefix"
+> {
     debug?: boolean
     format?: keyof typeof subsectionFormats
     subKey?: string | number;
+    children?: ReactNode
+    className?: string
 }
 
 export type NavItemsType = {

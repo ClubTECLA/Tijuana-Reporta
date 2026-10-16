@@ -19,7 +19,7 @@ type Querier interface {
 	// sin padre.
 	CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
-	CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedium, error)
+	CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error)
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -37,7 +37,7 @@ type Querier interface {
 	// administración).
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
-	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedium, error)
+	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error)
 	ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]Tag, error)
 	// Los tags de varios incidentes en una sola consulta, para no hacer una por

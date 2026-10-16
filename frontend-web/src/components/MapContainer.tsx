@@ -7,7 +7,7 @@ import {
 import { LuLayers, LuMinus, LuNavigation, LuPlus } from 'react-icons/lu';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { useMap } from '../hooks/contexts/MapContext';
+import { useMap } from '../hooks/useMap';
 import ActionDock from './ActionDock';
 import IncidentsLayer from './map/IncidentsLayer';
 

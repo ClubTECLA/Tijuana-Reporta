@@ -14,7 +14,7 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} 
             format={format}
             debug={debug}
             className="rounded-3xl bg-blue-600 text-white font-bold flex-row px-3 py-1 items-center justify-center"
-            type='button'
+            as='button'
         >
             <FiPlus className="text-lg"/>
             {title}

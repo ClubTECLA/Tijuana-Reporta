@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement} from "react";
 import { IoIosArrowBack, IoIosClose } from "react-icons/io";
-import { useCommonPanel } from "../../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../../hooks/useCommonPanel";
 import { borders, headerButtonColors, type SectionProps, type subsectionProps } from "../../../../types/utils-types";
 
 const arrangementNormalize = {
@@ -35,7 +35,7 @@ export default function ColSection(
         return(
             <section 
                 className={`
-                    h-full flex flex-col 
+                    flex flex-col max-w-full max-h-full
                     ${debug ? 'border-2 border-red-500' : ''} 
                     ${arrangementNormalize[arrangementSubsections]} 
                     items-center ${className}
@@ -118,7 +118,7 @@ export default function ColSection(
                     }
                 </div>
             }
-            <div className={`max-w-full max-h-full w-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
+            <div className={`max-w-full max-h-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
                 {Children.map(children, (child) => {
                     if(isValidElement<subsectionProps | SectionProps>(child)){
                         return cloneElement(child, {

@@ -70,12 +70,15 @@ export default function NotificationsView() {
                     />
                 ))}
             </OptionList>
-            <Button
-                format='col'
-                title="Guardar preferencias"
-                color='blue'
-                icon={<LuSun/>}
-            />
+            <ColSection className="p-2">
+                <Button
+                    format='col'
+                    title="Guardar preferencias"
+                    color='blue'
+                    icon={<LuSun/>}
+                />
+            </ColSection>
+            
         </ColSection>
     )
 }

@@ -90,7 +90,7 @@ function CategoriesSection({debug} : subsectionProps) {
     }
 
     return(
-        <ColSection className="min-w-0 w-full gap-2 overflow-x-hidden"
+        <ColSection className="min-w-0 w-full gap-2"
             debug={debug}
         >
             <RowSection
@@ -208,8 +208,8 @@ export default function SettingView () {
         >
             <ColSection
                 border={['right']}
-            className="max-sm:border-r-0 max-sm:border-b-2"
-        >
+                className="max-sm:border-r-0 max-sm:border-b-2 h-full"
+            >
                 <SideNav 
                     format='col'
                 >

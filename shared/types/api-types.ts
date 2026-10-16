@@ -229,7 +229,7 @@ export interface components {
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
         Multimedia: components["schemas"]["multimedia"];
-        MultimediaNueva: components["schemas"]["multimedia_nueva"];
+        CrearMultimediaRequest: components["schemas"]["crear_multimedia_request"];
         Tag: components["schemas"]["tag"];
         TagCatalogo: components["schemas"]["tag_catalogo"];
         CrearTagRequest: components["schemas"]["crear_tag_request"];
@@ -269,7 +269,7 @@ export interface components {
             message: string;
         };
         /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
-        multimedia_nueva: {
+        crear_multimedia_request: {
             path: string;
         };
         crear_reporte_request: {
@@ -278,7 +278,7 @@ export interface components {
             latitude: number;
             /** Format: double */
             longitude: number;
-            multimedia?: components["schemas"]["multimedia_nueva"];
+            multimedia?: components["schemas"]["crear_multimedia_request"];
         };
         comentario: {
             id: number;
