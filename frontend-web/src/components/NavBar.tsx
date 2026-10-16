@@ -80,7 +80,7 @@ export default function NavBar() {
                 shadow-[0_2px_8px_rgba(11,18,32,0.06),0_8px_24px_-6px_rgba(11,18,32,0.05)]
             "
         >
-    {navItems.map((item, idx) => {
+                {navItems.map((item, idx) => {
                 const panelView = item.panelView
                 const onClick = panelView ? () => setPanelView(panelView) : item.onClick
                 // Las secciones que abren un panel se marcan mientras su panel está abierto; las demás, por la ruta.
