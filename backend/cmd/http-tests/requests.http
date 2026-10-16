@@ -149,6 +149,52 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/v1/reportes?min_lat=32.4
 Authorization: Bearer {{token}}
 
+## Cercanos: centro en el punto de "crearReporte", radio en metros.
+## Ordenados del más cercano al más lejano; el de "crearReporte" sale con distancia_m ~0.
+
+### Reportes cercanos (200)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000
+Authorization: Bearer {{token}}
+
+### Cercanos filtrados por incidente y estado (200; parámetros repetidos = varios valores)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&incidente_id=2&incidente_id=4&estado=Pendiente&estado=Probable
+Authorization: Bearer {{token}}
+
+### Cercanos creados desde una fecha (200)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&desde=2026-01-01T00:00:00Z
+Authorization: Bearer {{token}}
+
+### Cercanos con límite (200; a lo más 1)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=50000&limite=1
+Authorization: Bearer {{token}}
+
+### Cercanos lejos de cualquier reporte (200; lista vacía)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=31.8667&lng=-116.5964&radio=100
+Authorization: Bearer {{token}}
+
+### Cercanos sin radio (400)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382
+Authorization: Bearer {{token}}
+
+### Cercanos con radio mayor al máximo (400; máximo 50000)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=50001
+Authorization: Bearer {{token}}
+
+### Cercanos con latitud fuera de rango (400)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=91&lng=-117.0382&radio=2000
+Authorization: Bearer {{token}}
+
+### Cercanos con estado fuera del enum (400)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&estado=Arreglado
+Authorization: Bearer {{token}}
+
+### Cercanos con límite 0 (400; mínimo 1)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&limite=0
+Authorization: Bearer {{token}}
+
+### Cercanos sin token (401)
+GET {{baseUrl}}/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000
+
 # Comentarios
 
 ### Comentar un reporte (201)
