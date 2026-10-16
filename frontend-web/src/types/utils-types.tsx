@@ -1,7 +1,8 @@
-import { 
+import {
   type ReactNode,
   type HTMLAttributes,
 } from "react"
+import type { PanelViewKey } from "./global-views"
 import { IoDocumentTextOutline } from "react-icons/io5"
 import { LuMessageCircle } from "react-icons/lu"
 import { MdOutlineReportProblem } from "react-icons/md"
@@ -53,6 +54,10 @@ export type NavItemsType = {
   title: string,
   destinationPath?: string,
   onClick?: () => void,
+  /** Panel que abre la sección; la sección se marca como activa mientras ese panel está abierto. */
+  panelView?: PanelViewKey,
+  /** Otros paneles que también marcan la sección (p. ej. "Nuevo Incidente" dentro de "Incidentes"). */
+  activeOnPanelViews?: PanelViewKey[],
   cantNoti?: number
 }[]
 
