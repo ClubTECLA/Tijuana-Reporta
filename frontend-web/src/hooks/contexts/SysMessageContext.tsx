@@ -61,24 +61,24 @@ const SysMessageContext = createContext<SysMessageContextType | null>(null);
 /** Maps each message color to its visual classes and icon. */
 const config: Record<MessageColor, { icon: React.ReactNode; barClass: string; wrapped: string }> = {
     green: {
-        icon: <IoMdCheckmarkCircleOutline className="text-green-500 text-4xl"/>,
+        icon: <IoMdCheckmarkCircleOutline className="text-success text-4xl"/>,
         barClass: "border-l-green-500",
-        wrapped: "break-words whitespace-normal text-green-800 bg-green-100",
+        wrapped: "break-words whitespace-normal text-success bg-success-subtle",
     },
     red: {
-        icon: <FiAlertTriangle className="text-red-500 text-4xl"/>,
+        icon: <FiAlertTriangle className="text-danger text-4xl"/>,
         barClass: "border-l-red-500",
-        wrapped: "break-words whitespace-normal text-[#d93f3f] bg-[#ffe9e9]",
+        wrapped: "break-words whitespace-normal text-danger bg-danger-subtle",
     },
     yellow: {
-        icon: <FiAlertCircle className="text-yellow-500 text-4xl"/>,
+        icon: <FiAlertCircle className="text-warning text-4xl"/>,
         barClass: "border-l-yellow-500",
-        wrapped: "break-words whitespace-normal text-yellow-700 bg-yellow-50",
+        wrapped: "break-words whitespace-normal text-warning bg-warning-subtle",
     },
     blue: {
-        icon: <IoMdCheckmarkCircleOutline className="text-blue-500 text-4xl"/>,
+        icon: <IoMdCheckmarkCircleOutline className="text-brand text-4xl"/>,
         barClass: "border-l-blue-500",
-        wrapped: "break-words whitespace-normal text-blue-700 bg-blue-100",
+        wrapped: "break-words whitespace-normal text-brand-text bg-brand-subtle",
     }
 };
 
@@ -142,7 +142,7 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
         <div className={`
             fixed ${justifyM[justify]} z-[100]
             flex items-center gap-3 px-5 py-3.5
-            border-l-4 ${currentStyle.barClass} rounded-2xl shadow-xl shadow-zinc-200/50
+            border-l-4 ${currentStyle.barClass} rounded-2xl shadow-float
             w-max max-w-[90vw] bg-white
             transition-all duration-300 ease-out font-sn-pro
             ${animate ? "top-20 opacity-100 scale-100" : "top-0 opacity-0 scale-95 pointer-events-none"}
@@ -155,7 +155,7 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
             <button
                 type="button"
                 onClick={onClose}
-                className="ml-auto rounded-md p-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="ml-auto rounded-md p-1 text-ink-secondary hover:bg-subtle focus:outline-none focus:ring-2 focus:ring-line-strong"
                 aria-label="Cerrar mensaje"
             >
                 <IoCloseOutline className="text-3xl" />
