@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
@@ -34,11 +34,16 @@ const formsStyle = `
 const titleStyle = `text-2xl font-bold text-ink sm:text-[28px]`
 const subtitleStyle = `text-[15px] leading-5.5 text-ink-secondary`
 
+/** Formulario de inicio de sesión: valida los campos, llama al backend y limita los intentos fallidos. */
 function SignInPage() {
     const { showMessage, cleanMessage } = useSysMessage();
     const { login } = useAuth();
     const navigate = useNavigate();
     const [ remainingAttempts, setRemainingAttempts ] = useState(3);
+    // Evita un segundo envío mientras el primero sigue esperando respuesta. La ref corta al instante
+    // (dos envíos en el mismo evento); el estado deshabilita el botón en pantalla.
+    const submittingRef = useRef(false);
+    const [ submitting, setSubmitting ] = useState(false);
     const [ form, setForm] = useState({
         email: '',
         password: ''
@@ -67,6 +72,9 @@ function SignInPage() {
             return;
         }
 
+        if(submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
         try{
             await login(form.email, form.password);
             navigate('/');
@@ -88,6 +96,9 @@ function SignInPage() {
                         : "Error al iniciar sesión"
             );
             setRemainingAttempts(attemptsAfterFailure);
+        }finally{
+            submittingRef.current = false;
+            setSubmitting(false);
         }
 
     }
@@ -101,8 +112,9 @@ function SignInPage() {
             <span className={subtitleStyle}>Usa tu correo institucional. Las cuentas las crea un administrador</span>
             <SysMessage />
             <div className={formsInputsDivsStyle}>
-                <label className={inputsLabelsStyle}>Correo institucional</label>
+                <label htmlFor="auth-email" className={inputsLabelsStyle}>Correo institucional</label>
                 <input
+                    id="auth-email"
                     type="text"
                     className={inputsStyle}
                     value={form.email}
@@ -111,8 +123,9 @@ function SignInPage() {
                 />
             </div>
             <div className={formsInputsDivsStyle}>
-                <label className={inputsLabelsStyle}>Contraseña</label>
+                <label htmlFor="auth-password" className={inputsLabelsStyle}>Contraseña</label>
                 <input
+                    id="auth-password"
                     type="password"
                     className={inputsStyle}
                     value={form.password}
@@ -120,18 +133,20 @@ function SignInPage() {
                     name={"password"}
                 />
             </div>
-            <div className="flex w-full items-center gap-2 text-sm text-ink-secondary">
-                <label className="flex flex-1 cursor-pointer items-center gap-2">
-                    <input type="checkbox" className="size-4.5 cursor-pointer accent-brand"/> Recordar este equipo
+            <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-secondary">
+                {/* shortcut: la sesión siempre se guarda en localStorage; habilitar cuando "recordar" decida dónde guardar el token. */}
+                <label className="flex flex-1 cursor-not-allowed items-center gap-2 whitespace-nowrap opacity-60" title="Próximamente">
+                    <input type="checkbox" disabled className="size-4.5 cursor-not-allowed accent-brand"/> Recordar este equipo
                 </label>
-                <a href="#" className="font-semibold text-brand-text hover:underline">¿Olvidaste tu contraseña?</a>
+                {/* La recuperación de contraseña (frames 4-5 del Figma) aún no existe: las cuentas las gestiona un administrador. */}
+                <span className="text-right text-ink-muted">¿Olvidaste tu contraseña? Contacta a un administrador</span>
             </div>
             <button
                 type="submit"
                 className={submitButtonStyle}
-                disabled={remainingAttempts === 0}
-                aria-disabled={remainingAttempts === 0}
-            >Iniciar sesión</button>
+                disabled={remainingAttempts === 0 || submitting}
+                aria-disabled={remainingAttempts === 0 || submitting}
+            >{submitting ? 'Ingresando…' : 'Iniciar sesión'}</button>
             <div className="flex w-full items-center gap-4.75">
                 <span className="h-px flex-1 bg-line-soft" />
                 <span className="text-sm text-ink-muted">O</span>
@@ -160,6 +175,7 @@ function SignInPage() {
     )
 }
 
+/** Página /auth del Figma: marca, formulario y métricas sobre la captura del mapa; en móvil se apilan en una columna. */
 export default function AuthPage() {
     const {closePanel} = useCommonPanel();
     const {closeModal} = useModals();
