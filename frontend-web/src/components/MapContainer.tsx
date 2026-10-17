@@ -91,9 +91,9 @@ export default function MapContainer() {
         className="
           absolute right-4 top-1/2 z-10 -translate-y-1/2
           flex flex-col items-center p-1.5
-          rounded-full border border-white/70
-          bg-white/86 backdrop-blur-[14px]
-          drop-shadow-[0_12px_18px_rgba(11,18,32,0.1)]
+          rounded-full border border-glass-line
+          bg-glass backdrop-blur-glass
+          drop-shadow-floating
         "
       >
         {/* No map layers to toggle yet (reports, risk zones, shelters). */}

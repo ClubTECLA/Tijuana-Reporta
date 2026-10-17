@@ -20,16 +20,16 @@ export default function CategoryCard({ incidente, selected = false, onClick }: C
             className={`
                 flex h-21 w-full flex-col items-center justify-center gap-1.5 rounded-[12.7px]
                 transition-colors duration-200
-                ${selected ? 'bg-[#2f6fe0]' : 'border-[1.26px] border-[#e6e9ee] bg-white hover:bg-slate-50'}
+                ${selected ? 'bg-brand' : 'border-[1.26px] border-line bg-white hover:bg-subtle'}
             `}
         >
             <span
-                className={`flex size-9.5 items-center justify-center rounded-full text-white ${selected ? 'shadow-[0_4px_4px_rgba(0,0,0,0.25)]' : ''}`}
+                className={`flex size-9.5 items-center justify-center rounded-full text-white ${selected ? 'shadow-lift' : ''}`}
                 style={{ backgroundColor: incidente.color }}
             >
                 {createElement(categoryIcon(incidente.nombre), { className: "size-5", "aria-hidden": true })}
             </span>
-            <span className={`text-[11.6px] font-medium leading-3.5 ${selected ? 'text-white' : 'text-[#1f2733]'}`}>
+            <span className={`text-[11.6px] font-medium leading-3.5 ${selected ? 'text-white' : 'text-ink'}`}>
                 {label}
             </span>
         </button>

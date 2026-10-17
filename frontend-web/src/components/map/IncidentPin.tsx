@@ -22,15 +22,15 @@ export default function IncidentPin({ reporte, incidente, isNew = false }: Incid
             <span
                 className={`
                     relative flex size-12 items-center justify-center rounded-full border-2 border-white text-white
-                    shadow-[0_4px_10px_rgba(11,18,32,0.25)] transition-transform duration-300
-                    ${pending ? "opacity-55 outline-2 outline-offset-2 outline-dashed outline-[#64748b]" : ""}
+                    shadow-pin transition-transform duration-300
+                    ${pending ? "opacity-55 outline-2 outline-offset-2 outline-dashed outline-ink-muted" : ""}
                     ${isNew ? "scale-110" : ""}
                 `}
                 style={{ backgroundColor: color }}
             >
                 {createElement(categoryIcon(incidente?.nombre ?? ""), { className: "size-6", "aria-hidden": true })}
             </span>
-            <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-[#111827] px-1.75 py-0.5 font-['JetBrains_Mono',monospace] text-xs font-bold leading-none text-white">
+            <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-ink px-1.75 py-0.5 font-['JetBrains_Mono',monospace] text-xs font-bold leading-none text-white">
                 {reporte.avistamientos}
             </span>
         </div>

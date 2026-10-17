@@ -10,8 +10,8 @@ import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
 const PAGE_SIZE = 7;
 
-const headerButtonStyle = "flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f1f5f9] text-[#334155] transition-colors hover:bg-slate-200";
-const noteStyle = "py-6 text-center text-sm text-[#64748b]";
+const headerButtonStyle = "flex size-10 shrink-0 items-center justify-center rounded-full bg-subtle text-icon transition-colors hover:bg-line-soft";
+const noteStyle = "py-6 text-center text-sm text-ink-muted";
 
 // "19. Incidente - ListaCompleta" del Figma. Los datos y los filtros vienen de ReportesContext,
 // que comparte con la capa del mapa: los chips y pestañas filtran también los pines.
@@ -52,8 +52,8 @@ export default function IncidentsView() {
                     <LuX className="size-5" />
                 </button>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[22px] font-bold text-[#111827]">Incidentes</span>
-                    <span className="text-[13px] text-[#64748b]">
+                    <span className="text-[22px] font-bold text-ink">Incidentes</span>
+                    <span className="text-[13px] text-ink-muted">
                         {reportes ? `${activeCount} activos · ${resolvedCount} resueltos` : "Cargando…"}
                     </span>
                 </div>
@@ -63,9 +63,9 @@ export default function IncidentsView() {
                         type="button"
                         onClick={() => setPanelView("Nuevo Incidente")}
                         className="
-                            flex h-12 shrink-0 items-center justify-center gap-2.5 rounded-full bg-[#c30508] px-5.5
-                            text-base font-bold text-white drop-shadow-[0_3px_1.55px_rgba(194,5,8,0.35)]
-                            transition-colors duration-200 hover:bg-[#a90407]
+                            flex h-12 shrink-0 items-center justify-center gap-2.5 rounded-full bg-report px-5.5
+                            text-base font-bold text-white drop-shadow-button-report
+                            transition duration-200 hover:brightness-90
                         "
                     >
                         <LuPlus className="size-5" />
@@ -74,7 +74,7 @@ export default function IncidentsView() {
                 }
             </div>
 
-            <div role="tablist" className="flex gap-1 rounded-full bg-[#e8edf3] p-1">
+            <div role="tablist" className="flex gap-1 rounded-full bg-canvas p-1">
                 {tabs.map(({ key, label }) =>
                     <button
                         key={key}
@@ -84,7 +84,7 @@ export default function IncidentsView() {
                         onClick={() => selectTab(key)}
                         className={`
                             flex h-10 flex-1 items-center justify-center rounded-full text-[15px] whitespace-nowrap transition-colors
-                            ${tab === key ? "bg-white font-semibold text-[#111827] drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.06)]" : "font-medium text-[#64748b] hover:text-[#334155]"}
+                            ${tab === key ? "bg-white font-semibold text-ink drop-shadow-card" : "font-medium text-ink-muted hover:text-icon"}
                         `}
                     >
                         {label}
@@ -123,7 +123,7 @@ export default function IncidentsView() {
                 <button
                     type="button"
                     onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    className="w-full shrink-0 rounded-full bg-[#e8edf3] py-2 text-sm font-semibold text-[#111827] transition-colors hover:bg-slate-200"
+                    className="w-full shrink-0 rounded-full bg-canvas py-2 text-sm font-semibold text-ink transition-colors hover:bg-line-soft"
                 >
                     Cargar {Math.min(PAGE_SIZE, remaining)} más
                 </button>

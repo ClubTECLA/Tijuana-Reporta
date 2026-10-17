@@ -13,14 +13,14 @@ export default function CategoryChip ({ label, count, isSelected = false, onPres
       onClick={onPress}
       className={`
         inline-flex items-center gap-2 rounded-full py-2.5 pl-3.5 pr-4
-        text-sm font-semibold drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.06)] transition-colors duration-200
-        ${isSelected ? 'bg-[#2677e6] text-white' : 'border border-[#d9e0e8] bg-white text-[#111827] hover:bg-slate-50'}
+        text-sm font-semibold drop-shadow-card transition-colors duration-200
+        ${isSelected ? 'bg-brand text-white' : 'border border-line bg-white text-ink hover:bg-subtle'}
       `}
       aria-pressed={isSelected}
     >
       <span>{label}</span>
       {count !== undefined && (
-        <span className={`rounded-full px-1.75 py-px font-mono text-[11px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-[#e8edf3] text-[#64748b]'}`}>{count}</span>
+        <span className={`rounded-full px-1.75 py-px font-mono text-[11px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-canvas text-ink-muted'}`}>{count}</span>
       )}
     </button>
   )

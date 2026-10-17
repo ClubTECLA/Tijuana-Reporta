@@ -68,7 +68,7 @@ const config: Record<MessageColor, { icon: React.ReactNode; barClass: string; wr
     red: {
         icon: <FiAlertTriangle className="text-red-500 text-4xl"/>,
         barClass: "border-l-red-500",
-        wrapped: "break-words whitespace-normal text-[#d93f3f] bg-[#ffe9e9]",
+        wrapped: "break-words whitespace-normal text-danger bg-danger-subtle",
     },
     yellow: {
         icon: <FiAlertCircle className="text-yellow-500 text-4xl"/>,

@@ -1,5 +1,71 @@
 @import 'tailwindcss';
 
+/*
+  Colores del Figma (variables web-color-* y pulso/*). Cada token genera todas sus clases:
+  --color-ink → text-ink, bg-ink, border-ink... y admite opacidad (bg-brand/20).
+  El comentario indica la variable del Figma de la que sale.
+*/
+@theme {
+  /* Fondos */
+  --color-surface: #ffffff;       /* bg-surface */
+  --color-canvas: #e8edf3;        /* bg-canvas: pestañas, chips, botones secundarios */
+  --color-subtle: #f1f5f9;        /* bg-subtle · pulso/ink-100 */
+
+  /* Texto e iconos */
+  --color-ink: #111827;           /* text-primary */
+  --color-ink-strong: #0b1220;    /* pulso/ink-900: sección activa de la NavBar */
+  --color-ink-secondary: #475569; /* text-secondary */
+  --color-ink-muted: #64748b;     /* text-muted · icon-muted · pulso/ink-500 */
+  --color-icon: #334155;          /* icon-primary · pulso/ink-700 */
+
+  /* Bordes */
+  --color-line: #d9e0e8;          /* border-default */
+  --color-line-strong: #cbd5e1;   /* border-strong */
+  --color-line-soft: #e2e8f0;     /* pulso/ink-200: separadores */
+
+  /* Marca */
+  --color-brand: #2677e6;         /* bg-brand · border-brand · icon-brand */
+  --color-brand-text: #176edf;    /* text-brand: enlaces y textos de marca */
+  --color-brand-subtle: #eff6ff;  /* bg-info-subtle */
+  --color-accent: #2f5bff;        /* pulso/primary-600 */
+
+  /* Acción de reportar (botón rojo "Nuevo incidente") */
+  --color-report: #c30508;        /* color/bg/report · pulso/report-600 */
+
+  /* Estados */
+  --color-success: #1f8a5b;       /* text-success */
+  --color-success-subtle: #e7f7f0;/* bg-success-subtle */
+  --color-warning: #b7770f;       /* text-warning */
+  --color-warning-subtle: #fff6da;/* bg-warning-subtle */
+  --color-danger: #d93f3f;        /* text-danger */
+  --color-danger-line: #f25555;   /* border-danger */
+  --color-danger-subtle: #ffe9e9; /* bg-danger-subtle */
+  --color-alert: #ff383c;         /* Accents/Red */
+  --color-mint: #00c8b3;          /* Accents/Mint */
+
+  /* Vidrio (estilo Pulso: NavBar y paneles flotantes) */
+  --color-glass: #ffffffdb;       /* pulso/vidrio */
+  --color-glass-line: #ffffffb2;  /* pulso/borde-vidrio */
+
+  /*
+    Sombras del Figma. shadow-* es box-shadow; drop-shadow-* es filtro y sigue la forma del contenido
+    (iconos, SVG, botones con sombra de color). Sin nombres de color: shadow-brand ya colorea una sombra.
+  */
+  --shadow-raised: 0 1px 3px rgb(0 0 0 / 0.15);          /* Sombra: botones e insignias sobre el mapa */
+  --shadow-float: 0 6px 18px -4px rgb(0 0 0 / 0.12);     /* Web/Shadow/Md: tarjetas flotantes (login, buscador) */
+  --shadow-soft: 0 2px 8px rgb(11 18 32 / 0.06), 0 8px 24px -6px rgb(11 18 32 / 0.05); /* Pulso/Elevación suave: NavBar */
+  --shadow-pin: 0 4px 10px rgb(11 18 32 / 0.25);         /* Pines y marcadores del mapa */
+  --shadow-lift: 0 4px 4px rgb(0 0 0 / 0.25);            /* Icono de la tarjeta de categoría seleccionada */
+
+  --drop-shadow-card: 0 1px 1.5px rgb(0 0 0 / 0.06);     /* Web/Shadow/Sm: chips y pestaña activa */
+  --drop-shadow-button-report: 0 3px 1.55px rgb(194 5 8 / 0.35);  /* Rojo: botón "Nuevo incidente" */
+  --drop-shadow-button-brand: 0 3px 1.55px rgb(38 119 230 / 0.35); /* Azul: botón principal azul */
+  --drop-shadow-floating: 0 12px 18px rgb(11 18 32 / 0.1);  /* Pulso/Vidrio: controles flotantes del mapa */
+  --drop-shadow-pin: 0 4px 10px rgb(11 18 32 / 0.25);    /* Grupos de pines (SVG) */
+
+  --blur-glass: 14px;                                     /* Pulso/Vidrio: desenfoque de fondo (backdrop-blur-glass) */
+}
+
 html,
 body,
 #root {

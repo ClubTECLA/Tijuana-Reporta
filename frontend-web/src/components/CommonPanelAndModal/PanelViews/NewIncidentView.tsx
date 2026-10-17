@@ -21,8 +21,8 @@ const DESCRIPTION_MAX_LENGTH = 500;
 
 type Position = { latitude: number; longitude: number };
 
-const sectionTitleStyle = "text-sm font-semibold text-[#111827]";
-const pendingNoteStyle = "text-xs text-[#64748b]";
+const sectionTitleStyle = "text-sm font-semibold text-ink";
+const pendingNoteStyle = "text-xs text-ink-muted";
 
 // "21. Incidente - NuevoIncidente" del Figma. Crea un reporte (POST /reportes) con la categoría
 // y la ubicación del marcador; la descripción se guarda como su primer comentario.
@@ -183,7 +183,7 @@ function NewIncidentForm() {
         // El contenido llena el alto del panel: el scroll se estira y los botones quedan abajo del todo, como en el Figma.
         <div className="flex min-h-0 w-full flex-1 flex-col font-['Inter',sans-serif] sm:min-w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
-                <span className="text-xs font-semibold tracking-[0.72px] text-[#64748b]">¿QUÉ ESTÁ PASANDO?</span>
+                <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
 
                 {!categories && <span className={pendingNoteStyle}>Cargando categorías…</span>}
                 {categories?.length === 0 && <span className={pendingNoteStyle}>No hay categorías activas.</span>}
@@ -203,7 +203,7 @@ function NewIncidentForm() {
                     <button
                         type="button"
                         onClick={() => setShowAllCategories((prev) => !prev)}
-                        className="flex items-center gap-1.5 self-start text-[13px] font-semibold text-[#176edf] hover:underline"
+                        className="flex items-center gap-1.5 self-start text-[13px] font-semibold text-brand-text hover:underline"
                     >
                         <LuPlus className={`size-4 transition-transform ${showAllCategories ? 'rotate-45' : ''}`} />
                         {showAllCategories ? "Ver menos categorías" : `Ver las ${categories.length} categorías activas`}
@@ -212,16 +212,16 @@ function NewIncidentForm() {
 
                 <form className="flex flex-col gap-1.5" onSubmit={handleSearchAddress}>
                     <label htmlFor="new-incident-address" className={sectionTitleStyle}>Ubicación</label>
-                    <div className="flex h-11 items-center gap-3 rounded-[31px] border border-[#d9e0e8] bg-white px-3 focus-within:border-[#2677e6]">
+                    <div className="flex h-11 items-center gap-3 rounded-[31px] border border-line bg-white px-3 focus-within:border-brand">
                         <input
                             id="new-incident-address"
                             type="text"
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             placeholder="Busca una dirección o colonia"
-                            className="min-w-0 flex-1 bg-transparent text-sm text-[#111827] outline-none placeholder:text-[#64748b]"
+                            className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
                         />
-                        <button type="submit" aria-label="Buscar dirección" className="shrink-0 text-[#334155]">
+                        <button type="submit" aria-label="Buscar dirección" className="shrink-0 text-icon">
                             <LuSearch className="size-5" />
                         </button>
                     </div>
@@ -245,7 +245,7 @@ function NewIncidentForm() {
                                     type="button"
                                     disabled
                                     title="Próximamente"
-                                    className="cursor-not-allowed rounded-full border border-[#d9e0e8] bg-white py-2.5 pl-3.5 pr-4 text-sm font-semibold text-[#111827] opacity-60"
+                                    className="cursor-not-allowed rounded-full border border-line bg-white py-2.5 pl-3.5 pr-4 text-sm font-semibold text-ink opacity-60"
                                 >
                                     {tag.nombre}
                                 </button>
@@ -266,7 +266,7 @@ function NewIncidentForm() {
                         maxLength={DESCRIPTION_MAX_LENGTH}
                         aria-describedby="new-incident-description-count"
                         placeholder="Describe lo que está pasando (opcional)"
-                        className="h-24 w-full resize-none rounded-[14px] border border-[#d9e0e8] bg-white p-3 text-sm text-[#111827] outline-none placeholder:text-[#64748b] focus:border-[#2677e6]"
+                        className="h-24 w-full resize-none rounded-[14px] border border-line bg-white p-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand"
                     />
                     <span id="new-incident-description-count" className={`${pendingNoteStyle} self-end`}>
                         {description.length}/{DESCRIPTION_MAX_LENGTH}
@@ -274,12 +274,12 @@ function NewIncidentForm() {
                 </div>
             </div>
 
-            <div className="flex gap-2.5 border-t border-[#d9e0e8] pt-3.5">
+            <div className="flex gap-2.5 border-t border-line pt-3.5">
                 <button
                     type="button"
                     disabled
                     title="Próximamente"
-                    className="h-12 flex-1 cursor-not-allowed whitespace-nowrap rounded-full bg-[#f1f5f9] px-4 text-base font-bold text-[#111827] opacity-60"
+                    className="h-12 flex-1 cursor-not-allowed whitespace-nowrap rounded-full bg-subtle px-4 text-base font-bold text-ink opacity-60"
                 >
                     Guardar borrador
                 </button>
@@ -288,9 +288,9 @@ function NewIncidentForm() {
                     onClick={handlePublish}
                     disabled={publishing}
                     className="
-                        flex h-12 flex-1 items-center justify-center gap-2.5 rounded-full bg-[#c30508] px-4
-                        text-base font-bold whitespace-nowrap text-white drop-shadow-[0_3px_1.55px_rgba(194,5,8,0.35)]
-                        transition-colors duration-200 hover:bg-[#a90407]
+                        flex h-12 flex-1 items-center justify-center gap-2.5 rounded-full bg-report px-4
+                        text-base font-bold whitespace-nowrap text-white drop-shadow-button-report
+                        transition duration-200 hover:brightness-90
                         disabled:cursor-wait disabled:opacity-70
                     "
                 >
@@ -302,12 +302,12 @@ function NewIncidentForm() {
             {createPortal(
                 <div className="relative flex size-12 cursor-grab items-center justify-center active:cursor-grabbing">
                     <span
-                        className="flex size-12 items-center justify-center rounded-full border-[3px] border-white text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)]"
-                        style={{ backgroundColor: selectedCategory?.color ?? "#2677e6" }}
+                        className="flex size-12 items-center justify-center rounded-full border-[3px] border-white text-white shadow-pin"
+                        style={{ backgroundColor: selectedCategory?.color ?? "var(--color-brand)" }}
                     >
                         <LuMapPin className="size-6" />
                     </span>
-                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#111827] px-3 py-1.5 font-['Inter',sans-serif] text-xs font-semibold text-white">
+                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-['Inter',sans-serif] text-xs font-semibold text-white">
                         <LuMapPin className="size-3.5" />
                         Arrastra el marcador o haz clic en el mapa
                     </span>

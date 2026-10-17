@@ -17,9 +17,9 @@ export default function ActionDock() {
                 onClick={() => setPanelView("Nuevo Incidente")}
                 className="
                     flex h-12 items-center justify-center gap-2.5 rounded-full
-                    bg-[#c30508] px-5.5 font-['Inter',sans-serif] text-base font-bold text-white
-                    drop-shadow-[0_3px_1.55px_rgba(194,5,8,0.35)]
-                    transition-colors duration-200 hover:bg-[#a90407]
+                    bg-report px-5.5 font-['Inter',sans-serif] text-base font-bold text-white
+                    drop-shadow-button-report
+                    transition duration-200 hover:brightness-90
                 "
             >
                 <LuPlus className="size-5" />

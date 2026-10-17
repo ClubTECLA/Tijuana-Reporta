@@ -5,9 +5,9 @@ import { categoryIcon, categoryLabel } from "../../../../types/categories";
 
 // "Web/Etiqueta" del Figma según el estado del reporte; los que no están aquí van en tono neutro.
 const statusTones: Partial<Record<ApiEstadoReporte, string>> = {
-    Pendiente: "bg-[#fff6da] text-[#b7770f]",
-    Verificado: "bg-[#e7f7f0] text-[#1f8a5b]",
-    Resuelto: "bg-[#e7f7f0] text-[#1f8a5b]",
+    Pendiente: "bg-warning-subtle text-warning",
+    Verificado: "bg-success-subtle text-success",
+    Resuelto: "bg-success-subtle text-success",
 };
 
 // Folio corto derivado del id, con la misma fórmula que codigoReporte() de mobile. Solo presentación.
@@ -29,35 +29,35 @@ export default function IncidentRow({ reporte, incidente }: IncidentRowProps) {
     const confirmations = reporte.avistamientos === 1 ? "1 confirmación" : `${reporte.avistamientos} confirmaciones`;
 
     return (
-        <div className="flex w-full items-center gap-3 rounded-[20px] bg-white py-3 pl-3 pr-3.5 shadow-[0_1px_1.5px_rgba(0,0,0,0.15)]">
+        <div className="flex w-full items-center gap-3 rounded-[20px] bg-white py-3 pl-3 pr-3.5 shadow-raised">
             <div
                 className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-white"
                 style={{ backgroundColor: incidente?.color ?? "#757575" }}
             >
                 {createElement(categoryIcon(incidente?.nombre ?? ""), { className: "size-5.5", "aria-hidden": true })}
-                <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-[#111827] px-1.5 py-0.5 font-['JetBrains_Mono',monospace] text-[11px] font-bold leading-none text-white">
+                <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-['JetBrains_Mono',monospace] text-[11px] font-bold leading-none text-white">
                     {reporte.avistamientos}
                 </span>
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="truncate text-[15px] font-semibold text-[#111827]">{title}</span>
-                <span className="truncate text-[13px] text-[#64748b]">
+                <span className="truncate text-[15px] font-semibold text-ink">{title}</span>
+                <span className="truncate text-[13px] text-ink-muted">
                     {reporte.latitude.toFixed(4)}, {reporte.longitude.toFixed(4)} · {folio(reporte.id)}
                 </span>
                 <div className="flex items-center gap-2">
-                    <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.25 text-xs font-semibold ${statusTones[reporte.estado_actual] ?? "bg-[#e8edf3] text-[#475569]"}`}>
+                    <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.25 text-xs font-semibold ${statusTones[reporte.estado_actual] ?? "bg-canvas text-ink-secondary"}`}>
                         <span className="size-1.5 rounded-full bg-current" />
                         {reporte.estado_actual}
                     </span>
-                    <span className="flex items-center gap-1 text-xs font-medium text-[#475569]">
+                    <span className="flex items-center gap-1 text-xs font-medium text-ink-secondary">
                         <LuUsers className="size-3.5" aria-hidden="true" />
                         {reporte.es_oficial ? "Aviso oficial" : confirmations}
                     </span>
                 </div>
             </div>
 
-            <LuChevronRight className="size-4.5 shrink-0 text-[#64748b]" aria-hidden="true" />
+            <LuChevronRight className="size-4.5 shrink-0 text-ink-muted" aria-hidden="true" />
         </div>
     );
 }

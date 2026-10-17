@@ -13,9 +13,9 @@ const navItemStyle = (isActive: boolean) => `
     rounded-full px-4 text-sm
     transition-colors duration-200
     ${isActive ? 
-        'bg-[#0b1220] font-bold text-white' 
+        'bg-ink-strong font-bold text-white' 
         : 
-        'font-semibold text-slate-700 hover:bg-slate-100'
+        'font-semibold text-icon hover:bg-subtle'
     }
 `
 
@@ -25,7 +25,7 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
             <span className="text-lg">{icon}</span>
             <span>{title}</span>
             {!!cantNoti &&
-                <span className="rounded-full bg-[#c30508] px-1.75 py-px text-[11px] font-bold text-white">{cantNoti}</span>
+                <span className="rounded-full bg-report px-1.75 py-px text-[11px] font-bold text-white">{cantNoti}</span>
             }
         </>
     )
@@ -75,9 +75,9 @@ export default function NavBar() {
         <section 
             className="
                 mx-auto flex h-14 w-fit flex-row items-center gap-0.5 p-1
-                rounded-full border border-white/70 bg-white
+                rounded-full border border-glass-line bg-white
                 font-['Plus_Jakarta_Sans',sans-serif]
-                shadow-[0_2px_8px_rgba(11,18,32,0.06),0_8px_24px_-6px_rgba(11,18,32,0.05)]
+                shadow-soft
             "
         >
                 {navItems.map((item, idx) => {

@@ -27,7 +27,7 @@ export default function ClusterPin({ count, segments }: ClusterPinProps) {
             role="img"
             aria-label={`${count} incidentes agrupados`}
             title="Acerca el mapa para ver los incidentes"
-            className="size-18 cursor-pointer drop-shadow-[0_4px_10px_rgba(11,18,32,0.25)] transition-transform hover:scale-105"
+            className="size-18 cursor-pointer drop-shadow-pin transition-transform hover:scale-105"
         >
             <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
                 <circle cx={CENTER} cy={CENTER} r={CENTER - 1} fill="white" />
@@ -51,7 +51,7 @@ export default function ClusterPin({ count, segments }: ClusterPinProps) {
                     y={CENTER}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    className="fill-[#111827] font-['Inter',sans-serif] text-[18px] font-bold"
+                    className="fill-ink font-['Inter',sans-serif] text-[18px] font-bold"
                 >
                     {count}
                 </text>
