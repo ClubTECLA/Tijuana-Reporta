@@ -56,6 +56,7 @@
   --shadow-soft: 0 2px 8px rgb(11 18 32 / 0.06), 0 8px 24px -6px rgb(11 18 32 / 0.05); /* Pulso/Elevación suave: NavBar */
   --shadow-pin: 0 4px 10px rgb(11 18 32 / 0.25);         /* Pines y marcadores del mapa */
   --shadow-lift: 0 4px 4px rgb(0 0 0 / 0.25);            /* Icono de la tarjeta de categoría seleccionada */
+  --shadow-sheet: 0 -2px 16px rgb(0 0 0 / 0.1);          /* Hoja inferior (BottomSheet): sombra hacia arriba */
 
   --drop-shadow-card: 0 1px 1.5px rgb(0 0 0 / 0.06);     /* Web/Shadow/Sm: chips y pestaña activa */
   --drop-shadow-button-report: 0 3px 1.55px rgb(194 5 8 / 0.35);  /* Rojo: botón "Nuevo incidente" */

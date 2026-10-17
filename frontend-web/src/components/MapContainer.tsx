@@ -79,8 +79,8 @@ export default function MapContainer() {
   }, [setMap]);
   const controlButtonStyle = `
     flex size-11 items-center justify-center rounded-full
-    text-xl text-slate-700 transition-colors duration-200
-    hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent
+    text-xl text-icon transition-colors duration-200
+    hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent
   `;
   return (
     <div className="relative h-screen w-screen">
@@ -100,14 +100,14 @@ export default function MapContainer() {
         <button type="button" className={controlButtonStyle} aria-label="Capas" title="Capas (próximamente)" disabled>
           <LuLayers />
         </button>
-        <div className="h-px w-6 bg-slate-200" />
+        <div className="h-px w-6 bg-line-soft" />
         <button type="button" className={controlButtonStyle} aria-label="Acercar" title="Acercar" disabled={atMaxZoom} onClick={() => mapRef.current?.zoomIn()}>
           <LuPlus />
         </button>
         <button type="button" className={controlButtonStyle} aria-label="Alejar" title="Alejar" disabled={atMinZoom} onClick={() => mapRef.current?.zoomOut()}>
           <LuMinus />
         </button>
-        <div className="h-px w-6 bg-slate-200" />
+        <div className="h-px w-6 bg-line-soft" />
         <button type="button" className={controlButtonStyle} aria-label="Orientar al norte" title="Orientar al norte" onClick={() => mapRef.current?.resetNorthPitch()}>
           <LuNavigation />
         </button>

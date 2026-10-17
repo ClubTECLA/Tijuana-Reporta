@@ -4,11 +4,11 @@ import SubSection from "../primitive-components/SubSection";
 
 
 const buttonWrapped: Record<string, string> = {
-    'red' : 'bg-red-500 text-white',
-    'green': 'bg-green-500 text-white',
-    'yellow': 'bg-yellow-500 text-white',
-    'blue': 'bg-blue-600 text-white',
-    'gray': 'bg-gray-200 text-black'
+    'red' : 'bg-danger text-white',
+    'green': 'bg-success text-white',
+    'yellow': 'bg-warning text-white',
+    'blue': 'bg-brand text-white',
+    'gray': 'bg-canvas text-ink'
 };
 
 type wrappedColor = keyof typeof buttonWrapped;

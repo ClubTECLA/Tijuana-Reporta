@@ -13,9 +13,9 @@ interface NotificationTileProps extends subsectionProps {
 }
 
 const iconStyles = {
-    report: "bg-blue-100 text-blue-600",
-    moderation: "bg-red-100 text-red-600",
-    system: "bg-gray-200 text-gray-600",
+    report: "bg-brand-subtle text-brand",
+    moderation: "bg-danger-subtle text-danger",
+    system: "bg-canvas text-ink-secondary",
 } as const satisfies Record<NotiType, string>;
 
 function getTimeSinceCreated(createdAt: string): string {
@@ -59,7 +59,7 @@ export function NotificationTile({
             onClick={onClick}
             className="
                 items-center gap-2 rounded-2xl bg-white p-2 text-left
-                transition-colors hover:bg-gray-200 w-full
+                transition-colors hover:bg-canvas w-full
             "
         >
             <SubSection 
@@ -85,11 +85,11 @@ export function NotificationTile({
                 >
                     <SubSection 
                         as='span'
-                        className="min-w-0 break-words font-bold text-gray-800"
+                        className="min-w-0 break-words font-bold text-ink"
                     >{title}</SubSection>
                     <time
                         dateTime={createdAt}
-                        className="shrink-0 text-xs font-semibold text-gray-500"
+                        className="shrink-0 text-xs font-semibold text-ink-muted"
                     >
                         {getTimeSinceCreated(createdAt)}
                     </time>
@@ -97,7 +97,7 @@ export function NotificationTile({
                 {description && (
                     <SubSection 
                         as='span'
-                        className="block break-words text-sm text-gray-700"
+                        className="block break-words text-sm text-ink"
                     >
                         {description}
                     </SubSection>
@@ -109,7 +109,7 @@ export function NotificationTile({
                     format="nothing" 
                     className="h-15 flex-col items-start justify-start"
                 >
-                    <SubSection as='span' className="size-2 rounded-full bg-blue-700" />
+                    <SubSection as='span' className="size-2 rounded-full bg-brand" />
                     <SubSection as='span' className="sr-only">No leída</SubSection>
                 </SubSection>
             )}

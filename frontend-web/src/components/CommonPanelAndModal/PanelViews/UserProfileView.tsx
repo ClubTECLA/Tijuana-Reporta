@@ -46,7 +46,7 @@ export default function UserProfileView() {
 
     if (!isAuthenticated || !user) {
         return (
-            <div className="flex flex-row items-center justify-center gap-3 text-red-800">
+            <div className="flex flex-row items-center justify-center gap-3 text-danger">
                 <FaUserLock className="text-3xl" />
                 <span className="text-xl">Acceso Denegado</span>
             </div>

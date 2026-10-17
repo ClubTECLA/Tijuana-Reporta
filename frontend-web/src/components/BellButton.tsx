@@ -20,10 +20,10 @@ export default function BellButton({className, onClick, cantNotis}: BellButtonPr
             aria-label="Notificaciones"
         >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow-raised">
-                <LuBell className="text-2xl text-gray-600" />
+                <LuBell className="text-2xl text-ink-secondary" />
             </div>
             {Number(cantNotis) > 0 && 
-                <div className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1">
+                <div className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-report px-1">
                     <span className="text-xs font-bold leading-none text-white">{cantNotis}</span>
                 </div>
             }

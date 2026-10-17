@@ -67,14 +67,14 @@ export function CustomColorPickerButton({
         className={`
           group relative w-8 h-8 rounded-full p-[2.5px]
           transition-all duration-200 cursor-pointer outline-none select-none
-          ${active ? 'ring-4 ring-slate-900' : 'hover:scale-105'}
+          ${active ? 'ring-4 ring-ink' : 'hover:scale-105'}
           ${disabled ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''}
           ${className}
         `}
       >
-        <div className="w-full h-full rounded-full bg-white dark:bg-white flex items-center justify-center transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-300">
+        <div className="w-full h-full rounded-full bg-white dark:bg-white flex items-center justify-center transition-colors group-hover:bg-subtle dark:group-hover:bg-line-strong">
           <svg
-            className="w-3.5 h-3.5 text-slate-800 dark:text-black transition-transform group-hover:scale-110"
+            className="w-3.5 h-3.5 text-ink dark:text-ink transition-transform group-hover:scale-110"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -106,7 +106,7 @@ export function SwatchItem({format = 'both-fit', debug, active = false, color, o
             onClick={onClick}
         >
             <span 
-                className={` h-8 w-8 rounded-full group-hover:ring-4 group-hover:ring-slate-900 ${active ? 'ring-4 ring-slate-900' : ''}`} 
+                className={` h-8 w-8 rounded-full group-hover:ring-4 group-hover:ring-ink ${active ? 'ring-4 ring-ink' : ''}`} 
                 style={{background: color}}
             />
         </SubSection>
@@ -131,7 +131,7 @@ export function ColorSwatchSelector({format, debug, children, onChangeColor, tit
         >
             {title && 
                 <span
-                    className="text-lg font-semibold text-gray-800 mb-1"
+                    className="text-lg font-semibold text-ink mb-1"
                 >{title}</span>
             }
             <div className="grid grid-cols-7 gap-1">

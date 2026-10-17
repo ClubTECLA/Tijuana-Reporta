@@ -84,7 +84,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
                         fixed left-2 right-2 top-20 bottom-2
                         min-w-0 max-w-none
                         bg-white/90 rounded-2xl
-                        shadow-lg shadow-gray-600 p-3
+                        shadow-float p-3
                         z-50 
                         sm:left-3 sm:right-auto sm:bottom-5 
                         sm:w-fit sm:max-w-3/4 sm:min-w-1/4 sm:p-4

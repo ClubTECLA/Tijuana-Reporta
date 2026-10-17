@@ -26,8 +26,8 @@ export function TabItem({
                 gap-2 whitespace-nowrap rounded-full px-2 py-1
                 text-md transition-colors duration-200 
                 ${isActive
-                    ? "bg-white font-semibold text-slate-900 shadow-sm"
-                    : "bg-transparent font-medium text-slate-500 hover:text-slate-700"}
+                    ? "bg-white font-semibold text-ink drop-shadow-card"
+                    : "bg-transparent font-medium text-ink-muted hover:text-icon"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
                 sm:min-w-0 sm:flex-1
             `}
@@ -35,7 +35,7 @@ export function TabItem({
             {tabIcon}
             {tabTitle}
             {tabBadge !== undefined && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm">
+                <span className="rounded-full bg-subtle px-2 py-0.5 text-sm">
                     {tabBadge}
                 </span>
             )}
@@ -62,7 +62,7 @@ export function SegmentedTabs({
             format={format}
             debug={debug}
             className={`
-                flex max-w-full rounded-full bg-slate-200 p-2
+                flex max-w-full rounded-full bg-canvas p-2
                 mb-3 
                 ${format === "row" ? "flex-row max-h-15 w-full overflow-x-auto" : "flex-col w-fit"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
