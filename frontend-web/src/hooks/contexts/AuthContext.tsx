@@ -47,6 +47,7 @@ async function readError(response: Response): Promise<string> {
     }
 }
 
+/** Sesión del usuario: guarda el token, restaura la sesión al recargar y expone login, registro y logout. */
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthContextUser | null>(null);
     const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
@@ -111,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = (email: string, username: string, password: string) =>
         authenticate('register', { email, username, password })
 
+    /** Cierra la sesión en el backend y borra el token guardado, aunque la petición falle. */
     const logout = async () => {
-        setUser(null);return
         try{
             await fetch(`${apiUrl}/auth/logout`,{
                 method: 'POST',
