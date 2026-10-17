@@ -193,6 +193,7 @@ type PuntosOrigen struct {
 	Longitude   pgtype.Numeric `json:"longitude"`
 	SampleCount int            `json:"sample_count"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	Geom        interface{}    `json:"geom"`
 }
 
 type RefreshToken struct {

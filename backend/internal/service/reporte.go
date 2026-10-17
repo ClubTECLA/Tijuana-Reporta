@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -21,6 +22,7 @@ type ReporteStore interface {
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 	UpdateEstadoReporte(ctx context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error)
+	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
 }
 
 type ReporteService struct {
@@ -123,6 +125,24 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 		MaxLat: maxLat,
 		MinLng: minLng,
 		MaxLng: maxLng,
+	})
+}
+
+func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ListReportesPorUbicacionRow, error) {
+	// La consulta recibe los estados como text[] (ver reporte.sql). Se deja
+	// nil si no hay estados, porque nil es "sin filtro".
+	var estadosTexto []string
+	for _, e := range estados {
+		estadosTexto = append(estadosTexto, string(e))
+	}
+	return s.store.ListReportesPorUbicacion(ctx, domain.ListReportesPorUbicacionParams{
+		Lng:          lng,
+		Lat:          lat,
+		Radio:        radio,
+		IncidenteIds: incidenteIds,
+		Estados:      estadosTexto,
+		Desde:        desde,
+		Limite:       limite,
 	})
 }
 
