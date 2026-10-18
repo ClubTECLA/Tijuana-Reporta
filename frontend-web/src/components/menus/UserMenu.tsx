@@ -28,7 +28,8 @@ export default function UserMenu() {
                 />
                 <Button
                     icon={<IoIosClose />}
-                    color="gray"
+                    ariaLabel="Cerrar menú"
+                    variant="subtle"
                     onClick={closeModal}
                 />
             </RowSection>

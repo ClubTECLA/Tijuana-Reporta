@@ -103,7 +103,7 @@ function CategoriesSection({debug} : subsectionProps) {
                 />
                 <Button
                     title="Nueva categoria"
-                    color='blue'
+                    variant="primary"
                     format='both-fit'
                     icon=<BiPlus/>
                     onClick={() => {

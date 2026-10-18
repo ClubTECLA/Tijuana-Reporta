@@ -3,6 +3,8 @@ import { LuPlus } from "react-icons/lu";
 import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
 import CategoryChip from "../../CategoryChip";
 import IncidentRow from "../PanelAndModalComponents/view-components/IncidentRow";
+import Button from "../PanelAndModalComponents/view-components/Button";
+import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useReportes } from "../../../hooks/useReportes";
@@ -41,18 +43,7 @@ export default function IncidentsView() {
 
     // El analista tiene la vista de solo lectura en el Figma.
     const newButton = user?.rol_name !== "analista" &&
-        <button
-            type="button"
-            onClick={() => setPanelView("Nuevo Incidente")}
-            className="
-                flex h-12 shrink-0 items-center justify-center gap-2.5 rounded-full bg-report px-5.5
-                text-base font-bold text-white drop-shadow-button-report
-                transition duration-200 hover:brightness-90
-            "
-        >
-            <LuPlus className="size-5" />
-            Nuevo
-        </button>;
+        <Button variant="report" size="lg" icon={<LuPlus />} title="Nuevo" onClick={() => setPanelView("Nuevo Incidente")} />;
 
     return (
         <ColSection
@@ -64,23 +55,14 @@ export default function IncidentsView() {
         >
             {/* Mismo ancho que "Nuevo incidente": ocupa el ancho mínimo del panel común (25vw menos su relleno). */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-['Inter',sans-serif] sm:min-w-[max(25rem,calc(25vw-2rem))]">
-                <div role="tablist" className="flex gap-1 rounded-full bg-canvas p-1">
-                    {tabs.map(({ key, label }) =>
-                        <button
-                            key={key}
-                            type="button"
-                            role="tab"
-                            aria-selected={tab === key}
-                            onClick={() => selectTab(key)}
-                            className={`
-                                flex h-10 flex-1 items-center justify-center rounded-full text-[15px] whitespace-nowrap transition-colors
-                                ${tab === key ? "bg-white font-semibold text-ink drop-shadow-card" : "font-medium text-ink-muted hover:text-icon"}
-                            `}
-                        >
-                            {label}
-                        </button>
-                    )}
-                </div>
+                {/* La pestaña vive en ReportesContext (también filtra el mapa), así que las pestañas van controladas. */}
+                <SegmentedTabs
+                    format="row"
+                    activeTab={tabs.findIndex(({ key }) => key === tab)}
+                    onChange={(index) => selectTab(tabs[index].key)}
+                >
+                    {tabs.map(({ key, label }) => <TabItem key={key} tabTitle={label} />)}
+                </SegmentedTabs>
 
                 <div className="flex flex-wrap gap-2">
                     {STATUS_FILTERS.map((status) =>

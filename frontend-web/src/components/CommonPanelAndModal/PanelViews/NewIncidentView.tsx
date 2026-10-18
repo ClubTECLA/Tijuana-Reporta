@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type SubmitEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
-import { LuMapPin, LuPlus, LuSearch, LuSend } from "react-icons/lu";
+import { LuMapPin, LuPlus, LuSend } from "react-icons/lu";
 import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
 import CategoryCard from "../PanelAndModalComponents/view-components/CategoryCard";
 import PhotoDropzone from "../PanelAndModalComponents/view-components/PhotoDropzone";
+import Button from "../PanelAndModalComponents/view-components/Button";
+import SearchBar from "../PanelAndModalComponents/view-components/SearchBar";
 import { useMap } from "../../../hooks/useMap";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
@@ -111,12 +113,11 @@ function NewIncidentForm() {
         };
     }, [map, markerElement]);
 
-    const handleSearchAddress = async (e: SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!address.trim()) return;
+    const handleSearchAddress = async (query: string) => {
+        if (!query.trim()) return;
 
         try {
-            const found = await buscarDireccion(address);
+            const found = await buscarDireccion(query);
             if (!found) {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
                 return;
@@ -210,27 +211,23 @@ function NewIncidentForm() {
                     </button>
                 }
 
-                <form className="flex flex-col gap-1.5" onSubmit={handleSearchAddress}>
+                <div className="flex flex-col gap-1.5">
                     <label htmlFor="new-incident-address" className={sectionTitleStyle}>Ubicación</label>
-                    <div className="flex h-11 items-center gap-3 rounded-[31px] border border-line bg-white px-3 focus-within:border-brand">
-                        <input
-                            id="new-incident-address"
-                            type="text"
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            placeholder="Busca una dirección o colonia"
-                            className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
-                        />
-                        <button type="submit" aria-label="Buscar dirección" className="shrink-0 text-icon">
-                            <LuSearch className="size-5" />
-                        </button>
-                    </div>
+                    {/* Controlado: el texto también cambia al mover el marcador (dirección inversa). */}
+                    <SearchBar
+                        format="col"
+                        inputId="new-incident-address"
+                        value={address}
+                        onChange={setAddress}
+                        onSubmit={handleSearchAddress}
+                        placeholder="Busca una dirección o colonia"
+                    />
                     <span className={pendingNoteStyle}>
                         {position
                             ? `Coordenadas ${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)} · ajústala en el mapa`
                             : "Haz clic en el mapa para marcar la ubicación"}
                     </span>
-                </form>
+                </div>
 
                 <PhotoDropzone disabled />
 
@@ -275,28 +272,16 @@ function NewIncidentForm() {
             </div>
 
             <div className="flex gap-2.5 border-t border-line pt-3.5">
-                <button
-                    type="button"
-                    disabled
-                    title="Próximamente"
-                    className="h-12 flex-1 cursor-not-allowed whitespace-nowrap rounded-full bg-subtle px-4 text-base font-bold text-ink opacity-60"
-                >
-                    Guardar borrador
-                </button>
-                <button
-                    type="button"
+                <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1" />
+                <Button
+                    variant="report"
+                    size="lg"
+                    icon={<LuSend />}
+                    title={publishing ? "Publicando…" : "Publicar incidente"}
                     onClick={handlePublish}
                     disabled={publishing}
-                    className="
-                        flex h-12 flex-1 items-center justify-center gap-2.5 rounded-full bg-report px-4
-                        text-base font-bold whitespace-nowrap text-white drop-shadow-button-report
-                        transition duration-200 hover:brightness-90
-                        disabled:cursor-wait disabled:opacity-70
-                    "
-                >
-                    <LuSend className="size-5" />
-                    {publishing ? "Publicando…" : "Publicar incidente"}
-                </button>
+                    className="flex-1"
+                />
             </div>
 
             {createPortal(

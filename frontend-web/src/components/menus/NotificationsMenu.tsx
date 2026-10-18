@@ -67,6 +67,7 @@ export default function NotificationsMenu() {
             </RowSection>
             <SegmentedTabs
                 format="row"
+                className="mb-3"
             >
                 <TabItem
                     tabTitle="Todas"

@@ -185,7 +185,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                     onClick={onClose}
                 />
                 <Button
-                    color='blue'
+                    variant="primary"
                     icon={isEdit ? null : <FiPlus/>}
                     title={isEdit ? "Aceptar" : "Crear Categoria"}
                     onClick={handleSubmitForm}

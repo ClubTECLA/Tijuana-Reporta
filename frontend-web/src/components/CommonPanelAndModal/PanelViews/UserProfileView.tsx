@@ -130,13 +130,13 @@ export default function UserProfileView() {
                 <Button
                     title="Descartar"
                     format='row'
-                    color='gray'
+                    variant="subtle"
                 />
                 <Button
                     title="Guardar Cambios"
                     format='row'
                     icon={<LuSun />}
-                    color='blue'
+                    variant="primary"
                 />
             </RowSection>
         </ColSection>
