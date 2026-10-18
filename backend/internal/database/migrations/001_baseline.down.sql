@@ -27,3 +27,5 @@ DROP FUNCTION update_tag_counts();
 
 DROP TYPE estado;
 DROP TYPE user_state;
+
+DROP EXTENSION IF EXISTS postgis;
