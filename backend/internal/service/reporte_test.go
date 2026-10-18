@@ -25,7 +25,7 @@ type fakeReporteStore struct {
 	comentarios map[uuid.UUID][]domain.Comentario
 	multimedia  map[uuid.UUID][]domain.Multimedia
 	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
-	locations   map[uuid.UUID][]domain.ListLocationsByReporteIdRow
+	locations   map[uuid.UUID][]domain.Location
 	resumen     []domain.ListReportesResumenRow
 	cercanos    []domain.ListReportesPorUbicacionRow
 
@@ -46,7 +46,7 @@ func newFakeReporteStore() *fakeReporteStore {
 		comentarios: map[uuid.UUID][]domain.Comentario{},
 		multimedia:  map[uuid.UUID][]domain.Multimedia{},
 		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
-		locations:   map[uuid.UUID][]domain.ListLocationsByReporteIdRow{},
+		locations:   map[uuid.UUID][]domain.Location{},
 	}
 }
 
@@ -61,7 +61,7 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 		EsOficial:   arg.Reporte.EsOficial,
 	}
 	f.byID[r.ID] = r
-	f.locations[r.ID] = []domain.ListLocationsByReporteIdRow{
+	f.locations[r.ID] = []domain.Location{
 		{ID: 1, ReporteID: r.ID, Latitude: arg.Latitude, Longitude: arg.Longitude, UserID: arg.UserID},
 	}
 	// Con una sola location, el centroide es esa misma location.
@@ -100,7 +100,7 @@ func (f *fakeReporteStore) ListTagsByReporteId(_ context.Context, id uuid.UUID) 
 	return f.tags[id], nil
 }
 
-func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error) {
+func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]domain.Location, error) {
 	return f.locations[id], nil
 }
 

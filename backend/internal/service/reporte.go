@@ -17,7 +17,7 @@ type ReporteStore interface {
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Location, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
