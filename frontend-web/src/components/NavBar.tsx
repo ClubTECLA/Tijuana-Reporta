@@ -47,7 +47,7 @@ export default function NavBar() {
                 icon: <LuTriangleAlert />,
                 title: "Incidentes",
                 panelView: 'Incidentes',
-                activeOnPanelViews: ['Nuevo Incidente']
+                activeOnPanelViews: ['Nuevo Incidente', 'Detalle Incidente']
             },
             {
                 icon: <LuTent />,

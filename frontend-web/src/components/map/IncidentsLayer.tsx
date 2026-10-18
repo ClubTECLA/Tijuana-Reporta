@@ -6,6 +6,7 @@ import IncidentPin from "./IncidentPin";
 import ClusterPin from "./ClusterPin";
 import { useMap } from "../../hooks/useMap";
 import { useReportes } from "../../hooks/useReportes";
+import { useCommonPanel } from "../../hooks/useCommonPanel";
 import type { ApiReporteResumen } from "../../types/api-types";
 
 // Capa de incidentes del mapa (opción híbrida):
@@ -41,11 +42,18 @@ const stopMapEvent = (event: Event) => event.stopPropagation();
 export default function IncidentsLayer() {
     const { map } = useMap();
     const { filteredReportes, categories, createdId } = useReportes();
+    const { setPanelView } = useCommonPanel();
     const [items, setItems] = useState<MarkerItem[]>([]);
 
     const markersRef = useRef(new Map<string, { marker: Marker; element: HTMLDivElement }>());
     const dataRef = useRef<FeatureCollection<Point>>(toFeatureCollection([]));
     const flownToRef = useRef<string | null>(null);
+    // Los listeners de los marcadores se crean una vez; la ref les da siempre el setPanelView actual
+    // (con uno viejo, el historial de paneles quedaría desfasado).
+    const openDetailRef = useRef((reporteId: string) => setPanelView("Detalle Incidente", { props: { reporteId } }));
+    useEffect(() => {
+        openDetailRef.current = (reporteId: string) => setPanelView("Detalle Incidente", { props: { reporteId } });
+    });
 
     const reportesById = useMemo(() => new Map(filteredReportes.map((reporte) => [reporte.id, reporte])), [filteredReportes]);
     // La fuente se recrea solo si cambia el conjunto de categorías (sus conteos por grupo forman el anillo).
@@ -84,6 +92,10 @@ export default function IncidentsLayer() {
                                 .then((zoom) => map.easeTo({ center: coordinates, zoom }))
                                 .catch(() => undefined);
                         });
+                    } else {
+                        const reporteId = String(props.id);
+                        element.style.cursor = "pointer";
+                        element.addEventListener("click", () => openDetailRef.current(reporteId));
                     }
                     entry = { marker: new Marker({ element }).setLngLat(coordinates).addTo(map), element };
                     markers.set(key, entry);

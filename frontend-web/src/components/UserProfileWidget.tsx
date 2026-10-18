@@ -3,20 +3,7 @@ import type { componentProps } from "../types/utils-types";
 import { useAuth } from "../hooks/contexts/AuthContext";
 import { LuLogIn } from "react-icons/lu";
 import { Link } from "react-router-dom";
-
-const rolLabels: Record<string, string> = {
-    admin: "Administrador",
-    moderador: "Moderador",
-    analista: "Analista",
-    proteccion_civil: "Protección Civil",
-    rescatista: "Rescatista",
-    ciudadano: "Ciudadano",
-}
-
-function initials(username: string) {
-    const [first = "", second = ""] = username.trim().split(/\s+/)
-    return (second ? first[0] + second[0] : first.slice(0, 2)).toUpperCase()
-}
+import { initials, rolLabel } from "../types/users";
 
 export default function UserProfileWidget({className, onClick} : componentProps) {
     const { isAuthenticated, user } = useAuth();
@@ -64,7 +51,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                     <>
                     <span className="max-w-48 truncate text-[13px] font-semibold text-ink">{user?.username || "Usuario"}</span>
                     <span className="max-w-48 truncate text-xs text-ink-muted">
-                        {(user?.rol_name && rolLabels[user.rol_name]) || user?.rol_name || "Invitado"}
+                        {user?.rol_name ? rolLabel(user.rol_name) : "Invitado"}
                     </span>
                     </>
                 }

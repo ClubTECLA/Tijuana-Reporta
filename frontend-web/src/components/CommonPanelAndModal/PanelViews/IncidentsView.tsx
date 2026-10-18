@@ -85,9 +85,13 @@ export default function IncidentsView() {
                             {all.length === 0 ? "Todavía no hay incidentes." : "No hay incidentes con estos filtros."}
                         </span>
                     }
-                    {/* shortcut: las filas aún no abren el detalle del incidente (frame 9); se conectará cuando exista ese panel. */}
                     {shown.map((reporte) =>
-                        <IncidentRow key={reporte.id} reporte={reporte} incidente={categories.get(reporte.incidente_id)} />
+                        <IncidentRow
+                            key={reporte.id}
+                            reporte={reporte}
+                            incidente={categories.get(reporte.incidente_id)}
+                            onClick={() => setPanelView("Detalle Incidente", { props: { reporteId: reporte.id } })}
+                        />
                     )}
                 </div>
 

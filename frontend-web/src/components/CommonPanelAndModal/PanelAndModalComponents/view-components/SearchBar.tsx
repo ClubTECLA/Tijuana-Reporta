@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { LuSearch } from 'react-icons/lu';
 import SubSection from '../primitive-components/SubSection';
 import type { subsectionProps } from '../../../../types/utils-types';
@@ -25,7 +25,7 @@ export default function SearchBar({ format, debug, onSubmit, value, onChange, pl
         onChange?.(next);
     }
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         onSubmit?.(currentValue);
     }

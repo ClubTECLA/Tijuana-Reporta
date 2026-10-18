@@ -4,12 +4,21 @@ import type {
     ApiCrearReporteRequest,
     ApiCrearReporteResponse,
     ApiListarReportesResponse,
+    ApiObtenerReporteResponse,
 } from '../types/api-types'
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
 
 // GET /reportes (todos los no históricos, en cualquier estado)
 export function listarReportes(): Promise<ApiListarReportesResponse> {
     return requestJson(`${apiUrl}/reportes`, {
+        method: 'GET',
+        headers: { Authorization: getAuthorizationHeader() },
+    })
+}
+
+// GET /reportes/{reporteId}: detalle con comentarios, etiquetas, ubicaciones y multimedia
+export function obtenerReporte(reporteId: string): Promise<ApiObtenerReporteResponse> {
+    return requestJson(`${apiUrl}/reportes/${reporteId}`, {
         method: 'GET',
         headers: { Authorization: getAuthorizationHeader() },
     })
