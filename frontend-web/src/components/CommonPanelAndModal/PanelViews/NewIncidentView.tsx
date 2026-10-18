@@ -126,9 +126,12 @@ function NewIncidentForm() {
         if (!query.trim()) return;
 
         const lookup = ++lookupRef.current;
+        // Vigente si nadie movió el marcador ni volvió a escribir, y el formulario sigue abierto
+        // (al cerrarlo, la limpieza del efecto deja markerRef en null): así no mueve el mapa ni avisa tarde.
+        const isCurrent = () => lookup === lookupRef.current && markerRef.current !== null;
         try {
             const found = await buscarDireccion(query);
-            if (lookup !== lookupRef.current) return; // el usuario movió el marcador o volvió a escribir
+            if (!isCurrent()) return;
             if (!found) {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
                 return;
@@ -138,7 +141,7 @@ function NewIncidentForm() {
             setPosition({ latitude: found.latitude, longitude: found.longitude });
             setAddress(found.address);
         } catch {
-            if (lookup !== lookupRef.current) return;
+            if (!isCurrent()) return;
             showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
         }
     };
