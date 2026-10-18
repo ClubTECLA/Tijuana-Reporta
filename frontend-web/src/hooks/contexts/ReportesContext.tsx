@@ -42,14 +42,19 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
 
     // Firma de la última respuesta: si no cambió, no se toca el estado y ni la lista ni el mapa se repintan.
     const lastSignatureRef = useRef("");
+    // Sesión a la que pertenece cada petición: al cerrar sesión se incrementa y se descartan las respuestas
+    // que lleguen después, para no restaurar los datos del usuario anterior.
+    const sessionRef = useRef(0);
 
     const refresh = useCallback(async () => {
+        const session = sessionRef.current;
         try {
             const [reportList, categoryList] = await Promise.all([
                 listarReportes(),
                 // También las inactivas: puede haber reportes de una categoría que ya se desactivó.
                 listarIncidentes({ incluir_inactivos: true }),
             ]);
+            if (session !== sessionRef.current) return;
             setError(null);
 
             const signature = JSON.stringify([reportList, categoryList]);
@@ -59,13 +64,18 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             setReportes(reportList);
             setCategories(new Map(categoryList.map((category) => [category.id, category])));
         } catch (err) {
+            if (session !== sessionRef.current) return;
             setError(err instanceof Error ? err.message : "No se pudieron cargar los incidentes.");
         }
     }, []);
 
     // Carga al iniciar sesión, consulta periódica solo con la pestaña visible, y recarga al volver a ella.
     useEffect(() => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            // Sesión cerrada: las peticiones que sigan en curso pertenecen a la anterior y se descartan.
+            sessionRef.current++;
+            return;
+        }
 
         let intervalId: ReturnType<typeof setInterval> | undefined;
         const startPolling = () => {

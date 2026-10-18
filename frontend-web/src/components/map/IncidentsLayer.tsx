@@ -87,9 +87,12 @@ export default function IncidentsLayer() {
                     if (props.cluster) {
                         const clusterId = Number(props.cluster_id);
                         element.addEventListener("click", () => {
+                            // El marcador se reutiliza y se mueve si el grupo se recalcula: se lee su posición actual.
+                            const center = markers.get(key)?.marker.getLngLat();
+                            if (!center) return;
                             (map.getSource(SOURCE_ID) as GeoJSONSource | undefined)
                                 ?.getClusterExpansionZoom(clusterId)
-                                .then((zoom) => map.easeTo({ center: coordinates, zoom }))
+                                .then((zoom) => map.easeTo({ center, zoom }))
                                 .catch(() => undefined);
                         });
                     } else {

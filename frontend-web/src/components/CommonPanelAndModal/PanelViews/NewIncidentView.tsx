@@ -49,6 +49,9 @@ function NewIncidentForm() {
     // El marcador es un elemento propio de MapLibre; su contenido se pinta con React mediante un portal.
     const [markerElement] = useState(() => document.createElement("div"));
     const markerRef = useRef<Marker | null>(null);
+    // Una sola secuencia para toda búsqueda de dirección (inicial, al mover el marcador, al buscar) y para lo que
+    // escribe el usuario: cada una invalida las anteriores, así una respuesta tardía no pisa la ubicación ni el texto.
+    const lookupRef = useRef(0);
 
     const selectedCategory = categories?.find((c) => c.id === categoryId);
     const visibleCategories = showAllCategories ? categories : categories?.slice(0, VISIBLE_CATEGORIES);
@@ -76,11 +79,18 @@ function NewIncidentForm() {
     useEffect(() => {
         if (!map) return;
 
+        // active corta las búsquedas de este efecto al cerrar el panel; lookupRef, las que quedaron viejas.
+        let active = true;
+        const lookupAddress = (latitude: number, longitude: number) => {
+            const lookup = ++lookupRef.current;
+            const isCurrent = () => active && lookup === lookupRef.current;
+            direccionDe(latitude, longitude)
+                .then((found) => { if (isCurrent()) setAddress(found ?? "") })
+                .catch(() => { if (isCurrent()) setAddress("") });
+        };
         const placeAt = (latitude: number, longitude: number) => {
             setPosition({ latitude, longitude });
-            direccionDe(latitude, longitude)
-                .then((found) => setAddress(found ?? ""))
-                .catch(() => setAddress(""));
+            lookupAddress(latitude, longitude);
         };
 
         const center = map.getCenter();
@@ -88,9 +98,7 @@ function NewIncidentForm() {
             .setLngLat(center)
             .addTo(map);
         markerRef.current = marker;
-        direccionDe(center.lat, center.lng)
-            .then((found) => setAddress(found ?? ""))
-            .catch(() => setAddress(""));
+        lookupAddress(center.lat, center.lng);
 
         const handleDragEnd = () => {
             const { lat, lng } = marker.getLngLat();
@@ -110,14 +118,17 @@ function NewIncidentForm() {
             map.getCanvas().style.cursor = "";
             marker.remove();
             markerRef.current = null;
+            active = false;
         };
     }, [map, markerElement]);
 
     const handleSearchAddress = async (query: string) => {
         if (!query.trim()) return;
 
+        const lookup = ++lookupRef.current;
         try {
             const found = await buscarDireccion(query);
+            if (lookup !== lookupRef.current) return; // el usuario movió el marcador o volvió a escribir
             if (!found) {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
                 return;
@@ -127,8 +138,15 @@ function NewIncidentForm() {
             setPosition({ latitude: found.latitude, longitude: found.longitude });
             setAddress(found.address);
         } catch {
+            if (lookup !== lookupRef.current) return;
             showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
         }
+    };
+
+    // Escribir en el buscador invalida las búsquedas pendientes: lo escrito no se sustituye por una respuesta vieja.
+    const handleAddressChange = (text: string) => {
+        lookupRef.current++;
+        setAddress(text);
     };
 
     const handlePublish = async () => {
@@ -218,7 +236,7 @@ function NewIncidentForm() {
                         format="col"
                         inputId="new-incident-address"
                         value={address}
-                        onChange={setAddress}
+                        onChange={handleAddressChange}
                         onSubmit={handleSearchAddress}
                         placeholder="Busca una dirección o colonia"
                     />
