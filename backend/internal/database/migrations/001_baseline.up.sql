@@ -198,7 +198,7 @@ CREATE TABLE public.incidentes (
     id integer NOT NULL,
     nombre character varying(100) NOT NULL,
     tiempo_limite smallint,
-    radio numeric,
+    radio double precision,
     esta_activo boolean DEFAULT true NOT NULL,
     color character varying(7) DEFAULT '#757575'::character varying NOT NULL,
     CONSTRAINT incidentes_color_hex_check CHECK (((color)::text ~ '^#[0-9A-Fa-f]{6}$'::text))

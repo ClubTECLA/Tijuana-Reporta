@@ -63,6 +63,13 @@ sql:
             go_type:
               type: "float64"
               pointer: true
+          # Las columnas DOUBLE PRECISION llegan como pg_catalog.float8;
+          # el override de arriba solo cubre los casts ::float8 de las consultas.
+          - db_type: "pg_catalog.float8"
+            nullable: true
+            go_type:
+              type: "float64"
+              pointer: true
           # SMALLINT (int2) también se mapea a int, para no cargar con
           # pgtype.Int2 en la capa de servicio. pgx convierte entre int2 e
           # int al leer y al escribir (y falla si el valor no cabe en int2).
@@ -72,12 +79,4 @@ sql:
             nullable: true
             go_type:
               type: "int"
-              pointer: true
-          # incidentes.radio es DECIMAL, pero es una medida aproximada y no
-          # necesita precisión exacta; pgx convierte numeric <-> float64.
-          # Se sobreescribe solo esta columna: latitude/longitude se leen con
-          # ::float8 en las consultas (ver reporte.sql).
-          - column: "incidentes.radio"
-            go_type:
-              type: "float64"
               pointer: true

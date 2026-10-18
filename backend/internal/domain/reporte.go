@@ -30,5 +30,5 @@ type ReporteDetalle struct {
 	Comentarios []Comentario
 	Multimedia  []Multimedia
 	Tags        []ListTagsByReporteIdRow
-	Locations   []ListLocationsByReporteIdRow
+	Locations   []Location
 }
