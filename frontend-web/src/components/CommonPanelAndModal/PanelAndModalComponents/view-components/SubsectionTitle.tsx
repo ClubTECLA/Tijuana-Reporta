@@ -14,11 +14,11 @@ export default function SubsectionTitle ({ format, debug, title, description} : 
             className="flex-col"
         >
             <p
-                className="text-gray-700 text-lg font-bold"
+                className="text-ink text-lg font-bold"
             >{title}</p>
             {description && 
                 <a
-                    className="text-xs text-gray-500 "
+                    className="text-xs text-ink-muted "
                 >{description}</a>
             }
         </SubSection>

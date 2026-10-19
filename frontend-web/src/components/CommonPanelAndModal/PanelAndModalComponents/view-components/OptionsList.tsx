@@ -7,32 +7,32 @@ import { validateChildren } from "./validateChildren";
 
 const colorWrapped = {
     'white' : {
-        iconStyle: 'text-blue-500 bg-blue-50',
-        wrappedStyle: 'bg-white hover:bg-gray-300',
-        textStyle: 'text-gray-800',
-        descriptionStyle: 'text-gray-500',
-        badgeStyle: "text-blue-700"
+        iconStyle: 'text-brand bg-brand-subtle',
+        wrappedStyle: 'bg-white hover:brightness-95',
+        textStyle: 'text-ink',
+        descriptionStyle: 'text-ink-muted',
+        badgeStyle: "text-brand-text"
     },
     'blue' : {
-        iconStyle: 'text-blue-500 bg-blue-50',
-        wrappedStyle: 'bg-blue-50 hover:bg-blue-300',
-        textStyle: 'text-blue-800',
-        descriptionStyle: 'text-blue-500',
-        badgeStyle: "text-blue-700"
+        iconStyle: 'text-brand bg-brand-subtle',
+        wrappedStyle: 'bg-brand-subtle hover:brightness-95',
+        textStyle: 'text-brand-text',
+        descriptionStyle: 'text-brand',
+        badgeStyle: "text-brand-text"
     },
     'red' : {
-        iconStyle: 'text-red-500 bg-red-50',
-        wrappedStyle: 'bg-red-50 hover:bg-red-300',
-        textStyle: 'text-red-800',
-        descriptionStyle: 'text-red-500',
-        badgeStyle: "text-red-700"
+        iconStyle: 'text-danger bg-danger-subtle',
+        wrappedStyle: 'bg-danger-subtle hover:brightness-95',
+        textStyle: 'text-danger',
+        descriptionStyle: 'text-danger',
+        badgeStyle: "text-danger"
     },
     'yellow' : {
-        iconStyle: 'text-yellow-500 bg-yellow-50',
-        wrappedStyle: 'bg-yellow-50 hover:bg-yellow-200',
-        textStyle: 'text-yellow-800',
-        descriptionStyle: 'text-yellow-500',
-        badgeStyle: "text-yellow-700"
+        iconStyle: 'text-warning bg-warning-subtle',
+        wrappedStyle: 'bg-warning-subtle hover:brightness-95',
+        textStyle: 'text-warning',
+        descriptionStyle: 'text-warning',
+        badgeStyle: "text-warning"
     },
 } as const satisfies Record<string, {
     iconStyle: string,
@@ -79,7 +79,7 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
                         <div className="
                             flex flex-row items-center 
                             justify-end text-2xl 
-                            text-gray-600 gap-1 
+                            text-ink-secondary gap-1 
                             w-30 h-10"
                         >
                             <div className={`text-lg font-bold ${colorWrapped[color].badgeStyle}`}>{valueBagde}</div>
@@ -94,20 +94,20 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
                 >
                     <div 
                         className="
-                            rounded-xl bg-blue-50 
-                            text-blue-500 flex items-center 
+                            rounded-xl bg-brand-subtle 
+                            text-brand flex items-center 
                             justify-center w-10 h-10 text-xl
                         "
                     >{icon}</div>
                     <div className="flex flex-col items-start justify-center pl-4 w-60">
-                        <span className="font-semibold text-md text-gray-800">{tileName}</span>
-                        <span className="text-gray-500 text-sm">{tileDescription}</span>
+                        <span className="font-semibold text-md text-ink">{tileName}</span>
+                        <span className="text-ink-muted text-sm">{tileDescription}</span>
                     </div>  
                     {onChange &&
                         <div className="
                             flex flex-row items-center 
                             justify-end text-2xl 
-                            text-gray-600 
+                            text-ink-secondary 
                             w-30 h-10"
                         >
                             <Input
@@ -140,8 +140,8 @@ export function OptionList({ debug, format, title, children} : optionsListProps)
             format={format}
             className="flex flex-col mt-2"
         >
-            {title && <span className="text-md text-gray-500 font-semibold">{title}</span>}
-            <div className="outline-1 outline-gray-300 mt-2 rounded-2xl p-2">
+            {title && <span className="text-md text-ink-muted font-semibold">{title}</span>}
+            <div className="outline-1 outline-line mt-2 rounded-2xl p-2">
                 {Children.map(children, (child) => {
                     if (isValidElement<listTileProps>(child) && child.type === ListTile) {
                         return cloneElement(child, {

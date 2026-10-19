@@ -74,7 +74,7 @@ export default function NotificationsView() {
                 <Button
                     format='col'
                     title="Guardar preferencias"
-                    color='blue'
+                    variant="primary"
                     icon={<LuSun/>}
                 />
             </ColSection>

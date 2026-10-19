@@ -21,7 +21,7 @@ export default function SearchBar() {
 
     const sideButtonStyle = `
         flex size-11 shrink-1 items-center justify-center
-        rounded-full text-xl text-slate-700
+        rounded-full text-xl text-icon
     `;
 
     return (
@@ -33,9 +33,9 @@ export default function SearchBar() {
                 flex h-14 w-full max-w-110 min-w-0 items-center gap-3
                 rounded-full border-2 bg-white
                 font-['Inter',sans-serif]
-                shadow-[0_6px_18px_-4px_rgba(0,0,0,0.12)]
+                shadow-float
                 transition-colors duration-200
-                ${isActive ? 'border-[#2677e6] px-2' : 'border-transparent px-7.5'}
+                ${isActive ? 'border-brand px-2' : 'border-transparent px-7.5'}
             `}
         >
             <input
@@ -49,18 +49,18 @@ export default function SearchBar() {
                 onChange={(e) => setQuery(e.target.value)}
                 className="
                     min-w-0 flex-1 bg-transparent
-                    text-[17px] text-[#111827] placeholder:text-[#64748b]
+                    text-[17px] text-ink placeholder:text-ink-muted
                     outline-none
                     [&::-webkit-search-cancel-button]:appearance-none
                 "
             />
 
-            <button type="submit" aria-label="Buscar" onMouseDown={(e) => e.preventDefault()} className={`${sideButtonStyle} -mr-3 transition-colors duration-200 hover:bg-slate-100`}>
+            <button type="submit" aria-label="Buscar" onMouseDown={(e) => e.preventDefault()} className={`${sideButtonStyle} -mr-3 transition-colors duration-200 hover:bg-subtle`}>
                     <LuSearch aria-hidden="true" />
             </button>
 
             {isActive &&
-                <button type="button" onClick={exit} aria-label="Salir de la búsqueda" className={`${sideButtonStyle} bg-[#e8edf3]`}>
+                <button type="button" onClick={exit} aria-label="Salir de la búsqueda" className={`${sideButtonStyle} bg-canvas`}>
                     <LuX />
                 </button>
             }

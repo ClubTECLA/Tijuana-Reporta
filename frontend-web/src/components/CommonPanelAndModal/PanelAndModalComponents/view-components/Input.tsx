@@ -51,7 +51,7 @@ export default function Input({
         <SubSection debug={debug} format={format} className="p-2">
             <div className="flex flex-col gap-1.5 w-full">
             <label className={`flex w-full cursor-pointer items-center ${checkboxBetween ? 'justify-between' : 'justify-end'} gap-4`}>
-                {label && <span className="text-md text-slate-800 font-semibold">{label}</span>}
+                {label && <span className="text-md text-ink font-semibold">{label}</span>}
                 <span className="inline-flex shrink-0 items-center">
                 <input
                     id={inputId}
@@ -69,21 +69,21 @@ export default function Input({
                     aria-hidden="true"
                     className="
                     relative block h-7 w-15 
-                    rounded-full bg-slate-300 
+                    rounded-full bg-line-strong 
                     transition-colors 
                     after:absolute after:left-1 after:top-1 
                     after:h-5 after:w-5 after:rounded-full 
                     after:bg-white after:shadow after:transition-transform 
-                    after:content-[''] peer-checked:bg-blue-600 
+                    after:content-[''] peer-checked:bg-brand 
                     peer-checked:after:translate-x-8 
                     peer-focus-visible:outline-2 
                     peer-focus-visible:outline-offset-2 
-                    peer-focus-visible:outline-blue-600"
+                    peer-focus-visible:outline-brand"
                 />
                 </span>
             </label>
             {description && (
-                <p className="text-sm text-slate-500 font-normal">
+                <p className="text-sm text-ink-muted font-normal">
                     {description}
                 </p>
             )}
@@ -107,7 +107,7 @@ export default function Input({
             {label && (
                 <label
                 htmlFor={inputId}
-                className="text-base text-gray-800 font-bold select-none shrink-0"
+                className="text-base text-ink font-bold select-none shrink-0"
                 >
                 {label}
                 </label>
@@ -116,12 +116,12 @@ export default function Input({
             <div
                 className={`
                     flex items-center gap-2 px-4 py-2.5 
-                    border border-slate-400
-                    rounded-full shadow-sm transition-all duration-200
+                    border border-line-strong
+                    rounded-full shadow-raised transition-all duration-200
                 `}
             >
                 {prefix && (
-                <span className="text-slate-600 text-base font-normal select-none shrink-0 pointer-events-none">
+                <span className="text-ink-secondary text-base font-normal select-none shrink-0 pointer-events-none">
                     {prefix}
                 </span>
                 )}
@@ -136,14 +136,14 @@ export default function Input({
                 disabled={disabled}
                 className="
                     w-full  outline-none border-none p-0
-                    text-slate-800 font-medium placeholder:text-slate-400
+                    text-ink font-medium placeholder:text-ink-muted
                     focus:ring-0
                 
                 "
                 />
 
                 {suffix && (
-                <span className="text-slate-400  text-base font-normal select-none shrink-0 pointer-events-none">
+                <span className="text-ink-muted  text-base font-normal select-none shrink-0 pointer-events-none">
                     {suffix}
                 </span>
                 )}
@@ -151,7 +151,7 @@ export default function Input({
             </div>
 
             {description && (
-            <p className="text-sm text-slate-500 font-normal">
+            <p className="text-sm text-ink-muted font-normal">
                 {description}
             </p>
             )}

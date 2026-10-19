@@ -8,6 +8,8 @@ import NavigationWrapper from './components/NavigationWrapper.tsx'
 import { BrowserRouter } from 'react-router-dom'
 import { CommonPanelProvider } from './hooks/contexts/CommonPanelContext.tsx'
 import { ModalOverlay, ModalsProvider } from './hooks/contexts/CommonModalContext.tsx'
+import { MapProvider } from './hooks/contexts/MapContext.tsx'
+import { ReportesProvider } from './hooks/contexts/ReportesContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,11 +17,15 @@ createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <BrowserRouter>
           <ModalsProvider>
-            <CommonPanelProvider>
-              <ModalOverlay />
-              <NavigationWrapper />
-              <App />
-            </CommonPanelProvider>
+            <MapProvider>
+              <ReportesProvider>
+                <CommonPanelProvider>
+                  <ModalOverlay />
+                  <NavigationWrapper />
+                  <App />
+                </CommonPanelProvider>
+              </ReportesProvider>
+            </MapProvider>
           </ModalsProvider>
         </BrowserRouter>
       </AuthProvider>

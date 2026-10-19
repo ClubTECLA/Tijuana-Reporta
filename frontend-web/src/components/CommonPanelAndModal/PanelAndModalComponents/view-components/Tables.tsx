@@ -65,8 +65,8 @@ export function Checkbox({ name, checked, onChange, id }: CheckboxProps) {
                         after:bg-white after:shadow after:transition-transform
                         after:content-['']
                         ${checked
-                            ? "bg-blue-600 after:translate-x-7"
-                            : "bg-gray-300 after:translate-x-0"}
+                            ? "bg-brand after:translate-x-7"
+                            : "bg-line after:translate-x-0"}
                     `}
                 />
             </label>
@@ -76,12 +76,12 @@ export function Checkbox({ name, checked, onChange, id }: CheckboxProps) {
 
 
 const buttonWrapped: Record<string, string> = {
-    'red' : 'bg-red-500 text-white',
-    'green': 'bg-green-500 text-white',
-    'yellow': 'bg-yellow-500 text-white',
-    'blue': 'bg-blue-600 text-white',
-    'gray': 'bg-gray-200 text-black',
-    'transparent': 'text-gray-500'
+    'red' : 'bg-danger text-white',
+    'green': 'bg-success text-white',
+    'yellow': 'bg-warning text-white',
+    'blue': 'bg-brand text-white',
+    'gray': 'bg-canvas text-ink',
+    'transparent': 'text-ink-muted'
 };
 
 interface TdButtonProps {
@@ -181,7 +181,7 @@ export function TRow({ children }: TRowProps) {
     });
 
     return (
-        <tr className="border-t border-gray-200">
+        <tr className="border-t border-line">
             {tableCells}
         </tr>
     );
@@ -218,7 +218,7 @@ export function Table({ format, debug, headers, children }: TableProps) {
 
     return (
         <SubSection debug={debug} format={format}
-            className="rounded-xl border border-gray-300"
+            className="rounded-xl border border-line-strong"
         >
             <table className="w-full border-separate border-spacing-0">
                 {headers && (
@@ -229,16 +229,16 @@ export function Table({ format, debug, headers, children }: TableProps) {
                                     key={`${header.title}-${index}`}
                                     scope="col"
                                     className={`
-                                        bg-gray-100 px-2 py-1 text-left whitespace-nowrap
+                                        bg-subtle px-2 py-1 text-left whitespace-nowrap
                                         ${index === 0 ? "rounded-tl-xl" : ""}
                                         ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
                                     `}
                                 >
-                                    <span className={`text-sm font-medium ${header.badge ? "text-gray-800" : "text-gray-500"}`}>
+                                    <span className={`text-sm font-medium ${header.badge ? "text-ink" : "text-ink-muted"}`}>
                                         {header.title.toUpperCase()}
                                     </span>
                                     {header.badge && (
-                                        <span className="block text-xs font-medium text-gray-400">
+                                        <span className="block text-xs font-medium text-ink-muted">
                                             {header.badge}
                                         </span>
                                     )}
