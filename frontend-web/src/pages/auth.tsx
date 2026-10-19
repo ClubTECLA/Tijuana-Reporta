@@ -65,8 +65,9 @@ function Recovery_email({onSubmit}: recoveryProps) {
             <h1 className={titleStyle}>Recupera tu contraseña</h1>
             <span className={subtitleStyle}>Escribe tu correo institucional. Te enviaremos un código al celular registrado en tu cuenta.</span>
             <div className={`${formsInputsDivsStyle} mt-4`}>
-                <label className={inputsLabelsStyle}>Correo institucional</label>
+                <label htmlFor="email" className={inputsLabelsStyle}>Correo institucional</label>
                 <input
+                    id="email"
                     type='email'
                     className={inputsStyle}
                     onChange={handleChange}
@@ -506,11 +507,7 @@ export default function AuthPage() {
         flex flex-1 flex-col gap-0.5 rounded-2xl bg-white/12 px-4 py-3 lg:flex-none
     `
     useEffect(() => {
-        const tab = query.tab;
-        if(tab === "login")
-            setForm(tab);
-        else if(tab === "recovery")
-            setForm(tab)
+        setForm(query.tab === "recovery" ? "recovery" : "login");
     }, [query]);
 
     useEffect(() => {
