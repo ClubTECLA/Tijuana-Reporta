@@ -5,7 +5,7 @@ RETURNING *;
 
 -- name: CreateLocation :one
 INSERT INTO location (reporte_id, latitude, longitude, user_id)
-VALUES ($1, sqlc.arg(latitude)::float8, sqlc.arg(longitude)::float8, $2)
+VALUES ($1, sqlc.arg(latitude), sqlc.arg(longitude), $2)
 RETURNING *;
 
 -- name: CreateMultimedia :one
@@ -14,7 +14,7 @@ VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: ListLocationsByReporteId :many
-SELECT id, reporte_id, latitude::float8 AS latitude, longitude::float8 AS longitude, user_id, created_at
+SELECT *
 FROM location WHERE reporte_id = $1 ORDER BY created_at;
 
 -- name: GetReporteById :one
@@ -32,18 +32,18 @@ AND rtc.count > 0
 ORDER BY rtc.count DESC;
 
 -- name: GetPuntoOrigenByReporteId :one
-SELECT latitude::float8 AS latitude, longitude::float8 AS longitude
+SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1;
 
 -- name: ListReportesResumen :many
-SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude::float8 AS latitude, p.longitude::float8 AS longitude
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
 WHERE NOT r.es_historico
-AND (sqlc.narg(min_lat)::float8 IS NULL OR p.latitude >= sqlc.narg(min_lat)::float8)
-AND (sqlc.narg(max_lat)::float8 IS NULL OR p.latitude <= sqlc.narg(max_lat)::float8)
-AND (sqlc.narg(min_lng)::float8 IS NULL OR p.longitude >= sqlc.narg(min_lng)::float8)
-AND (sqlc.narg(max_lng)::float8 IS NULL OR p.longitude <= sqlc.narg(max_lng)::float8);
+AND (sqlc.narg(min_lat)::float8 IS NULL OR p.latitude >= sqlc.narg(min_lat))
+AND (sqlc.narg(max_lat)::float8 IS NULL OR p.latitude <= sqlc.narg(max_lat))
+AND (sqlc.narg(min_lng)::float8 IS NULL OR p.longitude >= sqlc.narg(min_lng))
+AND (sqlc.narg(max_lng)::float8 IS NULL OR p.longitude <= sqlc.narg(max_lng));
 
 -- name: AddAvistamientoById :one
 UPDATE reporte
@@ -66,7 +66,7 @@ RETURNING *;
 -- cast explícito; sin él se generaría como interface{}.
 -- ST_DWithin usa el índice GiST de puntos_origen.geom.
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
-       p.latitude::float8 AS latitude, p.longitude::float8 AS longitude,
+       p.latitude, p.longitude,
        ST_Distance(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id

@@ -36,7 +36,7 @@ type Querier interface {
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
 	// administración).
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error)
 	// sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
 	// cast explícito; sin él se generaría como interface{}.
