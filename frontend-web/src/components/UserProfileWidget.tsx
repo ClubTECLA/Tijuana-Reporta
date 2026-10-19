@@ -40,7 +40,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                     onClick?.()
             }}
 
-            to={!isAuthenticated ? '/auth' : '#'}
+            to={!isAuthenticated ? '/auth?tab=login' : '#'}
             onMouseEnter={() => setOpen(true)}
 
         >
