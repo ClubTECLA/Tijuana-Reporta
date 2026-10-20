@@ -4,7 +4,9 @@ import type {
     ApiCrearReporteRequest,
     ApiCrearReporteResponse,
     ApiListarReportesResponse,
+    ApiEstadoReporte,
     ApiObtenerReporteResponse,
+    ApiReporte,
 } from '../types/api-types'
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
 
@@ -32,6 +34,18 @@ export function crearReporte(
         method: 'POST',
         headers: getJsonHeaders(),
         body: JSON.stringify(body),
+    })
+}
+
+// PATCH /reportes/{reporteId}/estado (el backend solo lo permite a admin)
+export function cambiarEstadoReporte(
+    reporteId: string,
+    estado: ApiEstadoReporte,
+): Promise<ApiReporte> {
+    return requestJson(`${apiUrl}/reportes/${reporteId}/estado`, {
+        method: 'PATCH',
+        headers: getJsonHeaders(),
+        body: JSON.stringify({ estado }),
     })
 }
 

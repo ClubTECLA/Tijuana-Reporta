@@ -12,7 +12,7 @@ import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { useReportes } from "../../../hooks/useReportes";
 import { listarIncidentes } from "../../../services/incidentes.services";
-import { crearComentario, crearReporte } from "../../../services/reportes.services";
+import { cambiarEstadoReporte, crearComentario, crearReporte } from "../../../services/reportes.services";
 import { buscarDireccion, direccionDe } from "../../../services/geocoding.services";
 import type { ApiIncidente } from "../../../types/api-types";
 
@@ -176,13 +176,19 @@ function NewIncidentForm() {
                 // Si falla, el reporte ya existe: no se reintenta la publicación para no duplicarlo.
                 descriptionSaved = await crearComentario(created.id, descriptionText).then(() => true, () => false);
             }
-            if (descriptionSaved) {
-                showMessage("El incidente ya aparece en la app.", { color: "green", type: "float", title: "Incidente publicado" });
-            } else {
+            // shortcut: PRUEBA. Los incidentes creados desde el web nacen verificados con una segunda llamada (solo admin).
+            // Pasar estado y es_oficial en crearReporte cuando el backend los acepte (validando el rol); hoy es_oficial
+            // no se puede activar desde ningún endpoint, así que el incidente queda verificado pero no oficial.
+            const verified = await cambiarEstadoReporte(created.id, "Verificado").then(() => true, () => false);
+
+            const pending = [!descriptionSaved && "la descripción no se pudo guardar", !verified && "no se pudo marcar como verificado"].filter(Boolean);
+            if (pending.length) {
                 showMessage(
-                    "El incidente se publicó, pero la descripción no se pudo guardar.",
-                    { color: "yellow", type: "float", title: "Publicado sin descripción" },
+                    `El incidente se publicó, pero ${pending.join(" y ")}.`,
+                    { color: "yellow", type: "float", title: "Publicado con avisos" },
                 );
+            } else {
+                showMessage("El incidente ya aparece en la app.", { color: "green", type: "float", title: "Incidente publicado" });
             }
             // Recarga los datos compartidos: la lista y el mapa muestran el incidente nuevo, y su pin se anima.
             markCreated(created.id);
@@ -200,10 +206,11 @@ function NewIncidentForm() {
     };
 
     return (
-        // El panel común mide al menos 25vw (sm:min-w-1/4) con 16 px de relleno: el contenido ocupa ese ancho
-        // para no dejar hueco a la derecha, y el scroll se extiende sobre el relleno para quedar pegado al borde del panel.
-        // El contenido llena el alto del panel: el scroll se estira y los botones quedan abajo del todo, como en el Figma.
-        <div className="flex min-h-0 w-full flex-1 flex-col font-['Inter',sans-serif] sm:min-w-[max(25rem,calc(25vw-2rem))]">
+        // Ancho fijo de 25vw (el mínimo del panel común) menos su relleno de 16 px. Fijo y no mínimo porque el panel
+        // común es w-fit: con un mínimo, una fila larga de etiquetas lo ensancharía antes de que flex-wrap las baje.
+        // El scroll se extiende sobre el relleno para quedar pegado al borde, y el contenido llena el alto del panel:
+        // los botones quedan abajo del todo, como en el Figma.
+        <div className="flex min-h-0 w-full flex-1 flex-col font-['Inter',sans-serif] sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
 
