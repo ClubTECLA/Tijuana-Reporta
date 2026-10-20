@@ -10,6 +10,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./backend/seeds:/seeds:ro
       # Desactiva el script de la imagen que crea postgis al iniciar la base;
       # la extensión la crea la migración 002_postgis.
       - ./backend/scripts/postgis-init.sh:/docker-entrypoint-initdb.d/10_postgis.sh:ro
