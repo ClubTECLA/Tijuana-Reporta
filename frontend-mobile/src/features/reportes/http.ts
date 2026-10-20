@@ -6,6 +6,14 @@ import type { ReportesApi } from './port';
 // POST /reportes/:id/comentarios); siguen la convención de shared/openapi.
 export const reportesHttp: ReportesApi = {
   listar: () => http<Reporte[]>('/reportes'),
+  // Este sí existe (GET /reportes/cercanos); responde `latitude`/`longitude` y no trae título.
+  // shortcut: título genérico, nombrar por `incidente_id` cuando la app tenga ese catálogo.
+  cercanos: async (lat, lng, radioM) => {
+    const lista = await http<Array<{ id: string; latitude: number; longitude: number }>>(
+      `/reportes/cercanos?lat=${lat}&lng=${lng}&radio=${radioM}`,
+    );
+    return lista.map((r) => ({ id: r.id, titulo: 'Incidente reportado', lat: r.latitude, lng: r.longitude }));
+  },
   crear: (req) => http<Reporte>('/reportes', { method: 'POST', body: JSON.stringify(req) }),
   apoyar: (id) => http<void>(`/reportes/${id}/apoyar`, { method: 'POST' }),
   // Tampoco existe todavía en el contrato: falta definir el endpoint de
