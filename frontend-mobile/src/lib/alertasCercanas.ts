@@ -1,11 +1,14 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { reportesApi } from '@/features/reportes/api';
 import { asegurarCanalAlertas, CANAL_ALERTAS } from '@/lib/notificaciones';
+import { registrarAlerta, type RegistroAlertas } from '@/lib/limiteAlertas';
 import { obtenerPosicionActual } from '@/lib/ubicacion';
 
 const TAREA_ZONAS = 'zonas-peligro';
+const CLAVE_REGISTRO = 'alertas:avisadas-hoy';
 // Se buscan incidentes en este radio y se vigila un círculo de RADIO_ZONA_M alrededor de cada uno.
 const RADIO_BUSQUEDA_M = 5000;
 const RADIO_ZONA_M = 200;
@@ -22,7 +25,23 @@ interface EventoZona {
 TaskManager.defineTask<EventoZona>(TAREA_ZONAS, async ({ data, error }) => {
   if (error || data.eventType !== Location.GeofencingEventType.Enter) return;
   // El identificador de la región es "id|título" para poder nombrar el incidente sin red.
-  const titulo = data.region.identifier?.split('|').slice(1).join('|') || 'Incidente reportado';
+  const [id, ...resto] = (data.region.identifier ?? '').split('|');
+  if (!id) return;
+  const titulo = resto.join('|') || 'Incidente reportado';
+
+  // Salir y volver a entrar (o el GPS oscilando en el borde) dispara otro Enter: se avisa una vez por día.
+  const d = new Date();
+  const hoy = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  let previo: RegistroAlertas | null = null;
+  try {
+    previo = JSON.parse((await AsyncStorage.getItem(CLAVE_REGISTRO)) ?? 'null') as RegistroAlertas | null;
+  } catch {
+    // Registro ilegible: se empieza de cero antes que dejar de avisar.
+  }
+  const registro = registrarAlerta(previo, id, hoy);
+  if (!registro) return;
+  await AsyncStorage.setItem(CLAVE_REGISTRO, JSON.stringify(registro)).catch(() => {});
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '⚠️ Estás entrando a una zona de peligro',
