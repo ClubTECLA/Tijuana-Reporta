@@ -33,7 +33,7 @@ func (q *Queries) AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvi
 
 const createLocation = `-- name: CreateLocation :one
 INSERT INTO location (reporte_id, latitude, longitude, user_id)
-VALUES ($1, $3::float8, $4::float8, $2)
+VALUES ($1, $3, $4, $2)
 RETURNING id, reporte_id, latitude, longitude, user_id, created_at
 `
 
@@ -75,9 +75,9 @@ type CreateMultimediaParams struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedium, error) {
+func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error) {
 	row := q.db.QueryRow(ctx, createMultimedia, arg.ReporteID, arg.Path, arg.UserID)
-	var i Multimedium
+	var i Multimedia
 	err := row.Scan(
 		&i.ID,
 		&i.ReporteID,
@@ -132,7 +132,7 @@ func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReportePa
 }
 
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
-SELECT latitude::float8 AS latitude, longitude::float8 AS longitude
+SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1
 `
 
@@ -169,28 +169,19 @@ func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, er
 }
 
 const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many
-SELECT id, reporte_id, latitude::float8 AS latitude, longitude::float8 AS longitude, user_id, created_at
+SELECT id, reporte_id, latitude, longitude, user_id, created_at
 FROM location WHERE reporte_id = $1 ORDER BY created_at
 `
 
-type ListLocationsByReporteIdRow struct {
-	ID        int       `json:"id"`
-	ReporteID uuid.UUID `json:"reporte_id"`
-	Latitude  float64   `json:"latitude"`
-	Longitude float64   `json:"longitude"`
-	UserID    uuid.UUID `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error) {
+func (q *Queries) ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error) {
 	rows, err := q.db.Query(ctx, listLocationsByReporteId, reporteID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListLocationsByReporteIdRow
+	var items []Location
 	for rows.Next() {
-		var i ListLocationsByReporteIdRow
+		var i Location
 		if err := rows.Scan(
 			&i.ID,
 			&i.ReporteID,
@@ -213,15 +204,15 @@ const listMultimediaByReporteId = `-- name: ListMultimediaByReporteId :many
 SELECT id, reporte_id, path, user_id, created_at FROM multimedia WHERE reporte_id = $1 ORDER BY created_at
 `
 
-func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedium, error) {
+func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error) {
 	rows, err := q.db.Query(ctx, listMultimediaByReporteId, reporteID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Multimedium
+	var items []Multimedia
 	for rows.Next() {
-		var i Multimedium
+		var i Multimedia
 		if err := rows.Scan(
 			&i.ID,
 			&i.ReporteID,
@@ -239,15 +230,92 @@ func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.
 	return items, nil
 }
 
-const listReportesResumen = `-- name: ListReportesResumen :many
-SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude::float8 AS latitude, p.longitude::float8 AS longitude
+const listReportesPorUbicacion = `-- name: ListReportesPorUbicacion :many
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
+       p.latitude, p.longitude,
+       ST_Distance(p.geom, ST_MakePoint($1::float8, $2::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
 WHERE NOT r.es_historico
-AND ($1::float8 IS NULL OR p.latitude >= $1::float8)
-AND ($2::float8 IS NULL OR p.latitude <= $2::float8)
-AND ($3::float8 IS NULL OR p.longitude >= $3::float8)
-AND ($4::float8 IS NULL OR p.longitude <= $4::float8)
+AND ST_DWithin(p.geom, ST_MakePoint($1::float8, $2::float8)::geography, $3::float8)
+AND ($4::int[] IS NULL OR r.incidente_id = ANY($4::int[]))
+AND ($5::text[] IS NULL OR r.estado_actual = ANY($5::text[]::estado[]))
+AND ($6::timestamptz IS NULL OR r.created_at >= $6::timestamptz)
+ORDER BY distancia_m
+LIMIT $7::int
+`
+
+type ListReportesPorUbicacionParams struct {
+	Lng          float64    `json:"lng"`
+	Lat          float64    `json:"lat"`
+	Radio        float64    `json:"radio"`
+	IncidenteIds []int      `json:"incidente_ids"`
+	Estados      []string   `json:"estados"`
+	Desde        *time.Time `json:"desde"`
+	Limite       int        `json:"limite"`
+}
+
+type ListReportesPorUbicacionRow struct {
+	ID            uuid.UUID `json:"id"`
+	IncidenteID   int       `json:"incidente_id"`
+	EstadoActual  Estado    `json:"estado_actual"`
+	Avistamientos int       `json:"avistamientos"`
+	EsOficial     bool      `json:"es_oficial"`
+	Latitude      float64   `json:"latitude"`
+	Longitude     float64   `json:"longitude"`
+	DistanciaM    float64   `json:"distancia_m"`
+}
+
+// sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
+// cast explícito; sin él se generaría como interface{}.
+// ST_DWithin usa el índice GiST de puntos_origen.geom.
+// estados viaja como text[]: pgx no sabe codificar el arreglo del enum estado.
+func (q *Queries) ListReportesPorUbicacion(ctx context.Context, arg ListReportesPorUbicacionParams) ([]ListReportesPorUbicacionRow, error) {
+	rows, err := q.db.Query(ctx, listReportesPorUbicacion,
+		arg.Lng,
+		arg.Lat,
+		arg.Radio,
+		arg.IncidenteIds,
+		arg.Estados,
+		arg.Desde,
+		arg.Limite,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReportesPorUbicacionRow
+	for rows.Next() {
+		var i ListReportesPorUbicacionRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncidenteID,
+			&i.EstadoActual,
+			&i.Avistamientos,
+			&i.EsOficial,
+			&i.Latitude,
+			&i.Longitude,
+			&i.DistanciaM,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReportesResumen = `-- name: ListReportesResumen :many
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude
+FROM reporte r
+JOIN puntos_origen p ON p.reporte_id = r.id
+WHERE NOT r.es_historico
+AND ($1::float8 IS NULL OR p.latitude >= $1)
+AND ($2::float8 IS NULL OR p.latitude <= $2)
+AND ($3::float8 IS NULL OR p.longitude >= $3)
+AND ($4::float8 IS NULL OR p.longitude <= $4)
 `
 
 type ListReportesResumenParams struct {

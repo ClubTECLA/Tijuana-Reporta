@@ -9,6 +9,8 @@ security:
 paths:
   /reportes:
     $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/cercanos:
+    $ref: './paths/reportes.yaml#/listarReportesCercanos'
   /reportes/{reporteId}:
     $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/avistamientos:
@@ -44,14 +46,16 @@ components:
       $ref: './schemas/reportes/reporte.yaml'
     ReporteResumen:
       $ref: './schemas/reportes/reporte_resumen.yaml'
+    ReporteCercano:
+      $ref: './schemas/reportes/reporte_cercano.yaml'
     CambiarEstadoReporteRequest:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
     Multimedia:
       $ref: './schemas/multimedia/multimedia.yaml'
-    MultimediaNueva:
-      $ref: './schemas/multimedia/multimedia_nueva.yaml'
+    CrearMultimediaRequest:
+      $ref: './schemas/multimedia/crear_multimedia_request.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
     TagCatalogo:

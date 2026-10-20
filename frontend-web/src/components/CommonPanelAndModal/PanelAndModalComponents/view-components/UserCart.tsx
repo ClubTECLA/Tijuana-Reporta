@@ -1,13 +1,20 @@
 import type { subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 
+const bgColor = {
+    "transparent": "",
+    "blue": "bg-brand-subtle",
+    "red" : "bg-danger-subtle"
+} as const satisfies Record<string, string>
+
 interface userCartProps extends subsectionProps {
     username: string,
     email?: string | null,
     rolName?: string | null | number
+    bg_color?: keyof typeof bgColor;
 }
 
-export default function UserCart({username, email, rolName, debug, format}: userCartProps) {
+export default function UserCart({username, email, rolName, debug, format, bg_color = 'transparent'}: userCartProps) {
     const usernameArray = username.split(' ');
     let iconName:string;
     if(username.length === 0){
@@ -20,14 +27,14 @@ export default function UserCart({username, email, rolName, debug, format}: user
     }
 
     return(
-        <SubSection format={format} className="flex-row w-full rounded-2xl bg-blue-50 items-center p-2" debug={debug}>
-            <div className="rounded-full flex items-center justify-center bg-blue-700 text-white w-10 h-10 font-bold">
+        <SubSection format={format} className={`flex-row w-full rounded-2xl items-center p-2 ${bgColor[bg_color]}`} debug={debug}>
+            <div className="rounded-full flex items-center justify-center bg-brand text-white w-10 h-10 font-bold">
                 {iconName}
             </div>
             <div className="ml-4 flex flex-col justify-center">
-                <span className="font-bold text-md text-gray-700">{username || 'Usuario'}</span>
-                <span className="text-xs text-gray-600">{email}</span>
-                <span className="text-xs text-blue-700 font-semibold">{rolName}</span>
+                <span className="font-bold text-md text-ink">{username || 'Usuario'}</span>
+                <span className="text-xs text-ink-secondary">{email}</span>
+                <span className="text-xs text-brand-text font-semibold">{rolName}</span>
             </div>
         </SubSection>    
     )

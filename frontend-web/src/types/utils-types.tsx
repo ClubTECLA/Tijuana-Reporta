@@ -1,4 +1,8 @@
-import type { ReactNode } from "react"
+import {
+  type ReactNode,
+  type HTMLAttributes,
+} from "react"
+import type { PanelViewKey } from "./global-views"
 import { IoDocumentTextOutline } from "react-icons/io5"
 import { LuMessageCircle } from "react-icons/lu"
 import { MdOutlineReportProblem } from "react-icons/md"
@@ -25,10 +29,24 @@ export const subsectionFormats = {
   'nothing': ''
 } as const satisfies Record<string, string>
 
-export interface subsectionProps {
+export interface subsectionProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  | "children"
+  | "className"
+  | "key"
+  | "id"
+  | "onChange"
+  | "onReset"
+  | "onResetCapture"
+  | "onSubmit"
+  | "onSubmitCapture"
+  | "prefix"
+> {
     debug?: boolean
     format?: keyof typeof subsectionFormats
     subKey?: string | number;
+    children?: ReactNode
+    className?: string
 }
 
 export type NavItemsType = {
@@ -36,6 +54,10 @@ export type NavItemsType = {
   title: string,
   destinationPath?: string,
   onClick?: () => void,
+  /** Panel que abre la sección; la sección se marca como activa mientras ese panel está abierto. */
+  panelView?: PanelViewKey,
+  /** Otros paneles que también marcan la sección (p. ej. "Nuevo Incidente" dentro de "Incidentes"). */
+  activeOnPanelViews?: PanelViewKey[],
   cantNoti?: number
 }[]
 
@@ -50,12 +72,6 @@ export type NotiType = keyof typeof NotiIcons;
 export type HexColor = `#${string}`;
 
 
-export const headerButtonColors = {
-    green: 'bg-green-500 hover:bg-green-300',
-    red: 'bg-red-500 hover:bg-red-300',
-    blue: 'bg-blue-500 hover:bg-blue-300'
-} as const satisfies Record<string, string>;
-
 export const borders = {
     right: 'border-r-2',
     left: 'border-l-2',
@@ -66,19 +82,13 @@ export const borders = {
 
 type borderType = keyof typeof borders;
 
-export type headerBtnsType = {
-    title: string
-    icon?: ReactNode
-    onClick?: () => void
-    color: keyof typeof headerButtonColors
-}[]
-
 export interface SectionProps {
     children: ReactNode,
     debug?: boolean
     title?: string
-    subtitle?: string
-    extraHeaderBtns?: headerBtnsType 
+    subtitle?: ReactNode
+    /** Acciones a la derecha del título del panel (botones, enlaces...). */
+    headerActions?: ReactNode
     className?: string
     footerText?: string
     border?: borderType[]

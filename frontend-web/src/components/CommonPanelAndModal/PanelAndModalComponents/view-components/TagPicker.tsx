@@ -13,8 +13,8 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} 
         <SubSection
             format={format}
             debug={debug}
-            className="rounded-3xl bg-blue-600 text-white font-bold flex-row px-3 py-1 items-center justify-center"
-            type='button'
+            className="rounded-3xl bg-brand text-white font-bold flex-row px-3 py-1 items-center justify-center"
+            as='button'
         >
             <FiPlus className="text-lg"/>
             {title}
@@ -34,17 +34,17 @@ export function Tag({debug, name, badge, color = '#FFF'} : TagProps){
             format={'col'}
             debug={debug}
             className="flex-row items-center justify-start gap-1 rounded-3xl bg-white px-3
-                shadow-md shadow-gray-300 font-bold 
+                shadow-raised font-bold 
             "
         >
             <span
                 className="rounded-full w-2 h-2 shrink-0"
                 style={{ backgroundColor: color }}
             />
-            <span className="text-md text-slate-800">{name}</span>
+            <span className="text-md text-ink">{name}</span>
             {badge && (
                 <span
-                    className=" text-md ml-2 text-slate-800"
+                    className=" text-md ml-2 text-ink"
                 >
                     {badge}
                 </span>
@@ -67,7 +67,7 @@ export function TagPicker({ format, debug, title, children }:TagPickerProps) {
         >  
             {title && 
                 <span 
-                    className="mb-2 font-semibold text-gray-700"
+                    className="mb-2 font-semibold text-ink"
                 >{title}</span>
             }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1 minmax(0,1fr)">

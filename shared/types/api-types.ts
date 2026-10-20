@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/cercanos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano. */
+        get: operations["listarReportesCercanos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}": {
         parameters: {
             query?: never;
@@ -67,6 +84,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/reportes/{reporteId}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
     "/auth/register": {
@@ -185,6 +218,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Obtiene la lista de usuarios del sistema. */
+        get: operations["listarUsuarios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -193,8 +243,11 @@ export interface components {
         CrearComentarioRequest: components["schemas"]["crear_comentario_request"];
         Reporte: components["schemas"]["reporte"];
         ReporteResumen: components["schemas"]["reporte_resumen"];
+        ReporteCercano: components["schemas"]["reporte_cercano"];
+        CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
-        Foto: components["schemas"]["foto"];
+        Multimedia: components["schemas"]["multimedia"];
+        CrearMultimediaRequest: components["schemas"]["crear_multimedia_request"];
         Tag: components["schemas"]["tag"];
         TagCatalogo: components["schemas"]["tag_catalogo"];
         CrearTagRequest: components["schemas"]["crear_tag_request"];
@@ -208,8 +261,9 @@ export interface components {
         UsuarioMeResponse: components["schemas"]["usuario_me_response"];
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
+        UsuarioResumen: components["schemas"]["usuario_resumen"];
         /** @enum {string} */
-        estado_reporte: "Pendiente" | "Probable" | "Verificado" | "Resuelto" | "Descartado" | "Expirado";
+        estado_reporte: "Pendiente" | "Probable" | "Verificado" | "Resuelto" | "Descartado";
         /** @description Versión ligera de un reporte para pintar pines en el mapa. */
         reporte_resumen: {
             /** Format: uuid */
@@ -232,13 +286,17 @@ export interface components {
         error_response: {
             message: string;
         };
+        /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
+        crear_multimedia_request: {
+            path: string;
+        };
         crear_reporte_request: {
             incidente_id: number;
             /** Format: double */
             latitude: number;
             /** Format: double */
             longitude: number;
-            image_path?: string;
+            multimedia?: components["schemas"]["crear_multimedia_request"];
         };
         comentario: {
             id: number;
@@ -250,9 +308,10 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
-        foto: {
+        /** @description Archivo (foto o video) que un usuario adjuntó a un reporte. */
+        multimedia: {
             id: number;
-            image_path: string;
+            path: string;
             /** Format: uuid */
             user_id: string;
             /** Format: date-time */
@@ -298,15 +357,23 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
-            /** Format: date-time */
-            expired_at?: string;
             comentarios: components["schemas"]["comentario"][];
-            fotos: components["schemas"]["foto"][];
+            multimedia: components["schemas"]["multimedia"][];
             tags: components["schemas"]["tag"][];
             locations: components["schemas"]["location"][];
         };
+        reporte_cercano: components["schemas"]["reporte_resumen"] & {
+            /**
+             * Format: double
+             * @description Distancia en metros desde el punto consultado.
+             */
+            distancia_m: number;
+        };
         crear_comentario_request: {
             comentario: string;
+        };
+        cambiar_estado_reporte_request: {
+            estado: components["schemas"]["estado_reporte"];
         };
         register_request: {
             /** Format: email */
@@ -381,6 +448,14 @@ export interface components {
             /** @description Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas). */
             tags?: components["schemas"]["crear_tag_request"][];
         };
+        /** @description Un usuario del sistema. */
+        usuario_resumen: {
+            username: string;
+            /** Format: email */
+            email: string | null;
+            rol_name: string;
+            reportes_count: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -453,6 +528,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarReportesCercanos: {
+        parameters: {
+            query: {
+                lat: number;
+                lng: number;
+                radio: number;
+                incidente_id?: number[];
+                estado?: components["schemas"]["estado_reporte"][];
+                desde?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de reportes cercanos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_cercano"][];
                 };
             };
             /** @description Datos inválidos */
@@ -599,6 +720,68 @@ export interface operations {
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    cambiarEstadoReporte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["cambiar_estado_reporte_request"];
+            };
+        };
+        responses: {
+            /** @description Estado del reporte cambiado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -932,6 +1115,44 @@ export interface operations {
             };
             /** @description El incidente ya tiene un tag con ese nombre (sin importar mayúsculas) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarUsuarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de usuarios */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["usuario_resumen"][];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

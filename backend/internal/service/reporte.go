@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -15,12 +16,13 @@ type ReporteStore interface {
 	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
-	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedium, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error)
+	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Location, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 	UpdateEstadoReporte(ctx context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error)
+	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
 }
 
 type ReporteService struct {
@@ -35,7 +37,7 @@ func NewReporteService(store ReporteStore) *ReporteService {
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario y, si la hay, su foto o video. multimedia admite un solo archivo
 // por usuario por reporte, así que al crear solo puede venir uno.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.MultimediaNueva) (domain.ReporteDetalle, error) {
+func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.ReporteDetalle, error) {
 	if multimedia != nil {
 		if strings.TrimSpace(multimedia.Path) == "" {
 			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)
@@ -123,6 +125,24 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 		MaxLat: maxLat,
 		MinLng: minLng,
 		MaxLng: maxLng,
+	})
+}
+
+func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ListReportesPorUbicacionRow, error) {
+	// La consulta recibe los estados como text[] (ver reporte.sql). Se deja
+	// nil si no hay estados, porque nil es "sin filtro".
+	var estadosTexto []string
+	for _, e := range estados {
+		estadosTexto = append(estadosTexto, string(e))
+	}
+	return s.store.ListReportesPorUbicacion(ctx, domain.ListReportesPorUbicacionParams{
+		Lng:          lng,
+		Lat:          lat,
+		Radio:        radio,
+		IncidenteIds: incidenteIds,
+		Estados:      estadosTexto,
+		Desde:        desde,
+		Limite:       limite,
 	})
 }
 

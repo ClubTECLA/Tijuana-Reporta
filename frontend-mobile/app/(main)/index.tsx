@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { onlineManager } from '@tanstack/react-query';
@@ -9,6 +9,10 @@ import { fontFamily } from '@/theme/typography';
 import { AvisoFlotante, type TipoAviso } from '@/components/estado/AvisoFlotante';
 import { useReportes } from '@/features/reportes/hooks';
 import { ReporteDetalle } from '@/features/reportes/detalle/ReporteDetalle';
+import { CapasFab } from '@/features/mapa/CapasFab';
+import { aplicarFiltros } from '@/features/mapa/filtros/aplicarFiltros';
+import { useFiltrosStore } from '@/features/mapa/filtros/filtrosStore';
+import { HojaFiltros } from '@/features/mapa/filtros/HojaFiltros';
 import { MapMarker } from '@/features/mapa/MapMarker';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
 import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
@@ -53,6 +57,7 @@ interface AvisoDatos {
 function avisoDeReportes(
   query: Pick<ReturnType<typeof useReportes>, 'data' | 'isError' | 'error'>,
   enLinea: boolean,
+  sinCoincidencias: boolean,
 ): AvisoDatos | null {
   const hayDatos = query.data !== undefined;
   if (!enLinea) {
@@ -67,6 +72,7 @@ function avisoDeReportes(
   }
   if (query.data === undefined) return { tipo: 'cargando', mensaje: 'Cargando reportes…' };
   if (query.data.length === 0) return { tipo: 'info', mensaje: 'Aún no hay reportes en la ciudad' };
+  if (sinCoincidencias) return { tipo: 'info', mensaje: 'Ningún reporte coincide con tus filtros' };
   return null;
 }
 
@@ -81,6 +87,7 @@ export default function MainMap() {
   const esInvitado = useEsInvitado();
   // Hoja "Crea una cuenta" cuando el invitado intenta reportar, comentar o abrir su perfil.
   const [motivoCuenta, setMotivoCuenta] = useState<MotivoCuenta | null>(null);
+  const [hojaFiltrosAbierta, setHojaFiltrosAbierta] = useState(false);
 
   const [expandido, setExpandido] = useState(true);
   const [permisoUbicacion, setPermisoUbicacion] = useState(false);
@@ -100,7 +107,14 @@ export default function MainMap() {
   const fabBottom = Math.max(insets.bottom + 8, 42);
   const tarjetaTop = buscadorTop + BUSCADOR_ALTO + SEPARACION_BUSCADOR;
   const tarjetaBottom = fabBottom + FAB_ALTO + SEPARACION_FAB;
-  const avisoDatos = avisoDeReportes(reportesQuery, enLinea);
+  const filtros = useFiltrosStore((s) => s.filtros);
+  const reportesVisibles = useMemo(() => aplicarFiltros(reportes, filtros, new Date()), [reportes, filtros]);
+  const avisoDatos = avisoDeReportes(reportesQuery, enLinea, reportes.length > 0 && reportesVisibles.length === 0);
+
+  // Si los filtros dejan fuera al reporte abierto, se cierra su tarjeta.
+  useEffect(() => {
+    if (selectedReporte && !reportesVisibles.some((r) => r.id === selectedReporte.id)) setSelectedReporte(null);
+  }, [reportesVisibles, selectedReporte]);
 
   /**
    * Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
@@ -261,7 +275,7 @@ export default function MainMap() {
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}
-        {reportes.map((reporte) => (
+        {reportesVisibles.map((reporte) => (
           <MapLibreGL.Marker
             key={reporte.id}
             id={reporte.id}
@@ -317,6 +331,7 @@ export default function MainMap() {
                 <Text style={styles.avisoTexto}>{aviso}</Text>
               </View>
             )}
+            <CapasFab onPress={() => setHojaFiltrosAbierta(true)} />
             <UbicacionFab onPress={() => void irAMiUbicacion()} cargando={buscandoUbicacion} />
           </View>
           <View style={[styles.fabWrapper, { bottom: fabBottom }]} pointerEvents="box-none">
@@ -329,6 +344,10 @@ export default function MainMap() {
       )}
 
       <HojaCrearCuenta motivo={motivoCuenta} onCerrar={() => setMotivoCuenta(null)} />
+      <HojaFiltros
+        visible={hojaFiltrosAbierta}
+        onClose={() => setHojaFiltrosAbierta(false)}
+      />
     </View>
   );
 }
@@ -359,7 +378,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 10,
   },
   aviso: {
     maxWidth: 260,

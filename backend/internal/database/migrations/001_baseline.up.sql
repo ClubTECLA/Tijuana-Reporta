@@ -2,6 +2,8 @@
 -- el historial de git) e incluye el cambio de fotos a multimedia y sin "Expirado".
 -- Sale de un pg_dump --schema-only; al final van los datos semilla.
 
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- Name: estado; Type: TYPE; Schema: public; Owner: -
 CREATE TYPE public.estado AS ENUM (
     'Pendiente',
@@ -144,8 +146,8 @@ CREATE TABLE public.multimedia (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
--- Name: fotos_reportes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
-CREATE SEQUENCE public.fotos_reportes_id_seq
+-- Name: multimedia_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+CREATE SEQUENCE public.multimedia_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -153,8 +155,8 @@ CREATE SEQUENCE public.fotos_reportes_id_seq
     NO MAXVALUE
     CACHE 1;
 
--- Name: fotos_reportes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
-ALTER SEQUENCE public.fotos_reportes_id_seq OWNED BY public.multimedia.id;
+-- Name: multimedia_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+ALTER SEQUENCE public.multimedia_id_seq OWNED BY public.multimedia.id;
 
 -- Name: historial; Type: TABLE; Schema: public; Owner: -
 -- Historial de acciones realizadas por los usuarios (mas que nada dirigida a usuarios con roles superiores a ciudadano)
@@ -196,7 +198,7 @@ CREATE TABLE public.incidentes (
     id integer NOT NULL,
     nombre character varying(100) NOT NULL,
     tiempo_limite smallint,
-    radio numeric,
+    radio double precision,
     esta_activo boolean DEFAULT true NOT NULL,
     color character varying(7) DEFAULT '#757575'::character varying NOT NULL,
     CONSTRAINT incidentes_color_hex_check CHECK (((color)::text ~ '^#[0-9A-Fa-f]{6}$'::text))
@@ -219,8 +221,8 @@ ALTER SEQUENCE public.incidentes_id_seq OWNED BY public.incidentes.id;
 CREATE TABLE public.location (
     id integer NOT NULL,
     reporte_id uuid NOT NULL,
-    latitude numeric NOT NULL,
-    longitude numeric NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     user_id uuid NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL
 );
@@ -242,8 +244,8 @@ ALTER SEQUENCE public.location_id_seq OWNED BY public.location.id;
 CREATE TABLE public.logs (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     incidente_id integer NOT NULL,
-    longitude numeric NOT NULL,
-    latitude numeric NOT NULL,
+    longitude double precision NOT NULL,
+    latitude double precision NOT NULL,
     peso integer NOT NULL,
     started_at timestamptz NOT NULL,
     finished_at timestamptz DEFAULT now() NOT NULL
@@ -282,10 +284,13 @@ ALTER SEQUENCE public.notificaciones_id_seq OWNED BY public.notificaciones.id;
 -- de ubicación no reescriben la fila completa de reporte ni sus índices.
 CREATE TABLE public.puntos_origen (
     reporte_id uuid NOT NULL,
-    latitude numeric NOT NULL,
-    longitude numeric NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     sample_count integer DEFAULT 0 NOT NULL,
-    updated_at timestamptz DEFAULT now() NOT NULL
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    geom geography(Point, 4326) GENERATED ALWAYS AS (
+        ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+    ) STORED
 );
 
 -- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
@@ -417,7 +422,7 @@ ALTER TABLE ONLY public.incidentes ALTER COLUMN id SET DEFAULT nextval('public.i
 ALTER TABLE ONLY public.location ALTER COLUMN id SET DEFAULT nextval('public.location_id_seq'::regclass);
 
 -- Name: multimedia id; Type: DEFAULT; Schema: public; Owner: -
-ALTER TABLE ONLY public.multimedia ALTER COLUMN id SET DEFAULT nextval('public.fotos_reportes_id_seq'::regclass);
+ALTER TABLE ONLY public.multimedia ALTER COLUMN id SET DEFAULT nextval('public.multimedia_id_seq'::regclass);
 
 -- Name: notificaciones id; Type: DEFAULT; Schema: public; Owner: -
 ALTER TABLE ONLY public.notificaciones ALTER COLUMN id SET DEFAULT nextval('public.notificaciones_id_seq'::regclass);
@@ -451,13 +456,13 @@ ALTER TABLE ONLY public.auth_providers
 ALTER TABLE ONLY public.comentarios
     ADD CONSTRAINT comentarios_pkey PRIMARY KEY (id);
 
--- Name: multimedia fotos_reportes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT multimedia_pkey PRIMARY KEY (id);
 
--- Name: multimedia fotos_reportes_reporte_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_reporte_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_reporte_id_user_id_key UNIQUE (reporte_id, user_id);
+    ADD CONSTRAINT multimedia_reporte_id_user_id_key UNIQUE (reporte_id, user_id);
 
 -- Name: historial historial_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.historial
@@ -576,6 +581,8 @@ CREATE INDEX idx_reporte_incidente_id ON public.reporte USING btree (incidente_i
 -- Name: idx_tags_incidente_id; Type: INDEX; Schema: public; Owner: -
 CREATE INDEX idx_tags_incidente_id ON public.tags USING btree (incidente_id);
 
+CREATE INDEX idx_puntos_origen_geom ON public.puntos_origen USING gist (geom);
+
 -- Name: location trg_update_puntos_origen; Type: TRIGGER; Schema: public; Owner: -
 CREATE TRIGGER trg_update_puntos_origen AFTER INSERT ON public.location FOR EACH ROW EXECUTE FUNCTION public.update_puntos_origen();
 
@@ -594,13 +601,13 @@ ALTER TABLE ONLY public.comentarios
 ALTER TABLE ONLY public.comentarios
     ADD CONSTRAINT comentarios_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
--- Name: multimedia fotos_reportes_reporte_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_reporte_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_reporte_id_fkey FOREIGN KEY (reporte_id) REFERENCES public.reporte(id) ON DELETE CASCADE;
+    ADD CONSTRAINT multimedia_reporte_id_fkey FOREIGN KEY (reporte_id) REFERENCES public.reporte(id) ON DELETE CASCADE;
 
--- Name: multimedia fotos_reportes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: multimedia multimedia_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.multimedia
-    ADD CONSTRAINT fotos_reportes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT multimedia_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 -- Name: historial historial_accion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.historial

@@ -11,7 +11,7 @@ import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../PanelAndModalComponents/view-components/Button";
 import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
-import { useCommonPanel } from "../../../hooks/contexts/CommonPanelContext";
+import { useCommonPanel } from "../../../hooks/useCommonPanel";
 
 type FormState = {
     username: string;
@@ -46,7 +46,7 @@ export default function UserProfileView() {
 
     if (!isAuthenticated || !user) {
         return (
-            <div className="flex flex-row items-center justify-center gap-3 text-red-800">
+            <div className="flex flex-row items-center justify-center gap-3 text-danger">
                 <FaUserLock className="text-3xl" />
                 <span className="text-xl">Acceso Denegado</span>
             </div>
@@ -65,6 +65,7 @@ export default function UserProfileView() {
                 username={user.username}
                 email={user.email}
                 rolName={user.rol_name}
+                bg_color='blue'
             />
             <Input
                 format={"col"}
@@ -129,13 +130,13 @@ export default function UserProfileView() {
                 <Button
                     title="Descartar"
                     format='row'
-                    color='gray'
+                    variant="subtle"
                 />
                 <Button
                     title="Guardar Cambios"
                     format='row'
                     icon={<LuSun />}
-                    color='blue'
+                    variant="primary"
                 />
             </RowSection>
         </ColSection>

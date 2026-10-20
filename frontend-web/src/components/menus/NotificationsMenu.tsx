@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { SegmentedTabs, TabItem } from "../CommonPanelAndModal/PanelAndModalComponents/view-components/SegmentedTabs";
-import { type NotiType, NotiIcons } from "../../types/utils-types";
+import { type NotiType } from "../../types/utils-types";
 import { FiSun } from "react-icons/fi";
+import {NotificationTile, NotificationList} from "../CommonPanelAndModal/PanelAndModalComponents/view-components/NotificationList";
+import TextButton from "../CommonPanelAndModal/PanelAndModalComponents/view-components/TextButton";
+import RowSection from "../CommonPanelAndModal/PanelAndModalComponents/primitive-components/RowSection";
+import SubsectionTitle from "../CommonPanelAndModal/PanelAndModalComponents/view-components/SubsectionTitle";
+import ColSection from "../CommonPanelAndModal/PanelAndModalComponents/primitive-components/ColSection";
 
 interface NotiProps {
     title: string;
@@ -11,72 +16,6 @@ interface NotiProps {
     id: number;
     created_at: string;
     onClick?: () => void
-}
-
-function NotificationItem ( { title, description, type, read, id, created_at, onClick } : NotiProps ) {
-    const getTimeSinceCreated = (createdAt: string): string => {
-        const elapsedSeconds = Math.max(
-            0,
-            Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000),
-        );
-
-        if (elapsedSeconds < 60) {
-            return `hace ${elapsedSeconds} seg`;
-        }
-
-        const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-        if (elapsedMinutes < 60) {
-            return `hace ${elapsedMinutes} min`;
-        }
-
-        const elapsedHours = Math.floor(elapsedMinutes / 60);
-        return `hace ${elapsedHours} hrs`;
-    };
-
-    void getTimeSinceCreated;
-
-    const NotiIconWrapped = {
-        'report': 'bg-blue-100 text-blue-600 ',
-        'moderation': 'bg-red-100 text-red-600',
-        'system': 'bg-gray-200 text-gray-600' 
-    } as const satisfies Record<NotiType, string> 
-    
-    return(
-        <div
-            data-notification-id={id}
-            data-created-at={created_at}
-            className={`
-                flex flex-row gap-2 
-                items-center bg-white 
-                rounded-2xl p-2
-                hover:bg-gray-200 transition-all duration-300
-            `}
-            onClick={onClick}
-        >
-            <div 
-                className={`
-                    flex flex-row items-center justify-center
-                    text-2xl 
-                    rounded-full p-2 w-10 h-10
-                    ${NotiIconWrapped[type]}
-                `}
-            >
-                {NotiIcons[type]}
-            </div>
-            <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2">
-                    <h3 className="min-w-0 break-words text-md font-bold text-gray-800">{title}</h3>
-                    <span className="shrink-0 text-xs font-semibold text-gray-500">{getTimeSinceCreated(created_at)}</span>
-                </div>
-                {description && <p className="break-words text-sm text-gray-700">{description}</p>}
-            </div>
-            {!read && 
-                <div className="flex flex-col items-start justify-start h-15">
-                    <span className="bg-blue-700 rounded-full w-2 h-2"/>
-                </div>
-            }
-        </div>
-    )
 }
 
 
@@ -110,29 +49,25 @@ export default function NotificationsMenu() {
     }
    
     return (
-        <section
-            className="
-                fixed right-3 top-[6.5rem]
-                w-[calc(100vw-1.5rem)] max-w-100
-                pointer-events-auto
-                flex h-[32rem] max-h-[calc(100dvh-7.5rem)] flex-col
-                p-4 rounded-3xl shadow-lg shadow-gray-600
-                overflow-hidden
-                bg-gray-100 
-                sm:right-5 sm:top-20 sm:max-h-[calc(100dvh-6rem)]
-            "
+        <ColSection
+            className="px-4"
         >
-            <div className="flex flex-row justify-between  px-2 pt-1">
-                <h1 className="font-bold text-gray-800 text-xl">Notificaciones</h1>
-                <button
-                    className="text-blue-600 text-sm font-semibold hover:underline underline-offset-4"
+            <RowSection
+                className="px-2 pt-1"
+                arrangementSubsections='between'
+            >
+                <SubsectionTitle 
+                    title="Notificaciones"
+                />
+                <TextButton
+                    title="Marcar leídas"
                     onClick={markAllReaded}
-                >
-                    Marcar leidas
-                </button>
-            </div>
+                    className="text-sm text-brand hover:underline underline-offset-4"
+                />
+            </RowSection>
             <SegmentedTabs
                 format="row"
+                className="mb-3"
             >
                 <TabItem
                     tabTitle="Todas"
@@ -156,44 +91,30 @@ export default function NotificationsMenu() {
                 />
             </SegmentedTabs>
 
-            <div className="
-                    flex min-h-0 flex-1 flex-col gap-2
-                    p-2 rounded-2xl 
-                    overflow-y-auto
-                "
+            <NotificationList
+                format='col'
             >
-                {notifications.map((noti) => {
-                    
-                    if(typeFilter === null || noti.type === typeFilter){
-                        return(
-                            <NotificationItem
-                                title={noti.title}
-                                description={noti.description}
-                                key={noti.id}
-                                id={noti.id}
-                                type={noti.type}
-                                read={noti.read}
-                                created_at={noti.created_at}
-                                onClick={() => handleClickNoti(noti.id)}
-                            />
-                        )    
-                    }
-
-                })}
-            </div>
-            <button
-                className="
-                    flex flex-row items-center 
-                    justify-center w-full
-                    text-blue-500 font-semibold 
-                    mt-4 gap-2 group
-                "
-            >
-                <FiSun />
-                <p className="group-hover:underline underline-offset-2">
-                    Preferencias de Notificaciones
-                </p>
-            </button>
-        </section>
+                {notifications
+                    .filter((noti) => typeFilter === null || noti.type === typeFilter)
+                    .map((noti) => (
+                        <NotificationTile
+                            title={noti.title}
+                            description={noti.description}
+                            key={noti.id}
+                            id={noti.id}
+                            type={noti.type}
+                            read={noti.read}
+                            createdAt={noti.created_at}
+                            onClick={() => handleClickNoti(noti.id)}
+                        />
+                    ))}
+            </NotificationList>
+            <TextButton
+                title="Preferencias de Notificaciones"
+                icon={<FiSun />}
+                format="col"
+                className="mt-4 w-full text-brand hover:underline underline-offset-2 mb-4"
+            />
+        </ColSection>
     )
 }

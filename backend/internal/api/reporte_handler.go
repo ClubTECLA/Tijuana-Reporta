@@ -53,9 +53,9 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	}
 
 	b := request.Body
-	var multimedia *domain.MultimediaNueva
+	var multimedia *domain.CrearMultimediaRequest
 	if b.Multimedia != nil {
-		multimedia = &domain.MultimediaNueva{Path: b.Multimedia.Path}
+		multimedia = &domain.CrearMultimediaRequest{Path: b.Multimedia.Path}
 	}
 
 	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, multimedia)
@@ -113,6 +113,53 @@ func (s *Server) ListarReportes(ctx context.Context, request ListarReportesReque
 	res := make(ListarReportes200JSONResponse, 0, len(rows))
 	for _, row := range rows {
 		res = append(res, toReporteResumen(row))
+	}
+	return res, nil
+}
+
+func toEstado(e EstadoReporte) domain.Estado {
+	return domain.Estado(e)
+}
+
+func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
+	return ReporteCercano{
+		Avistamientos: r.Avistamientos,
+		DistanciaM:    r.DistanciaM,
+		EsOficial:     r.EsOficial,
+		EstadoActual:  EstadoReporte(r.EstadoActual),
+		Id:            r.ID,
+		IncidenteId:   r.IncidenteID,
+		Latitude:      r.Latitude,
+		Longitude:     r.Longitude,
+	}
+}
+
+func (s *Server) ListarReportesCercanos(ctx context.Context, request ListarReportesCercanosRequestObject) (ListarReportesCercanosResponseObject, error) {
+	p := request.Params
+	limite := 200
+	if p.Limite != nil {
+		limite = *p.Limite
+	}
+
+	var estados []domain.Estado
+	if p.Estado != nil {
+		for _, estado := range *p.Estado {
+			estados = append(estados, toEstado(estado))
+		}
+	}
+
+	var incidenteIds []int
+	if p.IncidenteId != nil {
+		incidenteIds = *p.IncidenteId
+	}
+
+	rows, err := s.services.Reportes.ListarCercanos(ctx, p.Lng, p.Lat, p.Radio, incidenteIds, estados, p.Desde, limite)
+	if err != nil {
+		return nil, err
+	}
+	res := make(ListarReportesCercanos200JSONResponse, 0, len(rows))
+	for _, row := range rows {
+		res = append(res, toReporteCercano(row))
 	}
 	return res, nil
 }

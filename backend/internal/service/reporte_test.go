@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -15,20 +17,23 @@ import (
 // CreateReporte imita a la transacción real (reporte + location + multimedia) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
 // realista.
-// Guarda los últimos parámetros de CreateReporte y ListReportesResumen para
-// revisarlos.
+// Guarda los últimos parámetros de CreateReporte, ListReportesResumen y
+// ListReportesPorUbicacion para revisarlos.
 type fakeReporteStore struct {
 	byID        map[uuid.UUID]domain.Reporte
 	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
 	comentarios map[uuid.UUID][]domain.Comentario
-	multimedia  map[uuid.UUID][]domain.Multimedium
+	multimedia  map[uuid.UUID][]domain.Multimedia
 	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
-	locations   map[uuid.UUID][]domain.ListLocationsByReporteIdRow
+	locations   map[uuid.UUID][]domain.Location
 	resumen     []domain.ListReportesResumenRow
+	cercanos    []domain.ListReportesPorUbicacionRow
 
 	lastArg     domain.CreateReporteTxParams
 	lastListArg domain.ListReportesResumenParams
 	listCalled  bool
+
+	lastCercanosArg domain.ListReportesPorUbicacionParams
 
 	createErr error
 	listErr   error
@@ -39,9 +44,9 @@ func newFakeReporteStore() *fakeReporteStore {
 		byID:        map[uuid.UUID]domain.Reporte{},
 		puntos:      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow{},
 		comentarios: map[uuid.UUID][]domain.Comentario{},
-		multimedia:  map[uuid.UUID][]domain.Multimedium{},
+		multimedia:  map[uuid.UUID][]domain.Multimedia{},
 		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
-		locations:   map[uuid.UUID][]domain.ListLocationsByReporteIdRow{},
+		locations:   map[uuid.UUID][]domain.Location{},
 	}
 }
 
@@ -56,13 +61,13 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 		EsOficial:   arg.Reporte.EsOficial,
 	}
 	f.byID[r.ID] = r
-	f.locations[r.ID] = []domain.ListLocationsByReporteIdRow{
+	f.locations[r.ID] = []domain.Location{
 		{ID: 1, ReporteID: r.ID, Latitude: arg.Latitude, Longitude: arg.Longitude, UserID: arg.UserID},
 	}
 	// Con una sola location, el centroide es esa misma location.
 	f.puntos[r.ID] = domain.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
 	if m := arg.Multimedia; m != nil {
-		f.multimedia[r.ID] = []domain.Multimedium{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
+		f.multimedia[r.ID] = []domain.Multimedia{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
 	}
 	return r, nil
 }
@@ -87,7 +92,7 @@ func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid
 	return f.comentarios[id], nil
 }
 
-func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedium, error) {
+func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedia, error) {
 	return f.multimedia[id], nil
 }
 
@@ -95,7 +100,7 @@ func (f *fakeReporteStore) ListTagsByReporteId(_ context.Context, id uuid.UUID) 
 	return f.tags[id], nil
 }
 
-func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListLocationsByReporteIdRow, error) {
+func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]domain.Location, error) {
 	return f.locations[id], nil
 }
 
@@ -106,6 +111,14 @@ func (f *fakeReporteStore) ListReportesResumen(_ context.Context, arg domain.Lis
 		return nil, f.listErr
 	}
 	return f.resumen, nil
+}
+
+func (f *fakeReporteStore) ListReportesPorUbicacion(_ context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error) {
+	f.lastCercanosArg = arg
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.cercanos, nil
 }
 
 func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
@@ -132,7 +145,7 @@ func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 	userID := uuid.New()
-	multimedia := &domain.MultimediaNueva{Path: "/srv/media/0001.jpg"}
+	multimedia := &domain.CrearMultimediaRequest{Path: "/srv/media/0001.jpg"}
 
 	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371, multimedia)
 	if err != nil {
@@ -162,10 +175,10 @@ func TestReporteService_Crear(t *testing.T) {
 func TestReporteService_Crear_MultimediaInvalida(t *testing.T) {
 	tests := []struct {
 		name       string
-		multimedia domain.MultimediaNueva
+		multimedia domain.CrearMultimediaRequest
 	}{
-		{"path vacío", domain.MultimediaNueva{Path: ""}},
-		{"path solo espacios", domain.MultimediaNueva{Path: "  "}},
+		{"path vacío", domain.CrearMultimediaRequest{Path: ""}},
+		{"path solo espacios", domain.CrearMultimediaRequest{Path: "  "}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -347,5 +360,55 @@ func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
 	_, err := svc.AgregarAvistamiento(context.Background(), uuid.New())
 	if !errors.Is(err, domain.ErrReporteNotFound) {
 		t.Fatalf("AgregarAvistamiento() error = %v, want %v", err, domain.ErrReporteNotFound)
+	}
+}
+
+func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
+	store := newFakeReporteStore()
+	store.cercanos = []domain.ListReportesPorUbicacionRow{{ID: uuid.New(), DistanciaM: 12.5}}
+	svc := NewReporteService(store)
+
+	rows, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200)
+	if err != nil {
+		t.Fatalf("ListarCercanos() error = %v", err)
+	}
+	if len(rows) != 1 || rows[0].DistanciaM != 12.5 {
+		t.Fatalf("ListarCercanos() = %+v, want la fila de la store", rows)
+	}
+	a := store.lastCercanosArg
+	if a.Lng != -117.0382 || a.Lat != 32.5149 || a.Radio != 2000 || a.Limite != 200 {
+		t.Fatalf("ListReportesPorUbicacion() arg = %+v, want el punto, radio y límite recibidos", a)
+	}
+	// nil es lo que la consulta interpreta como "sin filtro".
+	if a.IncidenteIds != nil || a.Estados != nil || a.Desde != nil {
+		t.Fatalf("ListReportesPorUbicacion() arg = %+v, want filtros nil", a)
+	}
+}
+
+func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+	desde := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000,
+		[]int{2, 4}, []domain.Estado{domain.EstadoPendiente, domain.EstadoProbable}, &desde, 10)
+	if err != nil {
+		t.Fatalf("ListarCercanos() error = %v", err)
+	}
+	a := store.lastCercanosArg
+	if !slices.Equal(a.IncidenteIds, []int{2, 4}) ||
+		!slices.Equal(a.Estados, []string{"Pendiente", "Probable"}) ||
+		a.Desde == nil || !a.Desde.Equal(desde) || a.Limite != 10 {
+		t.Fatalf("ListReportesPorUbicacion() arg = %+v, want los filtros recibidos", a)
+	}
+}
+
+func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
+	store := newFakeReporteStore()
+	store.listErr = errors.New("db caída")
+	svc := NewReporteService(store)
+
+	if _, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200); !errors.Is(err, store.listErr) {
+		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
 	}
 }

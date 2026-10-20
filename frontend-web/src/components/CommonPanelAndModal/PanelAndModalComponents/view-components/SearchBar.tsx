@@ -1,58 +1,62 @@
-import { IoSearch } from 'react-icons/io5';
+import { useState, type SubmitEvent } from 'react';
+import { LuSearch } from 'react-icons/lu';
 import SubSection from '../primitive-components/SubSection';
 import type { subsectionProps } from '../../../../types/utils-types';
-import { useState } from 'react';
 
 interface SearchBarProps extends subsectionProps {
-    onSubmit?: () => void;
+    /** Se llama al pulsar Enter o la lupa, con el texto escrito. */
+    onSubmit?: (value: string) => void;
+    /** Texto controlado desde fuera; sin él, el componente guarda lo escrito. */
+    value?: string;
+    onChange?: (value: string) => void;
     placeholder?: string;
+    /** id del input, para asociarle un <label htmlFor>. */
+    inputId?: string;
+    ariaLabel?: string;
 }
 
-export default function SearchBar({ format, debug, onSubmit, placeholder }: SearchBarProps) {
-    const [ searchQuery, setSearchQuery ] = useState<string>("");
+// "Web/Campo · Búsqueda" del Figma: 44 px de alto, borde que se pinta de azul al enfocar y lupa a la derecha.
+export default function SearchBar({ format, debug, onSubmit, value, onChange, placeholder, inputId, ariaLabel, className }: SearchBarProps) {
+    const [ internalValue, setInternalValue ] = useState<string>("");
+    const currentValue = value ?? internalValue;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
+    const handleChange = (next: string) => {
+        setInternalValue(next);
+        onChange?.(next);
     }
-    
+
+    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        onSubmit?.(currentValue);
+    }
+
     return (
         <SubSection
             format={format}
             debug={debug}
+            className={className}
         >
-            <form 
+            <form
+                role="search"
                 className="
-                    flex w-full min-w-0 items-center 
-                    gap-3 rounded-full border border-gray-200 
-                    bg-white pl-4 pr-2 py-2 
-                    pr-5
+                    flex h-11 w-full min-w-0 items-center gap-3
+                    rounded-[31px] border border-line bg-surface px-3
+                    transition-colors focus-within:border-brand
                 "
-                onSubmit={onSubmit}
+                onSubmit={handleSubmit}
             >
                 <input
-                    id="searchInput"
+                    id={inputId}
                     name="search"
                     type="search"
                     placeholder={placeholder || "Buscar"}
-                    className="
-                        min-w-0 flex-1 bg-transparent 
-                        px-1 text-sm text-gray-700 
-                        placeholder:text-gray-400 
-                        focus-within:outline-transparent
-                        rounded-full h-full
-                    "
-                    value={searchQuery}
-                    onChange={handleChange}
+                    aria-label={ariaLabel ?? placeholder ?? "Buscar"}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                    value={currentValue}
+                    onChange={(e) => handleChange(e.target.value)}
                 />
-
-                <button
-                    type="submit"
-                    className='hover:scale-120 transition-all duration-100 rounded-full hover:bg-gray-800 py-1 px-2 hover:text-white'
-                >
-                    <IoSearch
-                        className="shrink-0 text-xl"
-                        aria-hidden="true"
-                    />
+                <button type="submit" aria-label="Buscar" className="shrink-0 text-icon transition-colors hover:text-brand">
+                    <LuSearch className="size-5" aria-hidden="true" />
                 </button>
             </form>
         </SubSection>
