@@ -11,7 +11,27 @@ SELECT tabla, esperado, actual,
 FROM (
     SELECT 1 AS ord, 'users' AS tabla, 8 AS esperado,
            (SELECT count(*) FROM users WHERE id::text LIKE 'c1000000-%') AS actual
-    UNION ALL SELECT 2, 'tags', 28, (SELECT count(*) FROM tags)
+    UNION ALL SELECT 2, 'tags', 28, 
+       (SELECT count(*)
+              FROM tags tg
+              JOIN incidentes inc ON inc.id = tg.incidente_id
+              JOIN (VALUES
+                     ('luz','Poste caído'),            ('luz','Cables expuestos'),
+                     ('luz','Zona oscura'),            ('luz','Falla intermitente'),
+                     ('socavon','Vehículo atascado'),  ('socavon','Bloquea el paso'),
+                     ('socavon','Sin señalización'),   ('socavon','Crece rápido'),
+                     ('arbol','Obstruye la calle'),    ('arbol','Riesgo de caída'),
+                     ('arbol','Sobre cables'),         ('arbol','Ramas rotas'),
+                     ('drenaje','Mal olor'),           ('drenaje','Desborda'),
+                     ('drenaje','Tapa faltante'),      ('drenaje','Aguas negras'),
+                     ('deslave','Bloquea la vía'),     ('deslave','Casas en riesgo'),
+                     ('deslave','Material suelto'),    ('deslave','Grietas visibles'),
+                     ('inundacion','Auto varado'),     ('inundacion','Calle intransitable'),
+                     ('inundacion','Agua entra a casas'), ('inundacion','Nivel subiendo'),
+                     ('incendio','Vegetación'),        ('incendio','Humo denso'),
+                     ('incendio','Cerca de casas'),    ('incendio','Lote baldío')
+              ) AS seed(incidente, nombre)
+                ON seed.incidente = inc.nombre AND seed.nombre = tg.nombre)
     UNION ALL SELECT 3, 'reporte', 12,
            (SELECT count(*) FROM reporte WHERE id::text LIKE 'd0000000-%')
     UNION ALL SELECT 4, 'location', 28,
