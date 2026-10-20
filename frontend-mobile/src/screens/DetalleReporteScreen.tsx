@@ -9,10 +9,12 @@ import {
   StatusBar as RNStatusBar,
 } from 'react-native';
 import { Card } from '../components/Card';
+import { Feather } from '@expo/vector-icons';
 import { StatusBadge } from '../components/StatusBadge';
 import { TrackingTimeline } from '../components/TrackingTimeline';
 import { PasoSeguimiento } from '../types/seguimiento';
 import { EstadoReporte, perfilColors, perfilRadius } from '../theme/perfilTokens';
+
 
 // Datos de ejemplo: todavía no existe el endpoint de detalle de reporte en el contrato OpenAPI.
 const MOCK_REPORTE = {
@@ -59,7 +61,7 @@ export const DetalleReporteScreen = ({ onBack, onShare, onEliminar }: DetalleRep
           accessibilityRole="button"
           accessibilityLabel="Compartir"
         >
-          <Text style={styles.shareIcon}>📤</Text>
+          <Feather name="share-2" size={16} color={perfilColors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -81,11 +83,17 @@ export const DetalleReporteScreen = ({ onBack, onShare, onEliminar }: DetalleRep
         </Card>
 
         <TouchableOpacity style={styles.compartirBtn} onPress={onShare}>
-          <Text style={styles.compartirText}>📤  Compartir</Text>
+          <View style={styles.btnRow}>
+            <Feather name="share-2" size={16} color={perfilColors.textPrimary} />
+            <Text style={styles.compartirText}>  Compartir</Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.eliminarBtn} onPress={onEliminar}>
-          <Text style={styles.eliminarText}>🗑  Eliminar</Text>
+          <View style={styles.btnRow}>
+            <Feather name="trash-2" size={16} color={perfilColors.danger} />
+            <Text style={styles.eliminarText}>  Eliminar</Text>
+          </View>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -112,7 +120,7 @@ const styles = StyleSheet.create({
     borderColor: perfilColors.divider,
   },
   backIcon: { fontSize: 28, lineHeight: 30, color: perfilColors.textPrimary },
-  shareIcon: { fontSize: 16 },
+  btnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   title: {
     flex: 1,
     marginLeft: 12,
