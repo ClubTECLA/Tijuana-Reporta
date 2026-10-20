@@ -12,7 +12,7 @@ export default function Perfil() {
       onBack={() => router.back()}
       onMisReportes={() => router.push('/(main)/mis-reportes')}
       onNotificaciones={() => router.push('/(main)/notificaciones')}
-      onAlertas={() => {}} // C22 todavía no existe
+      onAlertas={() => router.push('/(main)/alertas')}
       onCerrarSesion={cerrarSesion}
     />
   );

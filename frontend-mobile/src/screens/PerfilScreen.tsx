@@ -8,7 +8,7 @@ import { perfilColors } from '../theme/perfilTokens';
 
 // Datos de ejemplo
 const MOCK_USUARIO = {
-  nombre: 'Estupido Cervantes',
+  nombre: 'Bruce Cervantes',
   telefono: '+52 664 •••• 4421',
   totalReportes: 12,
   reportesActivos: 2,
