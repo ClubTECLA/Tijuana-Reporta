@@ -1,7 +1,7 @@
-﻿#!/bin/sh
+#!/bin/sh
 # Corre antes de migrate y frena el arranque si la base no se puede llevar a la
-# versiÃ³n del cÃ³digo. La versiÃ³n esperada es la de la Ãºltima migraciÃ³n de la
-# carpeta, asÃ­ que al agregar una no hay que tocar nada aquÃ­.
+# versión del código. La versión esperada es la de la última migración de la
+# carpeta, así que al agregar una no hay que tocar nada aquí.
 
 set -eu
 
@@ -34,12 +34,12 @@ if [ "$(q "SELECT to_regclass('public.schema_migrations') IS NOT NULL")" = "t" ]
 fi
 
 if [ -z "$version" ]; then
-    [ "$tablas" = "0" ] || fail "la base tiene tablas pero no tiene versiÃ³n registrada (schema_migrations)"
-    echo "dbcheck: base vacÃ­a; migrate la crearÃ¡ hasta la versiÃ³n $esperada"
+    [ "$tablas" = "0" ] || fail "la base tiene tablas pero no tiene versión registrada (schema_migrations)"
+    echo "dbcheck: base vacía; migrate la creará hasta la versión $esperada"
     exit 0
 fi
 
-[ "$sucia" = "0" ] || fail "la base estÃ¡ en la versiÃ³n $version con una migraciÃ³n a medias (dirty)"
-[ "$version" -le "$esperada" ] || fail "la base estÃ¡ en la versiÃ³n $version, mÃ¡s nueva que la del cÃ³digo ($esperada)"
+[ "$sucia" = "0" ] || fail "la base está en la versión $version con una migración a medias (dirty)"
+[ "$version" -le "$esperada" ] || fail "la base está en la versión $version, más nueva que la del código ($esperada)"
 
-echo "dbcheck: base en la versiÃ³n $version; el cÃ³digo espera la $esperada"
+echo "dbcheck: base en la versión $version; el código espera la $esperada"

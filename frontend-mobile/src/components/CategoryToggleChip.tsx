@@ -10,10 +10,12 @@ interface CategoryToggleChipProps {
 }
 
 export const CategoryToggleChip = ({ label, color, activo, onPress }: CategoryToggleChipProps) => (
-  <TouchableOpacity
+<TouchableOpacity
     style={[styles.chip, activo ? { backgroundColor: color } : styles.chipInactivo]}
     onPress={onPress}
     activeOpacity={0.7}
+    accessibilityRole="button"
+    accessibilityState={{ selected: activo }}
   >
     {!activo && <View style={[styles.dot, { backgroundColor: color }]} />}
     <Text style={[styles.label, activo ? styles.labelActivo : { color: perfilColors.textPrimary }]}>
