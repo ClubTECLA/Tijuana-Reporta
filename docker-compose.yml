@@ -51,6 +51,9 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       API_PORT: ${API_PORT}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-Administrador}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MULTIMEDIA_URL: http://multimedia:8081
     depends_on:
       postgres:

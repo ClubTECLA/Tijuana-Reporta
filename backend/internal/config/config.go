@@ -41,6 +41,9 @@ type Config struct {
 
 	MaxFotoBytes   int64
 	MaxFotoPixeles int64
+	AdminEmail     string
+	AdminUsername  string
+	AdminPassword  string
 }
 
 func Load() (Config, error) {
@@ -51,13 +54,19 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		APIPort:     os.Getenv("API_PORT"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		APIPort:       os.Getenv("API_PORT"),
+		JWTSecret:     os.Getenv("JWT_SECRET"),
+		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
+		AdminUsername: getEnvOrDefault("ADMIN_USERNAME", "Administrador"),
+		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
 	}
 	var missing []string
 	if cfg.DatabaseURL == "" {
 		missing = append(missing, "DATABASE_URL")
+	}
+	if (cfg.AdminEmail == "") != (cfg.AdminPassword == "") {
+		return Config{}, fmt.Errorf("ADMIN_EMAIL y ADMIN_PASSWORD deben definirse juntas, o dejar ambas vacías")
 	}
 	if cfg.APIPort == "" {
 		// Use default value
@@ -118,4 +127,12 @@ func enteroPositivo(nombre string, def int64) (int64, error) {
 		return 0, fmt.Errorf("%s must be greater than zero", nombre)
 	}
 	return n, nil
+}
+
+func getEnvOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+
+	return fallback
 }

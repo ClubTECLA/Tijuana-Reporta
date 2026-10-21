@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
@@ -37,6 +38,10 @@ func main() {
 
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to connect to database; check database configuration and connectivity: %v", err)
+	}
+
+	if err := bootstrap.EnsureAdmin(ctx, pool, cfg.AdminEmail, cfg.AdminUsername, cfg.AdminPassword); err != nil {
+		log.Fatalf("admin bootstrap: %v", err)
 	}
 
 	// Un solo Store para todos los servicios: expone las consultas generadas
