@@ -1,0 +1,7 @@
+type: object
+description: Foto que el creador de un reporte sube a su reporte.
+required: [file]
+properties:
+  file:
+    type: string
+    format: binary

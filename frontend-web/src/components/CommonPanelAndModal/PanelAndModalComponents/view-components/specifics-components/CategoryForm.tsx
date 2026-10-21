@@ -20,6 +20,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
     const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
         id: 0,
         nombre: "",
+        etiqueta: "",
         color: '#066ed6',
         tiempo_limite: 0,
         radio: 0,
@@ -34,6 +35,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             setCategoryForEdit({
                 id: 0,
                 nombre: "",
+                etiqueta: "",
                 color: '#066ed6',
                 tiempo_limite: 0,
                 radio: 0,

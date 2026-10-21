@@ -14,7 +14,7 @@ import (
 )
 
 // fakeReporteStore implementa ReporteStore en memoria.
-// CreateReporte imita a la transacción real (reporte + location + multimedia) y al
+// CreateReporte imita a la transacción real (reporte + location) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
 // realista.
 // Guarda los últimos parámetros de CreateReporte, ListReportesResumen y
@@ -67,9 +67,6 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 	}
 	// Con una sola location, el centroide es esa misma location.
 	f.puntos[r.ID] = domain.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
-	if m := arg.Multimedia; m != nil {
-		f.multimedia[r.ID] = []domain.Multimedia{{ID: 1, ReporteID: r.ID, Path: m.Path, UserID: arg.UserID}}
-	}
 	return r, nil
 }
 
@@ -147,7 +144,6 @@ func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 	userID := uuid.New()
-	multimedia := &domain.CrearMultimediaRequest{Path: "/srv/media/0001.jpg"}
 
 	fakeNuevoReporte := domain.NuevoReporte{
 		UserID:      userID,
@@ -156,7 +152,6 @@ func TestReporteService_Crear(t *testing.T) {
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
 		EsOficial:   false,
-		Multimedia:  multimedia,
 	}
 
 	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
@@ -166,76 +161,18 @@ func TestReporteService_Crear(t *testing.T) {
 	if r.Reporte.IncidenteID != 42 {
 		t.Fatalf("Crear() = %+v, want incidenteID=%d", r.Reporte, 42)
 	}
-	// Crear relee el reporte con Obtener: el detalle ya trae el centroide,
-	// la location inicial y su multimedia.
+	// Crear relee el reporte con Obtener: el detalle ya trae el centroide y la
+	// location inicial. La multimedia se sube después, así que empieza vacía.
 	if r.Latitude != 32.5027 || r.Longitude != -117.00371 {
 		t.Fatalf("Crear() centroide = (%v, %v), want (%v, %v)", r.Latitude, r.Longitude, 32.5027, -117.00371)
 	}
-	if len(r.Locations) != 1 || len(r.Multimedia) != 1 || r.Multimedia[0].Path != multimedia.Path {
-		t.Fatalf("Crear() locations = %v multimedia = %v, want 1 location y %+v", r.Locations, r.Multimedia, *multimedia)
+	if len(r.Locations) != 1 || len(r.Multimedia) != 0 {
+		t.Fatalf("Crear() locations = %v multimedia = %v, want 1 location y ninguna multimedia", r.Locations, r.Multimedia)
 	}
 
 	arg := store.lastArg
 	if arg.UserID != userID || arg.Latitude != 32.5027 || arg.Longitude != -117.00371 {
 		t.Fatalf("CreateReporte() arg = %+v, want userID=%v lat=%v lng=%v", arg, userID, 32.5027, -117.00371)
-	}
-	if arg.Multimedia == nil || *arg.Multimedia != *multimedia {
-		t.Fatalf("CreateReporte() Multimedia = %v, want %+v", arg.Multimedia, *multimedia)
-	}
-}
-
-func TestReporteService_Crear_MultimediaInvalida(t *testing.T) {
-	tests := []struct {
-		name       string
-		multimedia domain.CrearMultimediaRequest
-	}{
-		{"path vacío", domain.CrearMultimediaRequest{Path: ""}},
-		{"path solo espacios", domain.CrearMultimediaRequest{Path: "  "}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := newFakeReporteStore()
-			svc := NewReporteService(store)
-
-			fakeNuevoReporte := domain.NuevoReporte{
-				UserID:      uuid.New(),
-				Rol:         domain.RolCiudadano,
-				IncidenteID: 42,
-				Latitude:    32.5027,
-				Longitude:   -117.00371,
-				EsOficial:   false,
-				Multimedia:  &tt.multimedia,
-			}
-			_, err := svc.Crear(context.Background(), fakeNuevoReporte)
-			if !errors.Is(err, domain.ErrMultimediaInvalida) {
-				t.Fatalf("Crear() error = %v, want %v", err, domain.ErrMultimediaInvalida)
-			}
-			if len(store.byID) != 0 {
-				t.Fatalf("CreateReporte() creó %d reportes, want 0", len(store.byID))
-			}
-		})
-	}
-}
-
-func TestReporteService_Crear_SinMultimedia(t *testing.T) {
-	store := newFakeReporteStore()
-	svc := NewReporteService(store)
-
-	fakeNuevoReporte := domain.NuevoReporte{
-		UserID:      uuid.New(),
-		Rol:         domain.RolCiudadano,
-		IncidenteID: 42,
-		Latitude:    32.5027,
-		Longitude:   -117.00371,
-		EsOficial:   false,
-		Multimedia:  nil,
-	}
-
-	if _, err := svc.Crear(context.Background(), fakeNuevoReporte); err != nil {
-		t.Fatalf("Crear() error = %v", err)
-	}
-	if store.lastArg.Multimedia != nil {
-		t.Fatalf("CreateReporte() Multimedia = %v, want empty", store.lastArg.Multimedia)
 	}
 }
 
@@ -298,7 +235,6 @@ func TestReporteService_Crear_EsOficial(t *testing.T) {
 				Latitude:    32.5027,
 				Longitude:   -117.00371,
 				EsOficial:   true,
-				Multimedia:  nil,
 			}
 			r, err := svc.Crear(context.Background(), fakeNuevoReporte)
 			if !errors.Is(err, tt.wantErr) {
@@ -328,7 +264,6 @@ func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
 		EsOficial:   false,
-		Multimedia:  nil,
 	}
 
 	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
@@ -352,7 +287,6 @@ func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
 		EsOficial:   false,
-		Multimedia:  nil,
 	}
 
 	_, err := svc.Crear(context.Background(), fakeNuevoReporte)
@@ -372,7 +306,6 @@ func TestReporteService_Obtener(t *testing.T) {
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
 		EsOficial:   false,
-		Multimedia:  nil,
 	}
 
 	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
@@ -496,7 +429,6 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
 		EsOficial:   false,
-		Multimedia:  nil,
 	}
 	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {

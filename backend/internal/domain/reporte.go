@@ -6,20 +6,13 @@ import "github.com/google/uuid"
 // reescribe models.go, querier.go, db.go y los *.sql.go.
 
 // CreateReporteTxParams agrupa todo lo que se inserta al crear un reporte:
-// el reporte en sí, la ubicación inicial y su multimedia, si la hay. No se llama
-// CreateReporteParams porque ese nombre ya lo usa sqlc para el INSERT simple.
+// el reporte en sí y la ubicación inicial. No se llama CreateReporteParams
+// porque ese nombre ya lo usa sqlc para el INSERT simple.
 type CreateReporteTxParams struct {
-	Reporte    CreateReporteParams
-	UserID     uuid.UUID
-	Latitude   float64
-	Longitude  float64
-	Multimedia *CrearMultimediaRequest
-}
-
-// CrearMultimediaRequest es el archivo (foto o video) que se adjunta al crear un
-// reporte. Path es donde quedó guardado; el backend no recibe el archivo.
-type CrearMultimediaRequest struct {
-	Path string
+	Reporte   CreateReporteParams
+	UserID    uuid.UUID
+	Latitude  float64
+	Longitude float64
 }
 
 // TituloReporte arma el título que se muestra de un reporte: no se almacena,
@@ -51,5 +44,4 @@ type NuevoReporte struct {
 	Longitude   float64
 	EsOficial   bool
 	Direccion   *string
-	Multimedia  *CrearMultimediaRequest
 }

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -35,8 +34,7 @@ func NewReporteService(store ReporteStore) *ReporteService {
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
-// usuario y, si la hay, su foto o video. multimedia admite un solo archivo
-// por usuario por reporte, así que al crear solo puede venir uno.
+// usuario. La foto o el video se suben después con MultimediaService.Subir.
 //
 // EsOficial lo puede pedir cualquier rol menos ciudadano. Se compara contra
 // ciudadano (y no contra una lista de roles permitidos) para que un rol nuevo
@@ -44,11 +42,6 @@ func NewReporteService(store ReporteStore) *ReporteService {
 func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error) {
 	if nuevo.EsOficial && (nuevo.Rol == "" || nuevo.Rol == domain.RolCiudadano) {
 		return domain.ReporteDetalle{}, domain.ErrOficialNoPermitido
-	}
-	if nuevo.Multimedia != nil {
-		if strings.TrimSpace(nuevo.Multimedia.Path) == "" {
-			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)
-		}
 	}
 
 	// Una dirección vacía o solo con espacios se guarda como NULL, para que el
@@ -66,10 +59,9 @@ func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (
 			EsOficial:   nuevo.EsOficial,
 			Direccion:   direccion,
 		},
-		UserID:     nuevo.UserID,
-		Latitude:   nuevo.Latitude,
-		Longitude:  nuevo.Longitude,
-		Multimedia: nuevo.Multimedia,
+		UserID:    nuevo.UserID,
+		Latitude:  nuevo.Latitude,
+		Longitude: nuevo.Longitude,
 	})
 	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
 		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound

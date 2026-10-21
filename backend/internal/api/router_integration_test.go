@@ -41,9 +41,10 @@ const incidenteSocavon = 2
 // testClient manda peticiones al router en memoria, con el token del usuario
 // autenticado si lo hay.
 type testClient struct {
-	t      *testing.T
-	router http.Handler
-	token  string
+	t          *testing.T
+	router     http.Handler
+	token      string
+	multimedia *multimediaFalso
 }
 
 // newTestClient arma el router con los servicios reales sobre la base de los
@@ -57,15 +58,21 @@ func newTestClient(t *testing.T) *testClient {
 		t.Fatalf("creando AuthService: %v", err)
 	}
 
+	multimedia := &multimediaFalso{}
+
 	gin.SetMode(gin.TestMode)
 	router := api.NewRouter(api.Services{
 		Comentarios: service.NewComentarioService(store),
 		Reportes:    service.NewReporteService(store),
 		Incidentes:  service.NewIncidenteService(store),
 		Auth:        auth,
+		Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
+			MaxBytes:   3 << 20,
+			MaxPixeles: 16_000_000,
+		}),
 	}, testJWTSecret)
 
-	return &testClient{t: t, router: router}
+	return &testClient{t: t, router: router, multimedia: multimedia}
 }
 
 // do manda la petición y devuelve la respuesta grabada. body se serializa a
@@ -270,36 +277,21 @@ func TestCrearYObtenerReporte(t *testing.T) {
 	}
 }
 
-func TestCrearReporteConMultimedia(t *testing.T) {
+// Los clientes que aún mandan "multimedia" al crear (el campo ya no existe)
+// siguen recibiendo 201, y el campo se ignora: la foto solo entra por
+// POST /reportes/{id}/multimedia.
+func TestCrearReporte_IgnoraElCampoMultimediaAnterior(t *testing.T) {
 	c := newTestClient(t)
 	c.login()
 
 	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "/media/socavon.jpg"},
+		"multimedia": map[string]any{"path": "/multimedia/socavon.jpg"},
 	})
-	creado := decode[api.Reporte](t, rec)
-	if len(creado.Multimedia) != 1 {
-		t.Fatalf("multimedia = %d archivos, quería 1", len(creado.Multimedia))
-	}
-	if creado.Multimedia[0].Path != "/media/socavon.jpg" {
-		t.Errorf("multimedia[0] = %+v, quería /media/socavon.jpg", creado.Multimedia[0])
-	}
 
-	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
-		t.Errorf("multimedia al obtener = %d archivos, quería 1", len(obtenido.Multimedia))
+	if creado := decode[api.Reporte](t, rec); len(creado.Multimedia) != 0 {
+		t.Errorf("multimedia = %+v, quería ninguna", creado.Multimedia)
 	}
-}
-
-func TestCrearReporteMultimediaInvalida(t *testing.T) {
-	c := newTestClient(t)
-	c.login()
-
-	c.expect(http.StatusBadRequest, http.MethodPost, "/v1/reportes", map[string]any{
-		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "  "},
-	})
 }
 
 func TestCrearReporteOficial(t *testing.T) {

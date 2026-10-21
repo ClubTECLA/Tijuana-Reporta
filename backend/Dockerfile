@@ -7,7 +7,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./cmd/api
 
 # Etapa 2: imagen final, mínima
-FROM alpine:3.20
+FROM alpine:3.22
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /bin/api /bin/api
 EXPOSE 8080
