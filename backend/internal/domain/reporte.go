@@ -32,3 +32,13 @@ type ReporteDetalle struct {
 	Tags        []ListTagsByReporteIdRow
 	Locations   []Location
 }
+
+type NuevoReporte struct {
+	UserID      uuid.UUID
+	Rol         string
+	IncidenteID int
+	Latitude    float64
+	Longitude   float64
+	EsOficial   bool
+	Multimedia  *CrearMultimediaRequest
+}

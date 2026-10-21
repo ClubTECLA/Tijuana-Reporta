@@ -147,7 +147,17 @@ func TestReporteService_Crear(t *testing.T) {
 	userID := uuid.New()
 	multimedia := &domain.CrearMultimediaRequest{Path: "/srv/media/0001.jpg"}
 
-	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371, multimedia)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      userID,
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  multimedia,
+	}
+
+	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -185,7 +195,16 @@ func TestReporteService_Crear_MultimediaInvalida(t *testing.T) {
 			store := newFakeReporteStore()
 			svc := NewReporteService(store)
 
-			_, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, &tt.multimedia)
+			fakeNuevoReporte := domain.NuevoReporte{
+				UserID:      uuid.New(),
+				Rol:         domain.RolCiudadano,
+				IncidenteID: 42,
+				Latitude:    32.5027,
+				Longitude:   -117.00371,
+				EsOficial:   false,
+				Multimedia:  &tt.multimedia,
+			}
+			_, err := svc.Crear(context.Background(), fakeNuevoReporte)
 			if !errors.Is(err, domain.ErrMultimediaInvalida) {
 				t.Fatalf("Crear() error = %v, want %v", err, domain.ErrMultimediaInvalida)
 			}
@@ -200,11 +219,86 @@ func TestReporteService_Crear_SinMultimedia(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	if _, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, nil); err != nil {
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  nil,
+	}
+
+	if _, err := svc.Crear(context.Background(), fakeNuevoReporte); err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
 	if store.lastArg.Multimedia != nil {
 		t.Fatalf("CreateReporte() Multimedia = %v, want empty", store.lastArg.Multimedia)
+	}
+}
+
+func TestReporteService_Crear_EsOficial(t *testing.T) {
+	tests := []struct {
+		name    string
+		rol     string
+		wantErr error
+	}{
+		{"admin puede", "admin", nil},
+		{"proteccion_civil puede", "proteccion_civil", nil},
+		{"ciudadano no puede", domain.RolCiudadano, domain.ErrOficialNoPermitido},
+		{"sin rol no puede", "", domain.ErrOficialNoPermitido},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+
+			fakeNuevoReporte := domain.NuevoReporte{
+				UserID:      uuid.New(),
+				Rol:         tt.rol,
+				IncidenteID: 42,
+				Latitude:    32.5027,
+				Longitude:   -117.00371,
+				EsOficial:   true,
+				Multimedia:  nil,
+			}
+			r, err := svc.Crear(context.Background(), fakeNuevoReporte)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Crear() error = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				if len(store.byID) != 0 {
+					t.Fatalf("CreateReporte() creó %d reportes, want 0", len(store.byID))
+				}
+				return
+			}
+			if !store.lastArg.Reporte.EsOficial || !r.Reporte.EsOficial {
+				t.Fatalf("Crear() EsOficial = %v (arg %v), want true", r.Reporte.EsOficial, store.lastArg.Reporte.EsOficial)
+			}
+		})
+	}
+}
+
+func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  nil,
+	}
+
+	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	if r.Reporte.EsOficial {
+		t.Fatalf("Crear() EsOficial = true, want false")
 	}
 }
 
@@ -213,7 +307,17 @@ func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 	store.createErr = &pgconn.PgError{Code: "23503", ConstraintName: "reporte_incidente_id_fkey"}
 	svc := NewReporteService(store)
 
-	_, err := svc.Crear(context.Background(), uuid.New(), 999, 32.5027, -117.00371, nil)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 999,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  nil,
+	}
+
+	_, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if !errors.Is(err, domain.ErrIncidenteNotFound) {
 		t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteNotFound)
 	}
@@ -223,7 +327,17 @@ func TestReporteService_Obtener(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	creado, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, nil)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  nil,
+	}
+
+	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -337,7 +451,16 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	creado, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371, nil)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+		Multimedia:  nil,
+	}
+	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}

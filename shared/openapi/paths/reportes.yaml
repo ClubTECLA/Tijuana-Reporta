@@ -65,6 +65,12 @@ crearReporte:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Un ciudadano no puede crear reportes oficiales
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 obtenerReporte:
   get:

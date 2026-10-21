@@ -301,6 +301,35 @@ func TestCrearReporteMultimediaInvalida(t *testing.T) {
 	})
 }
 
+func TestCrearReporteOficial(t *testing.T) {
+	body := map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"es_oficial": true,
+	}
+
+	rescatista := newTestClient(t)
+	rescatista.loginComo("rescatista")
+	rec := rescatista.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
+	creado := decode[api.Reporte](t, rec)
+	if !creado.EsOficial {
+		t.Errorf("es_oficial = false, quería true")
+	}
+	rec = rescatista.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
+	if obtenido := decode[api.Reporte](t, rec); !obtenido.EsOficial {
+		t.Errorf("es_oficial al obtener = false, quería true")
+	}
+
+	ciudadano := newTestClient(t)
+	ciudadano.login()
+	ciudadano.expect(http.StatusForbidden, http.MethodPost, "/v1/reportes", body)
+
+	body["es_oficial"] = false
+	rec = ciudadano.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
+	if decode[api.Reporte](t, rec).EsOficial {
+		t.Errorf("es_oficial = true, quería false")
+	}
+}
+
 func TestCambiarEstadoReporte(t *testing.T) {
 	admin := newTestClient(t)
 	admin.loginComo("admin")

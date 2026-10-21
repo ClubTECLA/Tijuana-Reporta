@@ -52,14 +52,31 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 		return nil, errors.New("userID not found in context")
 	}
 
+	// Sin rol en el contexto (token anterior al claim "rol") se trata como
+	// ciudadano: el servicio rechaza es_oficial si rol viene vacío.
+	rol, _ := middleware.RolFromContext(ctx)
+
 	b := request.Body
+	esOficial := b.EsOficial != nil && *b.EsOficial
 	var multimedia *domain.CrearMultimediaRequest
 	if b.Multimedia != nil {
 		multimedia = &domain.CrearMultimediaRequest{Path: b.Multimedia.Path}
 	}
 
-	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, multimedia)
+	nuevoReporte := domain.NuevoReporte{
+		UserID:      userID,
+		Rol:         rol,
+		IncidenteID: b.IncidenteId,
+		Latitude:    b.Latitude,
+		Longitude:   b.Longitude,
+		EsOficial:   esOficial,
+		Multimedia:  multimedia,
+	}
+	r, err := s.services.Reportes.Crear(ctx, nuevoReporte)
 	if err != nil {
+		if errors.Is(err, domain.ErrOficialNoPermitido) {
+			return CrearReporte403JSONResponse{Message: "un ciudadano no puede crear reportes oficiales"}, nil
+		}
 		if errors.Is(err, domain.ErrIncidenteNotFound) {
 			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
 		}

@@ -37,19 +37,26 @@ func NewReporteService(store ReporteStore) *ReporteService {
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario y, si la hay, su foto o video. multimedia admite un solo archivo
 // por usuario por reporte, así que al crear solo puede venir uno.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.ReporteDetalle, error) {
-	if multimedia != nil {
-		if strings.TrimSpace(multimedia.Path) == "" {
+//
+// EsOficial lo puede pedir cualquier rol menos ciudadano. Se compara contra
+// ciudadano (y no contra una lista de roles permitidos) para que un rol nuevo
+// en la tabla roles pueda crear reportes oficiales sin tocar este código.
+func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error) {
+	if nuevo.EsOficial && (nuevo.Rol == "" || nuevo.Rol == domain.RolCiudadano) {
+		return domain.ReporteDetalle{}, domain.ErrOficialNoPermitido
+	}
+	if nuevo.Multimedia != nil {
+		if strings.TrimSpace(nuevo.Multimedia.Path) == "" {
 			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)
 		}
 	}
 
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
-		Reporte:    domain.CreateReporteParams{IncidenteID: incidenteID},
-		UserID:     userID,
-		Latitude:   latitude,
-		Longitude:  longitude,
-		Multimedia: multimedia,
+		Reporte:    domain.CreateReporteParams{IncidenteID: nuevo.IncidenteID, EsOficial: nuevo.EsOficial},
+		UserID:     nuevo.UserID,
+		Latitude:   nuevo.Latitude,
+		Longitude:  nuevo.Longitude,
+		Multimedia: nuevo.Multimedia,
 	})
 	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
 		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound
