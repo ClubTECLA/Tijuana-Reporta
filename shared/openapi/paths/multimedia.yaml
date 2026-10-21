@@ -1,0 +1,79 @@
+subirMultimedia:
+  post:
+    operationId: subirMultimedia
+    description: >
+      Sube la foto del reporte. Solo la puede subir su creador, y una sola por
+      usuario por reporte. Debe ser un JPEG ya reducido por la app. El backend valida el
+      tipo y las dimensiones y le quita los metadatos (EXIF), y el servicio
+      multimedia la guarda; el path de la respuesta se sirve en /multimedia/{path}.
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/SubirMultimediaRequest'
+    responses:
+      '201':
+        description: Foto guardada
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Multimedia'
+      '400':
+        description: Archivo faltante, multipart inválido o formato de imagen no soportado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Reporte no encontrado, o el usuario no es su creador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: El usuario ya subió un archivo a este reporte
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '413':
+        description: El archivo es demasiado grande
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '422':
+        description: La imagen excede las dimensiones permitidas
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '503':
+        description: El servicio de almacenamiento no está disponible; se puede reintentar
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Multimedia:
+      $ref: '../schemas/multimedia/multimedia.yaml'
+    SubirMultimediaRequest:
+      $ref: '../schemas/multimedia/subir_multimedia_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

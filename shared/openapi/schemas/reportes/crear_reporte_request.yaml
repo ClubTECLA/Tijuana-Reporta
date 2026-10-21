@@ -13,5 +13,9 @@ properties:
     format: double
     minimum: -180
     maximum: 180
-  multimedia:
-    $ref: '../../openapi.yaml#/components/schemas/CrearMultimediaRequest'
+  es_oficial:
+    type: boolean
+    default: false
+  direccion:
+    type: string
+    maxLength: 255

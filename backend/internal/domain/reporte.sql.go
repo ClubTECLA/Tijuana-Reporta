@@ -89,22 +89,24 @@ func (q *Queries) CreateMultimedia(ctx context.Context, arg CreateMultimediaPara
 }
 
 const createReporte = `-- name: CreateReporte :one
-INSERT INTO reporte (incidente_id, es_oficial)
-VALUES ($1, $2)
-RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
+INSERT INTO reporte (incidente_id, es_oficial, direccion)
+VALUES ($1, $2, $3)
+RETURNING id, incidente_id, direccion, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
 `
 
 type CreateReporteParams struct {
-	IncidenteID int  `json:"incidente_id"`
-	EsOficial   bool `json:"es_oficial"`
+	IncidenteID int     `json:"incidente_id"`
+	EsOficial   bool    `json:"es_oficial"`
+	Direccion   *string `json:"direccion"`
 }
 
 func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error) {
-	row := q.db.QueryRow(ctx, createReporte, arg.IncidenteID, arg.EsOficial)
+	row := q.db.QueryRow(ctx, createReporte, arg.IncidenteID, arg.EsOficial, arg.Direccion)
 	var i Reporte
 	err := row.Scan(
 		&i.ID,
 		&i.IncidenteID,
+		&i.Direccion,
 		&i.Avistamientos,
 		&i.EsHistorico,
 		&i.EsOficial,
@@ -131,6 +133,25 @@ func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReportePa
 	return i, err
 }
 
+const esCreadorDeReporte = `-- name: EsCreadorDeReporte :one
+SELECT EXISTS (
+    SELECT 1 FROM users_reports WHERE user_id = $1 AND reporte_id = $2
+)
+`
+
+type EsCreadorDeReporteParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+}
+
+// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
+func (q *Queries) EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error) {
+	row := q.db.QueryRow(ctx, esCreadorDeReporte, arg.UserID, arg.ReporteID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
 SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1
@@ -149,21 +170,32 @@ func (q *Queries) GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.
 }
 
 const getReporteById = `-- name: GetReporteById :one
-SELECT id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at FROM reporte WHERE id = $1
+SELECT r.id, r.incidente_id, r.direccion, r.avistamientos, r.es_historico, r.es_oficial, r.estado_actual, r.created_at, r.updated_at, i.etiqueta AS incidente_etiqueta
+FROM reporte r
+JOIN incidentes i ON i.id = r.incidente_id
+WHERE r.id = $1
 `
 
-func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error) {
+type GetReporteByIdRow struct {
+	Reporte           Reporte `json:"reporte"`
+	IncidenteEtiqueta string  `json:"incidente_etiqueta"`
+}
+
+// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error) {
 	row := q.db.QueryRow(ctx, getReporteById, id)
-	var i Reporte
+	var i GetReporteByIdRow
 	err := row.Scan(
-		&i.ID,
-		&i.IncidenteID,
-		&i.Avistamientos,
-		&i.EsHistorico,
-		&i.EsOficial,
-		&i.EstadoActual,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.Reporte.ID,
+		&i.Reporte.IncidenteID,
+		&i.Reporte.Direccion,
+		&i.Reporte.Avistamientos,
+		&i.Reporte.EsHistorico,
+		&i.Reporte.EsOficial,
+		&i.Reporte.EstadoActual,
+		&i.Reporte.CreatedAt,
+		&i.Reporte.UpdatedAt,
+		&i.IncidenteEtiqueta,
 	)
 	return i, err
 }
@@ -232,10 +264,11 @@ func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.
 
 const listReportesPorUbicacion = `-- name: ListReportesPorUbicacion :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
-       p.latitude, p.longitude,
+       p.latitude, p.longitude, r.direccion, i.etiqueta AS incidente_etiqueta,
        ST_Distance(p.geom, ST_MakePoint($1::float8, $2::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
 WHERE NOT r.es_historico
 AND ST_DWithin(p.geom, ST_MakePoint($1::float8, $2::float8)::geography, $3::float8)
 AND ($4::int[] IS NULL OR r.incidente_id = ANY($4::int[]))
@@ -256,14 +289,16 @@ type ListReportesPorUbicacionParams struct {
 }
 
 type ListReportesPorUbicacionRow struct {
-	ID            uuid.UUID `json:"id"`
-	IncidenteID   int       `json:"incidente_id"`
-	EstadoActual  Estado    `json:"estado_actual"`
-	Avistamientos int       `json:"avistamientos"`
-	EsOficial     bool      `json:"es_oficial"`
-	Latitude      float64   `json:"latitude"`
-	Longitude     float64   `json:"longitude"`
-	DistanciaM    float64   `json:"distancia_m"`
+	ID                uuid.UUID `json:"id"`
+	IncidenteID       int       `json:"incidente_id"`
+	EstadoActual      Estado    `json:"estado_actual"`
+	Avistamientos     int       `json:"avistamientos"`
+	EsOficial         bool      `json:"es_oficial"`
+	Latitude          float64   `json:"latitude"`
+	Longitude         float64   `json:"longitude"`
+	Direccion         *string   `json:"direccion"`
+	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
+	DistanciaM        float64   `json:"distancia_m"`
 }
 
 // sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
@@ -295,6 +330,8 @@ func (q *Queries) ListReportesPorUbicacion(ctx context.Context, arg ListReportes
 			&i.EsOficial,
 			&i.Latitude,
 			&i.Longitude,
+			&i.Direccion,
+			&i.IncidenteEtiqueta,
 			&i.DistanciaM,
 		); err != nil {
 			return nil, err
@@ -308,9 +345,11 @@ func (q *Queries) ListReportesPorUbicacion(ctx context.Context, arg ListReportes
 }
 
 const listReportesResumen = `-- name: ListReportesResumen :many
-SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
+       r.direccion, i.etiqueta AS incidente_etiqueta
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
 WHERE NOT r.es_historico
 AND ($1::float8 IS NULL OR p.latitude >= $1)
 AND ($2::float8 IS NULL OR p.latitude <= $2)
@@ -326,13 +365,15 @@ type ListReportesResumenParams struct {
 }
 
 type ListReportesResumenRow struct {
-	ID            uuid.UUID `json:"id"`
-	IncidenteID   int       `json:"incidente_id"`
-	EstadoActual  Estado    `json:"estado_actual"`
-	Avistamientos int       `json:"avistamientos"`
-	EsOficial     bool      `json:"es_oficial"`
-	Latitude      float64   `json:"latitude"`
-	Longitude     float64   `json:"longitude"`
+	ID                uuid.UUID `json:"id"`
+	IncidenteID       int       `json:"incidente_id"`
+	EstadoActual      Estado    `json:"estado_actual"`
+	Avistamientos     int       `json:"avistamientos"`
+	EsOficial         bool      `json:"es_oficial"`
+	Latitude          float64   `json:"latitude"`
+	Longitude         float64   `json:"longitude"`
+	Direccion         *string   `json:"direccion"`
+	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
 }
 
 func (q *Queries) ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error) {
@@ -357,6 +398,8 @@ func (q *Queries) ListReportesResumen(ctx context.Context, arg ListReportesResum
 			&i.EsOficial,
 			&i.Latitude,
 			&i.Longitude,
+			&i.Direccion,
+			&i.IncidenteEtiqueta,
 		); err != nil {
 			return nil, err
 		}
@@ -408,7 +451,7 @@ UPDATE reporte
 SET estado_actual = $2,
     updated_at = now()
 WHERE id = $1
-RETURNING id, incidente_id, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
+RETURNING id, incidente_id, direccion, avistamientos, es_historico, es_oficial, estado_actual, created_at, updated_at
 `
 
 type UpdateEstadoReporteParams struct {
@@ -422,6 +465,7 @@ func (q *Queries) UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoRepor
 	err := row.Scan(
 		&i.ID,
 		&i.IncidenteID,
+		&i.Direccion,
 		&i.Avistamientos,
 		&i.EsHistorico,
 		&i.EsOficial,

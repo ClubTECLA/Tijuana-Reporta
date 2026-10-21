@@ -65,6 +65,12 @@ crearReporte:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Un ciudadano no puede crear reportes oficiales
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 obtenerReporte:
   get:
@@ -139,8 +145,11 @@ agregarAvistamiento:
 cambiarEstadoReporte:
   patch:
     operationId: cambiarEstadoReporte
+    description: >-
+      Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no
+      con scopes) para que un rol nuevo quede permitido sin tocar el contrato.
     security:
-    - bearerAuth: [admin]
+    - bearerAuth: []
     parameters:
       - name: reporteId
         in: path
@@ -176,7 +185,7 @@ cambiarEstadoReporte:
               $ref: '#/components/schemas/ErrorResponse'
       
       '403':
-        description: El usuario no tiene rol de administrador
+        description: El usuario es ciudadano
         content:
           application/json:
             schema:

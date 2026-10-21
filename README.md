@@ -312,3 +312,37 @@ Ver `.env.example` para la lista completa. Algunas notas:
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: necesarias solo si vas a probar login con Google.
 - `VITE_MAPLIBRE_STYLE_URL`: necesaria solo si vas a probar el mapa.
 - `JWT_SECRET`: cualquier valor sirve en desarrollo local.
+
+## Multimedia (fotos de reportes)
+
+Cada reporte puede llevar una foto. Se sube **después** de crear el reporte, en dos pasos, y solo la puede subir quien creó el reporte (una foto por usuario por reporte).
+
+```
+app ──► nginx ──► backend ──► multimedia ──► volumen "uploads" ──► nginx sirve /multimedia/<path>
+                     └──► PostgreSQL (tabla multimedia)
+```
+
+- El **backend** autentica, valida que sea un JPEG real (máx. 3 MiB y 16 MP), le quita los metadatos (EXIF/GPS) y registra la foto en la base.
+- El servicio **multimedia** solo guarda y borra el archivo en el volumen. Si se cae, el resto de la API sigue y la subida responde `503`.
+- La **app** debe reducir y comprimir la foto antes de subirla; el servidor no la reescala.
+- La foto se ve en `http://localhost/multimedia/<path>` (sin `/api`) y aparece en `GET /api/v1/reportes/{id}`, no en el listado del mapa.
+
+### Probar rápido
+
+Con el stack levantado (`docker compose up -d --build`) y un JPEG cualquiera en `/tmp/foto.jpg`:
+
+```bash
+B=http://localhost/api/v1
+E=prueba$RANDOM@t.com
+
+curl -s $B/auth/register -H 'Content-Type: application/json' -d '{"email":"'$E'","username":"tester","password":"Password123!"}' >/dev/null
+T=$(curl -s $B/auth/login -H 'Content-Type: application/json' -d '{"email":"'$E'","password":"Password123!"}' | jq -r .access_token)
+
+ID=$(curl -s $B/reportes -H "Authorization: Bearer $T" -H 'Content-Type: application/json' -d '{"incidente_id":1,"latitude":32.5149,"longitude":-117.0382}' | jq -r .id)
+
+curl -s -w '\n%{http_code}\n' -X POST $B/reportes/$ID/multimedia -H "Authorization: Bearer $T" -F "file=@/tmp/foto.jpg;type=image/jpeg"
+```
+
+Debe responder `201` con un `path`; ábrelo en `http://localhost/multimedia/<path>`. Repetir la subida da `409`, un archivo que no sea JPEG da `400` y, con `docker compose stop multimedia`, da `503`.
+
+Más detalle (errores, configuración y API interna) en [`multimedia/README.md`](multimedia/README.md).

@@ -16,12 +16,38 @@ import (
 // así que 1 MiB sobra.
 const maxRequestBodyBytes = 1 << 20
 
+// defaultMaxMultimediaBytes es el tamaño máximo del body al subir un archivo a
+// un reporte: la foto más el multipart. Debe coincidir con el
+// client_max_body_size de nginx para esa ruta.
+const defaultMaxMultimediaBytes = 12 << 20
+
+// rutaMultimedia es la ruta del contrato que recibe archivos y por eso no usa
+// maxRequestBodyBytes.
+const rutaMultimedia = "/v1/reportes/:reporteId/multimedia"
+
+type routerConfig struct {
+	maxMultimediaBytes int64
+}
+
+// RouterOption ajusta NewRouter.
+type RouterOption func(*routerConfig)
+
+// WithMaxMultimediaBytes cambia el tamaño máximo del body al subir un archivo.
+func WithMaxMultimediaBytes(n int64) RouterOption {
+	return func(c *routerConfig) { c.maxMultimediaBytes = n }
+}
+
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
 // contrato bajo /v1 (con el middleware de auth) y /v1/openapi.json.
 //
 // Vive aquí y no en cmd/api para que los tests de integración levanten
 // exactamente el mismo router que producción.
-func NewRouter(services Services, jwtSecret string) *gin.Engine {
+func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.Engine {
+	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	r := gin.Default()
 
 	// middleware.Auth agrega el userID al context.Context de la petición
@@ -83,7 +109,12 @@ func NewRouter(services Services, jwtSecret string) *gin.Engine {
 			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
 			middleware.RequireRole(string(BearerAuthScopes)),
 			// Antes del validador, que lee el body completo para validarlo.
-			middleware.BodyLimit(maxRequestBodyBytes),
+			middleware.BodyLimitFunc(func(c *gin.Context) int64 {
+				if c.FullPath() == rutaMultimedia {
+					return cfg.maxMultimediaBytes
+				}
+				return maxRequestBodyBytes
+			}),
 			MiddlewareFunc(validator),
 		},
 	})

@@ -91,3 +91,41 @@ func TestBodyLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestBodyLimitFunc_ElLimiteDependeDeLaRuta(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	limite := func(c *gin.Context) int64 {
+		if c.FullPath() == "/grande" {
+			return 100
+		}
+		return 10
+	}
+	manejador := func(c *gin.Context) { c.Status(http.StatusOK) }
+	r.POST("/chico", BodyLimitFunc(limite), manejador)
+	r.POST("/grande", BodyLimitFunc(limite), manejador)
+
+	tests := []struct {
+		name string
+		path string
+		body string
+		want int
+	}{
+		{name: "ruta chica dentro del límite", path: "/chico", body: strings.Repeat("a", 10), want: http.StatusOK},
+		{name: "ruta chica excedida", path: "/chico", body: strings.Repeat("a", 11), want: http.StatusRequestEntityTooLarge},
+		{name: "ruta grande acepta más que la chica", path: "/grande", body: strings.Repeat("a", 100), want: http.StatusOK},
+		{name: "ruta grande excedida", path: "/grande", body: strings.Repeat("a", 101), want: http.StatusRequestEntityTooLarge},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body)))
+
+			if rec.Code != tt.want {
+				t.Errorf("POST %s con %d bytes status = %d, want %d", tt.path, len(tt.body), rec.Code, tt.want)
+			}
+		})
+	}
+}

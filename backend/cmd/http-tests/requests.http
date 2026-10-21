@@ -114,6 +114,30 @@ Content-Type: application/json
     "longitude": -117.0382
 }
 
+### Crear reporte oficial como admin (201)
+POST {{baseUrl}}/v1/reportes
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "incidente_id": 2,
+    "latitude": 32.5149,
+    "longitude": -117.0382,
+    "es_oficial": true
+}
+
+### Crear reporte oficial como ciudadano (403)
+POST {{baseUrl}}/v1/reportes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "incidente_id": 2,
+    "latitude": 32.5149,
+    "longitude": -117.0382,
+    "es_oficial": true
+}
+
 ### Crear reporte con incidente inexistente (400)
 POST {{baseUrl}}/v1/reportes
 Authorization: Bearer {{token}}
@@ -212,7 +236,7 @@ PATCH {{baseUrl}}/v1/reportes/{{reporteId}}/avistamientos
 Authorization: Bearer {{token}}
 
 # Estado
-## Solo admin (usan {{adminToken}}). Cualquier estado del enum, en cualquier orden:
+## Cualquier rol menos ciudadano (aquí usan {{adminToken}}). Cualquier estado del enum, en cualquier orden:
 ## Pendiente, Probable, Verificado, Resuelto, Descartado.
 
 ### Cambiar estado a Verificado (200)

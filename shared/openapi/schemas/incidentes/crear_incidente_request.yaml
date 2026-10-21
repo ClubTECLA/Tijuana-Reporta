@@ -5,6 +5,11 @@ properties:
     type: string
     minLength: 1
     maxLength: 100
+  etiqueta:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Texto legible del incidente (p. ej. "Socavón"). Si no se manda, se usa el nombre.
   tiempo_limite:
     type: integer
     minimum: 0
