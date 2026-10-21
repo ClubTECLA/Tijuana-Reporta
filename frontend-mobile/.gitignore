@@ -1,0 +1,9 @@
+# Carpetas nativas generadas por Expo prebuild
+/android
+/ios
+
+# Builds y archivos locales de Android
+.gradle/
+*.apk
+*.aab
+local.properties
