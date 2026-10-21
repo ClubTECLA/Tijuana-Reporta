@@ -17,10 +17,13 @@ const minJWTSecretLen = 32
 const defaultJWTTTL = 24 * time.Hour
 
 type Config struct {
-	DatabaseURL string
-	APIPort     string
-	JWTSecret   string
-	JWTTTL      time.Duration
+	DatabaseURL   string
+	APIPort       string
+	JWTSecret     string
+	AdminEmail    string
+	AdminUsername string
+	AdminPassword string
+	JWTTTL        time.Duration
 }
 
 func Load() (Config, error) {
@@ -31,9 +34,12 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		APIPort:     os.Getenv("API_PORT"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		APIPort:       os.Getenv("API_PORT"),
+		JWTSecret:     os.Getenv("JWT_SECRET"),
+		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
+		AdminUsername: os.Getenv("ADMIN_USERNAME"),
+		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
 	}
 	var missing []string
 	if cfg.DatabaseURL == "" {
