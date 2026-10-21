@@ -56,8 +56,6 @@ components:
       $ref: './schemas/reportes/estado_reporte.yaml'
     Multimedia:
       $ref: './schemas/multimedia/multimedia.yaml'
-    CrearMultimediaRequest:
-      $ref: './schemas/multimedia/crear_multimedia_request.yaml'
     SubirMultimediaRequest:
       $ref: './schemas/multimedia/subir_multimedia_request.yaml'
     Tag:

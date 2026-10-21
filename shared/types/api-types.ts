@@ -264,7 +264,6 @@ export interface components {
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
         Multimedia: components["schemas"]["multimedia"];
-        CrearMultimediaRequest: components["schemas"]["crear_multimedia_request"];
         SubirMultimediaRequest: components["schemas"]["subir_multimedia_request"];
         Tag: components["schemas"]["tag"];
         TagCatalogo: components["schemas"]["tag_catalogo"];
@@ -473,10 +472,6 @@ export interface components {
             email: string | null;
             rol_name: string;
             reportes_count: number;
-        };
-        /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
-        crear_multimedia_request: {
-            path: string;
         };
     };
     responses: never;
