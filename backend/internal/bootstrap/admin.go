@@ -18,6 +18,9 @@ func EnsureAdmin(ctx context.Context, pool *pgxpool.Pool, email, username, passw
 	if len(password) < 8 {
 		return errors.New("ADMIN_PASSWORD debe tener al menos 8 caracteres")
 	}
+	if username == "" {
+		return errors.New("ADMIN_USERNAME es obligatorio cuando se define ADMIN_EMAIL")
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
