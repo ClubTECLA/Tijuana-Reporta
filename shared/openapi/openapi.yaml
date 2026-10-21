@@ -52,6 +52,8 @@ components:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
+    TituloReporte:
+      $ref: './schemas/reportes/titulo_reporte.yaml'
     Multimedia:
       $ref: './schemas/multimedia/multimedia.yaml'
     CrearMultimediaRequest:

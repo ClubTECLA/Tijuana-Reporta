@@ -1,11 +1,15 @@
 type: object
-required: [id, nombre, tiempo_limite, radio, color, tags, esta_activo]
+required: [id, nombre, etiqueta, tiempo_limite, radio, color, tags, esta_activo]
 properties:
   id:
     type: integer
   nombre:
     type: string
     maxLength: 100
+  etiqueta:
+    type: string
+    maxLength: 100
+    description: Texto legible del incidente; es el que se muestra y arma el título del reporte.
   tiempo_limite:
     type: integer
     nullable: true
