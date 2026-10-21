@@ -65,6 +65,9 @@ func Load() (Config, error) {
 	if cfg.DatabaseURL == "" {
 		missing = append(missing, "DATABASE_URL")
 	}
+	if (cfg.AdminEmail == "") != (cfg.AdminPassword == "") {
+		return Config{}, fmt.Errorf("ADMIN_EMAIL y ADMIN_PASSWORD deben definirse juntas, o dejar ambas vacías")
+	}
 	if cfg.APIPort == "" {
 		// Use default value
 		cfg.APIPort = "8080"
