@@ -9,7 +9,7 @@ import Button from "../PanelAndModalComponents/view-components/Button";
 import { BiPlus } from "react-icons/bi";
 import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "../PanelAndModalComponents/view-components/Tables";
 import { GoPencil } from "react-icons/go";
-import type { ApiIncidente } from "../../../types/db-types";
+import type { ApiIncidente } from "../../../types/api-types";
 import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 import type { subsectionProps } from "../../../types/utils-types";
@@ -19,6 +19,7 @@ function CategoriesSection({debug} : subsectionProps) {
         {
             id: 1,
             nombre: "Inundación",
+            etiqueta: "Inundación",
             tiempo_limite: 24,
             radio: 500,
             color: "#1976D2",
@@ -31,6 +32,7 @@ function CategoriesSection({debug} : subsectionProps) {
         {
             id: 2,
             nombre: "Alumbrado público",
+            etiqueta: "Alumbrado público",
             tiempo_limite: null,
             radio: 300,
             color: "#FBC02D",
@@ -43,6 +45,7 @@ function CategoriesSection({debug} : subsectionProps) {
         {
             id: 3,
             nombre: "Bache",
+            etiqueta: "Bache",
             tiempo_limite: null,
             radio: 200,
             color: "#6D4C41",
@@ -56,6 +59,7 @@ function CategoriesSection({debug} : subsectionProps) {
         {
             id: 4,
             nombre: "Árbol caído",
+            etiqueta: "Árbol caído",
             tiempo_limite: 48,
             radio: 500,
             color: "#388E3C",
@@ -68,6 +72,7 @@ function CategoriesSection({debug} : subsectionProps) {
         {
             id: 5,
             nombre: "Drenaje",
+            etiqueta: "Drenaje",
             tiempo_limite: null,
             radio: null,
             color: "#00897B",
