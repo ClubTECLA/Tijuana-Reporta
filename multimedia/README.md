@@ -43,13 +43,13 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
 **Subir** — dos pasos, tras un solo botón "Enviar":
 
 ```
-POST /api/v1/reportes                          { incidente_id, latitude, longitude }   → 201 { id, ... }
+POST /api/v1/reportes                          { incidente_id, latitude, longitude }   → 201 { id, ... }   (opcionales: direccion, es_oficial)
 POST /api/v1/reportes/{id}/multimedia          multipart/form-data, campo "file"       → 201 { id, path, user_id, created_at }
 Authorization: Bearer <token>   (en ambas)
 ```
 
 - En React Native el campo es `{ uri, name: 'foto.jpg', type: 'image/jpeg' }`. **No fijes el `Content-Type`**: `fetch` pone el boundary.
-- **La app debe reducir y comprimir la foto antes de subirla**: lado largo de 1600 a 2000 px, JPEG, calidad 0.7 a 0.8, y menos de 2 MB (si pesa más, bajar la calidad y reintentar). El servidor **no** reescala ni recomprime: solo valida (JPEG, máx. 3 MiB y 16 MP) y le quita los metadatos. Esto también convierte HEIC (iPhone) a JPEG, que el servidor rechaza.
+- **La app debe reducir y comprimir la foto antes de subirla**: lado largo de 1600 a 2000 px, JPEG, calidad 0.7 a 0.8, y menos de 2 MB (si pesa más, bajar la calidad y reintentar; el servidor acepta hasta 3 MiB). El servidor **no** reescala ni recomprime: solo valida (JPEG, máx. 3 MiB y 16 MP) y le quita los metadatos. Esto también convierte HEIC (iPhone) a JPEG, que el servidor rechaza.
 - La app también debe dejar la **orientación corregida**: como el servidor descarta el EXIF, una foto con orientación sin corregir se verá girada.
 - El paso 2 solo corre si el 1 salió bien. **Si la foto falla, el reporte ya existe**: muestra "reporte enviado, pero la foto no se pudo subir" y reintenta solo la foto con el mismo `id`. Nunca recrees el reporte (se duplicaría).
 
@@ -83,6 +83,48 @@ y sus tipos TypeScript en `shared/types/api-types.ts` (`operations["subirMultime
 los fallos: un error de conexión o un `5xx` de `multimedia` se convierte en
 `domain.ErrAlmacenNoDisponible`, que la API responde como `503`. Se configura con
 `MULTIMEDIA_URL` (en compose: `http://multimedia:8081`).
+
+## Probar rápido
+
+Con el stack completo levantado (`docker compose up -d --build`; la primera vez compila también el frontend web):
+
+```bash
+B=http://localhost/api/v1
+E=prueba$RANDOM@t.com
+
+# dos usuarios: el dueño del reporte y otro
+curl -s $B/auth/register -H 'Content-Type: application/json' -d '{"email":"'$E'","username":"dueno","password":"Password123!"}' >/dev/null
+curl -s $B/auth/register -H 'Content-Type: application/json' -d '{"email":"o'$E'","username":"otro","password":"Password123!"}' >/dev/null
+T1=$(curl -s $B/auth/login -H 'Content-Type: application/json' -d '{"email":"'$E'","password":"Password123!"}' | jq -r .access_token)
+T2=$(curl -s $B/auth/login -H 'Content-Type: application/json' -d '{"email":"o'$E'","password":"Password123!"}' | jq -r .access_token)
+
+# reporte (los incidentes 1 a 7 vienen de la migración baseline)
+ID=$(curl -s $B/reportes -H "Authorization: Bearer $T1" -H 'Content-Type: application/json' -d '{"incidente_id":1,"latitude":32.5149,"longitude":-117.0382}' | jq -r .id)
+
+subir() { curl -s -w ' -> %{http_code}\n' -X POST $B/reportes/$ID/multimedia -H "Authorization: Bearer $1" -F "file=@$2;type=${3:-image/jpeg}"; }
+subir $T1 /tmp/foto.jpg          # 201 {"id":..,"path":"reportes/<id>/<hex>.jpg",...}
+subir $T1 /tmp/foto.jpg          # 409: ya subió una
+subir $T2 /tmp/foto.jpg          # 404: no es el creador
+curl -s -X POST $B/reportes/$ID/multimedia -F "file=@/tmp/foto.jpg" -w ' -> %{http_code}\n'   # 401: sin token
+```
+
+Después:
+
+- `curl -s $B/reportes/$ID -H "Authorization: Bearer $T1" | jq .multimedia` trae la foto.
+- `http://localhost/multimedia/<path>` en el navegador la muestra.
+- `docker compose exec nginx ls -R /data/uploads` lista el volumen.
+- Un `.txt` o PNG, en un reporte nuevo, da `400`; con `docker compose stop multimedia` y un reporte nuevo, la subida da `503`.
+
+## Problemas comunes
+
+| Síntoma | Causa |
+|---|---|
+| `curl` imprime `000` (con `-s` no se ve el error) | El archivo de `-F "file=@RUTA"` no existe. La ruta es la del archivo en tu computadora; usa una ruta completa. |
+| `Invalid format for parameter reporteId ... 'null'` | El reporte no se creó (`$ID` quedó en `null`): revisa el login y que `incidente_id` exista. |
+| `GET /incidentes` da 500 con `column "etiqueta" does not exist` | La base se creó antes de que `001_baseline` agregara `etiqueta` y `direccion`. Recrea la base: `docker compose down -v && docker compose up -d --build` (borra también el volumen `uploads`). |
+| `docker compose up --build` falla en `tsc -b` | Los tipos de `shared/types/api-types.ts` no cuadran con el frontend web; regenera con `pnpm generate:types` y corrige los errores de tipos. |
+| `409` en la primera subida | Ese usuario ya subió una foto a ese reporte; crea otro reporte. |
+| `503` | `multimedia` está caído o no responde: `docker compose ps` y `docker compose logs multimedia`. |
 
 ## API interna de `multimedia`
 
