@@ -30,7 +30,10 @@ func EnsureAdmin(ctx context.Context, pool *pgxpool.Pool, email, username, passw
 		SELECT $1, $2, $3, r.id, 'Verificado'::user_state
 		FROM roles r WHERE r.nombre = 'admin'
 		ON CONFLICT (email) DO UPDATE
-			SET rol_id = EXCLUDED.rol_id, state = EXCLUDED.state, updated_at = now()`,
+			SET rol_id = EXCLUDED.rol_id, 
+				state = EXCLUDED.state,
+				password_hash = EXCLUDED.password_hash, 
+				updated_at = now()`,
 		email, username, string(hash))
 	if err != nil {
 		return err
