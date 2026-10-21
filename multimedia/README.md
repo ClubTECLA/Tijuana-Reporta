@@ -65,7 +65,7 @@ Authorization: Bearer <token>   (en ambas)
 | `404` | El reporte no existe o el usuario no es su creador | No ofrecer subir foto a reportes ajenos |
 | `409` | Ese usuario ya subió una foto a ese reporte | Informar; no reintentar |
 | `413` | Foto demasiado grande (máx. 3 MiB) | Reducirla antes de subir |
-| `422` | Demasiados píxeles (máx. 16 MP, 4000×4000) | Reducirla antes de subir |
+| `422` | Demasiados píxeles (máx. 16 MP) | Reducirla antes de subir |
 | `503` | Almacenamiento caído | Reintentar solo la foto, con espera |
 
 **Mostrar** — `GET /api/v1/reportes/{id}` trae `multimedia: [{ id, path, user_id, created_at }]`.

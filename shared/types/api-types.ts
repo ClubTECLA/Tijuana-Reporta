@@ -95,7 +95,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sube la foto del reporte. Solo la puede subir su creador, y una sola por usuario por reporte. El backend valida la foto y la convierte a JPEG, y el servicio media la guarda; el path de la respuesta se sirve en /media/{path}. */
+        /** @description Sube la foto del reporte. Solo la puede subir su creador, y una sola por usuario por reporte. Debe ser un JPEG ya reducido por la app. El backend valida el tipo y las dimensiones y le quita los metadatos (EXIF), y el servicio multimedia la guarda; el path de la respuesta se sirve en /multimedia/{path}. */
         post: operations["subirMultimedia"];
         delete?: never;
         options?: never;
