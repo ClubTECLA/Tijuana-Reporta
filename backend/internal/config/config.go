@@ -58,7 +58,7 @@ func Load() (Config, error) {
 		APIPort:       os.Getenv("API_PORT"),
 		JWTSecret:     os.Getenv("JWT_SECRET"),
 		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
-		AdminUsername: os.Getenv("ADMIN_USERNAME"),
+		AdminUsername: getEnvOrDefault("ADMIN_USERNAME", "Administrador"),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
 	}
 	var missing []string
@@ -124,4 +124,12 @@ func enteroPositivo(nombre string, def int64) (int64, error) {
 		return 0, fmt.Errorf("%s must be greater than zero", nombre)
 	}
 	return n, nil
+}
+
+func getEnvOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+
+	return fallback
 }
