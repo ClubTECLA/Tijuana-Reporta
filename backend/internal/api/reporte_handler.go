@@ -13,11 +13,13 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 		Avistamientos: r.Reporte.Avistamientos,
 		Comentarios:   make([]Comentario, 0, len(r.Comentarios)),
 		CreatedAt:     r.Reporte.CreatedAt,
+		Direccion:     r.Reporte.Direccion,
 		EsHistorico:   r.Reporte.EsHistorico,
 		EsOficial:     r.Reporte.EsOficial,
 		EstadoActual:  EstadoReporte(r.Reporte.EstadoActual),
 		Id:            r.Reporte.ID,
 		IncidenteId:   r.Reporte.IncidenteID,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Reporte.Direccion),
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
 		Locations:     make([]Location, 0, len(r.Locations)),
@@ -70,6 +72,7 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 		Latitude:    b.Latitude,
 		Longitude:   b.Longitude,
 		EsOficial:   esOficial,
+		Direccion:   b.Direccion,
 		Multimedia:  multimedia,
 	}
 	r, err := s.services.Reportes.Crear(ctx, nuevoReporte)
@@ -106,6 +109,8 @@ func toReporteResumen(r domain.ListReportesResumenRow) ReporteResumen {
 	return ReporteResumen{
 		Id:            r.ID,
 		IncidenteId:   r.IncidenteID,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Direccion:     r.Direccion,
 		EstadoActual:  EstadoReporte(r.EstadoActual),
 		Avistamientos: r.Avistamientos,
 		EsOficial:     r.EsOficial,
@@ -141,6 +146,7 @@ func toEstado(e EstadoReporte) domain.Estado {
 func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
 	return ReporteCercano{
 		Avistamientos: r.Avistamientos,
+		Direccion:     r.Direccion,
 		DistanciaM:    r.DistanciaM,
 		EsOficial:     r.EsOficial,
 		EstadoActual:  EstadoReporte(r.EstadoActual),
@@ -148,6 +154,7 @@ func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
 		IncidenteId:   r.IncidenteID,
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
 	}
 }
 

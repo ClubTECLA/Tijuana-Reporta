@@ -3,6 +3,7 @@ description: Detalle completo de un reporte.
 required:
   - id
   - incidente_id
+  - titulo
   - avistamientos
   - es_historico
   - es_oficial
@@ -21,6 +22,11 @@ properties:
     format: uuid
   incidente_id:
     type: integer
+  titulo:
+    $ref: '../../openapi.yaml#/components/schemas/TituloReporte'
+  direccion:
+    type: string
+    description: Dirección enviada por el cliente al crear el reporte.
   avistamientos:
     type: integer
   es_historico:

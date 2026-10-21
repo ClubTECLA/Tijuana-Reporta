@@ -59,6 +59,7 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 		ID:          uuid.New(),
 		IncidenteID: arg.Reporte.IncidenteID,
 		EsOficial:   arg.Reporte.EsOficial,
+		Direccion:   arg.Reporte.Direccion,
 	}
 	f.byID[r.ID] = r
 	f.locations[r.ID] = []domain.Location{
@@ -72,12 +73,13 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 	return r, nil
 }
 
-func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (domain.Reporte, error) {
+// GetReporteById imita el JOIN con incidentes con una etiqueta fija.
+func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error) {
 	r, ok := f.byID[id]
 	if !ok {
-		return domain.Reporte{}, pgx.ErrNoRows
+		return domain.GetReporteByIdRow{}, pgx.ErrNoRows
 	}
-	return r, nil
+	return domain.GetReporteByIdRow{Reporte: r, IncidenteEtiqueta: "Socavón"}, nil
 }
 
 func (f *fakeReporteStore) GetPuntoOrigenByReporteId(_ context.Context, id uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error) {
@@ -234,6 +236,42 @@ func TestReporteService_Crear_SinMultimedia(t *testing.T) {
 	}
 	if store.lastArg.Multimedia != nil {
 		t.Fatalf("CreateReporte() Multimedia = %v, want empty", store.lastArg.Multimedia)
+	}
+}
+
+func TestReporteService_Crear_Direccion(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	tests := []struct {
+		name      string
+		direccion *string
+		want      *string
+	}{
+		{"sin dirección", nil, nil},
+		{"vacía", ptr(""), nil},
+		{"solo espacios", ptr("   "), nil},
+		{"con espacios alrededor", ptr("  Av. Revolución 1234 "), ptr("Av. Revolución 1234")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+
+			r, err := svc.Crear(context.Background(), domain.NuevoReporte{
+				UserID:      uuid.New(),
+				Rol:         domain.RolCiudadano,
+				IncidenteID: 42,
+				Latitude:    32.5027,
+				Longitude:   -117.00371,
+				Direccion:   tt.direccion,
+			})
+			if err != nil {
+				t.Fatalf("Crear() error = %v", err)
+			}
+			got := r.Reporte.Direccion
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				t.Fatalf("Crear() Direccion = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

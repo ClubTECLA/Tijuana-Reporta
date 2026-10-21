@@ -194,9 +194,11 @@ ALTER SEQUENCE public.incidente_tags_id_seq OWNED BY public.incidente_tags.id;
 
 -- Name: incidentes; Type: TABLE; Schema: public; Owner: -
 -- Catálogo que contiene cada tipo de incidente.
+-- "nombre" es el identificador (slug); "etiqueta" es el texto legible que se muestra y arma el título del reporte.
 CREATE TABLE public.incidentes (
     id integer NOT NULL,
     nombre character varying(100) NOT NULL,
+    etiqueta character varying(100) NOT NULL,
     tiempo_limite smallint,
     radio double precision,
     esta_activo boolean DEFAULT true NOT NULL,
@@ -306,9 +308,12 @@ CREATE TABLE public.refresh_tokens (
 -- Name: reporte; Type: TABLE; Schema: public; Owner: -
 -- Tabla que mantiene todos los reportes creados.
 -- Nota: ya no incluye "peso" (vive solo en reportes_scores) ni "punto_origen"
+-- "direccion" la geocodifica el cliente al crear el reporte y no se recalcula si el centroide se mueve.
+-- El título no se almacena: se deriva como nombre del incidente + " en " + direccion.
 CREATE TABLE public.reporte (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     incidente_id integer NOT NULL,
+    direccion text,
     avistamientos integer DEFAULT 0 NOT NULL,
     es_historico boolean DEFAULT false NOT NULL,
     es_oficial boolean DEFAULT false NOT NULL,
@@ -701,11 +706,11 @@ INSERT INTO roles (nombre) VALUES
 
 -- Tipos de incidente por defecto, con el color con el que se pintan en el mapa.
 -- Hacen falta antes de poder crear reportes.
-INSERT INTO incidentes (nombre, tiempo_limite, radio, esta_activo, color) VALUES
-    ('luz', 5, 100, true, '#F5C518'),
-    ('socavon', 5, 100, true, '#8D6E63'),
-    ('arbol', 5, 100, true, '#2E7D32'),
-    ('drenaje', 5, 100, true, '#00897B'),
-    ('deslave', 5, 100, true, '#E65100'),
-    ('inundacion', 5, 100, true, '#1E88E5'),
-    ('incendio', 5, 100, true, '#D32F2F');
+INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, color) VALUES
+    ('luz', 'Luz', 5, 100, true, '#F5C518'),
+    ('socavon', 'Socavón', 5, 100, true, '#8D6E63'),
+    ('arbol', 'Árbol', 5, 100, true, '#2E7D32'),
+    ('drenaje', 'Drenaje', 5, 100, true, '#00897B'),
+    ('deslave', 'Deslave', 5, 100, true, '#E65100'),
+    ('inundacion', 'Inundación', 5, 100, true, '#1E88E5'),
+    ('incendio', 'Incendio', 5, 100, true, '#D32F2F');

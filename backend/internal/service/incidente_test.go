@@ -136,8 +136,8 @@ func TestIncidenteService_Crear_ValoresPorDefecto(t *testing.T) {
 	}
 
 	p := store.lastArg.Incidente
-	if p.Nombre != "bache" || p.Color != colorPorDefecto || !p.EstaActivo {
-		t.Fatalf("CreateIncidenteConTags() incidente = %+v, want nombre=\"bache\" color=%s esta_activo=true", p, colorPorDefecto)
+	if p.Nombre != "bache" || p.Etiqueta != "bache" || p.Color != colorPorDefecto || !p.EstaActivo {
+		t.Fatalf("CreateIncidenteConTags() incidente = %+v, want nombre=etiqueta=\"bache\" color=%s esta_activo=true", p, colorPorDefecto)
 	}
 	if p.TiempoLimite != nil || p.Radio != nil {
 		t.Fatalf("CreateIncidenteConTags() tiempo_limite/radio = %v/%v, want nil/nil", p.TiempoLimite, p.Radio)
@@ -158,6 +158,7 @@ func TestIncidenteService_Crear_ValoresExplicitos(t *testing.T) {
 
 	_, err := svc.Crear(context.Background(), domain.NuevoIncidente{
 		Nombre:       "bache",
+		Etiqueta:     ptr("  Bache  "),
 		Color:        ptr("#EF6C33"),
 		EstaActivo:   ptr(false),
 		TiempoLimite: ptr(7),
@@ -169,8 +170,8 @@ func TestIncidenteService_Crear_ValoresExplicitos(t *testing.T) {
 	}
 
 	p := store.lastArg.Incidente
-	if p.Color != "#EF6C33" || p.EstaActivo || *p.TiempoLimite != 7 || *p.Radio != 25.5 {
-		t.Fatalf("CreateIncidenteConTags() incidente = %+v, want color=#EF6C33 esta_activo=false tiempo_limite=7 radio=25.5", p)
+	if p.Etiqueta != "Bache" || p.Color != "#EF6C33" || p.EstaActivo || *p.TiempoLimite != 7 || *p.Radio != 25.5 {
+		t.Fatalf("CreateIncidenteConTags() incidente = %+v, want etiqueta=Bache color=#EF6C33 esta_activo=false tiempo_limite=7 radio=25.5", p)
 	}
 
 	tags := store.lastArg.Tags
@@ -205,6 +206,8 @@ func TestIncidenteService_Crear_Invalido(t *testing.T) {
 		{name: "nombre vacío", nuevo: domain.NuevoIncidente{Nombre: ""}},
 		{name: "nombre solo espacios", nuevo: domain.NuevoIncidente{Nombre: "   "}},
 		{name: "nombre de 101 caracteres", nuevo: domain.NuevoIncidente{Nombre: strings.Repeat("a", 101)}},
+		{name: "etiqueta solo espacios", nuevo: domain.NuevoIncidente{Nombre: "bache", Etiqueta: ptr("   ")}},
+		{name: "etiqueta de 101 caracteres", nuevo: domain.NuevoIncidente{Nombre: "bache", Etiqueta: ptr(strings.Repeat("a", 101))}},
 		{name: "tiempo_limite negativo", nuevo: domain.NuevoIncidente{Nombre: "bache", TiempoLimite: ptr(-1)}},
 		{name: "tiempo_limite fuera de SMALLINT", nuevo: domain.NuevoIncidente{Nombre: "bache", TiempoLimite: ptr(40000)}},
 		{name: "radio negativo", nuevo: domain.NuevoIncidente{Nombre: "bache", Radio: ptr(-0.5)}},

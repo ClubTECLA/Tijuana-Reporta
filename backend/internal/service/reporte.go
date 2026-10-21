@@ -13,7 +13,7 @@ import (
 // ReporteStore es el subconjunto de *database.Store que este servicio usa.
 type ReporteStore interface {
 	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error)
-	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
@@ -51,8 +51,21 @@ func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (
 		}
 	}
 
+	// Una dirección vacía o solo con espacios se guarda como NULL, para que el
+	// título derivado no quede como "<incidente> en ".
+	var direccion *string
+	if nuevo.Direccion != nil {
+		if d := strings.TrimSpace(*nuevo.Direccion); d != "" {
+			direccion = &d
+		}
+	}
+
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
-		Reporte:    domain.CreateReporteParams{IncidenteID: nuevo.IncidenteID, EsOficial: nuevo.EsOficial},
+		Reporte: domain.CreateReporteParams{
+			IncidenteID: nuevo.IncidenteID,
+			EsOficial:   nuevo.EsOficial,
+			Direccion:   direccion,
+		},
 		UserID:     nuevo.UserID,
 		Latitude:   nuevo.Latitude,
 		Longitude:  nuevo.Longitude,
@@ -103,13 +116,14 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 	}
 
 	return domain.ReporteDetalle{
-		Reporte:     r,
-		Latitude:    punto.Latitude,
-		Longitude:   punto.Longitude,
-		Comentarios: comentarios,
-		Multimedia:  multimedia,
-		Tags:        tags,
-		Locations:   locations}, nil
+		Reporte:           r.Reporte,
+		IncidenteEtiqueta: r.IncidenteEtiqueta,
+		Latitude:          punto.Latitude,
+		Longitude:         punto.Longitude,
+		Comentarios:       comentarios,
+		Multimedia:        multimedia,
+		Tags:              tags,
+		Locations:         locations}, nil
 }
 
 func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error) {
