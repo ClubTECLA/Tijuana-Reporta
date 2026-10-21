@@ -45,7 +45,8 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 	return out
 }
 
-// CrearReporte crea un reporte con la ubicación y la multimedia del usuario autenticado.
+// CrearReporte crea un reporte con la ubicación del usuario autenticado. La foto
+// se sube después con SubirMultimedia.
 func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
@@ -53,18 +54,10 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	}
 
 	b := request.Body
-	var multimedia *domain.CrearMultimediaRequest
-	if b.Multimedia != nil {
-		multimedia = &domain.CrearMultimediaRequest{Path: b.Multimedia.Path}
-	}
-
-	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude, multimedia)
+	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude)
 	if err != nil {
 		if errors.Is(err, domain.ErrIncidenteNotFound) {
 			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
-		}
-		if errors.Is(err, domain.ErrMultimediaInvalida) {
-			return CrearReporte400JSONResponse{Message: err.Error()}, nil
 		}
 		return nil, err
 	}

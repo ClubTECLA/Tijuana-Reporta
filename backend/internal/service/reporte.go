@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
@@ -35,21 +33,13 @@ func NewReporteService(store ReporteStore) *ReporteService {
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
-// usuario y, si la hay, su foto o video. multimedia admite un solo archivo
-// por usuario por reporte, así que al crear solo puede venir uno.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.ReporteDetalle, error) {
-	if multimedia != nil {
-		if strings.TrimSpace(multimedia.Path) == "" {
-			return domain.ReporteDetalle{}, fmt.Errorf("%w: path vacío", domain.ErrMultimediaInvalida)
-		}
-	}
-
+// usuario. La foto o el video se suben después con MultimediaService.Subir.
+func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64) (domain.ReporteDetalle, error) {
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
-		Reporte:    domain.CreateReporteParams{IncidenteID: incidenteID},
-		UserID:     userID,
-		Latitude:   latitude,
-		Longitude:  longitude,
-		Multimedia: multimedia,
+		Reporte:   domain.CreateReporteParams{IncidenteID: incidenteID},
+		UserID:    userID,
+		Latitude:  latitude,
+		Longitude: longitude,
 	})
 	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
 		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound

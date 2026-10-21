@@ -147,12 +147,18 @@ func RequireRole(scopesKey string) func(c *gin.Context) {
 // que puede faltar (chunked) o mentir; si cabe, lo deja en un buffer para que
 // los siguientes handlers lo lean de nuevo.
 func BodyLimit(maxBytes int64) func(c *gin.Context) {
+	return BodyLimitFunc(func(*gin.Context) int64 { return maxBytes })
+}
+
+// BodyLimitFunc es como BodyLimit pero el límite se elige por petición, para
+// las rutas que reciben un body más grande que el resto (la subida de fotos).
+func BodyLimitFunc(limite func(c *gin.Context) int64) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if c.Request.Body == nil || c.Request.Body == http.NoBody {
 			return
 		}
 
-		body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes))
+		body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, limite(c)))
 		if err != nil {
 			var maxErr *http.MaxBytesError
 			if errors.As(err, &maxErr) {

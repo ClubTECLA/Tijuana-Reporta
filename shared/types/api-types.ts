@@ -86,6 +86,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/{reporteId}/multimedia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sube la foto del reporte. Solo la puede subir su creador, y una sola por usuario por reporte. El backend valida la foto y la convierte a JPEG, y el servicio media la guarda; el path de la respuesta se sirve en /media/{path}. */
+        post: operations["subirMultimedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}/estado": {
         parameters: {
             query?: never;
@@ -248,6 +265,7 @@ export interface components {
         EstadoReporte: components["schemas"]["estado_reporte"];
         Multimedia: components["schemas"]["multimedia"];
         CrearMultimediaRequest: components["schemas"]["crear_multimedia_request"];
+        SubirMultimediaRequest: components["schemas"]["subir_multimedia_request"];
         Tag: components["schemas"]["tag"];
         TagCatalogo: components["schemas"]["tag_catalogo"];
         CrearTagRequest: components["schemas"]["crear_tag_request"];
@@ -286,17 +304,12 @@ export interface components {
         error_response: {
             message: string;
         };
-        /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
-        crear_multimedia_request: {
-            path: string;
-        };
         crear_reporte_request: {
             incidente_id: number;
             /** Format: double */
             latitude: number;
             /** Format: double */
             longitude: number;
-            multimedia?: components["schemas"]["crear_multimedia_request"];
         };
         comentario: {
             id: number;
@@ -371,6 +384,11 @@ export interface components {
         };
         crear_comentario_request: {
             comentario: string;
+        };
+        /** @description Foto que el creador de un reporte sube a su reporte. */
+        subir_multimedia_request: {
+            /** Format: binary */
+            file: string;
         };
         cambiar_estado_reporte_request: {
             estado: components["schemas"]["estado_reporte"];
@@ -455,6 +473,10 @@ export interface components {
             email: string | null;
             rol_name: string;
             reportes_count: number;
+        };
+        /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
+        crear_multimedia_request: {
+            path: string;
         };
     };
     responses: never;
@@ -720,6 +742,95 @@ export interface operations {
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    subirMultimedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["subir_multimedia_request"];
+            };
+        };
+        responses: {
+            /** @description Foto guardada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["multimedia"];
+                };
+            };
+            /** @description Archivo faltante, multipart inválido o formato de imagen no soportado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado, o el usuario no es su creador */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario ya subió un archivo a este reporte */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El archivo es demasiado grande */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description La imagen excede las dimensiones permitidas */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El servicio de almacenamiento no está disponible; se puede reintentar */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

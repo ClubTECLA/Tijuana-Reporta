@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
@@ -17,7 +18,7 @@ type ComentarioService interface {
 // ReporteService es la interfaz que el handler de reportes necesita del
 // servicio.
 type ReporteService interface {
-	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.ReporteDetalle, error)
+	Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64) (domain.ReporteDetalle, error)
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
 	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
@@ -43,6 +44,12 @@ type IncidenteService interface {
 	AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error)
 }
 
+// MultimediaService es la interfaz que el handler de multimedia necesita del
+// servicio.
+type MultimediaService interface {
+	Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (domain.Multimedia, error)
+}
+
 type UsuarioService interface {
 	ListarUsuarios(ctx context.Context) ([]domain.ListAllUsersRow, error)
 }
@@ -54,6 +61,7 @@ type Services struct {
 	Incidentes  IncidenteService
 	Auth        AuthService
 	Usuarios    UsuarioService
+	Multimedia  MultimediaService
 }
 
 // Server implementa la interfaz que oapi-codegen genera a partir de

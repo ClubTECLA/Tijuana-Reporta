@@ -20,6 +20,12 @@ FROM location WHERE reporte_id = $1 ORDER BY created_at;
 -- name: GetReporteById :one
 SELECT * FROM reporte WHERE id = $1;
 
+-- name: EsCreadorDeReporte :one
+-- users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
+SELECT EXISTS (
+    SELECT 1 FROM users_reports WHERE user_id = $1 AND reporte_id = $2
+);
+
 -- name: ListMultimediaByReporteId :many
 SELECT * FROM multimedia WHERE reporte_id = $1 ORDER BY created_at;
 

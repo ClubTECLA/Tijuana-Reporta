@@ -8,8 +8,12 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 )
+
+// multimediaTimeout es lo que se espera a que multimedia reciba y guarde un archivo.
+const multimediaTimeout = 30 * time.Second
 
 func main() {
 	cfg, err := config.Load()
@@ -44,6 +48,10 @@ func main() {
 	incidentes := service.NewIncidenteService(store)
 	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
 	usuarios := service.NewUsuarioService(store)
+	multimediaSvc := service.NewMultimediaService(store, multimedia.NewCliente(cfg.MultimediaURL, multimediaTimeout), service.OpcionesFoto{
+		MaxBytes:   cfg.MaxFotoBytes,
+		MaxPixeles: cfg.MaxFotoPixeles,
+	})
 	if err != nil {
 		log.Fatalf("Failed to initialize auth service: %v", err)
 	}
@@ -54,7 +62,8 @@ func main() {
 		Incidentes:  incidentes,
 		Auth:        auth,
 		Usuarios:    usuarios,
-	}, cfg.JWTSecret)
+		Multimedia:  multimediaSvc,
+	}, cfg.JWTSecret, api.WithMaxMultimediaBytes(cfg.MaxMultimediaBytes))
 
 	log.Printf("server listening on:%s", cfg.APIPort)
 	if err := r.Run(":" + cfg.APIPort); err != nil {
