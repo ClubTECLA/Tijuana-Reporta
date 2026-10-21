@@ -434,7 +434,15 @@ func TestCambiarEstadoReporte(t *testing.T) {
 
 	ciudadano := newTestClient(t)
 	ciudadano.login()
-	ciudadano.expect(http.StatusForbidden, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Verificado"})
+	ciudadano.expect(http.StatusForbidden, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Resuelto"})
+
+	// Cualquier rol que no sea ciudadano puede cambiarlo, no solo admin.
+	rescatista := newTestClient(t)
+	rescatista.loginComo("rescatista")
+	rec = rescatista.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Resuelto"})
+	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Resuelto {
+		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Resuelto)
+	}
 }
 
 func TestListarReportes(t *testing.T) {

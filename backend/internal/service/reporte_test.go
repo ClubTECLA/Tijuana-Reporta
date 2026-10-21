@@ -573,3 +573,42 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
 	}
 }
+
+func TestReporteService_CambiarEstado_Rol(t *testing.T) {
+	tests := []struct {
+		rol     string
+		wantErr error
+	}{
+		{"", domain.ErrEstadoNoPermitido},
+		{domain.RolCiudadano, domain.ErrEstadoNoPermitido},
+		{"admin", nil},
+		{"rescatista", nil},
+		// Un rol que no existe en el baseline también puede: solo se excluye ciudadano.
+		{"rol_nuevo", nil},
+	}
+	for _, tt := range tests {
+		t.Run("rol "+tt.rol, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+			creado, err := svc.Crear(context.Background(), domain.NuevoReporte{
+				UserID: uuid.New(), Rol: domain.RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+			})
+			if err != nil {
+				t.Fatalf("Crear() error = %v", err)
+			}
+
+			r, err := svc.CambiarEstado(context.Background(), tt.rol, creado.Reporte.ID, domain.EstadoVerificado)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("CambiarEstado() error = %v, want %v", err, tt.wantErr)
+			}
+			want := domain.EstadoVerificado
+			if tt.wantErr != nil {
+				r.Reporte = store.byID[creado.Reporte.ID]
+				want = creado.Reporte.EstadoActual
+			}
+			if r.Reporte.EstadoActual != want {
+				t.Fatalf("estado = %q, want %q", r.Reporte.EstadoActual, want)
+			}
+		})
+	}
+}

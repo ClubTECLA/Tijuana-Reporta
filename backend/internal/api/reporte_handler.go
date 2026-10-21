@@ -207,8 +207,12 @@ func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistam
 // enum. El router no valida el body contra el contrato, así que un estado
 // fuera del enum (o ausente) se rechaza aquí con 400.
 func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
-	r, err := s.services.Reportes.CambiarEstado(ctx, request.ReporteId, domain.Estado(request.Body.Estado))
+	rol, _ := middleware.RolFromContext(ctx)
+	r, err := s.services.Reportes.CambiarEstado(ctx, rol, request.ReporteId, domain.Estado(request.Body.Estado))
 	if err != nil {
+		if errors.Is(err, domain.ErrEstadoNoPermitido) {
+			return CambiarEstadoReporte403JSONResponse{Message: "un ciudadano no puede cambiar el estado de un reporte"}, nil
+		}
 		if errors.Is(err, domain.ErrReporteNotFound) {
 			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
 		}

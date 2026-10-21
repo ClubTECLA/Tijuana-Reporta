@@ -178,7 +178,12 @@ func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) 
 	return a, nil
 }
 
-func (s *ReporteService) CambiarEstado(ctx context.Context, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+// CambiarEstado cambia el estado del reporte. Lo puede hacer cualquier rol
+// menos ciudadano
+func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+	if rol == "" || rol == domain.RolCiudadano {
+		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
+	}
 	_, err := s.store.UpdateEstadoReporte(ctx, domain.UpdateEstadoReporteParams{ID: id, EstadoActual: estado})
 	if domain.IsNotFound(err) {
 		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
