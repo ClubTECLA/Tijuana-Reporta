@@ -134,6 +134,7 @@ type Historial struct {
 type Incidente struct {
 	ID           int      `json:"id"`
 	Nombre       string   `json:"nombre"`
+	Etiqueta     string   `json:"etiqueta"`
 	TiempoLimite *int     `json:"tiempo_limite"`
 	Radio        *float64 `json:"radio"`
 	EstaActivo   bool     `json:"esta_activo"`
@@ -207,6 +208,7 @@ type RefreshToken struct {
 type Reporte struct {
 	ID            uuid.UUID `json:"id"`
 	IncidenteID   int       `json:"incidente_id"`
+	Direccion     *string   `json:"direccion"`
 	Avistamientos int       `json:"avistamientos"`
 	EsHistorico   bool      `json:"es_historico"`
 	EsOficial     bool      `json:"es_oficial"`

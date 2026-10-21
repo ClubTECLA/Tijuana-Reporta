@@ -1,6 +1,6 @@
 -- name: CreateReporte :one
-INSERT INTO reporte (incidente_id, es_oficial)
-VALUES ($1, $2)
+INSERT INTO reporte (incidente_id, es_oficial, direccion)
+VALUES ($1, $2, sqlc.narg(direccion))
 RETURNING *;
 
 -- name: CreateLocation :one
@@ -18,7 +18,11 @@ SELECT *
 FROM location WHERE reporte_id = $1 ORDER BY created_at;
 
 -- name: GetReporteById :one
-SELECT * FROM reporte WHERE id = $1;
+-- La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+SELECT sqlc.embed(r), i.etiqueta AS incidente_etiqueta
+FROM reporte r
+JOIN incidentes i ON i.id = r.incidente_id
+WHERE r.id = $1;
 
 -- name: EsCreadorDeReporte :one
 -- users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
@@ -42,9 +46,11 @@ SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1;
 
 -- name: ListReportesResumen :many
-SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
+       r.direccion, i.etiqueta AS incidente_etiqueta
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
 WHERE NOT r.es_historico
 AND (sqlc.narg(min_lat)::float8 IS NULL OR p.latitude >= sqlc.narg(min_lat))
 AND (sqlc.narg(max_lat)::float8 IS NULL OR p.latitude <= sqlc.narg(max_lat))
@@ -72,10 +78,11 @@ RETURNING *;
 -- cast explícito; sin él se generaría como interface{}.
 -- ST_DWithin usa el índice GiST de puntos_origen.geom.
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
-       p.latitude, p.longitude,
+       p.latitude, p.longitude, r.direccion, i.etiqueta AS incidente_etiqueta,
        ST_Distance(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
 WHERE NOT r.es_historico
 AND ST_DWithin(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography, sqlc.arg(radio)::float8)
 AND (sqlc.narg(incidente_ids)::int[] IS NULL OR r.incidente_id = ANY(sqlc.narg(incidente_ids)::int[]))

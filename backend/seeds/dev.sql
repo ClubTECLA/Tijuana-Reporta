@@ -113,24 +113,27 @@ ON CONFLICT (incidente_id, nombre) DO NOTHING;
 
 -- Reportes --------------------------------------------------------------------
 -- horas = hace cuántas horas se creó. avistamientos se calcula al final.
-INSERT INTO reporte (id, incidente_id, es_historico, estado_actual, created_at, updated_at)
-SELECT pg_temp.rid(v.n), i.id, v.historico, v.estado::estado,
+-- direccion = geocodificación inversa (Nominatim) del centroide de sus
+-- ubicaciones, con el formato "calle · colonia" del frontend web. El 05 queda
+-- sin dirección a propósito, como un cliente que no pudo geocodificar.
+INSERT INTO reporte (id, incidente_id, direccion, es_historico, estado_actual, created_at, updated_at)
+SELECT pg_temp.rid(v.n), i.id, v.direccion, v.historico, v.estado::estado,
        now() - v.horas * interval '1 hour',
        now() - v.horas * interval '1 hour'
 FROM (VALUES
-    ( 1, 'socavon',    'Pendiente',  false,  30),
-    ( 2, 'luz',        'Probable',   false,  80),
-    ( 3, 'inundacion', 'Verificado', false,  50),
-    ( 4, 'arbol',      'Resuelto',   true,  480),
-    ( 5, 'drenaje',    'Pendiente',  false,  28),
-    ( 6, 'deslave',    'Verificado', false, 100),
-    ( 7, 'incendio',   'Probable',   false,  55),
-    ( 8, 'luz',        'Pendiente',  false,  26),
-    ( 9, 'socavon',    'Descartado', true,  290),
-    (10, 'inundacion', 'Pendiente',  false,   3),
-    (11, 'drenaje',    'Probable',   false,  95),
-    (12, 'socavon',    'Probable',   false, 140)
-) AS v(n, incidente, estado, historico, horas)
+    ( 1, 'socavon',    'Avenida Vía Rápida Poniente · Del. Centro',                             'Pendiente',  false,  30),
+    ( 2, 'luz',        'Avenida Constitución 714 · Zona Centro',                                'Probable',   false,  80),
+    ( 3, 'inundacion', 'Calle Agustín Pérez Rivero · Delegación Mesa de Otay',                  'Verificado', false,  50),
+    ( 4, 'arbol',      'Avenida Paseo a Playas de Tijuana · Playas de Tijuana Secc Monumental', 'Resuelto',   true,  480),
+    ( 5, 'drenaje',    NULL,                                                                    'Pendiente',  false,  28),
+    ( 6, 'deslave',    'Privada Oro · San Antonio de los Buenos',                               'Verificado', false, 100),
+    ( 7, 'incendio',   'Via de la Juventud Oriente · Delegación Mesa de Otay',                  'Probable',   false,  55),
+    ( 8, 'luz',        'Avenida Vía Rápida Oriente · Del. Centro',                              'Pendiente',  false,  26),
+    ( 9, 'socavon',    'Calle Flores Magón 8267 · Zona Centro',                                 'Descartado', true,  290),
+    (10, 'inundacion', 'Avenida del Risco · Playas de Tijuana Secc Jardines del Sol',           'Pendiente',  false,   3),
+    (11, 'drenaje',    'Calle Benito Juárez · Federal',                                         'Probable',   false,  95),
+    (12, 'socavon',    'Avenida Paseo de la Independencia 2104 · Delegación Mesa de Otay',      'Probable',   false, 140)
+) AS v(n, incidente, direccion, estado, historico, horas)
 JOIN incidentes i ON i.nombre = v.incidente
 ON CONFLICT (id) DO NOTHING;
 

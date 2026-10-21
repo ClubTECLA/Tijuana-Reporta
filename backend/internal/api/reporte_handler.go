@@ -13,11 +13,13 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 		Avistamientos: r.Reporte.Avistamientos,
 		Comentarios:   make([]Comentario, 0, len(r.Comentarios)),
 		CreatedAt:     r.Reporte.CreatedAt,
+		Direccion:     r.Reporte.Direccion,
 		EsHistorico:   r.Reporte.EsHistorico,
 		EsOficial:     r.Reporte.EsOficial,
 		EstadoActual:  EstadoReporte(r.Reporte.EstadoActual),
 		Id:            r.Reporte.ID,
 		IncidenteId:   r.Reporte.IncidenteID,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Reporte.Direccion),
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
 		Locations:     make([]Location, 0, len(r.Locations)),
@@ -53,9 +55,27 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 		return nil, errors.New("userID not found in context")
 	}
 
+	// Sin rol en el contexto (token anterior al claim "rol") se trata como
+	// ciudadano: el servicio rechaza es_oficial si rol viene vacío.
+	rol, _ := middleware.RolFromContext(ctx)
+
 	b := request.Body
-	r, err := s.services.Reportes.Crear(ctx, userID, b.IncidenteId, b.Latitude, b.Longitude)
+	esOficial := b.EsOficial != nil && *b.EsOficial
+
+	nuevoReporte := domain.NuevoReporte{
+		UserID:      userID,
+		Rol:         rol,
+		IncidenteID: b.IncidenteId,
+		Latitude:    b.Latitude,
+		Longitude:   b.Longitude,
+		EsOficial:   esOficial,
+		Direccion:   b.Direccion,
+	}
+	r, err := s.services.Reportes.Crear(ctx, nuevoReporte)
 	if err != nil {
+		if errors.Is(err, domain.ErrOficialNoPermitido) {
+			return CrearReporte403JSONResponse{Message: "un ciudadano no puede crear reportes oficiales"}, nil
+		}
 		if errors.Is(err, domain.ErrIncidenteNotFound) {
 			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
 		}
@@ -82,6 +102,8 @@ func toReporteResumen(r domain.ListReportesResumenRow) ReporteResumen {
 	return ReporteResumen{
 		Id:            r.ID,
 		IncidenteId:   r.IncidenteID,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Direccion:     r.Direccion,
 		EstadoActual:  EstadoReporte(r.EstadoActual),
 		Avistamientos: r.Avistamientos,
 		EsOficial:     r.EsOficial,
@@ -117,6 +139,7 @@ func toEstado(e EstadoReporte) domain.Estado {
 func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
 	return ReporteCercano{
 		Avistamientos: r.Avistamientos,
+		Direccion:     r.Direccion,
 		DistanciaM:    r.DistanciaM,
 		EsOficial:     r.EsOficial,
 		EstadoActual:  EstadoReporte(r.EstadoActual),
@@ -124,6 +147,7 @@ func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
 		IncidenteId:   r.IncidenteID,
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
 	}
 }
 
@@ -176,8 +200,12 @@ func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistam
 // enum. El router no valida el body contra el contrato, así que un estado
 // fuera del enum (o ausente) se rechaza aquí con 400.
 func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
-	r, err := s.services.Reportes.CambiarEstado(ctx, request.ReporteId, domain.Estado(request.Body.Estado))
+	rol, _ := middleware.RolFromContext(ctx)
+	r, err := s.services.Reportes.CambiarEstado(ctx, rol, request.ReporteId, domain.Estado(request.Body.Estado))
 	if err != nil {
+		if errors.Is(err, domain.ErrEstadoNoPermitido) {
+			return CambiarEstadoReporte403JSONResponse{Message: "un ciudadano no puede cambiar el estado de un reporte"}, nil
+		}
 		if errors.Is(err, domain.ErrReporteNotFound) {
 			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
 		}

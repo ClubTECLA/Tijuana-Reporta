@@ -59,6 +59,7 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 		ID:          uuid.New(),
 		IncidenteID: arg.Reporte.IncidenteID,
 		EsOficial:   arg.Reporte.EsOficial,
+		Direccion:   arg.Reporte.Direccion,
 	}
 	f.byID[r.ID] = r
 	f.locations[r.ID] = []domain.Location{
@@ -69,12 +70,13 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 	return r, nil
 }
 
-func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (domain.Reporte, error) {
+// GetReporteById imita el JOIN con incidentes con una etiqueta fija.
+func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error) {
 	r, ok := f.byID[id]
 	if !ok {
-		return domain.Reporte{}, pgx.ErrNoRows
+		return domain.GetReporteByIdRow{}, pgx.ErrNoRows
 	}
-	return r, nil
+	return domain.GetReporteByIdRow{Reporte: r, IncidenteEtiqueta: "Socavón"}, nil
 }
 
 func (f *fakeReporteStore) GetPuntoOrigenByReporteId(_ context.Context, id uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error) {
@@ -143,7 +145,16 @@ func TestReporteService_Crear(t *testing.T) {
 	svc := NewReporteService(store)
 	userID := uuid.New()
 
-	r, err := svc.Crear(context.Background(), userID, 42, 32.5027, -117.00371)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      userID,
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+	}
+
+	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -165,12 +176,120 @@ func TestReporteService_Crear(t *testing.T) {
 	}
 }
 
+func TestReporteService_Crear_Direccion(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	tests := []struct {
+		name      string
+		direccion *string
+		want      *string
+	}{
+		{"sin dirección", nil, nil},
+		{"vacía", ptr(""), nil},
+		{"solo espacios", ptr("   "), nil},
+		{"con espacios alrededor", ptr("  Av. Revolución 1234 "), ptr("Av. Revolución 1234")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+
+			r, err := svc.Crear(context.Background(), domain.NuevoReporte{
+				UserID:      uuid.New(),
+				Rol:         domain.RolCiudadano,
+				IncidenteID: 42,
+				Latitude:    32.5027,
+				Longitude:   -117.00371,
+				Direccion:   tt.direccion,
+			})
+			if err != nil {
+				t.Fatalf("Crear() error = %v", err)
+			}
+			got := r.Reporte.Direccion
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				t.Fatalf("Crear() Direccion = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReporteService_Crear_EsOficial(t *testing.T) {
+	tests := []struct {
+		name    string
+		rol     string
+		wantErr error
+	}{
+		{"admin puede", "admin", nil},
+		{"proteccion_civil puede", "proteccion_civil", nil},
+		{"ciudadano no puede", domain.RolCiudadano, domain.ErrOficialNoPermitido},
+		{"sin rol no puede", "", domain.ErrOficialNoPermitido},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+
+			fakeNuevoReporte := domain.NuevoReporte{
+				UserID:      uuid.New(),
+				Rol:         tt.rol,
+				IncidenteID: 42,
+				Latitude:    32.5027,
+				Longitude:   -117.00371,
+				EsOficial:   true,
+			}
+			r, err := svc.Crear(context.Background(), fakeNuevoReporte)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Crear() error = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				if len(store.byID) != 0 {
+					t.Fatalf("CreateReporte() creó %d reportes, want 0", len(store.byID))
+				}
+				return
+			}
+			if !store.lastArg.Reporte.EsOficial || !r.Reporte.EsOficial {
+				t.Fatalf("Crear() EsOficial = %v (arg %v), want true", r.Reporte.EsOficial, store.lastArg.Reporte.EsOficial)
+			}
+		})
+	}
+}
+
+func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+	}
+
+	r, err := svc.Crear(context.Background(), fakeNuevoReporte)
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	if r.Reporte.EsOficial {
+		t.Fatalf("Crear() EsOficial = true, want false")
+	}
+}
+
 func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 	store := newFakeReporteStore()
 	store.createErr = &pgconn.PgError{Code: "23503", ConstraintName: "reporte_incidente_id_fkey"}
 	svc := NewReporteService(store)
 
-	_, err := svc.Crear(context.Background(), uuid.New(), 999, 32.5027, -117.00371)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 999,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+	}
+
+	_, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if !errors.Is(err, domain.ErrIncidenteNotFound) {
 		t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteNotFound)
 	}
@@ -180,7 +299,16 @@ func TestReporteService_Obtener(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	creado, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+	}
+
+	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -294,7 +422,15 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	creado, err := svc.Crear(context.Background(), uuid.New(), 42, 32.5027, -117.00371)
+	fakeNuevoReporte := domain.NuevoReporte{
+		UserID:      uuid.New(),
+		Rol:         domain.RolCiudadano,
+		IncidenteID: 42,
+		Latitude:    32.5027,
+		Longitude:   -117.00371,
+		EsOficial:   false,
+	}
+	creado, err := svc.Crear(context.Background(), fakeNuevoReporte)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -367,5 +503,44 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 
 	if _, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
+	}
+}
+
+func TestReporteService_CambiarEstado_Rol(t *testing.T) {
+	tests := []struct {
+		rol     string
+		wantErr error
+	}{
+		{"", domain.ErrEstadoNoPermitido},
+		{domain.RolCiudadano, domain.ErrEstadoNoPermitido},
+		{"admin", nil},
+		{"rescatista", nil},
+		// Un rol que no existe en el baseline también puede: solo se excluye ciudadano.
+		{"rol_nuevo", nil},
+	}
+	for _, tt := range tests {
+		t.Run("rol "+tt.rol, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewReporteService(store)
+			creado, err := svc.Crear(context.Background(), domain.NuevoReporte{
+				UserID: uuid.New(), Rol: domain.RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+			})
+			if err != nil {
+				t.Fatalf("Crear() error = %v", err)
+			}
+
+			r, err := svc.CambiarEstado(context.Background(), tt.rol, creado.Reporte.ID, domain.EstadoVerificado)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("CambiarEstado() error = %v, want %v", err, tt.wantErr)
+			}
+			want := domain.EstadoVerificado
+			if tt.wantErr != nil {
+				r.Reporte = store.byID[creado.Reporte.ID]
+				want = creado.Reporte.EstadoActual
+			}
+			if r.Reporte.EstadoActual != want {
+				t.Fatalf("estado = %q, want %q", r.Reporte.EstadoActual, want)
+			}
+		})
 	}
 }

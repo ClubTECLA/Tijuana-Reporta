@@ -27,6 +27,8 @@ var (
 	ErrAreaIncompleta      = errors.New("area incompleta")
 	ErrAreaInvalida        = errors.New("area invalida")
 	ErrTransicionInvalida  = errors.New("transicion invalida")
+	ErrOficialNoPermitido  = errors.New("rol no puede crear reportes oficiales")
+	ErrEstadoNoPermitido   = errors.New("rol no puede cambiar el estado de reportes")
 )
 
 // Códigos de error de Postgres.

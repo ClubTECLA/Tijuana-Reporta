@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
@@ -11,7 +12,7 @@ import (
 // ReporteStore es el subconjunto de *database.Store que este servicio usa.
 type ReporteStore interface {
 	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error)
-	GetReporteById(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
@@ -34,12 +35,33 @@ func NewReporteService(store ReporteStore) *ReporteService {
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario. La foto o el video se suben después con MultimediaService.Subir.
-func (s *ReporteService) Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64) (domain.ReporteDetalle, error) {
+//
+// EsOficial lo puede pedir cualquier rol menos ciudadano. Se compara contra
+// ciudadano (y no contra una lista de roles permitidos) para que un rol nuevo
+// en la tabla roles pueda crear reportes oficiales sin tocar este código.
+func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error) {
+	if nuevo.EsOficial && (nuevo.Rol == "" || nuevo.Rol == domain.RolCiudadano) {
+		return domain.ReporteDetalle{}, domain.ErrOficialNoPermitido
+	}
+
+	// Una dirección vacía o solo con espacios se guarda como NULL, para que el
+	// título derivado no quede como "<incidente> en ".
+	var direccion *string
+	if nuevo.Direccion != nil {
+		if d := strings.TrimSpace(*nuevo.Direccion); d != "" {
+			direccion = &d
+		}
+	}
+
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
-		Reporte:   domain.CreateReporteParams{IncidenteID: incidenteID},
-		UserID:    userID,
-		Latitude:  latitude,
-		Longitude: longitude,
+		Reporte: domain.CreateReporteParams{
+			IncidenteID: nuevo.IncidenteID,
+			EsOficial:   nuevo.EsOficial,
+			Direccion:   direccion,
+		},
+		UserID:    nuevo.UserID,
+		Latitude:  nuevo.Latitude,
+		Longitude: nuevo.Longitude,
 	})
 	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
 		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound
@@ -86,13 +108,14 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 	}
 
 	return domain.ReporteDetalle{
-		Reporte:     r,
-		Latitude:    punto.Latitude,
-		Longitude:   punto.Longitude,
-		Comentarios: comentarios,
-		Multimedia:  multimedia,
-		Tags:        tags,
-		Locations:   locations}, nil
+		Reporte:           r.Reporte,
+		IncidenteEtiqueta: r.IncidenteEtiqueta,
+		Latitude:          punto.Latitude,
+		Longitude:         punto.Longitude,
+		Comentarios:       comentarios,
+		Multimedia:        multimedia,
+		Tags:              tags,
+		Locations:         locations}, nil
 }
 
 func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error) {
@@ -147,7 +170,12 @@ func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) 
 	return a, nil
 }
 
-func (s *ReporteService) CambiarEstado(ctx context.Context, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+// CambiarEstado cambia el estado del reporte. Lo puede hacer cualquier rol
+// menos ciudadano
+func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+	if rol == "" || rol == domain.RolCiudadano {
+		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
+	}
 	_, err := s.store.UpdateEstadoReporte(ctx, domain.UpdateEstadoReporteParams{ID: id, EstadoActual: estado})
 	if domain.IsNotFound(err) {
 		return domain.ReporteDetalle{}, domain.ErrReporteNotFound

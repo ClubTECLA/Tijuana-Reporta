@@ -5,6 +5,9 @@ import "github.com/google/uuid"
 // Archivo escrito a mano: convive con el código generado por sqlc, que solo
 // reescribe models.go, querier.go, db.go y los *.sql.go.
 
+// RolCiudadano es el rol por defecto de los usuarios registrados (tabla roles).
+const RolCiudadano = "ciudadano"
+
 // UserWithRol es un usuario junto con el nombre de su rol, ya resuelto contra
 // la tabla roles.
 type UserWithRol struct {

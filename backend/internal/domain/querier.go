@@ -29,7 +29,8 @@ type Querier interface {
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
-	GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error)
+	// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)

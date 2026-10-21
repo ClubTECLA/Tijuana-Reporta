@@ -13,3 +13,9 @@ properties:
     format: double
     minimum: -180
     maximum: 180
+  es_oficial:
+    type: boolean
+    default: false
+  direccion:
+    type: string
+    maxLength: 255

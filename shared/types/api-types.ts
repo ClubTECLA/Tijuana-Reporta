@@ -116,6 +116,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. */
         patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
@@ -263,6 +264,7 @@ export interface components {
         ReporteCercano: components["schemas"]["reporte_cercano"];
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
+        TituloReporte: components["schemas"]["titulo_reporte"];
         Multimedia: components["schemas"]["multimedia"];
         SubirMultimediaRequest: components["schemas"]["subir_multimedia_request"];
         Tag: components["schemas"]["tag"];
@@ -279,6 +281,11 @@ export interface components {
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
         UsuarioResumen: components["schemas"]["usuario_resumen"];
+        /**
+         * @description Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+         * @example Socavón en Calle Flores Magón 8267 · Zona Centro
+         */
+        titulo_reporte: string;
         /** @enum {string} */
         estado_reporte: "Pendiente" | "Probable" | "Verificado" | "Resuelto" | "Descartado";
         /** @description Versión ligera de un reporte para pintar pines en el mapa. */
@@ -286,6 +293,9 @@ export interface components {
             /** Format: uuid */
             id: string;
             incidente_id: number;
+            titulo: components["schemas"]["titulo_reporte"];
+            /** @description Dirección enviada por el cliente al crear el reporte. */
+            direccion?: string;
             estado_actual: components["schemas"]["estado_reporte"];
             avistamientos: number;
             es_oficial: boolean;
@@ -309,6 +319,9 @@ export interface components {
             latitude: number;
             /** Format: double */
             longitude: number;
+            /** @default false */
+            es_oficial?: boolean;
+            direccion?: string;
         };
         comentario: {
             id: number;
@@ -351,6 +364,9 @@ export interface components {
             /** Format: uuid */
             id: string;
             incidente_id: number;
+            titulo: components["schemas"]["titulo_reporte"];
+            /** @description Dirección enviada por el cliente al crear el reporte. */
+            direccion?: string;
             avistamientos: number;
             es_historico: boolean;
             es_oficial: boolean;
@@ -436,6 +452,8 @@ export interface components {
         incidente: {
             id: number;
             nombre: string;
+            /** @description Texto legible del incidente; es el que se muestra y arma el título del reporte. */
+            etiqueta: string;
             tiempo_limite: number | null;
             /** Format: double */
             radio: number | null;
@@ -452,6 +470,8 @@ export interface components {
         };
         crear_incidente_request: {
             nombre: string;
+            /** @description Texto legible del incidente (p. ej. "Socavón"). Si no se manda, se usa el nombre. */
+            etiqueta?: string;
             tiempo_limite?: number;
             /** Format: double */
             radio?: number;
@@ -558,6 +578,15 @@ export interface operations {
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Un ciudadano no puede crear reportes oficiales */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -877,7 +906,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description El usuario no tiene rol de administrador */
+            /** @description El usuario es ciudadano */
             403: {
                 headers: {
                     [name: string]: unknown;
