@@ -11,7 +11,7 @@ import (
 // ComentarioService es la interfaz que el handler de comentarios necesita del
 // servicio.
 type ComentarioService interface {
-	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error)
+	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error)
 }
 
 // ReporteService es la interfaz que el handler de reportes necesita del

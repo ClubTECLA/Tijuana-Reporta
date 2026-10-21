@@ -564,24 +564,49 @@ func TestListarReportesCercanos(t *testing.T) {
 }
 
 func TestComentarReporte(t *testing.T) {
-	c := newTestClient(t)
-	auth := c.login()
-	reporte := c.crearReporte()
+	t.Run("ciudadano", func(t *testing.T) {
+		c := newTestClient(t)
+		auth := c.login()
+		reporte := c.crearReporte()
 
-	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
-		"comentario": "Sigue ahí el socavón",
+		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
+			"comentario": "Sigue ahí el socavón",
+		})
+		comentario := decode[api.Comentario](t, rec)
+
+		if comentario.Comentario != "Sigue ahí el socavón" {
+			t.Errorf("comentario = %q", comentario.Comentario)
+		}
+		if comentario.ReporteId != reporte.Id {
+			t.Errorf("reporte_id = %v, quería %v", comentario.ReporteId, reporte.Id)
+		}
+		if comentario.UserId != auth.User.Id {
+			t.Errorf("user_id = %v, quería %v", comentario.UserId, auth.User.Id)
+		}
+		if *comentario.Username != auth.User.Username {
+			t.Errorf("username = %q, quería %q", *comentario.Username, auth.User.Username)
+		}
+		if *comentario.RolName != domain.RolCiudadano {
+			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, domain.RolCiudadano)
+		}
 	})
-	comentario := decode[api.Comentario](t, rec)
 
-	if comentario.Comentario != "Sigue ahí el socavón" {
-		t.Errorf("comentario = %q", comentario.Comentario)
-	}
-	if comentario.ReporteId != reporte.Id {
-		t.Errorf("reporte_id = %v, quería %v", comentario.ReporteId, reporte.Id)
-	}
-	if comentario.UserId != auth.User.Id {
-		t.Errorf("user_id = %v, quería %v", comentario.UserId, auth.User.Id)
-	}
+	// Con un rol distinto al default se comprueba que rol_name sale del JOIN
+	// con roles y no de un valor fijo.
+	t.Run("rescatista", func(t *testing.T) {
+		c := newTestClient(t)
+		c.loginComo("rescatista")
+		reporte := c.crearReporte()
+
+		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
+			"comentario": "Ya vamos en camino",
+		})
+		comentario := decode[api.Comentario](t, rec)
+
+		if *comentario.RolName != "rescatista" {
+			t.Errorf("rol_name = %q, quería %q", comentario.RolName, "rescatista")
+		}
+	})
 }
 
 func TestAgregarAvistamiento(t *testing.T) {

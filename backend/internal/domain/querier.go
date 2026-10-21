@@ -12,7 +12,7 @@ import (
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
-	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
+	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider

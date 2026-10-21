@@ -7,14 +7,29 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createComentario = `-- name: CreateComentario :one
-INSERT INTO comentarios (reporte_id, user_id, comentario)
-VALUES ($1, $2, $3)
-RETURNING id, reporte_id, user_id, comentario, created_at
+WITH nuevo AS (
+    INSERT INTO comentarios (reporte_id, user_id, comentario)
+    VALUES ($1, $2, $3)
+    RETURNING id, reporte_id, user_id, comentario, created_at
+)
+SELECT
+    n.id,
+    n.reporte_id,
+    n.user_id,
+    n.comentario,
+    n.created_at,
+    u.username,
+    r.nombre AS rol_name
+FROM
+    nuevo n
+    JOIN users u ON u.id = n.user_id
+    JOIN roles r ON r.id = u.rol_id
 `
 
 type CreateComentarioParams struct {
@@ -23,15 +38,27 @@ type CreateComentarioParams struct {
 	Comentario string    `json:"comentario"`
 }
 
-func (q *Queries) CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error) {
+type CreateComentarioRow struct {
+	ID         int       `json:"id"`
+	ReporteID  uuid.UUID `json:"reporte_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Comentario string    `json:"comentario"`
+	CreatedAt  time.Time `json:"created_at"`
+	Username   string    `json:"username"`
+	RolName    string    `json:"rol_name"`
+}
+
+func (q *Queries) CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error) {
 	row := q.db.QueryRow(ctx, createComentario, arg.ReporteID, arg.UserID, arg.Comentario)
-	var i Comentario
+	var i CreateComentarioRow
 	err := row.Scan(
 		&i.ID,
 		&i.ReporteID,
 		&i.UserID,
 		&i.Comentario,
 		&i.CreatedAt,
+		&i.Username,
+		&i.RolName,
 	)
 	return i, err
 }
