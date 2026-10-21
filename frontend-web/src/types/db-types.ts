@@ -72,7 +72,6 @@ export type ApiCrearReporteRequest = {
   incidente_id: number
   latitude: number
   longitude: number
-  multimedia?: ApiCrearMultimediaRequest
 }
 
 // API - Nested report schemas
@@ -82,10 +81,6 @@ export type ApiComentario = {
   user_id: string
   comentario: string
   created_at: string
-}
-
-export type ApiCrearMultimediaRequest = {
-  path: string
 }
 
 export type ApiMultimedia = {
