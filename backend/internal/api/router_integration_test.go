@@ -41,9 +41,10 @@ const incidenteSocavon = 2
 // testClient manda peticiones al router en memoria, con el token del usuario
 // autenticado si lo hay.
 type testClient struct {
-	t      *testing.T
-	router http.Handler
-	token  string
+	t          *testing.T
+	router     http.Handler
+	token      string
+	multimedia *multimediaFalso
 }
 
 // newTestClient arma el router con los servicios reales sobre la base de los
@@ -57,15 +58,21 @@ func newTestClient(t *testing.T) *testClient {
 		t.Fatalf("creando AuthService: %v", err)
 	}
 
+	multimedia := &multimediaFalso{}
+
 	gin.SetMode(gin.TestMode)
 	router := api.NewRouter(api.Services{
 		Comentarios: service.NewComentarioService(store),
 		Reportes:    service.NewReporteService(store),
 		Incidentes:  service.NewIncidenteService(store),
 		Auth:        auth,
+		Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
+			MaxBytes:   3 << 20,
+			MaxPixeles: 16_000_000,
+		}),
 	}, testJWTSecret)
 
-	return &testClient{t: t, router: router}
+	return &testClient{t: t, router: router, multimedia: multimedia}
 }
 
 // do manda la petición y devuelve la respuesta grabada. body se serializa a
@@ -267,6 +274,23 @@ func TestCrearYObtenerReporte(t *testing.T) {
 	}
 	if obtenido.Latitude != 32.5149 || obtenido.Longitude != -117.0382 {
 		t.Errorf("ubicación = (%v, %v), quería (32.5149, -117.0382)", obtenido.Latitude, obtenido.Longitude)
+	}
+}
+
+// Los clientes que aún mandan "multimedia" al crear (el campo ya no existe)
+// siguen recibiendo 201, y el campo se ignora: la foto solo entra por
+// POST /reportes/{id}/multimedia.
+func TestCrearReporte_IgnoraElCampoMultimediaAnterior(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+
+	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"multimedia": map[string]any{"path": "/multimedia/socavon.jpg"},
+	})
+
+	if creado := decode[api.Reporte](t, rec); len(creado.Multimedia) != 0 {
+		t.Errorf("multimedia = %+v, quería ninguna", creado.Multimedia)
 	}
 }
 

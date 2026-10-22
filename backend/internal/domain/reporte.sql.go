@@ -133,6 +133,25 @@ func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReportePa
 	return i, err
 }
 
+const esCreadorDeReporte = `-- name: EsCreadorDeReporte :one
+SELECT EXISTS (
+    SELECT 1 FROM users_reports WHERE user_id = $1 AND reporte_id = $2
+)
+`
+
+type EsCreadorDeReporteParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+}
+
+// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
+func (q *Queries) EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error) {
+	row := q.db.QueryRow(ctx, esCreadorDeReporte, arg.UserID, arg.ReporteID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
 SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1

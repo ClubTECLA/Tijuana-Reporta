@@ -130,8 +130,7 @@ JSON en `snake_case`; **oapi-codegen** las convierte a `CamelCase` en Go (`incid
 `IncidenteId`). El ejemplo reutiliza `Reporte`, así que no necesita ninguno.
 
 Nombres: lo que el cliente envía se llama `crear_<recurso>_request` (también cuando va
-anidado en otro request, como `crear_tag_request` dentro de `crear_incidente_request` o
-`crear_multimedia_request` dentro de `crear_reporte_request`); lo que la API devuelve usa
+anidado en otro request, como `crear_tag_request` dentro de `crear_incidente_request`); lo que la API devuelve usa
 el nombre del recurso (`tag`, `multimedia`), que además lleva los campos que asigna el
 servidor (`id`, `user_id`, `created_at`). Los nombres de dominio van en español y lo
 técnico o estándar (`created_at`, `latitude`, `user_id`) en inglés.
@@ -308,7 +307,7 @@ declaradas en `internal/api/api.go`. Agrega ahí el método nuevo:
 
 ```go
 type ReporteService interface {
-    Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64, multimedia *domain.CrearMultimediaRequest) (domain.Reporte, error)
+    Crear(ctx context.Context, userID uuid.UUID, incidenteID int, latitude, longitude float64) (domain.Reporte, error)
     Obtener(ctx context.Context, id uuid.UUID) (domain.Reporte, error)
 }
 ```
