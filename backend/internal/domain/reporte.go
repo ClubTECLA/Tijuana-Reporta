@@ -30,7 +30,7 @@ type ReporteDetalle struct {
 	IncidenteEtiqueta string
 	Latitude          float64
 	Longitude         float64
-	Comentarios       []Comentario
+	Comentarios       []ComentarioConAutor
 	Multimedia        []Multimedia
 	Tags              []ListTagsByReporteIdRow
 	Locations         []Location
@@ -42,6 +42,9 @@ type NuevoReporte struct {
 	IncidenteID int
 	Latitude    float64
 	Longitude   float64
+	Comentarios []Comentario
+	Tags        []ListTagsByReporteIdRow
+	Locations   []Location
 	EsOficial   bool
 	Direccion   *string
 }

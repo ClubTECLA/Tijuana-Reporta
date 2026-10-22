@@ -12,7 +12,7 @@ import (
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
-	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
+	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
@@ -35,7 +35,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
-	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
+	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
 	// administración).
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)

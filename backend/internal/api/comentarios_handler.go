@@ -8,13 +8,15 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
-func toComentario(c domain.Comentario) Comentario {
+func toComentario(c domain.ComentarioConAutor) Comentario {
 	return Comentario{
 		Comentario: c.Comentario,
 		CreatedAt:  c.CreatedAt,
 		Id:         c.ID,
 		ReporteId:  c.ReporteID,
+		RolName:    &c.RolName,
 		UserId:     c.UserID,
+		Username:   &c.Username,
 	}
 }
 

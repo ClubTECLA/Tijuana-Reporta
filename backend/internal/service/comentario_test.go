@@ -10,11 +10,13 @@ import (
 
 type fakeComentarioStore struct{}
 
-func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg domain.CreateComentarioParams) (domain.Comentario, error) {
-	return domain.Comentario{
+func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg domain.CreateComentarioParams) (domain.CreateComentarioRow, error) {
+	return domain.CreateComentarioRow{
 		ReporteID:  arg.ReporteID,
 		UserID:     arg.UserID,
 		Comentario: arg.Comentario,
+		Username:   "juan",
+		RolName:    domain.RolCiudadano,
 	}, nil
 }
 
@@ -28,5 +30,8 @@ func TestComentarioService_Crear(t *testing.T) {
 	}
 	if c.ReporteID != reporteID || c.UserID != userID || c.Comentario != "todo bien" {
 		t.Fatalf("Crear() = %+v, want reporteID=%v userID=%v comentario=%q", c, reporteID, userID, "todo bien")
+	}
+	if c.Username != "juan" || c.RolName != domain.RolCiudadano {
+		t.Errorf("autor = %q/%q", c.Username, c.RolName)
 	}
 }

@@ -9,7 +9,7 @@ import (
 
 // ComentarioStore es el subconjunto de *database.Store que este servicio usa.
 type ComentarioStore interface {
-	CreateComentario(ctx context.Context, arg domain.CreateComentarioParams) (domain.Comentario, error)
+	CreateComentario(ctx context.Context, arg domain.CreateComentarioParams) (domain.CreateComentarioRow, error)
 }
 
 type ComentarioService struct {
@@ -21,11 +21,25 @@ func NewComentarioService(store ComentarioStore) *ComentarioService {
 	return &ComentarioService{store: store}
 }
 
-// Crear crea un comentario para el reporte y usuario dados.
-func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.Comentario, error) {
-	return s.store.CreateComentario(ctx, domain.CreateComentarioParams{
+// Crear crea un comentario para el reporte y usuario dados y lo devuelve con
+// el username y el rol de su autor.
+func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error) {
+	row, err := s.store.CreateComentario(ctx, domain.CreateComentarioParams{
 		ReporteID:  reporteID,
 		UserID:     userID,
 		Comentario: texto,
 	})
+	if err != nil {
+		return domain.ComentarioConAutor{}, err
+	}
+
+	return domain.ComentarioConAutor{
+		ID:         row.ID,
+		ReporteID:  row.ReporteID,
+		UserID:     row.UserID,
+		Comentario: row.Comentario,
+		CreatedAt:  row.CreatedAt,
+		Username:   row.Username,
+		RolName:    row.RolName,
+	}, nil
 }
