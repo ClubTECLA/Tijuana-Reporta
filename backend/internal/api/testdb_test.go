@@ -19,7 +19,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-// La base de los tests es un contenedor postgres:16 desechable (la misma
+// La base de los tests es un contenedor postgis/postgis:16-3.5 desechable (la misma
 // imagen que docker-compose.yml) con las migraciones aplicadas. Se levanta
 // una sola vez por corrida, la primera vez que un test la pide, y se borra
 // al terminar. Solo hace falta tener Docker corriendo; sin Docker los tests
@@ -63,7 +63,7 @@ func testPool(t *testing.T) *pgxpool.Pool {
 
 func startTestDB(ctx context.Context) (*pgxpool.Pool, error) {
 	var err error
-	dbContainer, err = postgres.Run(ctx, "postgres:16",
+	dbContainer, err = postgres.Run(ctx, "postgis/postgis:16-3.5",
 		postgres.WithDatabase("tijuana_test"),
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),

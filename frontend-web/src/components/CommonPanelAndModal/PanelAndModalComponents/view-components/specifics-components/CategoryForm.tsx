@@ -20,6 +20,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
     const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
         id: 0,
         nombre: "",
+        etiqueta: "",
         color: '#066ed6',
         tiempo_limite: 0,
         radio: 0,
@@ -34,6 +35,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             setCategoryForEdit({
                 id: 0,
                 nombre: "",
+                etiqueta: "",
                 color: '#066ed6',
                 tiempo_limite: 0,
                 radio: 0,
@@ -74,7 +76,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             debug={debug}
             className="
                 flex-col items-start 
-                justify-center bg-gray-100 rounded-xl px-2 py-4
+                justify-center bg-subtle rounded-xl px-2 py-4
             "
         >  
             <div className="flex flex-row gap-2 items-center justify-center">
@@ -106,12 +108,12 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                 }
                 <div className="flex flex-col">
                     <span
-                        className="text-lg font-bold whitespace-nowrap text-gray-700"
+                        className="text-lg font-bold whitespace-nowrap text-ink"
                     >{category ? "Editar categoria" : "Nueva categoria"}</span>
                     <span 
                         className="
                             whitespace-nowrap font-medium 
-                            text-gray-500
+                            text-ink-muted
                         "
                     >Aparecera en la app al crearla</span>
                 </div>
@@ -185,7 +187,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                     onClick={onClose}
                 />
                 <Button
-                    color='blue'
+                    variant="primary"
                     icon={isEdit ? null : <FiPlus/>}
                     title={isEdit ? "Aceptar" : "Crear Categoria"}
                     onClick={handleSubmitForm}

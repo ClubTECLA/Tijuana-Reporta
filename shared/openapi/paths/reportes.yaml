@@ -65,6 +65,12 @@ crearReporte:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Un ciudadano no puede crear reportes oficiales
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 obtenerReporte:
   get:
@@ -139,8 +145,11 @@ agregarAvistamiento:
 cambiarEstadoReporte:
   patch:
     operationId: cambiarEstadoReporte
+    description: >-
+      Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no
+      con scopes) para que un rol nuevo quede permitido sin tocar el contrato.
     security:
-    - bearerAuth: [admin]
+    - bearerAuth: []
     parameters:
       - name: reporteId
         in: path
@@ -176,7 +185,7 @@ cambiarEstadoReporte:
               $ref: '#/components/schemas/ErrorResponse'
       
       '403':
-        description: El usuario no tiene rol de administrador
+        description: El usuario es ciudadano
         content:
           application/json:
             schema:
@@ -184,6 +193,43 @@ cambiarEstadoReporte:
 
       '404':
         description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+listarReportesCercanos:
+  get:
+    operationId: listarReportesCercanos
+    description: Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano.
+    # ?lat=..&lng=..&radio=..&incidente_id=1&incidente_id=4&estado=Verificado
+    parameters:
+      - { name: lat,   in: query, required: true, schema: { type: number, format: double, minimum: -90,  maximum: 90 } }
+      - { name: lng,   in: query, required: true, schema: { type: number, format: double, minimum: -180, maximum: 180 } }
+      - { name: radio, in: query, required: true, schema: { type: number, format: double, minimum: 1, maximum: 50000 } }
+      - { name: incidente_id, in: query, required: false, style: form, explode: true,
+        schema: { type: array, items: { type: integer } } }
+      - { name: estado, in: query, required: false, style: form, explode: true,
+        schema: { type: array, items: { $ref: '#/components/schemas/EstadoReporte' } } }
+      - { name: desde,  in: query, required: false, schema: { type: string, format: date-time } }
+      - { name: limite, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
+    responses:
+      '200':
+        description: Lista de reportes cercanos
+        content: 
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReporteCercano'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
         content:
           application/json:
             schema:
@@ -201,3 +247,7 @@ components:
       $ref: '../schemas/reportes/crear_reporte_request.yaml'
     ErrorResponse:
       $ref: '../schemas/error_response.yaml'
+    EstadoReporte:
+      $ref: '../schemas/reportes/estado_reporte.yaml'
+    ReporteCercano:
+      $ref: '../schemas/reportes/reporte_cercano.yaml'

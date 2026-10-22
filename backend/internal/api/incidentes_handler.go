@@ -24,6 +24,7 @@ func toIncidente(d domain.IncidenteDetalle) Incidente {
 	return Incidente{
 		Color:        d.Incidente.Color,
 		EstaActivo:   d.Incidente.EstaActivo,
+		Etiqueta:     d.Incidente.Etiqueta,
 		Id:           d.Incidente.ID,
 		Nombre:       d.Incidente.Nombre,
 		Radio:        d.Incidente.Radio,
@@ -47,6 +48,7 @@ func toNuevosTags(tags []CrearTagRequest) []domain.NuevoTag {
 func toNuevoIncidente(b *CrearIncidenteRequest) domain.NuevoIncidente {
 	nuevo := domain.NuevoIncidente{
 		Nombre:       b.Nombre,
+		Etiqueta:     b.Etiqueta,
 		Color:        b.Color,
 		EstaActivo:   b.EstaActivo,
 		TiempoLimite: b.TiempoLimite,

@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/cercanos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano. */
+        get: operations["listarReportesCercanos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}": {
         parameters: {
             query?: never;
@@ -69,6 +86,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/{reporteId}/multimedia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sube la foto del reporte. Solo la puede subir su creador, y una sola por usuario por reporte. Debe ser un JPEG ya reducido por la app. El backend valida el tipo y las dimensiones y le quita los metadatos (EXIF), y el servicio multimedia la guarda; el path de la respuesta se sirve en /multimedia/{path}. */
+        post: operations["subirMultimedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}/estado": {
         parameters: {
             query?: never;
@@ -82,6 +116,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. */
         patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
@@ -226,10 +261,12 @@ export interface components {
         CrearComentarioRequest: components["schemas"]["crear_comentario_request"];
         Reporte: components["schemas"]["reporte"];
         ReporteResumen: components["schemas"]["reporte_resumen"];
+        ReporteCercano: components["schemas"]["reporte_cercano"];
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
+        TituloReporte: components["schemas"]["titulo_reporte"];
         Multimedia: components["schemas"]["multimedia"];
-        CrearMultimediaRequest: components["schemas"]["crear_multimedia_request"];
+        SubirMultimediaRequest: components["schemas"]["subir_multimedia_request"];
         Tag: components["schemas"]["tag"];
         TagCatalogo: components["schemas"]["tag_catalogo"];
         CrearTagRequest: components["schemas"]["crear_tag_request"];
@@ -244,6 +281,11 @@ export interface components {
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
         UsuarioResumen: components["schemas"]["usuario_resumen"];
+        /**
+         * @description Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+         * @example Socavón en Calle Flores Magón 8267 · Zona Centro
+         */
+        titulo_reporte: string;
         /** @enum {string} */
         estado_reporte: "Pendiente" | "Probable" | "Verificado" | "Resuelto" | "Descartado";
         /** @description Versión ligera de un reporte para pintar pines en el mapa. */
@@ -251,6 +293,9 @@ export interface components {
             /** Format: uuid */
             id: string;
             incidente_id: number;
+            titulo: components["schemas"]["titulo_reporte"];
+            /** @description Dirección enviada por el cliente al crear el reporte. */
+            direccion?: string;
             estado_actual: components["schemas"]["estado_reporte"];
             avistamientos: number;
             es_oficial: boolean;
@@ -268,17 +313,15 @@ export interface components {
         error_response: {
             message: string;
         };
-        /** @description Archivo (foto o video) que se adjunta al crear un reporte. */
-        crear_multimedia_request: {
-            path: string;
-        };
         crear_reporte_request: {
             incidente_id: number;
             /** Format: double */
             latitude: number;
             /** Format: double */
             longitude: number;
-            multimedia?: components["schemas"]["crear_multimedia_request"];
+            /** @default false */
+            es_oficial?: boolean;
+            direccion?: string;
         };
         comentario: {
             id: number;
@@ -286,6 +329,8 @@ export interface components {
             reporte_id: string;
             /** Format: uuid */
             user_id: string;
+            username?: string;
+            rol_name?: string;
             comentario: string;
             /** Format: date-time */
             created_at: string;
@@ -321,6 +366,9 @@ export interface components {
             /** Format: uuid */
             id: string;
             incidente_id: number;
+            titulo: components["schemas"]["titulo_reporte"];
+            /** @description Dirección enviada por el cliente al crear el reporte. */
+            direccion?: string;
             avistamientos: number;
             es_historico: boolean;
             es_oficial: boolean;
@@ -344,8 +392,20 @@ export interface components {
             tags: components["schemas"]["tag"][];
             locations: components["schemas"]["location"][];
         };
+        reporte_cercano: components["schemas"]["reporte_resumen"] & {
+            /**
+             * Format: double
+             * @description Distancia en metros desde el punto consultado.
+             */
+            distancia_m: number;
+        };
         crear_comentario_request: {
             comentario: string;
+        };
+        /** @description Foto que el creador de un reporte sube a su reporte. */
+        subir_multimedia_request: {
+            /** Format: binary */
+            file: string;
         };
         cambiar_estado_reporte_request: {
             estado: components["schemas"]["estado_reporte"];
@@ -394,6 +454,8 @@ export interface components {
         incidente: {
             id: number;
             nombre: string;
+            /** @description Texto legible del incidente; es el que se muestra y arma el título del reporte. */
+            etiqueta: string;
             tiempo_limite: number | null;
             /** Format: double */
             radio: number | null;
@@ -410,6 +472,8 @@ export interface components {
         };
         crear_incidente_request: {
             nombre: string;
+            /** @description Texto legible del incidente (p. ej. "Socavón"). Si no se manda, se usa el nombre. */
+            etiqueta?: string;
             tiempo_limite?: number;
             /** Format: double */
             radio?: number;
@@ -503,6 +567,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Un ciudadano no puede crear reportes oficiales */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarReportesCercanos: {
+        parameters: {
+            query: {
+                lat: number;
+                lng: number;
+                radio: number;
+                incidente_id?: number[];
+                estado?: components["schemas"]["estado_reporte"][];
+                desde?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de reportes cercanos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_cercano"][];
                 };
             };
             /** @description Datos inválidos */
@@ -658,6 +777,95 @@ export interface operations {
             };
         };
     };
+    subirMultimedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["subir_multimedia_request"];
+            };
+        };
+        responses: {
+            /** @description Foto guardada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["multimedia"];
+                };
+            };
+            /** @description Archivo faltante, multipart inválido o formato de imagen no soportado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado, o el usuario no es su creador */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario ya subió un archivo a este reporte */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El archivo es demasiado grande */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description La imagen excede las dimensiones permitidas */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El servicio de almacenamiento no está disponible; se puede reintentar */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
     cambiarEstadoReporte: {
         parameters: {
             query?: never;
@@ -700,7 +908,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description El usuario no tiene rol de administrador */
+            /** @description El usuario es ciudadano */
             403: {
                 headers: {
                     [name: string]: unknown;

@@ -9,12 +9,16 @@ security:
 paths:
   /reportes:
     $ref: './paths/reportes.yaml#/crearReporte'
+  /reportes/cercanos:
+    $ref: './paths/reportes.yaml#/listarReportesCercanos'
   /reportes/{reporteId}:
     $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/avistamientos:
     $ref: './paths/reportes.yaml#/agregarAvistamiento'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
+  /reportes/{reporteId}/multimedia:
+    $ref: './paths/multimedia.yaml#/subirMultimedia'
   /reportes/{reporteId}/estado:
     $ref: './paths/reportes.yaml#/cambiarEstadoReporte'
   /auth/register:
@@ -44,14 +48,18 @@ components:
       $ref: './schemas/reportes/reporte.yaml'
     ReporteResumen:
       $ref: './schemas/reportes/reporte_resumen.yaml'
+    ReporteCercano:
+      $ref: './schemas/reportes/reporte_cercano.yaml'
     CambiarEstadoReporteRequest:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
+    TituloReporte:
+      $ref: './schemas/reportes/titulo_reporte.yaml'
     Multimedia:
       $ref: './schemas/multimedia/multimedia.yaml'
-    CrearMultimediaRequest:
-      $ref: './schemas/multimedia/crear_multimedia_request.yaml'
+    SubirMultimediaRequest:
+      $ref: './schemas/multimedia/subir_multimedia_request.yaml'
     Tag:
       $ref: './schemas/tags/tag.yaml'
     TagCatalogo:

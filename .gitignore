@@ -8,6 +8,7 @@
 #Go
 backend/bin/
 backend/tmp/
+multimedia/uploads/
 *.exe
 *.test
 *.out

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import {FaLocationDot} from "react-icons/fa6"
+import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { useAuth } from '../hooks/contexts/AuthContext'
 import { useCommonPanel } from '../hooks/useCommonPanel'
@@ -8,27 +8,42 @@ import useModals from '../hooks/useModals'
 
 
 const formsInputsDivsStyle = `
-    flex flex-col gap-2 w-full
+    flex flex-col gap-1.5 w-full
 `
 const inputsLabelsStyle = `
-    text-sm font-medium text-gray-600
+    text-sm font-semibold text-ink
 `
 
 const inputsStyle = `
-    border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    h-11 w-full rounded-[31px] border border-line bg-white px-3
+    text-sm text-ink outline-none transition-colors duration-200
+    focus:border-brand
 `
 
 const submitButtonStyle = `
-    bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:focus:ring-0
+    h-15 w-full rounded-full bg-brand px-7 text-lg font-bold text-white
+    drop-shadow-button-brand transition duration-200
+    hover:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2
+    disabled:cursor-not-allowed disabled:bg-line-strong disabled:text-ink-muted disabled:drop-shadow-none disabled:hover:brightness-100
 `
 const formsStyle = `
-    flex flex-col gap-4 w-full max-w-md rounded-xl bg-white py-6 px-5 shadow-xl items-center justify-center
+    flex w-full max-w-130 flex-col items-start gap-4.5
+    rounded-[28px] bg-white px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-9
+    shadow-float
 `
+const titleStyle = `text-2xl font-bold text-ink sm:text-[28px]`
+const subtitleStyle = `text-[15px] leading-5.5 text-ink-secondary`
+
+/** Formulario de inicio de sesión: valida los campos, llama al backend y limita los intentos fallidos. */
 function SignInPage() {
     const { showMessage, cleanMessage } = useSysMessage();
     const { login } = useAuth();
     const navigate = useNavigate();
     const [ remainingAttempts, setRemainingAttempts ] = useState(3);
+    // Evita un segundo envío mientras el primero sigue esperando respuesta. La ref corta al instante
+    // (dos envíos en el mismo evento); el estado deshabilita el botón en pantalla.
+    const submittingRef = useRef(false);
+    const [ submitting, setSubmitting ] = useState(false);
     const [ form, setForm] = useState({
         email: '',
         password: ''
@@ -38,10 +53,10 @@ function SignInPage() {
         if(remainingAttempts >= 0)
             cleanMessage();
         setForm({
-            ...form, 
+            ...form,
             [e.target.name]: e.target.value
         })
-    }   
+    }
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -57,6 +72,9 @@ function SignInPage() {
             return;
         }
 
+        if(submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
         try{
             await login(form.email, form.password);
             navigate('/');
@@ -78,192 +96,93 @@ function SignInPage() {
                         : "Error al iniciar sesión"
             );
             setRemainingAttempts(attemptsAfterFailure);
+        }finally{
+            submittingRef.current = false;
+            setSubmitting(false);
         }
 
     }
 
     return (
-        <div className="w-full flex items-center justify-center">
-            <form 
-                className={formsStyle}
-                onSubmit={handleSubmit}  
+        <form
+            className={formsStyle}
+            onSubmit={handleSubmit}
+        >
+            <h1 className={titleStyle}>Iniciar sesión</h1>
+            <span className={subtitleStyle}>Usa tu correo institucional. Las cuentas las crea un administrador</span>
+            <SysMessage />
+            <div className={formsInputsDivsStyle}>
+                <label htmlFor="auth-email" className={inputsLabelsStyle}>Correo institucional</label>
+                <input
+                    id="auth-email"
+                    type="text"
+                    className={inputsStyle}
+                    value={form.email}
+                    onChange={handleChangeInput}
+                    name={"email"}
+                />
+            </div>
+            <div className={formsInputsDivsStyle}>
+                <label htmlFor="auth-password" className={inputsLabelsStyle}>Contraseña</label>
+                <input
+                    id="auth-password"
+                    type="password"
+                    className={inputsStyle}
+                    value={form.password}
+                    onChange={handleChangeInput}
+                    name={"password"}
+                />
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-secondary">
+                {/* shortcut: la sesión siempre se guarda en localStorage; habilitar cuando "recordar" decida dónde guardar el token. */}
+                <label className="flex flex-1 cursor-not-allowed items-center gap-2 whitespace-nowrap opacity-60" title="Próximamente">
+                    <input type="checkbox" disabled className="size-4.5 cursor-not-allowed accent-brand"/> Recordar este equipo
+                </label>
+                {/* La recuperación de contraseña (frames 4-5 del Figma) aún no existe: las cuentas las gestiona un administrador. */}
+                <span className="text-right text-ink-muted">¿Olvidaste tu contraseña? Contacta a un administrador</span>
+            </div>
+            <button
+                type="submit"
+                className={submitButtonStyle}
+                disabled={remainingAttempts === 0 || submitting}
+                aria-disabled={remainingAttempts === 0 || submitting}
+            >{submitting ? 'Ingresando…' : 'Iniciar sesión'}</button>
+            <div className="flex w-full items-center gap-4.75">
+                <span className="h-px flex-1 bg-line-soft" />
+                <span className="text-sm text-ink-muted">O</span>
+                <span className="h-px flex-1 bg-line-soft" />
+            </div>
+            {/* El inicio de sesión con Google aún no está conectado. */}
+            <button
+                type="button"
+                disabled
+                title="Próximamente"
+                className="
+                    flex h-15 w-full items-center justify-center gap-3 rounded-[51px]
+                    border border-line-soft bg-white px-7
+                    text-base font-semibold text-ink
+                    shadow-raised disabled:cursor-not-allowed
+                "
             >
-                <div className={formsInputsDivsStyle}>
-                    <h1 className="text-3xl font-bold sm:text-4xl">Iniciar sesión</h1>
-                    <span className="text-sm text-gray-600">Usa tu correo institucional. Las cuentas las crea un administrador</span>
-                </div>
-                <SysMessage />
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Correo institucional</label>
-                    <input 
-                        type="text"  
-                        className={inputsStyle} 
-                        value={form.email} 
-                        onChange={handleChangeInput}
-                        name={"email"}
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle}>Contraseña</label>
-                    <input 
-                        type="password"  
-                        className={inputsStyle} 
-                        value={form.password} 
-                        onChange={handleChangeInput}
-                        name={"password"}
-                    />
-                </div>
-                <div className="flex w-full flex-wrap items-start justify-between gap-2 text-sm text-gray-600">
-                    <label><input type="checkbox"/> Recordar este equipo </label>
-                    <a href="#" className="text-blue-500 text-end hover:underline">¿Olvidaste tu contraseña?</a>
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <button 
-                        type="submit" 
-                        className={submitButtonStyle}
-                        disabled={remainingAttempts === 0}
-                        aria-disabled={remainingAttempts === 0}
-                    >Iniciar sesión</button>
-                </div>                
-                <h1 className="text-center text-sm font-semibold text-gray-700 my-3">O</h1>
-                    <div className="text-center font-bold w-full">**Boton de Google**</div>
-                <Link
-                    to="/auth?tab=register"
-                    className="w-full text-center border border-blue-500 text-blue-500 font-semibold py-2 px-4 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                    Crear cuenta
-                </Link>
-            </form>
-        </div>
+                <img src="/auth/google.svg" alt="" className="size-5.25" />
+                Continuar con Google
+            </button>
+            <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3">
+                <LuShield className="size-4.5 shrink-0 text-ink-secondary" />
+                <span className="text-[13px] text-ink-secondary">¿Eres ciudadano? Descarga la app Tijuana Reporta para reportar incidentes.</span>
+            </div>
+        </form>
     )
 }
 
-function RegisterPage() {
-    const { register } = useAuth();
-    const navigate = useNavigate();
-    const { showMessage } = useSysMessage();
-    const [form, setForm] = useState({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-    })
-
-    const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        })
-    }
-
-    const handleSubmit = async (e: React.SubmitEvent) => {
-        e.preventDefault()
-        if (form.password !== form.confirmPassword) {
-            showMessage('Las contraseñas no coinciden.', 'red', 'Registro')
-            return
-        }
-
-        try {
-            await register(form.email, form.username, form.password)
-            navigate('/')
-        } catch (error) {
-            console.error('Registration failed:', error)
-            showMessage(
-                error instanceof Error ? error.message : 'No se pudo crear la cuenta.',
-                'red',
-                'Registro'
-            )
-        }
-    }
-
-    return(
-        <div className="w-full flex items-center justify-center">
-            <form className={formsStyle} onSubmit={handleSubmit}>
-                <div className={formsInputsDivsStyle}>
-                    <h1 className="text-3xl font-bold sm:text-4xl">Crear cuenta</h1>
-                    <span className="text-sm text-gray-600">
-                        Regístrate para comenzar a reportar incidentes en Tijuana
-                    </span>
-                </div>
-                <SysMessage />
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-username">Nombre de usuario</label>
-                    <input
-                        id="register-username"
-                        name="username"
-                        type="text"
-                        className={inputsStyle}
-                        value={form.username}
-                        onChange={handleChangeInput}
-                        autoComplete="username"
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-email">Correo electrónico</label>
-                    <input
-                        id="register-email"
-                        name="email"
-                        type="email"
-                        className={inputsStyle}
-                        value={form.email}
-                        onChange={handleChangeInput}
-                        autoComplete="email"
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-password">Contraseña</label>
-                    <input
-                        id="register-password"
-                        name="password"
-                        type="password"
-                        className={inputsStyle}
-                        value={form.password}
-                        onChange={handleChangeInput}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <label className={inputsLabelsStyle} htmlFor="register-confirm-password">Confirmar contraseña</label>
-                    <input
-                        id="register-confirm-password"
-                        name="confirmPassword"
-                        type="password"
-                        className={inputsStyle}
-                        value={form.confirmPassword}
-                        onChange={handleChangeInput}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </div>
-                <div className={formsInputsDivsStyle}>
-                    <button type="submit" className={submitButtonStyle}>Registrarse</button>
-                </div>
-                <Link
-                    to="/auth?tab=login"
-                    className="text-center text-sm text-blue-500 hover:underline"
-                >
-                    Ya tengo una cuenta
-                </Link>
-            </form>
-        </div>
-    )
-}
-
+/** Página /auth del Figma: marca, formulario y métricas sobre la captura del mapa; en móvil se apilan en una columna. */
 export default function AuthPage() {
     const {closePanel} = useCommonPanel();
     const {closeModal} = useModals();
-    const [searchParams] = useSearchParams()
-    const tabParam = searchParams.get('tab');
-    const tab = tabParam === 'register' ? 'register' : 'login';
 
 
     const trendLineChartDivStyle = `
-        bg-gray-200/10 shadow-md rounded-xl flex flex-col px-4 py-1
+        flex flex-1 flex-col gap-0.5 rounded-2xl bg-white/12 px-4 py-3 lg:flex-none
     `
 
     useEffect(() => {
@@ -272,46 +191,54 @@ export default function AuthPage() {
     }, []);
 
     return(
-        <>
-        <div className="pointer-events-none fixed inset-0 bg-gradient-to-r from-blue-900/80 from-0% via-blue-400/20 via-50% to-blue-400/10 to-100%"/>
+        <div className="relative min-h-screen w-full font-['Inter',sans-serif]">
+            {/* Captura del fondo del Figma */}
+            <img src="/auth/fondo.webp" alt="" aria-hidden="true" className="pointer-events-none fixed inset-0 size-full object-cover object-left lg:object-center" />
 
-        <div className="flex min-h-dvh flex-col items-center bg-gray-300 px-4 py-6 md:flex-row md:px-0 md:py-0">
-            
-            <div className="relative hidden h-dvh w-2/4 md:block">
-                <div className="absolute top-1/3 left-10 flex flex-col gap-4 w-2/3 h-2/5">
-                    <div className="flex flex-row items-center gap-6">
-                        <div className="bg-blue-500 rounded-xl p-3">
-                            <FaLocationDot className="text-2xl text-white"/>
+            <div className="relative flex min-h-screen flex-col px-4 py-8 sm:px-8 lg:py-10 lg:pl-[7.29%] lg:pr-[10.42%]">
+                {/*
+                  Móvil: marca → tarjeta → métricas, en una columna.
+                  Escritorio (lg): composición del Figma, marca y métricas a la izquierda y la tarjeta a la derecha.
+                */}
+                <div
+                    className="
+                        mx-auto my-auto grid w-full max-w-130 gap-6
+                        [grid-template-areas:'brand'_'card'_'stats']
+                        lg:max-w-none lg:grid-cols-[minmax(0,560px)_minmax(0,520px)] lg:justify-between lg:gap-x-10 lg:gap-y-5
+                        lg:[grid-template-areas:'brand_card'_'stats_card']
+                    "
+                >
+                    <div className="flex flex-col gap-4 [grid-area:brand] lg:gap-5 lg:self-end">
+                        <div className="flex flex-row items-center gap-3 lg:gap-4">
+                            <div className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-brand lg:size-16 lg:rounded-[18px]">
+                                <LuMapPin className="size-6.5 text-white lg:size-8.5"/>
+                            </div>
+                            <h1 className="text-[32px] font-bold text-white lg:text-[40px]">ClimAlert</h1>
                         </div>
-                        <h1 className="text-3xl font-bold text-white">Tijuana Reporta</h1>                        
+                        <h2 className="text-[22px] font-semibold leading-7.5 text-white lg:text-[30px] lg:leading-9.5">Panel de operación para Protección Civil y personal autorizado</h2>
+                        <h2 className="text-[15px] leading-6 text-blue-100 lg:text-[17px] lg:leading-6.5">Revisa reportes ciudadanos, verifica incidentes y avisa a la comunidad en tiempo real durante la temporada de el Niño.</h2>
                     </div>
-                    <div>
-                        <h2 className="text-xl text-white">Panel de operación para Protección Civil y personal autorizado</h2>
+
+                    <div className="flex justify-center [grid-area:card] lg:items-center lg:justify-end">
+                        <SignInPage />
                     </div>
-                    <div>
-                        <h2 className="text-sm text-blue-100">Reporta incidentes ocasionados en la ciudad. La comunidad confirma y todos se enteran antes de salir.</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <div className="flex flex-row gap-3 whitespace-nowrap [grid-area:stats] lg:self-start">
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-gray-100 font-bold text-xl'>{23}</span>
-                            <span className="text-xs text-white">Incidentes activos</span>
+                            <span className='text-[22px] font-bold text-white'>{23}</span>
+                            <span className="text-[13px] text-blue-100">Incidentes activos</span>
                         </div>
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-gray-100 font-bold text-xl'>{1240}</span>
-                            <span className="text-xs text-white">Personas notificadas hoy</span>
+                            <span className='text-[22px] font-bold text-white'>{1240}</span>
+                            <span className="text-[13px] text-blue-100">Personas notificadas hoy</span>
                         </div>
                     </div>
                 </div>
-                <span className="absolute bottom-2 left-10 text-xs text-gray-200">
+
+                <span className="mx-auto mt-8 w-full max-w-130 text-[13px] text-line-soft lg:absolute lg:bottom-6 lg:left-[7.29%] lg:mt-0 lg:w-auto lg:max-w-none">
                     Uso exclusivo de personal autorizado · Actividad registrada en bitácora
                 </span>
             </div>
-
-            <div className="flex w-full items-center justify-center md:w-2/4">
-                    {tab === 'login' ? <SignInPage /> : <RegisterPage />}
-            </div>
         </div>
-        
-        </>  
     )
 }

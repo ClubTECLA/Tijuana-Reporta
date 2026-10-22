@@ -13,12 +13,14 @@ package api_test
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,9 +41,10 @@ const incidenteSocavon = 2
 // testClient manda peticiones al router en memoria, con el token del usuario
 // autenticado si lo hay.
 type testClient struct {
-	t      *testing.T
-	router http.Handler
-	token  string
+	t          *testing.T
+	router     http.Handler
+	token      string
+	multimedia *multimediaFalso
 }
 
 // newTestClient arma el router con los servicios reales sobre la base de los
@@ -55,15 +58,21 @@ func newTestClient(t *testing.T) *testClient {
 		t.Fatalf("creando AuthService: %v", err)
 	}
 
+	multimedia := &multimediaFalso{}
+
 	gin.SetMode(gin.TestMode)
 	router := api.NewRouter(api.Services{
 		Comentarios: service.NewComentarioService(store),
 		Reportes:    service.NewReporteService(store),
 		Incidentes:  service.NewIncidenteService(store),
 		Auth:        auth,
+		Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
+			MaxBytes:   3 << 20,
+			MaxPixeles: 16_000_000,
+		}),
 	}, testJWTSecret)
 
-	return &testClient{t: t, router: router}
+	return &testClient{t: t, router: router, multimedia: multimedia}
 }
 
 // do manda la petición y devuelve la respuesta grabada. body se serializa a
@@ -203,6 +212,12 @@ func TestStatus(t *testing.T) {
 		{name: "obtener reporte con id que no es UUID", method: http.MethodGet, path: "/v1/reportes/5", want: http.StatusBadRequest},
 		{name: "listar con área incompleta", method: http.MethodGet, path: "/v1/reportes?min_lat=32.4", want: http.StatusBadRequest},
 		{name: "avistamiento en reporte inexistente", method: http.MethodPatch, path: "/v1/reportes/" + uuid.Nil.String() + "/avistamientos", want: http.StatusNotFound},
+		{name: "cercanos sin radio", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382", want: http.StatusBadRequest},
+		{name: "cercanos con radio mayor al máximo", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=50001", want: http.StatusBadRequest},
+		{name: "cercanos con latitud fuera de rango", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=91&lng=-117.0382&radio=2000", want: http.StatusBadRequest},
+		{name: "cercanos con estado fuera del enum", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&estado=Arreglado", want: http.StatusBadRequest},
+		{name: "cercanos con límite 0", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&limite=0", want: http.StatusBadRequest},
+		{name: "cercanos sin token", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000", noAuth: true, want: http.StatusUnauthorized},
 		{name: "logout", method: http.MethodPost, path: "/v1/auth/logout", want: http.StatusNoContent},
 	}
 
@@ -262,36 +277,139 @@ func TestCrearYObtenerReporte(t *testing.T) {
 	}
 }
 
-func TestCrearReporteConMultimedia(t *testing.T) {
+// Los clientes que aún mandan "multimedia" al crear (el campo ya no existe)
+// siguen recibiendo 201, y el campo se ignora: la foto solo entra por
+// POST /reportes/{id}/multimedia.
+func TestCrearReporte_IgnoraElCampoMultimediaAnterior(t *testing.T) {
 	c := newTestClient(t)
 	c.login()
 
 	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "/media/socavon.jpg"},
+		"multimedia": map[string]any{"path": "/multimedia/socavon.jpg"},
 	})
-	creado := decode[api.Reporte](t, rec)
-	if len(creado.Multimedia) != 1 {
-		t.Fatalf("multimedia = %d archivos, quería 1", len(creado.Multimedia))
-	}
-	if creado.Multimedia[0].Path != "/media/socavon.jpg" {
-		t.Errorf("multimedia[0] = %+v, quería /media/socavon.jpg", creado.Multimedia[0])
-	}
 
-	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
-		t.Errorf("multimedia al obtener = %d archivos, quería 1", len(obtenido.Multimedia))
+	if creado := decode[api.Reporte](t, rec); len(creado.Multimedia) != 0 {
+		t.Errorf("multimedia = %+v, quería ninguna", creado.Multimedia)
 	}
 }
 
-func TestCrearReporteMultimediaInvalida(t *testing.T) {
+func TestCrearReporteOficial(t *testing.T) {
+	body := map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"es_oficial": true,
+	}
+
+	rescatista := newTestClient(t)
+	rescatista.loginComo("rescatista")
+	rec := rescatista.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
+	creado := decode[api.Reporte](t, rec)
+	if !creado.EsOficial {
+		t.Errorf("es_oficial = false, quería true")
+	}
+	rec = rescatista.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
+	if obtenido := decode[api.Reporte](t, rec); !obtenido.EsOficial {
+		t.Errorf("es_oficial al obtener = false, quería true")
+	}
+
+	ciudadano := newTestClient(t)
+	ciudadano.login()
+	ciudadano.expect(http.StatusForbidden, http.MethodPost, "/v1/reportes", body)
+
+	body["es_oficial"] = false
+	rec = ciudadano.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
+	if decode[api.Reporte](t, rec).EsOficial {
+		t.Errorf("es_oficial = true, quería false")
+	}
+}
+
+func TestCrearReporteDireccion(t *testing.T) {
 	c := newTestClient(t)
 	c.login()
 
+	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+		"direccion": "Av. Revolución 1234 · Zona Centro",
+	})
+	creado := decode[api.Reporte](t, rec)
+	if creado.Direccion == nil || *creado.Direccion != "Av. Revolución 1234 · Zona Centro" {
+		t.Errorf("direccion = %v, quería %q", creado.Direccion, "Av. Revolución 1234 · Zona Centro")
+	}
+	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
+	if obtenido := decode[api.Reporte](t, rec); obtenido.Direccion == nil || *obtenido.Direccion != *creado.Direccion {
+		t.Errorf("direccion al obtener = %v, quería %q", obtenido.Direccion, *creado.Direccion)
+	}
+
+	// Sin dirección el campo se omite de la respuesta.
+	rec = c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
+	})
+	if d := decode[api.Reporte](t, rec).Direccion; d != nil {
+		t.Errorf("direccion = %q, quería ausente", *d)
+	}
+
 	c.expect(http.StatusBadRequest, http.MethodPost, "/v1/reportes", map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "  "},
+		"direccion": strings.Repeat("a", 256),
 	})
+}
+
+// El título no se guarda: se deriva de la etiqueta del incidente y la dirección,
+// igual en el detalle, el listado del mapa y los cercanos.
+func TestReporteTitulo(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+
+	const lat, lng = 32.4321, -116.9123
+	crear := func(body map[string]any) api.Reporte {
+		body["incidente_id"], body["latitude"], body["longitude"] = incidenteSocavon, lat, lng
+		return decode[api.Reporte](t, c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body))
+	}
+	conDireccion := crear(map[string]any{"direccion": "Calle Flores Magón 8267 · Zona Centro"})
+	sinDireccion := crear(map[string]any{})
+
+	want := map[uuid.UUID]string{
+		conDireccion.Id: "Socavón en Calle Flores Magón 8267 · Zona Centro",
+		sinDireccion.Id: "Socavón",
+	}
+
+	for id, titulo := range want {
+		rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+id.String(), nil)
+		if got := decode[api.Reporte](t, rec).Titulo; got != titulo {
+			t.Errorf("detalle %s: titulo = %q, quería %q", id, got, titulo)
+		}
+	}
+
+	rec := c.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/reportes?min_lat=%v&max_lat=%v&min_lng=%v&max_lng=%v", lat-0.001, lat+0.001, lng-0.001, lng+0.001), nil)
+	encontrados := 0
+	for _, r := range decode[[]api.ReporteResumen](t, rec) {
+		if titulo, ok := want[r.Id]; ok {
+			encontrados++
+			if r.Titulo != titulo {
+				t.Errorf("listado %s: titulo = %q, quería %q", r.Id, r.Titulo, titulo)
+			}
+		}
+	}
+	if encontrados != len(want) {
+		t.Errorf("listado: encontró %d de %d reportes", encontrados, len(want))
+	}
+
+	rec = c.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/reportes/cercanos?lat=%v&lng=%v&radio=50", lat, lng), nil)
+	encontrados = 0
+	for _, r := range decode[[]api.ReporteCercano](t, rec) {
+		if titulo, ok := want[r.Id]; ok {
+			encontrados++
+			if r.Titulo != titulo {
+				t.Errorf("cercanos %s: titulo = %q, quería %q", r.Id, r.Titulo, titulo)
+			}
+			if (r.Direccion != nil) != (r.Id == conDireccion.Id) {
+				t.Errorf("cercanos %s: direccion = %v", r.Id, r.Direccion)
+			}
+		}
+	}
+	if encontrados != len(want) {
+		t.Errorf("cercanos: encontró %d de %d reportes", encontrados, len(want))
+	}
 }
 
 func TestCambiarEstadoReporte(t *testing.T) {
@@ -308,7 +426,15 @@ func TestCambiarEstadoReporte(t *testing.T) {
 
 	ciudadano := newTestClient(t)
 	ciudadano.login()
-	ciudadano.expect(http.StatusForbidden, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Verificado"})
+	ciudadano.expect(http.StatusForbidden, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Resuelto"})
+
+	// Cualquier rol que no sea ciudadano puede cambiarlo, no solo admin.
+	rescatista := newTestClient(t)
+	rescatista.loginComo("rescatista")
+	rec = rescatista.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Resuelto"})
+	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Resuelto {
+		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Resuelto)
+	}
 }
 
 func TestListarReportes(t *testing.T) {
@@ -348,25 +474,146 @@ func TestListarReportes(t *testing.T) {
 	})
 }
 
-func TestComentarReporte(t *testing.T) {
+func TestListarReportesCercanos(t *testing.T) {
 	c := newTestClient(t)
-	auth := c.login()
-	reporte := c.crearReporte()
+	c.login()
+	// crearReporte lo pone en (32.5149, -117.0382), el centro de cada búsqueda.
+	creado := c.crearReporte()
+	const base = "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382"
 
-	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
-		"comentario": "Sigue ahí el socavón",
+	// Otros tests crean reportes en el mismo punto, así que se busca el propio
+	// en vez de asumir que es el único o el primero.
+	buscar := func(rs []api.ReporteCercano) (api.ReporteCercano, bool) {
+		i := slices.IndexFunc(rs, func(r api.ReporteCercano) bool { return r.Id == creado.Id })
+		if i < 0 {
+			return api.ReporteCercano{}, false
+		}
+		return rs[i], true
+	}
+	listar := func(t *testing.T, query string) []api.ReporteCercano {
+		tc := *c
+		tc.t = t
+		return decode[[]api.ReporteCercano](t, tc.expect(http.StatusOK, http.MethodGet, base+query, nil))
+	}
+
+	t.Run("dentro del radio", func(t *testing.T) {
+		rs := listar(t, "&radio=2000")
+		r, ok := buscar(rs)
+		if !ok {
+			t.Fatalf("el listado no incluye el reporte %v", creado.Id)
+		}
+		if r.DistanciaM > 1 {
+			t.Errorf("distancia_m = %v, quería ~0 (el reporte está en el centro)", r.DistanciaM)
+		}
+		if !slices.IsSortedFunc(rs, func(a, b api.ReporteCercano) int { return cmp.Compare(a.DistanciaM, b.DistanciaM) }) {
+			t.Errorf("el listado no está ordenado por distancia")
+		}
 	})
-	comentario := decode[api.Comentario](t, rec)
 
-	if comentario.Comentario != "Sigue ahí el socavón" {
-		t.Errorf("comentario = %q", comentario.Comentario)
-	}
-	if comentario.ReporteId != reporte.Id {
-		t.Errorf("reporte_id = %v, quería %v", comentario.ReporteId, reporte.Id)
-	}
-	if comentario.UserId != auth.User.Id {
-		t.Errorf("user_id = %v, quería %v", comentario.UserId, auth.User.Id)
-	}
+	t.Run("fuera del radio", func(t *testing.T) {
+		// Ensenada, a ~90 km.
+		tc := *c
+		tc.t = t
+		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/cercanos?lat=31.8667&lng=-116.5964&radio=100", nil)
+		if _, ok := buscar(decode[[]api.ReporteCercano](t, rec)); ok {
+			t.Errorf("el listado de Ensenada incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por incidente", func(t *testing.T) {
+		if _, ok := buscar(listar(t, fmt.Sprintf("&radio=2000&incidente_id=%d&incidente_id=4", incidenteSocavon))); !ok {
+			t.Errorf("filtrando por su incidente, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&incidente_id=4")); ok {
+			t.Errorf("filtrando por otro incidente, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por estado", func(t *testing.T) {
+		// Un reporte nuevo queda en Pendiente.
+		if _, ok := buscar(listar(t, "&radio=2000&estado=Pendiente&estado=Probable")); !ok {
+			t.Errorf("filtrando por Pendiente, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&estado=Verificado")); ok {
+			t.Errorf("filtrando por Verificado, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("filtro por fecha", func(t *testing.T) {
+		if _, ok := buscar(listar(t, "&radio=2000&desde=2000-01-01T00:00:00Z")); !ok {
+			t.Errorf("con desde en el pasado, el listado no incluye el reporte %v", creado.Id)
+		}
+		if _, ok := buscar(listar(t, "&radio=2000&desde=2999-01-01T00:00:00Z")); ok {
+			t.Errorf("con desde en el futuro, el listado incluye el reporte %v", creado.Id)
+		}
+	})
+
+	t.Run("límite", func(t *testing.T) {
+		if rs := listar(t, "&radio=50000&limite=1"); len(rs) > 1 {
+			t.Errorf("con limite=1 regresó %d reportes", len(rs))
+		}
+	})
+}
+
+func TestComentarReporte(t *testing.T) {
+	t.Run("ciudadano", func(t *testing.T) {
+		c := newTestClient(t)
+		auth := c.login()
+		reporte := c.crearReporte()
+
+		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
+			"comentario": "Sigue ahí el socavón",
+		})
+		comentario := decode[api.Comentario](t, rec)
+
+		if comentario.Comentario != "Sigue ahí el socavón" {
+			t.Errorf("comentario = %q", comentario.Comentario)
+		}
+		if comentario.ReporteId != reporte.Id {
+			t.Errorf("reporte_id = %v, quería %v", comentario.ReporteId, reporte.Id)
+		}
+		if comentario.UserId != auth.User.Id {
+			t.Errorf("user_id = %v, quería %v", comentario.UserId, auth.User.Id)
+		}
+		if *comentario.Username != auth.User.Username {
+			t.Errorf("username = %q, quería %q", *comentario.Username, auth.User.Username)
+		}
+		if *comentario.RolName != domain.RolCiudadano {
+			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, domain.RolCiudadano)
+		}
+	})
+
+	// Con un rol distinto al default se comprueba que rol_name sale del JOIN
+	// con roles y no de un valor fijo.
+	t.Run("rescatista", func(t *testing.T) {
+		c := newTestClient(t)
+		c.loginComo("rescatista")
+		reporte := c.crearReporte()
+
+		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
+			"comentario": "Ya vamos en camino",
+		})
+		comentario := decode[api.Comentario](t, rec)
+
+		if *comentario.RolName != "rescatista" {
+			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, "rescatista")
+		}
+
+		// El detalle del reporte lista los comentarios con ListComentariosByReporteId,
+		// que también debe traer el autor.
+		rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
+		obtenido := decode[api.Reporte](t, rec)
+		if len(obtenido.Comentarios) != 1 {
+			t.Fatalf("comentarios = %d, quería 1", len(obtenido.Comentarios))
+		}
+		listado := obtenido.Comentarios[0]
+		if listado.Username == nil || *listado.Username != *comentario.Username {
+			t.Errorf("username listado = %v, quería %q", listado.Username, *comentario.Username)
+		}
+		if listado.RolName == nil || *listado.RolName != "rescatista" {
+			t.Errorf("rol_name listado = %v, quería %q", listado.RolName, "rescatista")
+		}
+	})
 }
 
 func TestAgregarAvistamiento(t *testing.T) {
@@ -640,6 +887,19 @@ func TestObtenerIncidente(t *testing.T) {
 		}
 		if len(got.Tags) != 1 || got.Tags[0].Nombre != "profundo" || got.Tags[0].Peso != 2 {
 			t.Errorf("tags = %+v, quería [profundo (peso 2)]", got.Tags)
+		}
+		// Sin etiqueta en la petición, se usa el nombre.
+		if got.Etiqueta != creado.Nombre {
+			t.Errorf("etiqueta = %q, quería %q", got.Etiqueta, creado.Nombre)
+		}
+	})
+
+	t.Run("del baseline, con su etiqueta", func(t *testing.T) {
+		tc := *c
+		tc.t = t
+		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", incidenteSocavon), nil))
+		if got.Nombre != "socavon" || got.Etiqueta != "Socavón" {
+			t.Errorf("incidente = nombre %q etiqueta %q, quería socavon/Socavón", got.Nombre, got.Etiqueta)
 		}
 	})
 

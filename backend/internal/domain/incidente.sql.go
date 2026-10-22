@@ -10,13 +10,14 @@ import (
 )
 
 const createIncidente = `-- name: CreateIncidente :one
-INSERT INTO incidentes (nombre, tiempo_limite, radio, esta_activo, color)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, nombre, tiempo_limite, radio, esta_activo, color
+INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, color)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color
 `
 
 type CreateIncidenteParams struct {
 	Nombre       string   `json:"nombre"`
+	Etiqueta     string   `json:"etiqueta"`
 	TiempoLimite *int     `json:"tiempo_limite"`
 	Radio        *float64 `json:"radio"`
 	EstaActivo   bool     `json:"esta_activo"`
@@ -26,6 +27,7 @@ type CreateIncidenteParams struct {
 func (q *Queries) CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error) {
 	row := q.db.QueryRow(ctx, createIncidente,
 		arg.Nombre,
+		arg.Etiqueta,
 		arg.TiempoLimite,
 		arg.Radio,
 		arg.EstaActivo,
@@ -35,6 +37,7 @@ func (q *Queries) CreateIncidente(ctx context.Context, arg CreateIncidenteParams
 	err := row.Scan(
 		&i.ID,
 		&i.Nombre,
+		&i.Etiqueta,
 		&i.TiempoLimite,
 		&i.Radio,
 		&i.EstaActivo,
@@ -68,7 +71,7 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, erro
 }
 
 const getIncidenteById = `-- name: GetIncidenteById :one
-SELECT id, nombre, tiempo_limite, radio, esta_activo, color FROM incidentes WHERE id = $1
+SELECT id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color FROM incidentes WHERE id = $1
 `
 
 func (q *Queries) GetIncidenteById(ctx context.Context, id int) (Incidente, error) {
@@ -77,6 +80,7 @@ func (q *Queries) GetIncidenteById(ctx context.Context, id int) (Incidente, erro
 	err := row.Scan(
 		&i.ID,
 		&i.Nombre,
+		&i.Etiqueta,
 		&i.TiempoLimite,
 		&i.Radio,
 		&i.EstaActivo,
@@ -86,7 +90,7 @@ func (q *Queries) GetIncidenteById(ctx context.Context, id int) (Incidente, erro
 }
 
 const listIncidentes = `-- name: ListIncidentes :many
-SELECT id, nombre, tiempo_limite, radio, esta_activo, color FROM incidentes
+SELECT id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color FROM incidentes
 WHERE esta_activo OR $1::boolean
 ORDER BY nombre
 `
@@ -105,6 +109,7 @@ func (q *Queries) ListIncidentes(ctx context.Context, incluirInactivos bool) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.Nombre,
+			&i.Etiqueta,
 			&i.TiempoLimite,
 			&i.Radio,
 			&i.EstaActivo,

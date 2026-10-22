@@ -1,0 +1,9 @@
+allOf:
+  - $ref: './reporte_resumen.yaml'
+  - type: object
+    required: [distancia_m]
+    properties:
+      distancia_m:
+        type: number
+        format: double
+        description: Distancia en metros desde el punto consultado.

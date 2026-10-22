@@ -21,8 +21,8 @@ export default function ReportBottomSheetTesting ({ isVisible, onClose }: Report
   return (
     <BottomSheet isVisible={isVisible} onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="m-0 text-xl text-[#252a31]">¿Qué ves?</h2>
-        <button type="button" className="border-0 bg-transparent px-2 py-1 text-[#68717d]" onClick={onClose} aria-label="Close">
+        <h2 className="m-0 text-xl text-ink">¿Qué ves?</h2>
+        <button type="button" className="border-0 bg-transparent px-2 py-1 text-ink-muted" onClick={onClose} aria-label="Close">
           X
         </button>
       </div>
@@ -35,13 +35,13 @@ export default function ReportBottomSheetTesting ({ isVisible, onClose }: Report
             <button
               type="button"
               key={category.id}
-              className={`relative flex w-[100px] shrink-0 flex-col items-center gap-2 border-0 bg-transparent text-center ${isSelected ? 'font-bold text-[#252a31]' : 'text-[#68717d]'}`}
+              className={`relative flex w-[100px] shrink-0 flex-col items-center gap-2 border-0 bg-transparent text-center ${isSelected ? 'font-bold text-ink' : 'text-ink-muted'}`}
               onClick={() => setSelected(category.id)}
               aria-pressed={isSelected}
             >
-              <span className={`block h-20 w-20 rounded-full ${isSelected ? 'bg-[#2f80ed]' : 'bg-[#f1f3f5]'}`} />
+              <span className={`block h-20 w-20 rounded-full ${isSelected ? 'bg-brand' : 'bg-subtle'}`} />
               <span>{category.label}</span>
-              {isSelected && <span className="font-bold text-[#2f80ed]">✓</span>}
+              {isSelected && <span className="font-bold text-brand">✓</span>}
             </button>
           )
         })}
@@ -59,8 +59,8 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
   return (
     <BottomSheet isVisible={isVisible} onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="m-0 text-xl text-[#252a31]">¿Qué ves?</h2>
-        <button type="button" className="border-0 bg-transparent px-2 py-1 text-[#68717d]" onClick={onClose} aria-label="Close">
+        <h2 className="m-0 text-xl text-ink">¿Qué ves?</h2>
+        <button type="button" className="border-0 bg-transparent px-2 py-1 text-ink-muted" onClick={onClose} aria-label="Close">
           X
         </button>
       </div>
@@ -73,15 +73,15 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
             <button
               type="button"
               key={category.id}
-              className={`flex items-center justify-between border-0 border-b border-[#e2e6eb] px-2 py-4 text-left text-[#252a31] ${isSelected ? 'rounded-lg bg-[#f1f3f5]' : 'bg-transparent'}`}
+              className={`flex items-center justify-between border-0 border-b border-line-soft px-2 py-4 text-left text-ink ${isSelected ? 'rounded-lg bg-subtle' : 'bg-transparent'}`}
               onClick={() => setSelected(category.id)}
               aria-pressed={isSelected}
             >
               <span className="flex items-center gap-4">
-                <span className={`block h-10 w-10 rounded-full ${isSelected ? 'bg-[#2f80ed]' : 'bg-[#f1f3f5]'}`} />
+                <span className={`block h-10 w-10 rounded-full ${isSelected ? 'bg-brand' : 'bg-subtle'}`} />
                 <span>{category.label}</span>
               </span>
-              {isSelected && <span className="font-bold text-[#2f80ed]">✓</span>}
+              {isSelected && <span className="font-bold text-brand">✓</span>}
             </button>
           )
         })}
@@ -93,8 +93,8 @@ export const ReportBottomSheetDefault = ({ isVisible, onClose }: ReportBottomShe
 }
 
 const ReportLocation = () => (
-  <div className="mt-6 grid gap-1 rounded-lg bg-[#f1f3f5] p-4">
-    <span className="text-xs text-[#68717d]">Ubicación del Reporte</span>
-    <span className="text-base font-medium text-[#252a31]">Blvd. Uabc 224</span>
+  <div className="mt-6 grid gap-1 rounded-lg bg-subtle p-4">
+    <span className="text-xs text-ink-muted">Ubicación del Reporte</span>
+    <span className="text-base font-medium text-ink">Blvd. Uabc 224</span>
   </div>
 )

@@ -1,6 +1,7 @@
 import {
     Children,
     cloneElement,
+    Fragment,
     isValidElement,
     type ComponentPropsWithoutRef,
     type ReactNode,
@@ -40,7 +41,8 @@ export type SubSectionProps =
     | LinkSubSectionProps;
 
 function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
-    if (!isValidElement<subsectionProps>(child) || typeof child.type === "string") {
+    // Ni las etiquetas HTML ni los Fragment aceptan la prop `debug`.
+    if (!isValidElement<subsectionProps>(child) || typeof child.type === "string" || child.type === Fragment) {
         return child;
     }
 

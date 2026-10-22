@@ -18,8 +18,8 @@ export function SideNavItem ({format = "col", debug, icon, title, isSelected, on
             debug={debug}
             className={`
                 flex-row gap-4 items-center justify-start rounded-2xl
-                px-4 ${isSelected ? "text-blue-700 bg-blue-50" : 'text-gray-500'} 
-                hover:text-blue-700 hover:bg-blue-50 transition-all duration-300
+                px-4 ${isSelected ? "text-brand-text bg-brand-subtle" : 'text-ink-muted'} 
+                hover:text-brand-text hover:bg-brand-subtle transition-all duration-300
                 py-3
             `}
             onClick={onClick}

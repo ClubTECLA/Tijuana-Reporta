@@ -7,6 +7,9 @@ import {
 import { LuLayers, LuMinus, LuNavigation, LuPlus } from 'react-icons/lu';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { useMap } from '../hooks/useMap';
+import ActionDock from './ActionDock';
+import IncidentsLayer from './map/IncidentsLayer';
 
 setWorkerUrl(workerUrl);
 
@@ -43,6 +46,8 @@ export default function MapContainer() {
   const [atMinZoom, setAtMinZoom] = useState(false);
   const [atMaxZoom, setAtMaxZoom] = useState(false);
 
+  const { setMap } = useMap();
+
   useEffect(() => {
     // Create the map once the container is available.
     if (mapRef.current || !mapContainerRef.current) return;
@@ -56,6 +61,8 @@ export default function MapContainer() {
       attributionControl: { compact: true },
     });
   mapRef.current = map;
+    // Shares the map with the panels (MapContext).
+    setMap(map);
 
     map.on('zoom', () => {
       setAtMinZoom(map.getZoom() <= map.getMinZoom());
@@ -63,16 +70,17 @@ export default function MapContainer() {
     });
     // Remove the map instance when the component is unmounted.
     return () => {
+      setMap(null);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [setMap]);
   const controlButtonStyle = `
     flex size-11 items-center justify-center rounded-full
-    text-xl text-slate-700 transition-colors duration-200
-    hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent
+    text-xl text-icon transition-colors duration-200
+    hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent
   `;
   return (
     <div className="relative h-screen w-screen">
@@ -83,27 +91,30 @@ export default function MapContainer() {
         className="
           absolute right-4 top-1/2 z-10 -translate-y-1/2
           flex flex-col items-center p-1.5
-          rounded-full border border-white/70
-          bg-white/86 backdrop-blur-[14px]
-          drop-shadow-[0_12px_18px_rgba(11,18,32,0.1)]
+          rounded-full border border-glass-line
+          bg-glass backdrop-blur-glass
+          drop-shadow-floating
         "
       >
         {/* No map layers to toggle yet (reports, risk zones, shelters). */}
         <button type="button" className={controlButtonStyle} aria-label="Capas" title="Capas (próximamente)" disabled>
           <LuLayers />
         </button>
-        <div className="h-px w-6 bg-slate-200" />
+        <div className="h-px w-6 bg-line-soft" />
         <button type="button" className={controlButtonStyle} aria-label="Acercar" title="Acercar" disabled={atMaxZoom} onClick={() => mapRef.current?.zoomIn()}>
           <LuPlus />
         </button>
         <button type="button" className={controlButtonStyle} aria-label="Alejar" title="Alejar" disabled={atMinZoom} onClick={() => mapRef.current?.zoomOut()}>
           <LuMinus />
         </button>
-        <div className="h-px w-6 bg-slate-200" />
+        <div className="h-px w-6 bg-line-soft" />
         <button type="button" className={controlButtonStyle} aria-label="Orientar al norte" title="Orientar al norte" onClick={() => mapRef.current?.resetNorthPitch()}>
           <LuNavigation />
         </button>
       </div>
+
+      <ActionDock />
+      <IncidentsLayer />
     </div>
   );
 }

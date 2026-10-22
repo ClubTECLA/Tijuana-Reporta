@@ -2,6 +2,8 @@
 -- el historial de git) e incluye el cambio de fotos a multimedia y sin "Expirado".
 -- Sale de un pg_dump --schema-only; al final van los datos semilla.
 
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- Name: estado; Type: TYPE; Schema: public; Owner: -
 CREATE TYPE public.estado AS ENUM (
     'Pendiente',
@@ -192,11 +194,13 @@ ALTER SEQUENCE public.incidente_tags_id_seq OWNED BY public.incidente_tags.id;
 
 -- Name: incidentes; Type: TABLE; Schema: public; Owner: -
 -- Catálogo que contiene cada tipo de incidente.
+-- "nombre" es el identificador (slug); "etiqueta" es el texto legible que se muestra y arma el título del reporte.
 CREATE TABLE public.incidentes (
     id integer NOT NULL,
     nombre character varying(100) NOT NULL,
+    etiqueta character varying(100) NOT NULL,
     tiempo_limite smallint,
-    radio numeric,
+    radio double precision,
     esta_activo boolean DEFAULT true NOT NULL,
     color character varying(7) DEFAULT '#757575'::character varying NOT NULL,
     CONSTRAINT incidentes_color_hex_check CHECK (((color)::text ~ '^#[0-9A-Fa-f]{6}$'::text))
@@ -219,8 +223,8 @@ ALTER SEQUENCE public.incidentes_id_seq OWNED BY public.incidentes.id;
 CREATE TABLE public.location (
     id integer NOT NULL,
     reporte_id uuid NOT NULL,
-    latitude numeric NOT NULL,
-    longitude numeric NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     user_id uuid NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL
 );
@@ -242,8 +246,8 @@ ALTER SEQUENCE public.location_id_seq OWNED BY public.location.id;
 CREATE TABLE public.logs (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     incidente_id integer NOT NULL,
-    longitude numeric NOT NULL,
-    latitude numeric NOT NULL,
+    longitude double precision NOT NULL,
+    latitude double precision NOT NULL,
     peso integer NOT NULL,
     started_at timestamptz NOT NULL,
     finished_at timestamptz DEFAULT now() NOT NULL
@@ -282,10 +286,13 @@ ALTER SEQUENCE public.notificaciones_id_seq OWNED BY public.notificaciones.id;
 -- de ubicación no reescriben la fila completa de reporte ni sus índices.
 CREATE TABLE public.puntos_origen (
     reporte_id uuid NOT NULL,
-    latitude numeric NOT NULL,
-    longitude numeric NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     sample_count integer DEFAULT 0 NOT NULL,
-    updated_at timestamptz DEFAULT now() NOT NULL
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    geom geography(Point, 4326) GENERATED ALWAYS AS (
+        ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+    ) STORED
 );
 
 -- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
@@ -301,9 +308,12 @@ CREATE TABLE public.refresh_tokens (
 -- Name: reporte; Type: TABLE; Schema: public; Owner: -
 -- Tabla que mantiene todos los reportes creados.
 -- Nota: ya no incluye "peso" (vive solo en reportes_scores) ni "punto_origen"
+-- "direccion" la geocodifica el cliente al crear el reporte y no se recalcula si el centroide se mueve.
+-- El título no se almacena: se deriva como nombre del incidente + " en " + direccion.
 CREATE TABLE public.reporte (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     incidente_id integer NOT NULL,
+    direccion text,
     avistamientos integer DEFAULT 0 NOT NULL,
     es_historico boolean DEFAULT false NOT NULL,
     es_oficial boolean DEFAULT false NOT NULL,
@@ -576,6 +586,8 @@ CREATE INDEX idx_reporte_incidente_id ON public.reporte USING btree (incidente_i
 -- Name: idx_tags_incidente_id; Type: INDEX; Schema: public; Owner: -
 CREATE INDEX idx_tags_incidente_id ON public.tags USING btree (incidente_id);
 
+CREATE INDEX idx_puntos_origen_geom ON public.puntos_origen USING gist (geom);
+
 -- Name: location trg_update_puntos_origen; Type: TRIGGER; Schema: public; Owner: -
 CREATE TRIGGER trg_update_puntos_origen AFTER INSERT ON public.location FOR EACH ROW EXECUTE FUNCTION public.update_puntos_origen();
 
@@ -694,11 +706,11 @@ INSERT INTO roles (nombre) VALUES
 
 -- Tipos de incidente por defecto, con el color con el que se pintan en el mapa.
 -- Hacen falta antes de poder crear reportes.
-INSERT INTO incidentes (nombre, tiempo_limite, radio, esta_activo, color) VALUES
-    ('luz', 5, 100, true, '#F5C518'),
-    ('socavon', 5, 100, true, '#8D6E63'),
-    ('arbol', 5, 100, true, '#2E7D32'),
-    ('drenaje', 5, 100, true, '#00897B'),
-    ('deslave', 5, 100, true, '#E65100'),
-    ('inundacion', 5, 100, true, '#1E88E5'),
-    ('incendio', 5, 100, true, '#D32F2F');
+INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, color) VALUES
+    ('luz', 'Luz', 5, 100, true, '#F5C518'),
+    ('socavon', 'Socavón', 5, 100, true, '#8D6E63'),
+    ('arbol', 'Árbol', 5, 100, true, '#2E7D32'),
+    ('drenaje', 'Drenaje', 5, 100, true, '#00897B'),
+    ('deslave', 'Deslave', 5, 100, true, '#E65100'),
+    ('inundacion', 'Inundación', 5, 100, true, '#1E88E5'),
+    ('incendio', 'Incendio', 5, 100, true, '#D32F2F');

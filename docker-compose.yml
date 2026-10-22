@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgis/postgis:16-3.5
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -10,6 +10,10 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./backend/seeds:/seeds:ro
+      # Desactiva el script de la imagen que crea postgis al iniciar la base;
+      # la extensión la crea la migración 002_postgis.
+      - ./backend/scripts/postgis-init.sh:/docker-entrypoint-initdb.d/10_postgis.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -19,7 +23,7 @@ services:
   # Frena el arranque si la base no se puede migrar (esquema anterior, sin
   # versión o a medias).
   dbcheck:
-    image: postgres:16
+    image: postgis/postgis:16-3.5
     environment:
       DATABASE_URL: ${DATABASE_URL}
     volumes:
@@ -47,12 +51,28 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       API_PORT: ${API_PORT}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-Administrador}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      MULTIMEDIA_URL: http://multimedia:8081
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    # No depende de multimedia: si ese contenedor se cae, el backend sigue
+    # sirviendo todo menos la subida de fotos (503).
     expose: ["8080"]
+
+  # Solo guarda y borra archivos (el backend los valida antes). Solo lo llama
+  # el backend: sin ports y sin location en nginx hacia /upload, porque no
+  # tiene autenticación.
+  multimedia:
+    build: ./multimedia
+    restart: unless-stopped
+    volumes:
+      - uploads:/data/uploads
+    expose: ["8081"]
 
   frontend-web:
     build:
@@ -68,7 +88,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    # Sirve las fotos guardadas por multimedia en /multimedia/, solo lectura.
+    volumes:
+      - uploads:/data/uploads:ro
     depends_on: [backend, frontend-web]
 
 volumes:
   pgdata:
+  uploads:
