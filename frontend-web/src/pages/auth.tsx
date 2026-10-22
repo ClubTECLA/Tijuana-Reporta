@@ -312,7 +312,7 @@ function RecoveryPasswordForm() {
             }
             {step === 1 && 
                 <Link
-                    className="flex flex-row items-center justify-star gap-2 text-sm
+                    className="flex flex-row items-center justify-start gap-2 text-sm
                         text-blue-600 font-bold hover:bg-blue-100 transition-all duration-300
                         rounded-lg pr-2 py-2
                     "
