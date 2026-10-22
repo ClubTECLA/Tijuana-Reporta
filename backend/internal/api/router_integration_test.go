@@ -294,38 +294,6 @@ func TestCrearReporte_IgnoraElCampoMultimediaAnterior(t *testing.T) {
 	}
 }
 
-func TestCrearReporteConMultimedia(t *testing.T) {
-	c := newTestClient(t)
-	c.login()
-
-	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
-		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "/media/socavon.jpg"},
-	})
-	creado := decode[api.Reporte](t, rec)
-	if len(creado.Multimedia) != 1 {
-		t.Fatalf("multimedia = %d archivos, quería 1", len(creado.Multimedia))
-	}
-	if creado.Multimedia[0].Path != "/media/socavon.jpg" {
-		t.Errorf("multimedia[0] = %+v, quería /media/socavon.jpg", creado.Multimedia[0])
-	}
-
-	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
-		t.Errorf("multimedia al obtener = %d archivos, quería 1", len(obtenido.Multimedia))
-	}
-}
-
-func TestCrearReporteMultimediaInvalida(t *testing.T) {
-	c := newTestClient(t)
-	c.login()
-
-	c.expect(http.StatusBadRequest, http.MethodPost, "/v1/reportes", map[string]any{
-		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
-		"multimedia": map[string]any{"path": "  "},
-	})
-}
-
 func TestCrearReporteOficial(t *testing.T) {
 	body := map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
@@ -628,7 +596,22 @@ func TestComentarReporte(t *testing.T) {
 		comentario := decode[api.Comentario](t, rec)
 
 		if *comentario.RolName != "rescatista" {
-			t.Errorf("rol_name = %q, quería %q", comentario.RolName, "rescatista")
+			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, "rescatista")
+		}
+
+		// El detalle del reporte lista los comentarios con ListComentariosByReporteId,
+		// que también debe traer el autor.
+		rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
+		obtenido := decode[api.Reporte](t, rec)
+		if len(obtenido.Comentarios) != 1 {
+			t.Fatalf("comentarios = %d, quería 1", len(obtenido.Comentarios))
+		}
+		listado := obtenido.Comentarios[0]
+		if listado.Username == nil || *listado.Username != *comentario.Username {
+			t.Errorf("username listado = %v, quería %q", listado.Username, *comentario.Username)
+		}
+		if listado.RolName == nil || *listado.RolName != "rescatista" {
+			t.Errorf("rol_name listado = %v, quería %q", listado.RolName, "rescatista")
 		}
 	})
 }

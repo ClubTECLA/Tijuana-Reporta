@@ -14,7 +14,7 @@ type ReporteStore interface {
 	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error)
 	GetReporteById(ctx context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
-	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Comentario, error)
+	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListComentariosByReporteIdRow, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Location, error)
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
@@ -87,9 +87,21 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 		return domain.ReporteDetalle{}, err
 	}
 
-	comentarios, err := s.store.ListComentariosByReporteId(ctx, id)
+	rows, err := s.store.ListComentariosByReporteId(ctx, id)
 	if err != nil {
 		return domain.ReporteDetalle{}, err
+	}
+	comentarios := make([]domain.ComentarioConAutor, 0, len(rows))
+	for _, c := range rows {
+		comentarios = append(comentarios, domain.ComentarioConAutor{
+			ID:         c.ID,
+			ReporteID:  c.ReporteID,
+			UserID:     c.UserID,
+			Comentario: c.Comentario,
+			CreatedAt:  c.CreatedAt,
+			Username:   c.Username,
+			RolName:    c.RolName,
+		})
 	}
 
 	multimedia, err := s.store.ListMultimediaByReporteId(ctx, id)

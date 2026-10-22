@@ -329,6 +329,8 @@ export interface components {
             reporte_id: string;
             /** Format: uuid */
             user_id: string;
+            username?: string;
+            rol_name?: string;
             comentario: string;
             /** Format: date-time */
             created_at: string;

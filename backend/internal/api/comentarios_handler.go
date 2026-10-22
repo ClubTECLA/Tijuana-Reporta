@@ -8,28 +8,16 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
-func toComentario(comment any) Comentario {
-	switch c := comment.(type) {
-	case domain.ComentarioConAutor:
-		return Comentario{
-			Comentario: c.Comentario,
-			CreatedAt:  c.CreatedAt,
-			Id:         c.ID,
-			ReporteId:  c.ReporteID,
-			RolName:    &c.RolName,
-			UserId:     c.UserID,
-			Username:   &c.Username,
-		}
-	case domain.Comentario:
-		return Comentario{
-			Comentario: c.Comentario,
-			CreatedAt:  c.CreatedAt,
-			Id:         c.ID,
-			ReporteId:  c.ReporteID,
-			UserId:     c.UserID,
-		}
+func toComentario(c domain.ComentarioConAutor) Comentario {
+	return Comentario{
+		Comentario: c.Comentario,
+		CreatedAt:  c.CreatedAt,
+		Id:         c.ID,
+		ReporteId:  c.ReporteID,
+		RolName:    &c.RolName,
+		UserId:     c.UserID,
+		Username:   &c.Username,
 	}
-	return Comentario{}
 }
 
 // CrearComentario crea un comentario para el reporte y usuario dados.

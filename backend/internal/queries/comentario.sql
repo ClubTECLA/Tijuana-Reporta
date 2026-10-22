@@ -18,4 +18,19 @@ FROM
     JOIN roles r ON r.id = u.rol_id;
 
 -- name: ListComentariosByReporteId :many
-SELECT * FROM comentarios WHERE reporte_id = $1 ORDER BY created_at;
+SELECT
+    c.id,
+    c.reporte_id,
+    c.user_id,
+    c.comentario,
+    c.created_at,
+    u.username,
+    r.nombre AS rol_name
+FROM
+    comentarios c
+    JOIN users u ON u.id = c.user_id
+    JOIN roles r ON r.id = u.rol_id
+WHERE
+    c.reporte_id = $1
+ORDER BY
+    c.created_at;

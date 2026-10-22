@@ -22,7 +22,7 @@ import (
 type fakeReporteStore struct {
 	byID        map[uuid.UUID]domain.Reporte
 	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
-	comentarios map[uuid.UUID][]domain.Comentario
+	comentarios map[uuid.UUID][]domain.ListComentariosByReporteIdRow
 	multimedia  map[uuid.UUID][]domain.Multimedia
 	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
 	locations   map[uuid.UUID][]domain.Location
@@ -43,7 +43,7 @@ func newFakeReporteStore() *fakeReporteStore {
 	return &fakeReporteStore{
 		byID:        map[uuid.UUID]domain.Reporte{},
 		puntos:      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow{},
-		comentarios: map[uuid.UUID][]domain.Comentario{},
+		comentarios: map[uuid.UUID][]domain.ListComentariosByReporteIdRow{},
 		multimedia:  map[uuid.UUID][]domain.Multimedia{},
 		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
 		locations:   map[uuid.UUID][]domain.Location{},
@@ -87,7 +87,7 @@ func (f *fakeReporteStore) GetPuntoOrigenByReporteId(_ context.Context, id uuid.
 	return p, nil
 }
 
-func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid.UUID) ([]domain.Comentario, error) {
+func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListComentariosByReporteIdRow, error) {
 	return f.comentarios[id], nil
 }
 
@@ -313,7 +313,7 @@ func TestReporteService_Obtener(t *testing.T) {
 		t.Fatalf("Crear() error = %v", err)
 	}
 	id := creado.Reporte.ID
-	store.comentarios[id] = []domain.Comentario{{ID: 1, ReporteID: id, Comentario: "sigue ahí"}}
+	store.comentarios[id] = []domain.ListComentariosByReporteIdRow{{ID: 1, ReporteID: id, Comentario: "sigue ahí", Username: "ana", RolName: "rescatista"}}
 	store.tags[id] = []domain.ListTagsByReporteIdRow{{ID: 3, Nombre: "profundo", Count: 2}}
 
 	r, err := svc.Obtener(context.Background(), id)
@@ -325,6 +325,9 @@ func TestReporteService_Obtener(t *testing.T) {
 	}
 	if r.Latitude != 32.5027 || r.Longitude != -117.00371 {
 		t.Fatalf("Obtener() centroide = (%v, %v), want (%v, %v)", r.Latitude, r.Longitude, 32.5027, -117.00371)
+	}
+	if len(r.Comentarios) == 1 && (r.Comentarios[0].Username != "ana" || r.Comentarios[0].RolName != "rescatista") {
+		t.Fatalf("Obtener() autor del comentario = %q/%q, want ana/rescatista", r.Comentarios[0].Username, r.Comentarios[0].RolName)
 	}
 	if len(r.Comentarios) != 1 || len(r.Tags) != 1 || len(r.Locations) != 1 || len(r.Multimedia) != 0 {
 		t.Fatalf("Obtener() comentarios=%d tags=%d locations=%d multimedia=%d, want 1, 1, 1, 0",
