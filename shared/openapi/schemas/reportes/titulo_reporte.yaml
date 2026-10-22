@@ -1,0 +1,5 @@
+type: string
+description: >-
+  Derivado, no almacenado: etiqueta del incidente + " en " + direccion
+  (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+example: Socavón en Calle Flores Magón 8267 · Zona Centro

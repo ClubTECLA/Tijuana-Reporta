@@ -9,6 +9,10 @@ properties:
   user_id:
     type: string
     format: uuid
+  username:
+    type: string
+  rol_name:
+    type: string
   comentario:
     type: string
   created_at:

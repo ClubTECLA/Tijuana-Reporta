@@ -1,6 +1,6 @@
 -- name: CreateIncidente :one
-INSERT INTO incidentes (nombre, tiempo_limite, radio, esta_activo, color)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, color)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: CreateTag :one

@@ -2,13 +2,22 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Notificacion, TipoNotificacion } from '../types/notificacion';
 import { perfilColors, perfilRadius } from '../theme/perfilTokens';
+import { Feather } from '@expo/vector-icons';
 
-const ICONS: Record<TipoNotificacion, string> = {
-  alerta: '⚠️',
-  info: '🔵',
-  exito: '✅',
-  aviso: '🌧️',
-  comentario: '💬',
+const ICONS: Record<TipoNotificacion, keyof typeof Feather.glyphMap> = {
+  alerta: 'alert-triangle',
+  info: 'info',
+  exito: 'check-circle',
+  aviso: 'cloud-rain',
+  comentario: 'message-circle',
+};
+
+const ICON_COLOR: Record<TipoNotificacion, string> = {
+  alerta: '#B91C1C',
+  info: perfilColors.primary,
+  exito: '#15803D',
+  aviso: '#92400E',
+  comentario: perfilColors.primary,
 };
 
 const ICON_BG: Record<TipoNotificacion, string> = {
@@ -27,7 +36,7 @@ interface NotificationRowProps {
 export const NotificationRow = ({ notificacion, onPress }: NotificationRowProps) => (
   <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.iconBox, { backgroundColor: ICON_BG[notificacion.tipo] }]}>
-      <Text style={styles.icon}>{ICONS[notificacion.tipo]}</Text>
+      <Feather name={ICONS[notificacion.tipo]} size={16} color={ICON_COLOR[notificacion.tipo]} />
     </View>
     <View style={styles.texts}>
       <Text style={styles.titulo}>{notificacion.titulo}</Text>
@@ -50,7 +59,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  icon: { fontSize: 16 },
   texts: { flex: 1 },
   titulo: { fontSize: 14, fontWeight: '600', color: perfilColors.textPrimary },
   subtitulo: { fontSize: 13, color: perfilColors.textSecondary, marginTop: 2 },

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
@@ -79,7 +80,9 @@ type Comentario struct {
 	CreatedAt  time.Time `json:"created_at"`
 	Id         int       `json:"id"`
 	ReporteId  uuid.UUID `json:"reporte_id"`
+	RolName    *string   `json:"rol_name,omitempty"`
 	UserId     uuid.UUID `json:"user_id"`
+	Username   *string   `json:"username,omitempty"`
 }
 
 // CrearComentarioRequest defines model for CrearComentarioRequest.
@@ -92,29 +95,26 @@ type CrearIncidenteRequest struct {
 	// Color Se usa el gris por defecto (#757575).
 	//
 	// Example: #EF6C33
-	Color      *string  `json:"color,omitempty"`
-	EstaActivo *bool    `json:"esta_activo,omitempty"`
-	Nombre     string   `json:"nombre"`
-	Radio      *float64 `json:"radio,omitempty"`
+	Color      *string `json:"color,omitempty"`
+	EstaActivo *bool   `json:"esta_activo,omitempty"`
+
+	// Etiqueta Texto legible del incidente (p. ej. "Socavón"). Si no se manda, se usa el nombre.
+	Etiqueta *string  `json:"etiqueta,omitempty"`
+	Nombre   string   `json:"nombre"`
+	Radio    *float64 `json:"radio,omitempty"`
 
 	// Tags Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas).
 	Tags         *[]CrearTagRequest `json:"tags,omitempty"`
 	TiempoLimite *int               `json:"tiempo_limite,omitempty"`
 }
 
-// CrearMultimediaRequest Archivo (foto o video) que se adjunta al crear un reporte.
-type CrearMultimediaRequest struct {
-	Path string `json:"path"`
-}
-
 // CrearReporteRequest defines model for CrearReporteRequest.
 type CrearReporteRequest struct {
+	Direccion   *string `json:"direccion,omitempty"`
+	EsOficial   *bool   `json:"es_oficial,omitempty"`
 	IncidenteId int     `json:"incidente_id"`
 	Latitude    float64 `json:"latitude"`
 	Longitude   float64 `json:"longitude"`
-
-	// Multimedia Archivo (foto o video) que se adjunta al crear un reporte.
-	Multimedia *CrearMultimediaRequest `json:"multimedia,omitempty"`
 }
 
 // CrearTagRequest Tag nuevo del catálogo. El incidente al que pertenece lo da el contexto (el incidente que se está creando), no el cliente.
@@ -134,8 +134,11 @@ type EstadoReporte string
 // Incidente defines model for Incidente.
 type Incidente struct {
 	// Color Example: #EF6C33
-	Color        string        `json:"color"`
-	EstaActivo   bool          `json:"esta_activo"`
+	Color      string `json:"color"`
+	EstaActivo bool   `json:"esta_activo"`
+
+	// Etiqueta Texto legible del incidente; es el que se muestra y arma el título del reporte.
+	Etiqueta     string        `json:"etiqueta"`
 	Id           int           `json:"id"`
 	Nombre       string        `json:"nombre"`
 	Radio        *float64      `json:"radio"`
@@ -175,14 +178,17 @@ type RegisterRequest struct {
 
 // Reporte Detalle completo de un reporte.
 type Reporte struct {
-	Avistamientos int           `json:"avistamientos"`
-	Comentarios   []Comentario  `json:"comentarios"`
-	CreatedAt     time.Time     `json:"created_at"`
-	EsHistorico   bool          `json:"es_historico"`
-	EsOficial     bool          `json:"es_oficial"`
-	EstadoActual  EstadoReporte `json:"estado_actual"`
-	Id            uuid.UUID     `json:"id"`
-	IncidenteId   int           `json:"incidente_id"`
+	Avistamientos int          `json:"avistamientos"`
+	Comentarios   []Comentario `json:"comentarios"`
+	CreatedAt     time.Time    `json:"created_at"`
+
+	// Direccion Dirección enviada por el cliente al crear el reporte.
+	Direccion    *string       `json:"direccion,omitempty"`
+	EsHistorico  bool          `json:"es_historico"`
+	EsOficial    bool          `json:"es_oficial"`
+	EstadoActual EstadoReporte `json:"estado_actual"`
+	Id           uuid.UUID     `json:"id"`
+	IncidenteId  int           `json:"incidente_id"`
 
 	// Latitude Centroide de todas las locations (tabla puntos_origen).
 	Latitude  float64    `json:"latitude"`
@@ -192,12 +198,20 @@ type Reporte struct {
 	Longitude  float64      `json:"longitude"`
 	Multimedia []Multimedia `json:"multimedia"`
 	Tags       []Tag        `json:"tags"`
-	UpdatedAt  time.Time    `json:"updated_at"`
+
+	// Titulo Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+	//
+	// Example: Socavón en Calle Flores Magón 8267 · Zona Centro
+	Titulo    TituloReporte `json:"titulo"`
+	UpdatedAt time.Time     `json:"updated_at"`
 }
 
 // ReporteCercano defines model for ReporteCercano.
 type ReporteCercano struct {
 	Avistamientos int `json:"avistamientos"`
+
+	// Direccion Dirección enviada por el cliente al crear el reporte.
+	Direccion *string `json:"direccion,omitempty"`
 
 	// DistanciaM Distancia en metros desde el punto consultado.
 	DistanciaM   float64       `json:"distancia_m"`
@@ -211,21 +225,39 @@ type ReporteCercano struct {
 
 	// Longitude Centroide del reporte (tabla puntos_origen).
 	Longitude float64 `json:"longitude"`
+
+	// Titulo Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+	//
+	// Example: Socavón en Calle Flores Magón 8267 · Zona Centro
+	Titulo TituloReporte `json:"titulo"`
 }
 
 // ReporteResumen Versión ligera de un reporte para pintar pines en el mapa.
 type ReporteResumen struct {
-	Avistamientos int           `json:"avistamientos"`
-	EsOficial     bool          `json:"es_oficial"`
-	EstadoActual  EstadoReporte `json:"estado_actual"`
-	Id            uuid.UUID     `json:"id"`
-	IncidenteId   int           `json:"incidente_id"`
+	Avistamientos int `json:"avistamientos"`
+
+	// Direccion Dirección enviada por el cliente al crear el reporte.
+	Direccion    *string       `json:"direccion,omitempty"`
+	EsOficial    bool          `json:"es_oficial"`
+	EstadoActual EstadoReporte `json:"estado_actual"`
+	Id           uuid.UUID     `json:"id"`
+	IncidenteId  int           `json:"incidente_id"`
 
 	// Latitude Centroide del reporte (tabla puntos_origen).
 	Latitude float64 `json:"latitude"`
 
 	// Longitude Centroide del reporte (tabla puntos_origen).
 	Longitude float64 `json:"longitude"`
+
+	// Titulo Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+	//
+	// Example: Socavón en Calle Flores Magón 8267 · Zona Centro
+	Titulo TituloReporte `json:"titulo"`
+}
+
+// SubirMultimediaRequest Foto que el creador de un reporte sube a su reporte.
+type SubirMultimediaRequest struct {
+	File openapi_types.File `json:"file"`
 }
 
 // Tag defines model for Tag.
@@ -242,6 +274,11 @@ type TagCatalogo struct {
 	Nombre string `json:"nombre"`
 	Peso   int    `json:"peso"`
 }
+
+// TituloReporte Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
+//
+// Example: Socavón en Calle Flores Magón 8267 · Zona Centro
+type TituloReporte = string
 
 // Usuario defines model for Usuario.
 type Usuario struct {
@@ -319,6 +356,9 @@ type CrearComentarioJSONRequestBody = CrearComentarioRequest
 // CambiarEstadoReporteJSONRequestBody defines body for CambiarEstadoReporte for application/json ContentType.
 type CambiarEstadoReporteJSONRequestBody = CambiarEstadoReporteRequest
 
+// SubirMultimediaMultipartRequestBody defines body for SubirMultimedia for multipart/form-data ContentType.
+type SubirMultimediaMultipartRequestBody = SubirMultimediaRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -366,6 +406,9 @@ type ServerInterface interface {
 
 	// (PATCH /reportes/{reporteId}/estado)
 	CambiarEstadoReporte(c *gin.Context, reporteId uuid.UUID)
+
+	// (POST /reportes/{reporteId}/multimedia)
+	SubirMultimedia(c *gin.Context, reporteId uuid.UUID)
 
 	// (GET /users)
 	ListarUsuarios(c *gin.Context)
@@ -773,7 +816,7 @@ func (siw *ServerInterfaceWrapper) CambiarEstadoReporte(c *gin.Context) {
 		return
 	}
 
-	c.Set(string(BearerAuthScopes), []string{"admin"})
+	c.Set(string(BearerAuthScopes), []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -783,6 +826,33 @@ func (siw *ServerInterfaceWrapper) CambiarEstadoReporte(c *gin.Context) {
 	}
 
 	siw.Handler.CambiarEstadoReporte(c, reporteId)
+}
+
+// SubirMultimedia operation middleware
+func (siw *ServerInterfaceWrapper) SubirMultimedia(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reporteId" -------------
+	var reporteId uuid.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reporteId", c.Param("reporteId"), &reporteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter reporteId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.SubirMultimedia(c, reporteId)
 }
 
 // ListarUsuarios operation middleware
@@ -842,6 +912,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.PATCH(options.BaseURL+"/reportes/:reporteId/avistamientos", wrapper.AgregarAvistamiento)
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
 	router.PATCH(options.BaseURL+"/reportes/:reporteId/estado", wrapper.CambiarEstadoReporte)
+	router.POST(options.BaseURL+"/reportes/:reporteId/multimedia", wrapper.SubirMultimedia)
 	router.GET(options.BaseURL+"/users", wrapper.ListarUsuarios)
 }
 
@@ -1352,6 +1423,20 @@ func (response CrearReporte401JSONResponse) VisitCrearReporteResponse(w http.Res
 	return err
 }
 
+type CrearReporte403JSONResponse ErrorResponse
+
+func (response CrearReporte403JSONResponse) VisitCrearReporteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListarReportesCercanosRequestObject struct {
 	Params ListarReportesCercanosParams
 }
@@ -1646,6 +1731,127 @@ func (response CambiarEstadoReporte404JSONResponse) VisitCambiarEstadoReporteRes
 	return err
 }
 
+type SubirMultimediaRequestObject struct {
+	ReporteId uuid.UUID `json:"reporteId"`
+	Body      *multipart.Reader
+}
+
+type SubirMultimediaResponseObject interface {
+	VisitSubirMultimediaResponse(w http.ResponseWriter) error
+}
+
+type SubirMultimedia201JSONResponse Multimedia
+
+func (response SubirMultimedia201JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia400JSONResponse ErrorResponse
+
+func (response SubirMultimedia400JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia401JSONResponse ErrorResponse
+
+func (response SubirMultimedia401JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia404JSONResponse ErrorResponse
+
+func (response SubirMultimedia404JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia409JSONResponse ErrorResponse
+
+func (response SubirMultimedia409JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia413JSONResponse ErrorResponse
+
+func (response SubirMultimedia413JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia422JSONResponse ErrorResponse
+
+func (response SubirMultimedia422JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubirMultimedia503JSONResponse ErrorResponse
+
+func (response SubirMultimedia503JSONResponse) VisitSubirMultimediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListarUsuariosRequestObject struct {
 }
 
@@ -1742,6 +1948,9 @@ type StrictServerInterface interface {
 
 	// (PATCH /reportes/{reporteId}/estado)
 	CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error)
+
+	// (POST /reportes/{reporteId}/multimedia)
+	SubirMultimedia(ctx context.Context, request SubirMultimediaRequestObject) (SubirMultimediaResponseObject, error)
 
 	// (GET /users)
 	ListarUsuarios(ctx context.Context, request ListarUsuariosRequestObject) (ListarUsuariosResponseObject, error)
@@ -2231,6 +2440,39 @@ func (sh *strictHandler) CambiarEstadoReporte(ctx *gin.Context, reporteId uuid.U
 	}
 }
 
+// SubirMultimedia operation middleware
+func (sh *strictHandler) SubirMultimedia(ctx *gin.Context, reporteId uuid.UUID) {
+	var request SubirMultimediaRequestObject
+
+	request.ReporteId = reporteId
+
+	if reader, err := ctx.Request.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SubirMultimedia(ctx, request.(SubirMultimediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubirMultimedia")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(SubirMultimediaResponseObject); ok {
+		if err := validResponse.VisitSubirMultimediaResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListarUsuarios operation middleware
 func (sh *strictHandler) ListarUsuarios(ctx *gin.Context) {
 	var request ListarUsuariosRequestObject
@@ -2260,59 +2502,72 @@ func (sh *strictHandler) ListarUsuarios(ctx *gin.Context) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"LnEbtq6O5VoZerQ0wvzHAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -8,6 +8,7 @@ package domain
 // servicio les pone su valor por defecto.
 type NuevoIncidente struct {
 	Nombre       string
+	Etiqueta     *string
 	Color        *string
 	EstaActivo   *bool
 	TiempoLimite *int

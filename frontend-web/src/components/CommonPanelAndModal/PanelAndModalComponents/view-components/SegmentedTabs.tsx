@@ -22,20 +22,20 @@ export function TabItem({
             aria-selected={isActive}
             onClick={onClick}
             className={`
-                flex min-w-max shrink-0 flex-row items-center justify-center
-                gap-2 whitespace-nowrap rounded-full px-2 py-1
-                text-md transition-colors duration-200 
+                flex h-10 min-w-max shrink-0 flex-row items-center justify-center
+                gap-1.5 whitespace-nowrap rounded-full px-4
+                text-[15px] transition-colors duration-200
                 ${isActive
-                    ? "bg-white font-semibold text-slate-900 shadow-sm"
-                    : "bg-transparent font-medium text-slate-500 hover:text-slate-700"}
+                    ? "bg-white font-semibold text-ink drop-shadow-card"
+                    : "bg-transparent font-medium text-ink-muted hover:text-icon"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
-                sm:min-w-0 sm:flex-1
+                sm:min-w-0 sm:flex-auto
             `}
         >
             {tabIcon}
             {tabTitle}
             {tabBadge !== undefined && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm">
+                <span className="min-w-5 rounded-full bg-subtle px-1.5 py-px text-center text-xs font-semibold">
                     {tabBadge}
                 </span>
             )}
@@ -45,26 +45,38 @@ export function TabItem({
 
 interface SegmentedTabsProps extends subsectionProps {
     children: ReactNode
+    /** Pestaña inicial cuando el componente guarda la selección por su cuenta. */
     defaultTab?: number
+    /** Pestaña activa controlada desde fuera (p. ej. un filtro compartido); con ella no se guarda estado interno. */
+    activeTab?: number
+    onChange?: (index: number) => void
 }
+
+// Pestañas segmentadas del Figma ("Activos · Resueltos · Todos"): fondo canvas y la activa en blanco.
 
 export function SegmentedTabs({
     format,
     debug,
     children,
     defaultTab = 0,
+    activeTab,
+    onChange,
+    className,
 }: SegmentedTabsProps) {
-    const [activeTab, setActiveTab] = useState(defaultTab);
+    const [internalTab, setInternalTab] = useState(defaultTab);
+    const currentTab = activeTab ?? internalTab;
     validateChildren(children, "SegmentedTabs", [TabItem], "TabItem");
 
     return(
+        // format solo decide la orientación: la altura la marca el propio componente (h-fit).
         <SubSection
-            format={format}
+            format="nothing"
             debug={debug}
+            role="tablist"
             className={`
-                flex max-w-full rounded-full bg-slate-200 p-2
-                mb-3 
-                ${format === "row" ? "flex-row max-h-15 w-full overflow-x-auto" : "flex-col w-fit"}
+                flex max-w-full gap-1 rounded-full bg-canvas p-1
+                ${format === "row" ? "h-fit w-full flex-row overflow-x-auto" : "h-fit w-fit flex-col"}
+                ${className ?? ""}
                 ${debug ? "outline-2 outline-blue-400" : ""}
             `}
         >
@@ -75,12 +87,13 @@ export function SegmentedTabs({
 
                 const tab = child as ReactElement<TabItemProps>;
                 const onClick = () => {
-                    setActiveTab(index);
+                    setInternalTab(index);
+                    onChange?.(index);
                     tab.props.onClick?.();
                 };
 
                 return cloneElement(tab, {
-                    isActive: activeTab === index,
+                    isActive: currentTab === index,
                     onClick,
                 });
             })}

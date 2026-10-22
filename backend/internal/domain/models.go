@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Estado string
@@ -135,6 +134,7 @@ type Historial struct {
 type Incidente struct {
 	ID           int      `json:"id"`
 	Nombre       string   `json:"nombre"`
+	Etiqueta     string   `json:"etiqueta"`
 	TiempoLimite *int     `json:"tiempo_limite"`
 	Radio        *float64 `json:"radio"`
 	EstaActivo   bool     `json:"esta_activo"`
@@ -150,22 +150,22 @@ type IncidenteTag struct {
 }
 
 type Location struct {
-	ID        int            `json:"id"`
-	ReporteID uuid.UUID      `json:"reporte_id"`
-	Latitude  pgtype.Numeric `json:"latitude"`
-	Longitude pgtype.Numeric `json:"longitude"`
-	UserID    uuid.UUID      `json:"user_id"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID        int       `json:"id"`
+	ReporteID uuid.UUID `json:"reporte_id"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Log struct {
-	ID          uuid.UUID      `json:"id"`
-	IncidenteID int            `json:"incidente_id"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Peso        int            `json:"peso"`
-	StartedAt   time.Time      `json:"started_at"`
-	FinishedAt  time.Time      `json:"finished_at"`
+	ID          uuid.UUID `json:"id"`
+	IncidenteID int       `json:"incidente_id"`
+	Longitude   float64   `json:"longitude"`
+	Latitude    float64   `json:"latitude"`
+	Peso        int       `json:"peso"`
+	StartedAt   time.Time `json:"started_at"`
+	FinishedAt  time.Time `json:"finished_at"`
 }
 
 type Multimedia struct {
@@ -188,12 +188,12 @@ type NotificacionesCount struct {
 }
 
 type PuntosOrigen struct {
-	ReporteID   uuid.UUID      `json:"reporte_id"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	SampleCount int            `json:"sample_count"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	Geom        interface{}    `json:"geom"`
+	ReporteID   uuid.UUID   `json:"reporte_id"`
+	Latitude    float64     `json:"latitude"`
+	Longitude   float64     `json:"longitude"`
+	SampleCount int         `json:"sample_count"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	Geom        interface{} `json:"geom"`
 }
 
 type RefreshToken struct {
@@ -208,6 +208,7 @@ type RefreshToken struct {
 type Reporte struct {
 	ID            uuid.UUID `json:"id"`
 	IncidenteID   int       `json:"incidente_id"`
+	Direccion     *string   `json:"direccion"`
 	Avistamientos int       `json:"avistamientos"`
 	EsHistorico   bool      `json:"es_historico"`
 	EsOficial     bool      `json:"es_oficial"`

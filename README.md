@@ -206,6 +206,87 @@ docker compose -p verif exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTG
 docker compose -p verif down -v
 ```
 
+## Datos de prueba (seed) y consola de la base
+
+Los datos de prueba están en `backend/seeds/`, **fuera** de `migrations/` a propósito: `migrate up` corre también en producción, y el seed es solo para desarrollo (nunca lo apliques en producción).
+
+| Archivo | Para qué sirve |
+|---|---|
+| `backend/seeds/dev.sql` | Carga usuarios, reportes, ubicaciones, tags y comentarios de prueba |
+| `backend/seeds/check.sql` | Comprueba que el seed quedó completo (solo lee, no modifica nada) |
+
+El `docker-compose.yml` monta esa carpeta en `/seeds` dentro del contenedor de Postgres. Los comandos están en el `package.json` de la raíz y se corren desde la raíz del repo:
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm db:seed` | Carga los datos de prueba. Requiere las migraciones aplicadas y se puede correr varias veces sin duplicar nada |
+| `pnpm db:seed:check` | Compara los conteos esperados contra los actuales (cada tabla debe decir `OK`) y muestra un resumen por reporte y por usuario |
+| `pnpm db:psql` | Abre una consola `psql` dentro de la base del contenedor |
+
+> Los scripts usan el usuario `tijuana` y la base `tijuana_reporta` (los valores de `.env.example`). Si cambiaste `POSTGRES_USER` o `POSTGRES_DB` en tu `.env`, ajústalos en los scripts del `package.json`.
+
+**Flujo normal:**
+
+```bash
+docker compose up -d     # levanta todo y aplica las migraciones solo
+pnpm db:seed             # carga los datos de prueba
+pnpm db:seed:check       # confirma que quedó completo
+```
+
+**Volver a empezar con la base limpia:**
+
+```bash
+docker compose down -v   # borra el volumen (y todos los datos)
+docker compose up -d
+pnpm db:seed
+```
+
+Si ya habías cargado una versión anterior del seed, usa esto para no mezclar datos viejos con los nuevos.
+
+### Qué contiene el seed
+
+- **8 usuarios**, todos con rol `ciudadano`, password `test1234` y sin proveedor de login (no hay forma de generar un token de Google en local): `ana_garcia`, `luis_ramirez`, `mariana_lopez`, `carlos_hdz`, `sofia_martinez`, `jorge_torres`, `valeria_cruz` y `diego_flores`. Este último queda en estado `Pendiente` y sin actividad, para probar usuarios sin verificar.
+- **12 reportes** que cubren los 7 tipos de incidente y los 5 estados, con entre 1 y 4 ubicaciones cada uno. `puntos_origen` no se inserta a mano: lo calcula el trigger a partir de `location`.
+- **28 tags** (4 por tipo de incidente), **33 asignaciones de tags** a reportes y **15 comentarios**.
+- **UUIDs fijos** para poder referenciarlos: usuarios `c1000000-0000-0000-0000-00000000000N` (N de 1 a 8) y reportes `d0000000-0000-0000-0000-0000000000NN` (NN de 01 a 12).
+
+**Probar endpoints protegidos sin login real:** firma un JWT con algoritmo HS256 usando tu `JWT_SECRET` de desarrollo (nunca el de producción), con el claim `sub` igual al UUID de un usuario del seed, por ejemplo `c1000000-0000-0000-0000-000000000001` (`ana_garcia`). Mándalo como `Authorization: Bearer <token>`; es lo que lee `middleware.Auth`.
+
+### Consola de la base (`pnpm db:psql`)
+
+Dentro de `psql`, los comandos que empiezan con `\` son de la consola y no llevan `;`. Las consultas SQL sí terminan en `;`.
+
+| Quiero... | Comando |
+|---|---|
+| Listar las tablas | `\dt` |
+| Ver columnas, índices y relaciones de una tabla | `\d users` (cambia `users` por la tabla) |
+| Ver los valores posibles de un enum | `\dT+ estado` |
+| Ver las extensiones instaladas (PostGIS) | `\dx` |
+| Listar las bases de datos | `\l` |
+| Ver filas anchas en vertical | `\x` (otra vez `\x` lo desactiva) |
+| Quitar el paginador si la salida se traba | `\pset pager off` |
+| Salir | `\q` |
+
+Consultas útiles para revisar el seed:
+
+| Quiero ver... | Consulta |
+|---|---|
+| Los usuarios y su estado | `SELECT username, state FROM users;` |
+| Cuántos reportes hay | `SELECT count(*) FROM reporte;` |
+| Las primeras filas de cualquier tabla | `SELECT * FROM comentarios LIMIT 5;` |
+| Reportes con su tipo de incidente | `SELECT r.id, i.nombre, r.estado_actual FROM reporte r JOIN incidentes i ON i.id = r.incidente_id;` |
+| Comentarios con quién los escribió | `SELECT c.comentario, u.username FROM comentarios c JOIN users u ON u.id = c.user_id;` |
+| El centro de cada reporte como punto | `SELECT reporte_id, ST_AsText(geom) FROM puntos_origen;` |
+| La versión de migración aplicada | `SELECT * FROM schema_migrations;` |
+
+También puedes conectar un cliente gráfico (DBeaver, pgAdmin, TablePlus) a `localhost:5432` (o el valor de tu `POSTGRES_PORT`) con el usuario y la contraseña de tu `.env`.
+
+**Problemas comunes:**
+
+- *`database "..." does not exist`:* el nombre que pasa `-d` en el script no coincide con `POSTGRES_DB` de tu `.env`. Revisa que esté bien escrito en el `package.json` (por defecto, `tijuana_reporta`).
+- *El seed dice que una tabla no existe (`relation ... does not exist`):* `migrate` todavía no termina. Corre `docker compose ps -a`; `migrate` debe aparecer como `Exited (0)`.
+- *`dbcheck` falla con `set: Illegal option -`:* el `.sh` tiene saltos de línea de Windows (CRLF). Conviértelo a LF; un `.gitattributes` con `*.sh text eol=lf` evita que vuelva a pasar.
+
 ## Generación de código (OpenAPI / SQL)
 
 ```bash
@@ -231,3 +312,37 @@ Ver `.env.example` para la lista completa. Algunas notas:
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: necesarias solo si vas a probar login con Google.
 - `VITE_MAPLIBRE_STYLE_URL`: necesaria solo si vas a probar el mapa.
 - `JWT_SECRET`: cualquier valor sirve en desarrollo local.
+
+## Multimedia (fotos de reportes)
+
+Cada reporte puede llevar una foto. Se sube **después** de crear el reporte, en dos pasos, y solo la puede subir quien creó el reporte (una foto por usuario por reporte).
+
+```
+app ──► nginx ──► backend ──► multimedia ──► volumen "uploads" ──► nginx sirve /multimedia/<path>
+                     └──► PostgreSQL (tabla multimedia)
+```
+
+- El **backend** autentica, valida que sea un JPEG real (máx. 3 MiB y 16 MP), le quita los metadatos (EXIF/GPS) y registra la foto en la base.
+- El servicio **multimedia** solo guarda y borra el archivo en el volumen. Si se cae, el resto de la API sigue y la subida responde `503`.
+- La **app** debe reducir y comprimir la foto antes de subirla; el servidor no la reescala.
+- La foto se ve en `http://localhost/multimedia/<path>` (sin `/api`) y aparece en `GET /api/v1/reportes/{id}`, no en el listado del mapa.
+
+### Probar rápido
+
+Con el stack levantado (`docker compose up -d --build`) y un JPEG cualquiera en `/tmp/foto.jpg`:
+
+```bash
+B=http://localhost/api/v1
+E=prueba$RANDOM@t.com
+
+curl -s $B/auth/register -H 'Content-Type: application/json' -d '{"email":"'$E'","username":"tester","password":"Password123!"}' >/dev/null
+T=$(curl -s $B/auth/login -H 'Content-Type: application/json' -d '{"email":"'$E'","password":"Password123!"}' | jq -r .access_token)
+
+ID=$(curl -s $B/reportes -H "Authorization: Bearer $T" -H 'Content-Type: application/json' -d '{"incidente_id":1,"latitude":32.5149,"longitude":-117.0382}' | jq -r .id)
+
+curl -s -w '\n%{http_code}\n' -X POST $B/reportes/$ID/multimedia -H "Authorization: Bearer $T" -F "file=@/tmp/foto.jpg;type=image/jpeg"
+```
+
+Debe responder `201` con un `path`; ábrelo en `http://localhost/multimedia/<path>`. Repetir la subida da `409`, un archivo que no sea JPEG da `400` y, con `docker compose stop multimedia`, da `503`.
+
+Más detalle (errores, configuración y API interna) en [`multimedia/README.md`](multimedia/README.md).

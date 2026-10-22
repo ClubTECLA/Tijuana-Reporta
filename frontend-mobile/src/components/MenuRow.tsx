@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { perfilColors, perfilRadius } from '../theme/perfilTokens';
+import { Feather } from '@expo/vector-icons';
 
 interface MenuRowProps {
-  icon: string; // temporal: emoji/texto. Cambiar por icono real cuando el equipo defina la librería.
+  icon: keyof typeof Feather.glyphMap;
   title: string;
   subtitle?: string;
   value?: string;
@@ -42,7 +43,7 @@ export const MenuRow = ({
           { backgroundColor: danger ? perfilColors.dangerTint : perfilColors.primaryTint },
         ]}
       >
-        <Text style={styles.icon}>{icon}</Text>
+        <Feather name={icon} size={18} color={perfilColors.primary} />
         {!!badgeCount && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badgeCount > 9 ? '9+' : badgeCount}</Text>
@@ -80,8 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: { fontSize: 18 },
-  badge: {
+   badge: {
     position: 'absolute',
     top: -2,
     right: -2,

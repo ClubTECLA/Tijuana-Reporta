@@ -6,29 +6,45 @@ import "github.com/google/uuid"
 // reescribe models.go, querier.go, db.go y los *.sql.go.
 
 // CreateReporteTxParams agrupa todo lo que se inserta al crear un reporte:
-// el reporte en sí, la ubicación inicial y su multimedia, si la hay. No se llama
-// CreateReporteParams porque ese nombre ya lo usa sqlc para el INSERT simple.
+// el reporte en sí y la ubicación inicial. No se llama CreateReporteParams
+// porque ese nombre ya lo usa sqlc para el INSERT simple.
 type CreateReporteTxParams struct {
-	Reporte    CreateReporteParams
-	UserID     uuid.UUID
-	Latitude   float64
-	Longitude  float64
-	Multimedia *CrearMultimediaRequest
+	Reporte   CreateReporteParams
+	UserID    uuid.UUID
+	Latitude  float64
+	Longitude float64
 }
 
-// CrearMultimediaRequest es el archivo (foto o video) que se adjunta al crear un
-// reporte. Path es donde quedó guardado; el backend no recibe el archivo.
-type CrearMultimediaRequest struct {
-	Path string
+// TituloReporte arma el título que se muestra de un reporte: no se almacena,
+// se deriva de la etiqueta de su incidente y de su dirección, si la tiene.
+func TituloReporte(etiquetaIncidente string, direccion *string) string {
+	if direccion == nil {
+		return etiquetaIncidente
+	}
+	return etiquetaIncidente + " en " + *direccion
 }
 
 // ReporteDetalle agrupa el reporte con todo lo que depende de este.
 type ReporteDetalle struct {
-	Reporte     Reporte
+	Reporte           Reporte
+	IncidenteEtiqueta string
+	Latitude          float64
+	Longitude         float64
+	Comentarios       []ComentarioConAutor
+	Multimedia        []Multimedia
+	Tags              []ListTagsByReporteIdRow
+	Locations         []Location
+}
+
+type NuevoReporte struct {
+	UserID      uuid.UUID
+	Rol         string
+	IncidenteID int
 	Latitude    float64
 	Longitude   float64
 	Comentarios []Comentario
-	Multimedia  []Multimedia
 	Tags        []ListTagsByReporteIdRow
-	Locations   []ListLocationsByReporteIdRow
+	Locations   []Location
+	EsOficial   bool
+	Direccion   *string
 }

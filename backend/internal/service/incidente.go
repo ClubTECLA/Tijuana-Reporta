@@ -65,9 +65,18 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 	if nuevo.Radio != nil && *nuevo.Radio < 0 {
 		return domain.IncidenteDetalle{}, fmt.Errorf("%w: radio no puede ser negativo", domain.ErrIncidenteInvalido)
 	}
+	// Sin etiqueta se muestra el nombre, para que el título del reporte nunca quede vacío.
+	etiqueta := nombre
+	if nuevo.Etiqueta != nil {
+		etiqueta = strings.TrimSpace(*nuevo.Etiqueta)
+		if etiqueta == "" || utf8.RuneCountInString(etiqueta) > maxNombreIncidente {
+			return domain.IncidenteDetalle{}, fmt.Errorf("%w: etiqueta debe tener entre 1 y %d caracteres", domain.ErrIncidenteInvalido, maxNombreIncidente)
+		}
+	}
 
 	params := domain.CreateIncidenteParams{
 		Nombre:       nombre,
+		Etiqueta:     etiqueta,
 		TiempoLimite: nuevo.TiempoLimite,
 		Radio:        nuevo.Radio,
 		Color:        colorPorDefecto,

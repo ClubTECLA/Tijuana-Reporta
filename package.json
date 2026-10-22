@@ -5,7 +5,10 @@
     "scripts": {
         "generate:types": "openapi-typescript shared/openapi/openapi.yaml --default-non-nullable false -o shared/types/api-types.ts",
         "dev:web": "pnpm --filter @tijuana-reporta/frontend-web dev",
-        "dev:mobile": "pnpm --filter @tijuana-reporta/frontend-mobile exec expo start -c"
+        "dev:mobile": "pnpm --filter @tijuana-reporta/frontend-mobile exec expo start -c",
+        "db:seed": "docker compose exec -T postgres psql -U tijuana -d tijuana_reporta -v ON_ERROR_STOP=1 -f /seeds/dev.sql",
+        "db:seed:check": "docker compose exec -T postgres psql -U tijuana -d tijuana_reporta -f /seeds/check.sql",
+        "db:psql": "docker compose exec postgres psql -U tijuana -d tijuana_reporta"
     },
     "devDependencies": {
         "openapi-typescript": "^7.0.0"

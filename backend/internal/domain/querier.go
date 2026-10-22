@@ -12,7 +12,7 @@ import (
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
-	CreateComentario(ctx context.Context, arg CreateComentarioParams) (Comentario, error)
+	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
@@ -24,19 +24,22 @@ type Querier interface {
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
+	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
+	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
-	GetReporteById(ctx context.Context, id uuid.UUID) (Reporte, error)
+	// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
-	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Comentario, error)
+	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
 	// administración).
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListLocationsByReporteIdRow, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error)
 	// sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
 	// cast explícito; sin él se generaría como interface{}.

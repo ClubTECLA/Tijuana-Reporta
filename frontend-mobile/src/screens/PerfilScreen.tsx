@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
@@ -8,7 +8,7 @@ import { perfilColors } from '../theme/perfilTokens';
 
 // Datos de ejemplo
 const MOCK_USUARIO = {
-  nombre: 'Bobo Cervantes',
+  nombre: 'Bruce Cervantes',
   telefono: '+52 664 •••• 4421',
   totalReportes: 12,
   reportesActivos: 2,
@@ -34,6 +34,7 @@ export const PerfilScreen = ({
   onCerrarSesion,
 }: PerfilScreenProps) => {
   const u = MOCK_USUARIO;
+  const [modoOscuro, setModoOscuro] = useState(false);
 
   return (
     <View style={styles.screen}>
@@ -52,7 +53,7 @@ export const PerfilScreen = ({
         <Text style={styles.section}>Mi actividad</Text>
         <Card style={styles.block}>
           <MenuRow
-            icon="📄"
+            icon="file-text"
             title="Mis reportes"
             subtitle={`${u.reportesActivos} activos · ${u.reportesHistorial} en historial`}
             value={String(u.reportesActivos)}
@@ -60,7 +61,7 @@ export const PerfilScreen = ({
           />
           <View style={styles.divider} />
           <MenuRow
-            icon="🔔"
+            icon="bell"
             title="Notificaciones"
             subtitle={`${u.notificacionesNuevas} hoy · ${u.notificacionesHistorial} en historial`}
             value={String(u.notificacionesNuevas)}
@@ -68,17 +69,25 @@ export const PerfilScreen = ({
           />
         </Card>
 
-        <Text style={styles.section}>Preferencias</Text>
+          <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
           <MenuRow
-            icon="🔔"
+            icon="moon"
+            title="Modo oscuro"
+            subtitle="Usa la versión oscura de la aplicación"
+            switchValue={modoOscuro}
+            onSwitchChange={setModoOscuro}
+          />
+          <View style={styles.divider} />
+          <MenuRow
+            icon="map-pin"
             title="Alertas y lugares"
             subtitle="Radio, categorías y horario"
             value={`${u.radioAlertasKm} km`}
             onPress={onAlertas}
           />
           <View style={styles.divider} />
-          <MenuRow icon="↪" title="Cerrar sesión" danger onPress={onCerrarSesion} />
+          <MenuRow icon="log-out" title="Cerrar sesión" danger onPress={onCerrarSesion} />
         </Card>
       </ScrollView>
     </View>

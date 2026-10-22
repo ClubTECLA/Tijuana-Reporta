@@ -108,7 +108,7 @@ export function ModalOverlay() {
                 w-fit max-w-1/2
                 pointer-events-auto
                 flex flex-col items-center justify-center
-                rounded-xl bg-white shadow-lg
+                rounded-xl bg-white shadow-float
             "
         >
             <div

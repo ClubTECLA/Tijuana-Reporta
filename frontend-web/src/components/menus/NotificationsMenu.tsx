@@ -62,11 +62,12 @@ export default function NotificationsMenu() {
                 <TextButton
                     title="Marcar leídas"
                     onClick={markAllReaded}
-                    className="text-sm text-blue-600 hover:underline underline-offset-4"
+                    className="text-sm text-brand hover:underline underline-offset-4"
                 />
             </RowSection>
             <SegmentedTabs
                 format="row"
+                className="mb-3"
             >
                 <TabItem
                     tabTitle="Todas"
@@ -112,7 +113,7 @@ export default function NotificationsMenu() {
                 title="Preferencias de Notificaciones"
                 icon={<FiSun />}
                 format="col"
-                className="mt-4 w-full text-blue-500 hover:underline underline-offset-2 mb-4"
+                className="mt-4 w-full text-brand hover:underline underline-offset-2 mb-4"
             />
         </ColSection>
     )
