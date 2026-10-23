@@ -24,7 +24,8 @@ import { useEnLinea } from '@/lib/red';
 import { CategoriaBadge } from '../crear/CategoriaBadge';
 import { CerrarButton } from '../crear/CerrarButton';
 import { etiquetaLabel } from '../crear/categorias';
-import { useComentar, useComentarios } from '../hooks';
+import { resolverCategoria } from '../../categorias/categorias';
+import { useCategorias, useComentar, useComentarios, useReporteDetalle } from '../hooks';
 
 interface ReporteDetalleProps {
   reporte: Reporte;
@@ -63,8 +64,12 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
  * Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
  * comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
  */
-export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
+export function ReporteDetalle({ reporte: reporteLista, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
+  // La lista no trae foto ni fecha real: cuando llega el detalle reemplaza al reporte de la lista.
+  const reporte = useReporteDetalle(reporteLista.id).data ?? reporteLista;
   const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
+  const catalogo = useCategorias();
+  const colorDe = (slug: string) => resolverCategoria(slug, catalogo).color;
   const comentariosQuery = useComentarios(reporte.id);
   const comentarios = comentariosQuery.data ?? [];
   const estadoHilo = estadoDeQuery(comentariosQuery, (lista) => lista.length === 0);
@@ -106,7 +111,7 @@ export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }:
           <Image source={{ uri: reporte.image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.fotoVacia]}>
-            {teclado === 0 && <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />}
+            {teclado === 0 && <CategoriaBadge categoria={categoriaPrincipal} color={colorDe(categoriaPrincipal)} size={64} glyphScale={1.2} />}
           </View>
         )}
         <LinearGradient
@@ -122,9 +127,9 @@ export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }:
 
       <View style={styles.titulo}>
         <View style={styles.badges}>
-          <CategoriaBadge categoria={categoriaPrincipal} size={23} />
+          <CategoriaBadge categoria={categoriaPrincipal} color={colorDe(categoriaPrincipal)} size={23} />
           {categoriasExtra.map((categoria) => (
-            <CategoriaBadge key={categoria} categoria={categoria} size={23} />
+            <CategoriaBadge key={categoria} categoria={categoria} color={colorDe(categoria)} size={23} />
           ))}
         </View>
         <Text style={styles.tituloTexto} numberOfLines={2}>

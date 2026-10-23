@@ -1,5 +1,6 @@
 import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
+import { resolverCategoria, type CategoriaUI } from '@/features/categorias/categorias';
 import type { CategoriaReporte } from '@/types/api';
 import { markerSpecs } from './markers';
 
@@ -7,13 +8,16 @@ const CANVAS = 96;
 
 interface MapMarkerProps {
   categoria: CategoriaReporte;
+  /** Catálogo (`useCategorias`): de ahí sale el color; el glifo es local y, sin él, el badge va liso. */
+  catalogo: readonly CategoriaUI[];
   /** Variante con halo pleno y anillo (Variant2 del componente en Figma). */
   halo?: boolean;
   size?: number;
 }
 
-export function MapMarker({ categoria, halo = false, size = CANVAS }: MapMarkerProps) {
-  const { color, glyph } = markerSpecs[categoria];
+export function MapMarker({ categoria, catalogo, halo = false, size = CANVAS }: MapMarkerProps) {
+  const { color, icono } = resolverCategoria(categoria, catalogo);
+  const glyph = icono === 'generico' ? undefined : markerSpecs[icono].glyph;
   const scale = size / CANVAS;
 
   return (

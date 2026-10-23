@@ -1,5 +1,4 @@
 import type { ImageSourcePropType } from 'react-native';
-import type { CategoriaReporte } from '@/types/api';
 import { colors } from '@/theme/colors';
 
 type Glyph =
@@ -20,7 +19,7 @@ export interface MarkerSpec {
 
 // Valores de los componentes de marcador del Figma (canvas 96×96, badge de
 // r=25 con borde blanco de 2). x/y/width/height del glifo están en ese canvas.
-export const markerSpecs: Record<CategoriaReporte, MarkerSpec> = {
+export const markerSpecs: Record<string, MarkerSpec> = {
   socavon: {
     color: '#EF6C33',
     glyph: {

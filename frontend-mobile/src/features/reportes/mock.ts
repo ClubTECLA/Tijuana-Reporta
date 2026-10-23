@@ -1,6 +1,7 @@
 import { onlineManager } from '@tanstack/react-query';
 import { ErrorRed } from '@/lib/http';
 import type { ComentarioConAutor, Reporte } from '@/types/api';
+import type { IncidenteApi } from './mappers';
 import type { ReportesApi } from './port';
 
 // Simula la latencia y, sin conexión, falla como lo haría `http` (ErrorRed): así los estados
@@ -232,7 +233,32 @@ let reportes = [...seed];
 const comentariosPorReporte = new Map<string, ComentarioConAutor[]>(Object.entries(seedComentarios));
 let siguienteComentarioId = 100;
 
+// Mismo catálogo que el backend (slugs, etiquetas y colores) para que mock y real se vean igual.
+const incidentes: IncidenteApi[] = [
+  ['luz', 'Luz', '#F5C518'],
+  ['socavon', 'Socavón', '#8D6E63'],
+  ['arbol', 'Árbol', '#2E7D32'],
+  ['drenaje', 'Drenaje', '#00897B'],
+  ['deslave', 'Deslave', '#E65100'],
+  ['inundacion', 'Inundación', '#1E88E5'],
+  ['incendio', 'Incendio', '#D32F2F'],
+].map(([nombre, etiqueta, color], i) => ({
+  id: i + 1,
+  nombre,
+  etiqueta,
+  tiempo_limite: 60,
+  radio: 100,
+  color,
+  tags: [],
+  esta_activo: true,
+}));
+
 export const reportesMock: ReportesApi = {
+  async incidentes() {
+    await delay(150);
+    return [...incidentes];
+  },
+
   async listar() {
     await delay(300);
     return [...reportes];
@@ -275,6 +301,13 @@ export const reportesMock: ReportesApi = {
     const actualizado = reportes.find((r) => r.id === id);
     if (!actualizado) throw new Error(`Reporte ${id} no encontrado`);
     return actualizado;
+  },
+
+  async detalle(id) {
+    await delay(300);
+    const reporte = reportes.find((r) => r.id === id);
+    if (!reporte) throw new Error(`Reporte ${id} no encontrado`);
+    return reporte;
   },
 
   /** Devuelve una copia del hilo guardado en memoria, o una lista vacía si no existe. */

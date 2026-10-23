@@ -76,11 +76,13 @@ const glyphs: Partial<Record<CategoriaReporte, GlyphSpec>> = {
 interface CategoriaBadgeProps {
   categoria: CategoriaReporte;
   size: number;
+  /** Color del backend (`resolverCategoria`); sin él se usa la paleta local del flujo de crear. */
+  color?: string;
   /** Agranda el glifo alrededor de su centro (la pantalla de éxito lo dibuja más grande). */
   glyphScale?: number;
 }
 
-export function CategoriaBadge({ categoria, size, glyphScale = 1 }: CategoriaBadgeProps) {
+export function CategoriaBadge({ categoria, size, color, glyphScale = 1 }: CategoriaBadgeProps) {
   const glyph = glyphs[categoria];
   const box = glyph && {
     left: (glyph.x + glyph.w / 2 - (glyph.w * glyphScale) / 2) * size,
@@ -93,7 +95,7 @@ export function CategoriaBadge({ categoria, size, glyphScale = 1 }: CategoriaBad
     <View
       style={[
         styles.circle,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: markerSpecs[categoria].color },
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: color ?? markerSpecs[categoria].color },
       ]}
     >
       {glyph?.kind === 'raster' && box && (
