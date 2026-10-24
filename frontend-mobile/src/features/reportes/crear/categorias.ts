@@ -52,6 +52,38 @@ export const etiquetasDe = (categoria: CategoriaReporte): EtiquetaDeCategoria[] 
 export const etiquetaPrincipal = (categoria: CategoriaReporte): string | undefined =>
   ETIQUETAS_POR_CATEGORIA[categoria]?.[0];
 
+/**
+ * Selección única: el backend solo admite una categoría por reporte. Tocar otra reemplaza a la
+ * elegida; tocar la ya elegida la deselecciona (así se puede limpiar). Devuelve 0 o 1 elemento.
+ */
+export const elegirCategoria = (actual: CategoriaReporte[], categoria: CategoriaReporte): CategoriaReporte[] =>
+  actual.length === 1 && actual[0] === categoria ? [] : [categoria];
+
+/**
+ * Aplica `elegirCategoria` al formulario y mantiene coherentes las etiquetas: salen las de la
+ * categoría que se deja (o se quita) y entra la etiqueta principal de la nueva.
+ */
+export function cambiarCategoria(
+  form: { categorias: CategoriaReporte[]; tags: string[] },
+  categoria: CategoriaReporte,
+): { categorias: CategoriaReporte[]; tags: string[] } {
+  const categorias = elegirCategoria(form.categorias, categoria);
+  const salientes = form.categorias.filter((c) => !categorias.includes(c)).flatMap(etiquetasDe).map((e) => e.id);
+  const tags = form.tags.filter((t) => !salientes.includes(t));
+  const principal = categorias.length > 0 ? etiquetaPrincipal(categorias[0]) : undefined;
+  return { categorias, tags: principal && !tags.includes(principal) ? [...tags, principal] : tags };
+}
+
+/**
+ * Categorías de la grilla compacta. Si la elegida no está entre las visibles (se eligió desde
+ * "+ Ver mas"), toma el último lugar para que siga viéndose seleccionada.
+ */
+export function categoriasVisibles(elegidas: CategoriaReporte[]): CategoriaReporte[] {
+  const base = CATEGORIAS_PICKER.slice(0, CATEGORIAS_VISIBLES);
+  const fuera = elegidas.find((c) => !base.includes(c));
+  return fuera ? [...base.slice(0, CATEGORIAS_VISIBLES - 1), fuera] : base;
+}
+
 /** Convierte guiones bajos en espacios y pone en mayúscula la primera letra de la etiqueta. */
 export function etiquetaLabel(tag: string): string {
   const texto = tag.replaceAll('_', ' ');

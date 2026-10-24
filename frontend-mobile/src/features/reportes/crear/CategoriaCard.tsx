@@ -35,8 +35,7 @@ export function CategoriaCard({ categoria, selected, dimmed = false, compact = f
           paddingTop: 17.05 * s,
         },
         // Seleccionada: la tarjeta se rellena con el color propio de la categoría
-        // (el mismo que su marcador en el mapa), no un azul genérico — así varias
-        // tarjetas elegidas a la vez se distinguen entre sí igual que en el Figma.
+        // (el mismo que su marcador en el mapa), no un azul genérico.
         selected && { backgroundColor: markerSpecs[categoria].color, borderColor: markerSpecs[categoria].color },
         dimmed && styles.dimmed,
       ]}
