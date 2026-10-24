@@ -67,6 +67,7 @@ describe('resolverCategoria', () => {
   const catalogo: CategoriaUI[] = [
     { slug: 'luz', id: 1, etiqueta: 'Luz', color: '#F5C518' },
     { slug: 'incendio', id: 7, etiqueta: 'Incendio', color: '#D32F2F' },
+    { slug: 'ruido', id: 8, etiqueta: 'Ruido', color: '#6A1B9A' },
   ];
 
   it('categoría del catálogo con icono local: etiqueta y color del backend, icono propio', () => {
@@ -78,10 +79,18 @@ describe('resolverCategoria', () => {
     expect(resolverCategoria('luz', otro)).toEqual({ etiqueta: 'Alumbrado', color: '#123456', icono: 'luz' });
   });
 
-  it('categoría del catálogo sin icono local (incendio): color del backend e icono genérico', () => {
+  it('incendio ya tiene icono propio, el mismo de la web', () => {
     expect(resolverCategoria('incendio', catalogo)).toEqual({
       etiqueta: 'Incendio',
       color: '#D32F2F',
+      icono: 'incendio',
+    });
+  });
+
+  it('categoría del catálogo sin icono local (una nueva): color del backend e icono genérico', () => {
+    expect(resolverCategoria('ruido', catalogo)).toEqual({
+      etiqueta: 'Ruido',
+      color: '#6A1B9A',
       icono: 'generico',
     });
   });

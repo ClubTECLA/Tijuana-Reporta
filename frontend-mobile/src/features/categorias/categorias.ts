@@ -11,8 +11,8 @@ export interface CategoriaUI {
   color: string;
 }
 
-/** Slugs con glifo propio en la app (assets/map/glyphs y vectores de `markers.ts`). El backend no trae icono. */
-export const ICONOS_LOCALES = ['socavon', 'drenaje', 'luz', 'deslave', 'arbol', 'inundacion'] as const;
+/** Slugs con icono propio en la app (`iconosCategoria.ts`, los mismos de la web). El backend no trae icono. */
+export const ICONOS_LOCALES = ['socavon', 'drenaje', 'luz', 'deslave', 'arbol', 'inundacion', 'incendio'] as const;
 export type IconoCategoria = (typeof ICONOS_LOCALES)[number] | 'generico';
 
 export interface CategoriaResuelta {
