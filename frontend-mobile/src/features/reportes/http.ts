@@ -40,9 +40,9 @@ const detalleApi = (id: string) =>
 export const reportesHttp: ReportesApi = {
   // Sin `fetchQuery`: `useCategorias` consulta con la misma key ['incidentes'] y anidarlo dejaría la petición esperándose a sí misma.
   incidentes: () => http<IncidenteApi[]>('/incidentes'),
-  listar: async ({ desde } = {}) => {
+  listar: async ({ desde, centro, radioM } = {}) => {
     const [items, incidentes] = await Promise.all([
-      http<ReporteCercanoApi[]>(rutaCercanos(desde)),
+      http<ReporteCercanoApi[]>(rutaCercanos(desde, { centro, radioM })),
       catalogoParaLeer(),
     ]);
     const ahora = new Date();

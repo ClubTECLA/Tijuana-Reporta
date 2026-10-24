@@ -4,8 +4,9 @@ import type { Comentario, ComentarioConAutor, CrearReporteRequest, Reporte } fro
 export interface ReportesApi {
   /** Catálogo de incidentes (`GET /incidentes`): fuente de categorías, etiquetas y colores. */
   incidentes(): Promise<IncidenteApi[]>;
-  /** Reportes activos de Tijuana. `desde` (ISO) filtra en servidor por fecha de creación; el mock lo ignora. */
-  listar(opciones?: { desde?: string }): Promise<Reporte[]>;
+  /** Reportes activos de Tijuana. `desde` (ISO) filtra en servidor por fecha de creación; `centro` y `radioM`
+   * acotan la zona (sin ellos, toda Tijuana). El mock ignora las tres. */
+  listar(opciones?: { desde?: string; centro?: { lat: number; lng: number }; radioM?: number }): Promise<Reporte[]>;
   /** Detalle de un reporte: a diferencia de la lista, trae la fecha real, las etiquetas y la foto. */
   detalle(id: string): Promise<Reporte>;
   crear(req: CrearReporteRequest): Promise<Reporte>;

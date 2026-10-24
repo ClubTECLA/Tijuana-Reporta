@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { cambiarCategoria, tituloReporte } from './crear/categorias';
-import { buscarDuplicado, desdeDuplicados } from './crear/duplicados';
+import { buscarDuplicado, desdeDuplicados, RADIO_BUSQUEDA_DUPLICADO_M } from './crear/duplicados';
 import { useConfirmarDuplicado, useCrearReporteMutation } from './hooks';
 import { reportesApi } from './api';
 
@@ -157,7 +157,11 @@ export function useCrearReporte(): UseCrearReporteReturn {
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
       setBuscandoDuplicado(true);
       const reportes = await reportesApi
-        .listar({ desde: desdeDuplicados(new Date()) })
+        .listar({
+          desde: desdeDuplicados(new Date()),
+          centro: { lat: form.lat as number, lng: form.lng as number },
+          radioM: RADIO_BUSQUEDA_DUPLICADO_M,
+        })
         .catch(() => [])
         .finally(() => setBuscandoDuplicado(false));
       const match = buscarDuplicado(form.categorias, form.lat as number, form.lng as number, reportes);

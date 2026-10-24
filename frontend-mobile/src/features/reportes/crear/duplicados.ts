@@ -5,7 +5,9 @@ import type { CategoriaReporte, Reporte } from '@/types/api';
 // tiempo, compartiendo al menos una categoría, y todavía vigente (no resuelto).
 // El backend real seguramente afina esto por categoría (una inundación deja de
 // ser "la misma" más rápido que un socavón), pero sirve para probar el flujo.
-const RADIO_DUPLICADO_M = 150;
+export const RADIO_DUPLICADO_M = 150;
+/** Radio con el que se le pide la lista al servidor: con margen, porque el cliente aplica después el radio exacto. */
+export const RADIO_BUSQUEDA_DUPLICADO_M = RADIO_DUPLICADO_M * 2;
 export const VENTANA_DUPLICADO_MS = 6 * 60 * 60 * 1000; // 6 horas
 
 /** `desde` (ISO) para pedir al servidor solo los reportes que caben en la ventana de duplicados. La lista

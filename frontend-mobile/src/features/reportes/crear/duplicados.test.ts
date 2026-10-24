@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { VENTANA_DUPLICADO_MS, desdeDuplicados } from './duplicados';
+import { RADIO_BUSQUEDA_DUPLICADO_M, RADIO_DUPLICADO_M, VENTANA_DUPLICADO_MS, desdeDuplicados } from './duplicados';
+
+describe('RADIO_BUSQUEDA_DUPLICADO_M', () => {
+  it('acota la consulta al servidor pero deja margen sobre el radio exacto que filtra el cliente', () => {
+    expect(RADIO_BUSQUEDA_DUPLICADO_M).toBeGreaterThan(RADIO_DUPLICADO_M);
+    expect(RADIO_BUSQUEDA_DUPLICADO_M).toBeLessThanOrEqual(1000);
+  });
+});
 
 describe('desdeDuplicados', () => {
   it('es el instante seis horas antes de "ahora", en ISO', () => {
