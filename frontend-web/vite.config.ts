@@ -9,13 +9,12 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   // El backend no tiene CORS: en desarrollo /api se reenvía a Go quitando el prefijo, igual que nginx en producción.
-server: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8080',
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api/, ''),
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
-},
 })

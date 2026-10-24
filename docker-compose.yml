@@ -79,7 +79,7 @@ services:
       context: .
       dockerfile: frontend-web/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_API_URL: ${VITE_API_URL}
     restart: unless-stopped
     expose: ["80"]
 
