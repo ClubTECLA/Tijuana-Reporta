@@ -11,6 +11,7 @@ import {
   type ReporteCercanoApi,
 } from './mappers';
 import { rutaCercanos } from './cercanos';
+import { cuerpoCrearReporte } from './crear/cuerpoApi';
 import type { ReportesApi } from './port';
 
 // El catálogo casi no cambia: se pide una vez y se cruza por `incidente_id`.
@@ -45,9 +46,17 @@ export const reportesHttp: ReportesApi = {
   // Del hilo, el backend entrega `username` y `rol_name` dentro del detalle del reporte.
   comentarios: async (id) => (await detalleApi(id)).comentarios.map(mapearComentario),
 
-  // TODO(1b): escrituras fuera de la entrega de solo lectura; estas rutas aún no existen en el backend
-  // (shared/openapi define POST /reportes con otro cuerpo y no hay apoyar/confirmar).
-  crear: (req) => http<Reporte>('/reportes', { method: 'POST', body: JSON.stringify(req) }),
+  // La respuesta es el reporte completo (201), el mismo que `GET /reportes/{id}`. La foto va aparte
+  // (`POST /reportes/{id}/multimedia`, rebanada 2): aquí `image_base64` y las etiquetas no se mandan.
+  crear: async (req) => {
+    const incidentes = await catalogo();
+    const reporte = await http<ReporteApi>('/reportes', {
+      method: 'POST',
+      body: JSON.stringify(cuerpoCrearReporte(req, incidentes)),
+    });
+    return mapearDetalle(reporte, incidentes, env.apiUrl);
+  },
+  // TODO(1b): apoyar y confirmar apuntan a rutas que no existen; el backend usa PATCH /reportes/{id}/avistamientos.
   apoyar: (id) => http<void>(`/reportes/${id}/apoyar`, { method: 'POST' }),
   confirmarDuplicado: (id, imageBase64) =>
     http<Reporte>(`/reportes/${id}/confirmar`, {
