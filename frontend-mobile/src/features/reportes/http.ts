@@ -11,6 +11,7 @@ import {
   type ReporteCercanoApi,
 } from './mappers';
 import { rutaCercanos } from './cercanos';
+import { detalleApiKey } from './claves';
 import { cuerpoCrearReporte } from './crear/cuerpoApi';
 import type { ReportesApi } from './port';
 
@@ -23,10 +24,15 @@ const catalogo = () =>
     staleTime: CATALOGO_STALE_MS,
   });
 
+// Para leer reportes el catálogo solo pone la categoría: si su petición falla, se sigue con el que haya en caché
+// (o ninguno: las categorías caen en "otro") en vez de perder la lista o el detalle completos.
+const catalogoParaLeer = () =>
+  catalogo().catch(() => queryClient.getQueryData<IncidenteApi[]>(['incidentes']) ?? []);
+
 // Detalle y comentarios salen del mismo GET /reportes/{id}: comparten caché para no pedirlo dos veces.
 const detalleApi = (id: string) =>
   queryClient.fetchQuery({
-    queryKey: ['reportes', 'detalle-api', id],
+    queryKey: detalleApiKey(id),
     queryFn: () => http<ReporteApi>(`/reportes/${id}`),
     staleTime: 5_000,
   });
@@ -35,12 +41,15 @@ export const reportesHttp: ReportesApi = {
   // Sin `fetchQuery`: `useCategorias` consulta con la misma key ['incidentes'] y anidarlo dejaría la petición esperándose a sí misma.
   incidentes: () => http<IncidenteApi[]>('/incidentes'),
   listar: async ({ desde } = {}) => {
-    const [items, incidentes] = await Promise.all([http<ReporteCercanoApi[]>(rutaCercanos(desde)), catalogo()]);
+    const [items, incidentes] = await Promise.all([
+      http<ReporteCercanoApi[]>(rutaCercanos(desde)),
+      catalogoParaLeer(),
+    ]);
     const ahora = new Date();
     return items.flatMap((r) => mapearResumen(r, incidentes, ahora) ?? []);
   },
   detalle: async (id) => {
-    const [reporte, incidentes] = await Promise.all([detalleApi(id), catalogo()]);
+    const [reporte, incidentes] = await Promise.all([detalleApi(id), catalogoParaLeer()]);
     return mapearDetalle(reporte, incidentes, env.apiUrl);
   },
   // Del hilo, el backend entrega `username` y `rol_name` dentro del detalle del reporte.

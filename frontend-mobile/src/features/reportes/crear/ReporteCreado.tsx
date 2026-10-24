@@ -7,7 +7,9 @@ import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon';
 import { FileTextIcon } from '@/components/icons/FileTextIcon';
 import { MapIcon } from '@/components/icons/MapIcon';
 import { CategoriaBadge } from './CategoriaBadge';
-import { etiquetaDeCategoria, etiquetaLabel } from './categorias';
+import { resolverCategoria, type CategoriaUI } from '@/features/categorias/categorias';
+import { useCategorias } from '../hooks';
+import { etiquetaLabel } from './categorias';
 import { codigoReporte } from './codigo';
 
 interface ReporteCreadoProps {
@@ -19,8 +21,8 @@ interface ReporteCreadoProps {
 }
 
 /** Une los nombres de las categorías en minúsculas, separados por comas y una «y» final. */
-const listarCategorias = (reporte: Reporte) => {
-  const nombres = reporte.categorias.map((c) => etiquetaDeCategoria(c).toLowerCase());
+const listarCategorias = (reporte: Reporte, catalogo: readonly CategoriaUI[]) => {
+  const nombres = reporte.categorias.map((c) => resolverCategoria(c, catalogo).etiqueta.toLowerCase());
   return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
 };
 
@@ -35,6 +37,9 @@ const hora = (fecha: Date) =>
 export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }: ReporteCreadoProps) {
   const insets = useSafeAreaInsets();
   const categoriaPrincipal = reporte.categorias[0];
+  // Etiqueta y color salen del mismo catálogo que el selector: una categoría nueva del backend se ve completa.
+  const catalogo = useCategorias();
+  const colorPrincipal = resolverCategoria(categoriaPrincipal, catalogo).color;
   const recibido = viaDuplicado ? new Date() : new Date(reporte.created_at);
 
   return (
@@ -52,8 +57,8 @@ export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }
             <Text style={styles.titulo}>{viaDuplicado ? '¡Reporte Enviado!' : '¡Reporte Creado!'}</Text>
             <Text style={styles.subtitulo}>
               {viaDuplicado
-                ? `Confirmaste el reporte de ${listarCategorias(reporte)} con éxito`
-                : `Tu reporte de ${listarCategorias(reporte)} fue creado con éxito`}
+                ? `Confirmaste el reporte de ${listarCategorias(reporte, catalogo)} con éxito`
+                : `Tu reporte de ${listarCategorias(reporte, catalogo)} fue creado con éxito`}
             </Text>
           </View>
 
@@ -62,12 +67,12 @@ export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }
               <Image source={{ uri: reporte.image_url }} style={styles.foto} resizeMode="cover" />
             ) : (
               <View style={[styles.foto, styles.fotoVacia]}>
-                <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />
+                <CategoriaBadge categoria={categoriaPrincipal} color={colorPrincipal} size={64} glyphScale={1.2} />
               </View>
             )}
             <View style={styles.cuerpo}>
               <View style={styles.filaTitulo}>
-                <CategoriaBadge categoria={categoriaPrincipal} size={32} />
+                <CategoriaBadge categoria={categoriaPrincipal} color={colorPrincipal} size={32} />
                 <View style={styles.titulos}>
                   <Text style={styles.codigo}>{codigoReporte(reporte.id)}</Text>
                   <Text style={styles.recibido}>Recibido hoy {hora(recibido)} · pendiente de revisión</Text>

@@ -41,7 +41,11 @@ export const CATEGORIAS_RESPALDO: readonly CategoriaUI[] = [
   { slug: 'incendio', id: 7, etiqueta: 'Incendio', color: '#D32F2F' },
 ];
 
-const esIconoLocal = (slug: string): slug is (typeof ICONOS_LOCALES)[number] =>
+/** Catálogo del backend; el respaldo local solo mientras no hay respuesta (carga o falló). Una respuesta vacía se respeta. */
+export const categoriasORespaldo = (incidentes: IncidenteApi[] | undefined): CategoriaUI[] =>
+  incidentes ? categoriasDeCatalogo(incidentes) : [...CATEGORIAS_RESPALDO];
+
+const esIconoLocal =(slug: string): slug is (typeof ICONOS_LOCALES)[number] =>
   (ICONOS_LOCALES as readonly string[]).includes(slug);
 
 /** Etiqueta y color del catálogo + icono local. Slug ausente, 'otro' o desconocido: Otro / gris / genérico. */

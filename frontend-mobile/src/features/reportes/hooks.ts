@@ -4,7 +4,8 @@ import { useFiltrosStore } from '../mapa/filtros/filtrosStore';
 import { periodoADesde } from '../mapa/filtros/periodoADesde';
 import type { Periodo } from '../mapa/filtros/types';
 import { reportesApi } from './api';
-import { categoriasDeCatalogo, CATEGORIAS_RESPALDO, type CategoriaUI } from '../categorias/categorias';
+import { categoriasORespaldo, type CategoriaUI } from '../categorias/categorias';
+import { detalleApiKey } from './claves';
 
 export const reportesKeys = {
   all: ['reportes'] as const,
@@ -56,7 +57,11 @@ export function useComentar(reporteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (texto: string) => reportesApi.comentar(reporteId, texto),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: comentariosKeys.reporte(reporteId) }),
+    // El hilo sale del detalle crudo en caché (staleTime 5 s): hay que invalidarlo o el refetch no vería el comentario nuevo.
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: detalleApiKey(reporteId) });
+      await queryClient.invalidateQueries({ queryKey: comentariosKeys.reporte(reporteId) });
+    },
   });
 }
 
@@ -85,16 +90,13 @@ export function useReporteDetalle(reporteId: string) {
 // El catálogo casi no cambia (misma key y staleTime que el cruce de `http.ts`: una sola petición).
 const CATALOGO_STALE_MS = 10 * 60_000;
 
-/** Categorías del catálogo del backend (etiqueta y color incluidos). Mientras no carga, o si falla o viene
- * vacío, devuelve el respaldo local para que la hoja de filtros nunca salga vacía ni espere un spinner. */
+/** Categorías del catálogo del backend (etiqueta y color incluidos). Mientras no carga, o si falla,
+ * devuelve el respaldo local para que la hoja de filtros no espere un spinner. */
 export function useCategorias(): CategoriaUI[] {
   const { data } = useQuery({
     queryKey: ['incidentes'],
     queryFn: () => reportesApi.incidentes(),
     staleTime: CATALOGO_STALE_MS,
   });
-  return useMemo(() => {
-    const categorias = data ? categoriasDeCatalogo(data) : [];
-    return categorias.length > 0 ? categorias : [...CATEGORIAS_RESPALDO];
-  }, [data]);
+  return useMemo(() => categoriasORespaldo(data), [data]);
 }

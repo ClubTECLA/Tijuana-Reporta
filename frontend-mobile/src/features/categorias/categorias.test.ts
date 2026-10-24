@@ -4,6 +4,7 @@ import type { IncidenteApi } from '../reportes/mappers';
 import {
   CATEGORIAS_RESPALDO,
   categoriasDeCatalogo,
+  categoriasORespaldo,
   resolverCategoria,
   type CategoriaUI,
 } from './categorias';
@@ -45,6 +46,21 @@ describe('categoriasDeCatalogo', () => {
 
   it('un catálogo vacío da una lista vacía', () => {
     expect(categoriasDeCatalogo([])).toEqual([]);
+  });
+});
+
+describe('categoriasORespaldo', () => {
+  it('sin datos (aún carga o falló): el respaldo local', () => {
+    expect(categoriasORespaldo(undefined)).toEqual([...CATEGORIAS_RESPALDO]);
+  });
+
+  it('con datos: el catálogo del backend', () => {
+    expect(categoriasORespaldo([incidente(1, 'luz', 'Luz', '#F5C518')]).map((c) => c.slug)).toEqual(['luz']);
+  });
+
+  it('un catálogo que llegó vacío o sin activas se respeta: no se ofrecen categorías que el backend ya no acepta', () => {
+    expect(categoriasORespaldo([])).toEqual([]);
+    expect(categoriasORespaldo([incidente(1, 'luz', 'Luz', '#F5C518', false)])).toEqual([]);
   });
 });
 

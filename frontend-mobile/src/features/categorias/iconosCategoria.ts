@@ -87,7 +87,8 @@ export const ICONOS_CATEGORIA: Record<IconoCategoria, IconoSvg> = {
 
 /** Icono de un slug del catálogo; ausente o desconocido: el triángulo de alerta genérico. */
 export function iconoSvg(slug: string | undefined): IconoSvg {
-  return slug !== undefined && slug in ICONOS_CATEGORIA && slug !== 'generico'
+  // hasOwnProperty y no `in`: un slug como "constructor" no debe resolver a algo heredado del prototipo.
+  return slug !== undefined && Object.prototype.hasOwnProperty.call(ICONOS_CATEGORIA, slug) && slug !== 'generico'
     ? ICONOS_CATEGORIA[slug as IconoCategoria]
     : ICONOS_CATEGORIA.generico;
 }

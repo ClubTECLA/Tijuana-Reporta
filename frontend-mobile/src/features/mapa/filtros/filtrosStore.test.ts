@@ -47,8 +47,9 @@ describe('filtrosStore', () => {
     const { filtros } = useFiltrosStore.getState();
     expect(filtros).not.toBe(FILTROS_POR_DEFECTO);
     expect(filtros.capas).not.toBe(FILTROS_POR_DEFECTO.capas);
-    useFiltrosStore.getState().aplicar(personalizados());
-    expect(useFiltrosStore.getState().filtros.categorias).not.toBe(personalizados().categorias);
+    const entrada = personalizados();
+    useFiltrosStore.getState().aplicar(entrada);
+    expect(useFiltrosStore.getState().filtros.categorias).not.toBe(entrada.categorias);
     useFiltrosStore.getState().reiniciar();
     const tras = useFiltrosStore.getState().filtros;
     expect(tras.capas).not.toBe(FILTROS_POR_DEFECTO.capas);

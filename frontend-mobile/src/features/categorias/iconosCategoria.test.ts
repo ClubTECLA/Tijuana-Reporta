@@ -38,6 +38,13 @@ describe('iconosCategoria', () => {
     expect(iconoSvg(undefined)).toBe(ICONOS_CATEGORIA.generico);
     expect(iconoSvg('luz')).toBe(ICONOS_CATEGORIA.luz);
   });
+
+  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+    'iconoSvg no toma "%s" del prototipo: cae al genérico',
+    (slug) => {
+      expect(iconoSvg(slug)).toBe(ICONOS_CATEGORIA.generico);
+    },
+  );
 });
 
 describe('pinturaDeIcono', () => {

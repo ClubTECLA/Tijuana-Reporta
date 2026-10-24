@@ -6,7 +6,11 @@ import type { CategoriaReporte, Reporte } from '@/types/api';
 // El backend real seguramente afina esto por categoría (una inundación deja de
 // ser "la misma" más rápido que un socavón), pero sirve para probar el flujo.
 const RADIO_DUPLICADO_M = 150;
-const VENTANA_DUPLICADO_MS = 6 * 60 * 60 * 1000; // 6 horas
+export const VENTANA_DUPLICADO_MS = 6 * 60 * 60 * 1000; // 6 horas
+
+/** `desde` (ISO) para pedir al servidor solo los reportes que caben en la ventana de duplicados. La lista
+ * no trae fecha real, así que sin esto un reporte viejo parecería de "ahora" y contaría como duplicado. */
+export const desdeDuplicados = (ahora: Date): string => new Date(ahora.getTime() - VENTANA_DUPLICADO_MS).toISOString();
 
 export interface Duplicado {
   reporte: Reporte;
