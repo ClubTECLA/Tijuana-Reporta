@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { IconoCategoria } from '@/features/categorias/IconoCategoria';
 import { markerSpecs } from '@/features/mapa/markers';
+import { colors } from '@/theme/colors';
 import type { CategoriaReporte } from '@/types/api';
 
 // El icono mide la mitad del círculo, como en la web (size-6 en size-12).
@@ -20,7 +21,7 @@ export function CategoriaBadge({ categoria, size, color, glyphScale = 1 }: Categ
     <View
       style={[
         styles.circle,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: color ?? markerSpecs[categoria].color },
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: color ?? markerSpecs[categoria]?.color ?? colors.textMuted },
       ]}
     >
       <IconoCategoria slug={categoria} size={size * ICONO_SOBRE_CIRCULO * glyphScale} />

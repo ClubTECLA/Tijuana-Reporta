@@ -49,7 +49,7 @@ describe('categoriasDeCatalogo', () => {
 });
 
 describe('CATEGORIAS_RESPALDO', () => {
-  it('son las 6 categorías del picker con los colores del backend', () => {
+  it('son las categorías del backend (las 6 del picker más incendio) con sus colores', () => {
     expect(CATEGORIAS_RESPALDO.map((c) => c.slug)).toEqual([
       'inundacion',
       'deslave',
@@ -57,7 +57,9 @@ describe('CATEGORIAS_RESPALDO', () => {
       'arbol',
       'socavon',
       'luz',
+      'incendio',
     ]);
+    expect(CATEGORIAS_RESPALDO.find((c) => c.slug === 'incendio')?.color).toBe('#D32F2F');
     expect(CATEGORIAS_RESPALDO.find((c) => c.slug === 'luz')?.color).toBe('#F5C518');
     expect(CATEGORIAS_RESPALDO.find((c) => c.slug === 'arbol')?.etiqueta).toBe('Árbol');
   });

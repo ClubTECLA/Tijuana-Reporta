@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -16,6 +16,8 @@ import { CameraIcon } from '@/components/icons/CameraIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { useEnLinea } from '@/lib/red';
+import { resolverCategoria } from '@/features/categorias/categorias';
+import { useCategorias } from '@/features/reportes/hooks';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
@@ -24,7 +26,7 @@ import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
 import { EtiquetaChip } from '@/features/reportes/crear/EtiquetaChip';
 import { UbicacionActual } from '@/features/reportes/crear/UbicacionActual';
 import {
-  CATEGORIAS_PICKER,
+  categoriasDelPicker,
   categoriasVisibles,
   etiquetaPrincipal,
   etiquetasDe,
@@ -58,6 +60,13 @@ export default function CrearReporte() {
     cancelarDuplicado,
   } = useCrearReporte();
   const setTarget = useMapaTargetStore((s) => s.setTarget);
+  // Las categorías salen del catálogo del backend (con el orden del Figma primero), no de una lista fija.
+  const catalogo = useCategorias();
+  const picker = useMemo(() => categoriasDelPicker(catalogo), [catalogo]);
+  const datosDe = (cat: string) => {
+    const { etiqueta, color } = resolverCategoria(cat, catalogo);
+    return { etiqueta, color };
+  };
   const enLinea = useEnLinea();
   const [expandido, setExpandido] = useState(false);
   const [todasEtiquetas, setTodasEtiquetas] = useState(false);
@@ -93,7 +102,7 @@ export default function CrearReporte() {
   const cerrar = () => router.back();
   const errorCategoria = !!errors.categoria;
   // Si la elegida viene de "+ Ver mas" y no cabe en la grilla, ocupa el último lugar de la grilla.
-  const visibles = categoriasVisibles(form.categorias);
+  const visibles = categoriasVisibles(form.categorias, picker);
   // Información adicional: solo hay etiquetas de la categoría elegida (con su color). Contraída, la
   // etiqueta por defecto más las que el usuario haya activado; con "Ver mas", el resto de las
   // etiquetas de esa misma categoría.
@@ -122,13 +131,14 @@ export default function CrearReporte() {
               <CerrarButton variant="rojo" onPress={() => setExpandido(false)} />
             </View>
             <View style={styles.grid}>
-              {pares(CATEGORIAS_PICKER).map((fila, i) => (
+              {pares(picker).map((fila, i) => (
                 <View key={i} style={styles.fila}>
                   {fila.map((cat) => (
                     <CategoriaCard
                       key={cat}
                       compact
                       categoria={cat}
+                      {...datosDe(cat)}
                       selected={form.categorias.includes(cat)}
                       onPress={() => {
                         elegirCategoria(cat);
@@ -136,6 +146,7 @@ export default function CrearReporte() {
                       }}
                     />
                   ))}
+                  {fila.length === 1 && <View style={styles.huecoCategoria} />}
                 </View>
               ))}
             </View>
@@ -193,11 +204,13 @@ export default function CrearReporte() {
                     <CategoriaCard
                       key={cat}
                       categoria={cat}
+                      {...datosDe(cat)}
                       selected={form.categorias.includes(cat)}
                       dimmed={errorCategoria}
                       onPress={() => elegirCategoria(cat)}
                     />
                   ))}
+                  {fila.length === 1 && <View style={styles.huecoCategoria} />}
                 </View>
               ))}
             </View>
@@ -276,6 +289,10 @@ export default function CrearReporte() {
 }
 
 const styles = StyleSheet.create({
+  // Hueco de la fila con una sola tarjeta: la deja del mismo ancho que las demás.
+  huecoCategoria: {
+    flex: 1,
+  },
   flex: {
     flex: 1,
   },

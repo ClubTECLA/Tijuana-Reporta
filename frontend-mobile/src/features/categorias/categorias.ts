@@ -29,7 +29,7 @@ export function categoriasDeCatalogo(incidentes: IncidenteApi[]): CategoriaUI[] 
     .sort((a, b) => a.id - b.id);
 }
 
-// Respaldo mientras el catálogo no carga (o falla): las 6 categorías del picker del Figma, en su orden,
+// Respaldo mientras el catálogo no carga (o falla): las categorías sembradas en el backend (las 6 del picker del Figma e incendio),
 // con etiquetas y colores del backend. Así la hoja de filtros nunca sale vacía ni espera un spinner.
 export const CATEGORIAS_RESPALDO: readonly CategoriaUI[] = [
   { slug: 'inundacion', id: 6, etiqueta: 'Inundación', color: '#1E88E5' },
@@ -38,6 +38,7 @@ export const CATEGORIAS_RESPALDO: readonly CategoriaUI[] = [
   { slug: 'arbol', id: 3, etiqueta: 'Árbol', color: '#2E7D32' },
   { slug: 'socavon', id: 2, etiqueta: 'Socavón', color: '#8D6E63' },
   { slug: 'luz', id: 1, etiqueta: 'Luz', color: '#F5C518' },
+  { slug: 'incendio', id: 7, etiqueta: 'Incendio', color: '#D32F2F' },
 ];
 
 const esIconoLocal = (slug: string): slug is (typeof ICONOS_LOCALES)[number] =>

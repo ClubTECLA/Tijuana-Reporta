@@ -7,7 +7,7 @@ import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon';
 import { FileTextIcon } from '@/components/icons/FileTextIcon';
 import { MapIcon } from '@/components/icons/MapIcon';
 import { CategoriaBadge } from './CategoriaBadge';
-import { CATEGORIA_LABEL, etiquetaLabel } from './categorias';
+import { etiquetaDeCategoria, etiquetaLabel } from './categorias';
 import { codigoReporte } from './codigo';
 
 interface ReporteCreadoProps {
@@ -20,7 +20,7 @@ interface ReporteCreadoProps {
 
 /** Une los nombres de las categorías en minúsculas, separados por comas y una «y» final. */
 const listarCategorias = (reporte: Reporte) => {
-  const nombres = reporte.categorias.map((c) => CATEGORIA_LABEL[c].toLowerCase());
+  const nombres = reporte.categorias.map((c) => etiquetaDeCategoria(c).toLowerCase());
   return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
 };
 

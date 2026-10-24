@@ -3,10 +3,13 @@ import {
   CATEGORIAS_PICKER,
   CATEGORIAS_VISIBLES,
   cambiarCategoria,
+  categoriasDelPicker,
   categoriasVisibles,
   elegirCategoria,
+  etiquetaDeCategoria,
   etiquetasDe,
 } from './categorias';
+import type { CategoriaUI } from '@/features/categorias/categorias';
 
 describe('elegirCategoria (selección única)', () => {
   it('elige la categoría cuando no había ninguna', () => {
@@ -72,5 +75,51 @@ describe('categoriasVisibles', () => {
     const r = categoriasVisibles(['drenaje']);
     expect(r).toHaveLength(CATEGORIAS_VISIBLES);
     expect(r).toEqual([...base.slice(0, CATEGORIAS_VISIBLES - 1), 'drenaje']);
+  });
+});
+
+const cat = (slug: string, id: number): CategoriaUI => ({ slug, id, etiqueta: slug, color: '#000000' });
+// Catálogo del backend (por id): luz, socavón, árbol, drenaje, deslave, inundación e incendio.
+const CATALOGO = [cat('luz', 1), cat('socavon', 2), cat('arbol', 3), cat('drenaje', 4), cat('deslave', 5), cat('inundacion', 6), cat('incendio', 7)];
+
+describe('categoriasDelPicker', () => {
+  it('las del Figma van primero y en su orden; las demás del catálogo, después', () => {
+    expect(categoriasDelPicker(CATALOGO)).toEqual(['inundacion', 'deslave', 'arbol', 'socavon', 'luz', 'drenaje', 'incendio']);
+  });
+
+  it('incendio, que el catálogo trae y el Figma no, aparece en el picker', () => {
+    expect(categoriasDelPicker(CATALOGO)).toContain('incendio');
+  });
+
+  it('una categoría nueva del backend se agrega al final, sin tocar el código', () => {
+    expect(categoriasDelPicker([...CATALOGO, cat('ruido', 8)]).at(-1)).toBe('ruido');
+  });
+
+  it('si el catálogo ya no trae una del Figma, no se ofrece', () => {
+    const sinDeslave = CATALOGO.filter((c) => c.slug !== 'deslave');
+    expect(categoriasDelPicker(sinDeslave)).not.toContain('deslave');
+  });
+
+  it('no repite categorías', () => {
+    const lista = categoriasDelPicker(CATALOGO);
+    expect(new Set(lista).size).toBe(lista.length);
+  });
+});
+
+describe('categoriasVisibles con la lista del catálogo', () => {
+  const lista = categoriasDelPicker(CATALOGO);
+
+  it('una elegida de "+ Ver mas" como incendio ocupa el último lugar de la grilla', () => {
+    expect(categoriasVisibles(['incendio'], lista)).toEqual([...lista.slice(0, CATEGORIAS_VISIBLES - 1), 'incendio']);
+  });
+});
+
+describe('etiquetaDeCategoria', () => {
+  it('incendio tiene etiqueta propia', () => {
+    expect(etiquetaDeCategoria('incendio')).toBe('Incendio');
+  });
+
+  it('un slug desconocido no rompe: usa el slug con mayúscula inicial', () => {
+    expect(etiquetaDeCategoria('ruido')).toBe('Ruido');
   });
 });
