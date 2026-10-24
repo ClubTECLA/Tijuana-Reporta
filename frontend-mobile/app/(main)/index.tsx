@@ -14,7 +14,7 @@ import { CapasFab } from '@/features/mapa/CapasFab';
 import { aplicarFiltros } from '@/features/mapa/filtros/aplicarFiltros';
 import { useFiltrosStore } from '@/features/mapa/filtros/filtrosStore';
 import { HojaFiltros } from '@/features/mapa/filtros/HojaFiltros';
-import { MapMarker } from '@/features/mapa/MapMarker';
+import { CapaReportes } from '@/features/mapa/CapaReportes';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
 import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
@@ -114,6 +114,12 @@ export default function MainMap() {
     },
     [pantallaAlto, tarjetaBottom],
   );
+
+  /** Tocar un grupo de pins: acerca la cámara al zoom en que el grupo se separa. */
+  const acercarAGrupo = useCallback((centro: [number, number], zoom: number) => {
+    huboGesto.current = true;
+    cameraRef.current?.flyTo({ center: centro, zoom, duration: 500, padding: SIN_PADDING });
+  }, []);
 
   // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa).
   useEffect(() => {
@@ -257,16 +263,13 @@ export default function MainMap() {
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}
-        {reportesVisibles.map((reporte) => (
-          <MapLibreGL.Marker
-            key={reporte.id}
-            id={reporte.id}
-            lngLat={[reporte.lng, reporte.lat]}
-            onPress={() => seleccionar(reporte)}
-          >
-            <MapMarker categoria={reporte.categorias[0]} catalogo={categorias} halo={selectedReporte?.id === reporte.id} />
-          </MapLibreGL.Marker>
-        ))}
+        <CapaReportes
+          reportes={reportesVisibles}
+          catalogo={categorias}
+          seleccionadoId={selectedReporte?.id ?? null}
+          onSeleccionar={seleccionar}
+          onAcercar={acercarAGrupo}
+        />
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: buscadorTop }]} pointerEvents="box-none">

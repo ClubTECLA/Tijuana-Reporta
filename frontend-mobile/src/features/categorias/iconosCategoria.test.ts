@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ICONOS_LOCALES, resolverCategoria, type CategoriaUI } from './categorias';
-import { ICONOS_CATEGORIA, iconoSvg, pinturaDeIcono, transformDeIcono } from './iconosCategoria';
+import { ICONOS_CATEGORIA, iconoSvg, pinturaDeIcono } from './iconosCategoria';
 
 const SLUGS = [...ICONOS_LOCALES, 'generico'] as const;
 
@@ -53,25 +53,6 @@ describe('pinturaDeIcono', () => {
 
   it('relleno (Material, Game Icons): solo relleno del color, sin línea', () => {
     expect(pinturaDeIcono(ICONOS_CATEGORIA.inundacion, '#FFFFFF')).toEqual({ fill: '#FFFFFF' });
-  });
-});
-
-describe('transformDeIcono', () => {
-  const icono24 = { viewBox: '0 0 24 24', trazo: false, paths: ['M0 0'] };
-
-  it('escala el viewBox al tamaño pedido y lo coloca en (x, y) del canvas', () => {
-    expect(transformDeIcono(icono24, 35, 40, 24)).toBe('translate(35 40) scale(1)');
-    expect(transformDeIcono(icono24, 35, 35, 12)).toBe('translate(35 35) scale(0.5)');
-  });
-
-  it('un viewBox de 512 se reduce a la medida pedida', () => {
-    const icono512 = { viewBox: '0 0 512 512', trazo: false, paths: ['M0 0'] };
-    expect(transformDeIcono(icono512, 0, 0, 64)).toBe('translate(0 0) scale(0.125)');
-  });
-
-  it('compensa un viewBox que no empieza en el origen', () => {
-    const desplazado = { viewBox: '10 20 24 24', trazo: false, paths: ['M0 0'] };
-    expect(transformDeIcono(desplazado, 0, 0, 24)).toBe('translate(-10 -20) scale(1)');
   });
 });
 

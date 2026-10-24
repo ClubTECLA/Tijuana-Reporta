@@ -1,5 +1,5 @@
-import Svg, { G, Path } from 'react-native-svg';
-import { iconoSvg, pinturaDeIcono, transformDeIcono } from './iconosCategoria';
+import Svg, { Path } from 'react-native-svg';
+import { iconoSvg, pinturaDeIcono } from './iconosCategoria';
 
 interface IconoCategoriaProps {
   /** `incidentes.nombre` del backend; uno desconocido pinta el triángulo de alerta. */
@@ -18,23 +18,5 @@ export function IconoCategoria({ slug, size, color = 'white' }: IconoCategoriaPr
         <Path key={i} d={d} {...pintura} />
       ))}
     </Svg>
-  );
-}
-
-interface IconoCategoriaEnCanvasProps extends IconoCategoriaProps {
-  x: number;
-  y: number;
-}
-
-/** Variante para dibujar el icono dentro de un <Svg> que ya existe (marcador del mapa), en coordenadas de su canvas. */
-export function IconoCategoriaEnCanvas({ slug, size, color = 'white', x, y }: IconoCategoriaEnCanvasProps) {
-  const icono = iconoSvg(slug);
-  const pintura = pinturaDeIcono(icono, color);
-  return (
-    <G transform={transformDeIcono(icono, x, y, size)}>
-      {icono.paths.map((d, i) => (
-        <Path key={i} d={d} {...pintura} />
-      ))}
-    </G>
   );
 }

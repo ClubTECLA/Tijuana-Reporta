@@ -98,11 +98,3 @@ export function pinturaDeIcono(icono: IconoSvg, color: string) {
     ? ({ fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const)
     : ({ fill: color } as const);
 }
-
-/** `transform` de SVG que dibuja el icono en un cuadro de `size` con su esquina en (x, y) de un canvas ajeno.
- * Sirve para dibujarlo dentro de otro <Svg> sin anidar uno nuevo. */
-export function transformDeIcono(icono: IconoSvg, x: number, y: number, size: number): string {
-  const [minX, minY, ancho] = icono.viewBox.split(' ').map(Number);
-  const escala = size / ancho;
-  return `translate(${x - minX * escala} ${y - minY * escala}) scale(${escala})`;
-}
