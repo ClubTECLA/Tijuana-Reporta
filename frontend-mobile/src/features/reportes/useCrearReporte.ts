@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
-import { etiquetaPrincipal, etiquetasDe, tituloReporte } from './crear/categorias';
-import { buscarDuplicado } from './crear/duplicados';
+import { cambiarCategoria, tituloReporte } from './crear/categorias';
+import { buscarDuplicado, desdeDuplicados, RADIO_BUSQUEDA_DUPLICADO_M } from './crear/duplicados';
 import { useConfirmarDuplicado, useCrearReporteMutation } from './hooks';
 import { reportesApi } from './api';
 
@@ -35,7 +35,8 @@ export interface UseCrearReporteReturn {
   creadoViaDuplicado: boolean;
   /** Distinto de null mientras se espera la decisión de "¿Es el mismo incidente?". */
   duplicado: { reporte: Reporte; distanciaM: number } | null;
-  toggleCategoria: (categoria: CategoriaReporte) => void;
+  /** Elige la categoría (reemplaza a la anterior) o, si ya era la elegida, la deselecciona. */
+  elegirCategoria: (categoria: CategoriaReporte) => void;
   toggleTag: (tag: string) => void;
   setLocation: (lat: number, lng: number, address: string) => void;
   /** Valida y, si hay un reporte parecido cerca, deja `duplicado` listo en vez de enviar. */
@@ -80,26 +81,12 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const enviando = useRef(false);
 
   /**
-   * Al elegir una categoría se crea su etiqueta ("Inundación", con el color de la categoría); al
-   * quitarla se van también sus etiquetas, para no dejar información adicional huérfana.
+   * Selección única: elegir otra categoría reemplaza a la anterior y tocar la elegida la quita. Se
+   * crea la etiqueta de la nueva ("Inundación", con el color de la categoría) y se van las
+   * etiquetas de la que se deja, para no dejar información adicional huérfana.
    */
-  const toggleCategoria = (categoria: CategoriaReporte): void => {
-    setForm((prev) => {
-      if (prev.categorias.includes(categoria)) {
-        const propias = etiquetasDe(categoria).map((e) => e.id);
-        return {
-          ...prev,
-          categorias: prev.categorias.filter((c) => c !== categoria),
-          tags: prev.tags.filter((t) => !propias.includes(t)),
-        };
-      }
-      const principal = etiquetaPrincipal(categoria);
-      return {
-        ...prev,
-        categorias: [...prev.categorias, categoria],
-        tags: principal && !prev.tags.includes(principal) ? [...prev.tags, principal] : prev.tags,
-      };
-    });
+  const elegirCategoria = (categoria: CategoriaReporte): void => {
+    setForm((prev) => ({ ...prev, ...cambiarCategoria(prev, categoria) }));
     setErrors((prev) => ({ ...prev, categoria: undefined }));
   };
 
@@ -116,12 +103,12 @@ export function useCrearReporte(): UseCrearReporteReturn {
     setErrors((prev) => ({ ...prev, ubicacion: undefined }));
   }, []);
 
-  /** Devuelve los errores por falta de categorías o coordenadas en el formulario. */
+  /** Devuelve los errores por falta de categoría o coordenadas en el formulario. */
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
 
     if (form.categorias.length === 0) {
-      newErrors.categoria = 'Selecciona al menos una categoría.';
+      newErrors.categoria = 'Selecciona una categoría.';
     }
 
     if (form.lat === null || form.lng === null) {
@@ -170,7 +157,11 @@ export function useCrearReporte(): UseCrearReporteReturn {
       // uno parecido cerca (misma categoría, mismo rumbo, todavía reciente).
       setBuscandoDuplicado(true);
       const reportes = await reportesApi
-        .listar()
+        .listar({
+          desde: desdeDuplicados(new Date()),
+          centro: { lat: form.lat as number, lng: form.lng as number },
+          radioM: RADIO_BUSQUEDA_DUPLICADO_M,
+        })
         .catch(() => [])
         .finally(() => setBuscandoDuplicado(false));
       const match = buscarDuplicado(form.categorias, form.lat as number, form.lng as number, reportes);
@@ -242,7 +233,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
     creado,
     creadoViaDuplicado,
     duplicado,
-    toggleCategoria,
+    elegirCategoria,
     toggleTag,
     setLocation,
     submit,

@@ -1,15 +1,11 @@
-import type { CategoriaReporte } from '@/types/api';
-
 export type Periodo = 'ahora' | '24h' | '7d';
 
-/** Las 6 categorías que ofrece el picker del Figma; `peligro`, `servicios` y `otro` no se filtran. */
-export type CategoriaFiltro = Extract<
-  CategoriaReporte,
-  'inundacion' | 'deslave' | 'drenaje' | 'arbol' | 'socavon' | 'luz'
->;
+/** Slug de una categoría del catálogo del backend (`incidentes.nombre`); ya no es una lista cerrada. */
+export type CategoriaFiltro = string;
 
 export interface FiltrosMapa {
-  categorias: CategoriaFiltro[];
+  /** `null` = todas las categorías (también las que el backend agregue después); una lista = solo esas. */
+  categorias: CategoriaFiltro[] | null;
   capas: { incidentes: boolean; zonasRiesgo: boolean; avisosOficiales: boolean };
   periodo: Periodo;
 }

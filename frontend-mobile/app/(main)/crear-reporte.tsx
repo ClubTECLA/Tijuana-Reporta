@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -16,17 +16,18 @@ import { CameraIcon } from '@/components/icons/CameraIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { useEnLinea } from '@/lib/red';
+import { resolverCategoria } from '@/features/categorias/categorias';
+import { useCategorias } from '@/features/reportes/hooks';
 import { useCrearReporte } from '@/features/reportes/useCrearReporte';
 import { CategoriaCard } from '@/features/reportes/crear/CategoriaCard';
-import { CategoriaChip } from '@/features/reportes/crear/CategoriaChip';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { ReporteCreado } from '@/features/reportes/crear/ReporteCreado';
 import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
 import { EtiquetaChip } from '@/features/reportes/crear/EtiquetaChip';
 import { UbicacionActual } from '@/features/reportes/crear/UbicacionActual';
 import {
-  CATEGORIAS_PICKER,
-  CATEGORIAS_VISIBLES,
+  categoriasDelPicker,
+  categoriasVisibles,
   etiquetaPrincipal,
   etiquetasDe,
 } from '@/features/reportes/crear/categorias';
@@ -39,7 +40,7 @@ const pares = <T,>(items: T[]): T[][] => {
   return filas;
 };
 
-/** Presenta el formulario multicategoría y los pasos de duplicado y confirmación del reporte. */
+/** Presenta el formulario de reporte (categoría única) y los pasos de duplicado y confirmación del reporte. */
 export default function CrearReporte() {
   const insets = useSafeAreaInsets();
   const {
@@ -50,7 +51,7 @@ export default function CrearReporte() {
     creado,
     creadoViaDuplicado,
     duplicado,
-    toggleCategoria,
+    elegirCategoria,
     toggleTag,
     setLocation,
     submit,
@@ -59,6 +60,13 @@ export default function CrearReporte() {
     cancelarDuplicado,
   } = useCrearReporte();
   const setTarget = useMapaTargetStore((s) => s.setTarget);
+  // Las categorías salen del catálogo del backend (con el orden del Figma primero), no de una lista fija.
+  const catalogo = useCategorias();
+  const picker = useMemo(() => categoriasDelPicker(catalogo), [catalogo]);
+  const datosDe = (cat: string) => {
+    const { etiqueta, color } = resolverCategoria(cat, catalogo);
+    return { etiqueta, color };
+  };
   const enLinea = useEnLinea();
   const [expandido, setExpandido] = useState(false);
   const [todasEtiquetas, setTodasEtiquetas] = useState(false);
@@ -93,12 +101,11 @@ export default function CrearReporte() {
 
   const cerrar = () => router.back();
   const errorCategoria = !!errors.categoria;
-  const visibles = CATEGORIAS_PICKER.slice(0, CATEGORIAS_VISIBLES);
-  // Categorías elegidas desde "+ Ver mas" que no tienen tarjeta en la grilla: van como chips quitables.
-  const fueraDeGrilla = form.categorias.filter((c) => !visibles.includes(c));
-  // Información adicional: solo hay etiquetas de las categorías elegidas (con su color). Contraída, la
-  // etiqueta por defecto de cada una más las que el usuario haya activado; con "Ver mas", el resto
-  // de las etiquetas de esas mismas categorías.
+  // Si la elegida viene de "+ Ver mas" y no cabe en la grilla, ocupa el último lugar de la grilla.
+  const visibles = categoriasVisibles(form.categorias, picker);
+  // Información adicional: solo hay etiquetas de la categoría elegida (con su color). Contraída, la
+  // etiqueta por defecto más las que el usuario haya activado; con "Ver mas", el resto de las
+  // etiquetas de esa misma categoría.
   const deLasElegidas = form.categorias.flatMap(etiquetasDe);
   const contraidas = deLasElegidas.filter(
     ({ id, categoria }) => form.tags.includes(id) || id === etiquetaPrincipal(categoria),
@@ -124,17 +131,22 @@ export default function CrearReporte() {
               <CerrarButton variant="rojo" onPress={() => setExpandido(false)} />
             </View>
             <View style={styles.grid}>
-              {pares(CATEGORIAS_PICKER).map((fila, i) => (
+              {pares(picker).map((fila, i) => (
                 <View key={i} style={styles.fila}>
                   {fila.map((cat) => (
                     <CategoriaCard
                       key={cat}
                       compact
                       categoria={cat}
+                      {...datosDe(cat)}
                       selected={form.categorias.includes(cat)}
-                      onPress={() => toggleCategoria(cat)}
+                      onPress={() => {
+                        elegirCategoria(cat);
+                        setExpandido(false);
+                      }}
                     />
                   ))}
+                  {fila.length === 1 && <View style={styles.huecoCategoria} />}
                 </View>
               ))}
             </View>
@@ -178,20 +190,13 @@ export default function CrearReporte() {
 
             {/* Categoría */}
             <View style={[styles.filaLabel, styles.seccionCategoria]}>
-              <Text style={[styles.label, errorCategoria && styles.labelError]}>
+              <Text style={[styles.label, styles.tituloCategoria, errorCategoria && styles.labelError]}>
                 {errorCategoria ? '¿Qué está pasando? · OBLIGATORIO' : '¿Qué está pasando?'}
               </Text>
               <Pressable onPress={() => setExpandido(true)} accessibilityRole="button" hitSlop={8}>
                 <Text style={styles.verMas}>+ Ver mas</Text>
               </Pressable>
             </View>
-            {fueraDeGrilla.length > 0 && (
-              <View style={styles.chipsSeleccionadas}>
-                {fueraDeGrilla.map((cat) => (
-                  <CategoriaChip key={cat} categoria={cat} onQuitar={() => toggleCategoria(cat)} />
-                ))}
-              </View>
-            )}
             <View style={[styles.grid, errorCategoria && styles.gridError]}>
               {pares(visibles).map((fila, i) => (
                 <View key={i} style={styles.fila}>
@@ -199,11 +204,13 @@ export default function CrearReporte() {
                     <CategoriaCard
                       key={cat}
                       categoria={cat}
+                      {...datosDe(cat)}
                       selected={form.categorias.includes(cat)}
                       dimmed={errorCategoria}
-                      onPress={() => toggleCategoria(cat)}
+                      onPress={() => elegirCategoria(cat)}
                     />
                   ))}
+                  {fila.length === 1 && <View style={styles.huecoCategoria} />}
                 </View>
               ))}
             </View>
@@ -282,6 +289,10 @@ export default function CrearReporte() {
 }
 
 const styles = StyleSheet.create({
+  // Hueco de la fila con una sola tarjeta: la deja del mismo ancho que las demás.
+  huecoCategoria: {
+    flex: 1,
+  },
   flex: {
     flex: 1,
   },
@@ -354,6 +365,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
+  },
+  // Con el aviso "OBLIGATORIO" el título es largo: debe encogerse para que "+ Ver mas" no se corte.
+  tituloCategoria: {
+    flexShrink: 1,
   },
   verMas: {
     fontFamily: fontFamily.bold,
@@ -396,13 +412,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-  },
-  chipsSeleccionadas: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 8,
-    paddingHorizontal: 6,
   },
 
   // ── Cuadrícula de categorías ─────────────────────────────────────────────
