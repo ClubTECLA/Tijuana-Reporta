@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 // multimediaTimeout es lo que se espera a que multimedia reciba y guarde un archivo.
@@ -20,13 +23,17 @@ func main() {
 	cfg, err := config.Load()
 
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		slog.Error("failed to load configuration", "error", err) // Default logger, antes de configurar
+		os.Exit(1)
 	}
+	slog.SetDefault(logging.New(cfg.LogLevel, cfg.LogFormat))
+	gin.SetMode(gin.ReleaseMode) // Remueve el banner de debug de gin
 
 	ctx := context.Background()
 	pool, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to connect to postgress", "error", err)
+		os.Exit(1)
 	}
 	defer pool.Close()
 
@@ -37,11 +44,13 @@ func main() {
 	defer cancel()
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("Failed to connect to database; check database configuration and connectivity: %v", err)
+		slog.Error("failed to connect to database; check database configuration and connectivity", "error", err)
+		os.Exit(1)
 	}
 
 	if err := bootstrap.EnsureAdmin(ctx, pool, cfg.AdminEmail, cfg.AdminUsername, cfg.AdminPassword); err != nil {
-		log.Fatalf("admin bootstrap: %v", err)
+		slog.Error("admin bootstrap failed", "error", err)
+		os.Exit(1)
 	}
 
 	// Un solo Store para todos los servicios: expone las consultas generadas
@@ -58,7 +67,8 @@ func main() {
 		MaxPixeles: cfg.MaxFotoPixeles,
 	})
 	if err != nil {
-		log.Fatalf("Failed to initialize auth service: %v", err)
+		slog.Error("failed to initialize auth service", "error", err)
+		os.Exit(1)
 	}
 
 	r := api.NewRouter(api.Services{
@@ -70,8 +80,9 @@ func main() {
 		Multimedia:  multimediaSvc,
 	}, cfg.JWTSecret, api.WithMaxMultimediaBytes(cfg.MaxMultimediaBytes))
 
-	log.Printf("server listening on:%s", cfg.APIPort)
+	slog.Info("server listening", "port", cfg.APIPort)
 	if err := r.Run(":" + cfg.APIPort); err != nil {
-		log.Fatal(err)
+		slog.Error("server stopped", "error", err)
+		os.Exit(1)
 	}
 }

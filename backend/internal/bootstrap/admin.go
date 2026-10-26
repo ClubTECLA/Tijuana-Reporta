@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +41,6 @@ func EnsureAdmin(ctx context.Context, pool *pgxpool.Pool, email, username, passw
 	if tag.RowsAffected() == 0 {
 		return errors.New("no existe el rol 'admin' en la tabla de roles")
 	}
-	log.Printf("admin bootstrap: %s listo", email)
+	slog.Info("admin bootstrap listo", "email", email)
 	return nil
 }
