@@ -55,6 +55,8 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-Administrador}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MULTIMEDIA_URL: http://multimedia:8081
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      LOG_FORMAT: ${LOG_FORMAT:-}
     logging:
       driver: json-file
       options:
