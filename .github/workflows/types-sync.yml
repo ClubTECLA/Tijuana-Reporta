@@ -1,0 +1,38 @@
+name: Types sync
+
+on:
+  pull_request:
+    paths:
+      - "shared/openapi/**"
+      - "shared/types/**"
+      - ".github/workflows/types-sync.yml"
+
+concurrency:
+  group: types-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  types-sync:
+    name: api-types.ts coincide con el contrato OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Regenerar api-types.ts
+        run: npx --yes openapi-typescript@7.4.4 shared/openapi/openapi.yaml -o shared/types/api-types.ts
+
+      - name: Verificar que no hay diferencias
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::shared/types/api-types.ts no coincide con shared/openapi/openapi.yaml. Regéneralo y sube los cambios."
+            git diff --stat
+            exit 1
+          fi
