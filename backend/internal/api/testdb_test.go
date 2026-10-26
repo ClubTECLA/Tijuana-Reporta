@@ -34,6 +34,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	gin.SetMode(gin.TestMode)
+
 	code := m.Run()
 
 	if dbPool != nil {
@@ -41,8 +44,7 @@ func TestMain(m *testing.M) {
 	}
 	if dbContainer != nil {
 		if err := testcontainers.TerminateContainer(dbContainer); err != nil {
-			slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
-			gin.SetMode(gin.TestMode)
+			fmt.Fprintf(os.Stderr, "borrando el contenedor de los tests: %v\n", err)
 		}
 	}
 	os.Exit(code)
