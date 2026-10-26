@@ -2,7 +2,7 @@ import { FiLayers } from "react-icons/fi";
 import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
 import RowSection from "../PanelAndModalComponents/primitive-components/RowSection";
 import { SideNav, SideNavItem } from "../PanelAndModalComponents/view-components/SideNav";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { LuShieldCheck } from "react-icons/lu";
 import SubsectionTitle from "../PanelAndModalComponents/view-components/SubsectionTitle";
 import Button from "../PanelAndModalComponents/view-components/Button";
@@ -13,78 +13,25 @@ import type { ApiIncidente } from "../../../types/api-types";
 import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 import type { subsectionProps } from "../../../types/utils-types";
+import { listIncidents } from "../../../services/incidents.services";
 
 function CategoriesSection({debug} : subsectionProps) {
-    const [categories, setCategories] = useState<ApiIncidente[]>([
-        {
-            id: 1,
-            nombre: "Inundación",
-            etiqueta: "Inundación",
-            tiempo_limite: 24,
-            radio: 500,
-            color: "#1976D2",
-            tags: [
-                { id: 1, nombre: "encharcamiento", peso: 2 },
-                { id: 2, nombre: "corriente fuerte", peso: 3 },
-            ],
-            esta_activo: true,
-        },
-        {
-            id: 2,
-            nombre: "Alumbrado público",
-            etiqueta: "Alumbrado público",
-            tiempo_limite: null,
-            radio: 300,
-            color: "#FBC02D",
-            tags: [
-                { id: 3, nombre: "apagado", peso: 2 },
-                { id: 4, nombre: "intermitente", peso: 1 },
-            ],
-            esta_activo: true,
-        },
-        {
-            id: 3,
-            nombre: "Bache",
-            etiqueta: "Bache",
-            tiempo_limite: null,
-            radio: 200,
-            color: "#6D4C41",
-            tags: [
-                { id: 5, nombre: "profundo", peso: 3 },
-                { id: 6, nombre: "en avenida", peso: 2 },
-                { id: 7, nombre: "con agua", peso: 1 },
-            ],
-            esta_activo: true,
-        },
-        {
-            id: 4,
-            nombre: "Árbol caído",
-            etiqueta: "Árbol caído",
-            tiempo_limite: 48,
-            radio: 500,
-            color: "#388E3C",
-            tags: [
-                { id: 8, nombre: "bloquea calle", peso: 3 },
-                { id: 9, nombre: "cables afectados", peso: 3 },
-            ],
-            esta_activo: true,
-        },
-        {
-            id: 5,
-            nombre: "Drenaje",
-            etiqueta: "Drenaje",
-            tiempo_limite: null,
-            radio: null,
-            color: "#00897B",
-            tags: [
-                { id: 10, nombre: "fuga", peso: 2 },
-                { id: 11, nombre: "mal olor", peso: 1 },
-            ],
-            esta_activo: false,
-        },
-    ])
+    const [categories, setCategories] = useState<ApiIncidente[]>([]);
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try{
+                const res = await listIncidents({ incluir_inactivos: true });
+                setCategories(res);
+            }catch(err){
+                console.error(err);
+                setCategories([]);
+            }
+        }
+        fetchCategories();
+    }, []);
 
     const handleChangeIsActive = (e: ChangeEvent<HTMLInputElement>) => {
         setCategories(prev => prev.map(

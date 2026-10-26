@@ -46,15 +46,15 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         }
     }, [category])
 
-     const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setCategoryForEdit(prev => ({
-            ...prev,
-            [name]: name === 'radio'
-                ? value === '' ? null : Number(value)
-                : value,
-        }))
-     }
+    const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCategoryForEdit(prev => ({
+        ...prev,
+        [name]: name === 'radio'
+            ? value === '' ? null : Number(value)
+            : value,
+    }))
+    }
 
     const handleSubmitForm = () => {
         if(categoryForEdit.nombre === ""){
@@ -159,7 +159,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                 {categoryForEdit.tags.map((tag) => 
                     <Tag
                         key={tag.id}
-                        name={tag.nombre}
+                        value={tag.nombre}
                         badge={tag.peso}
                         color={categoryForEdit.color as HexColor}
                     />

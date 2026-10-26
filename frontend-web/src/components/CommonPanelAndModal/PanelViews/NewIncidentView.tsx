@@ -11,8 +11,8 @@ import { useMap } from "../../../hooks/useMap";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { useReportes } from "../../../hooks/useReportes";
-import { listarIncidentes } from "../../../services/incidentes.services";
-import { cambiarEstadoReporte, crearComentario, crearReporte } from "../../../services/reportes.services";
+import { listIncidents } from "../../../services/incidents.services";
+import { updateReportStatus, createReportComment, createReport } from "../../../services/reports.services";
 import { buscarDireccion, direccionDe } from "../../../services/geocoding.services";
 import type { ApiIncidente } from "../../../types/api-types";
 
@@ -59,7 +59,7 @@ function NewIncidentForm() {
     useEffect(() => {
         let cancelled = false;
 
-        listarIncidentes()
+        listIncidents()
             .then((activeCategories) => {
                 if (!cancelled) setCategories(activeCategories);
             })
@@ -164,7 +164,7 @@ function NewIncidentForm() {
 
         setPublishing(true);
         try {
-            const created = await crearReporte({
+            const created = await createReport({
                 incidente_id: categoryId,
                 latitude: position.latitude,
                 longitude: position.longitude,
@@ -174,12 +174,12 @@ function NewIncidentForm() {
             if (descriptionText) {
                 // shortcut: dos llamadas no atómicas; pasar la descripción en crearReporte cuando el backend acepte "comentario".
                 // Si falla, el reporte ya existe: no se reintenta la publicación para no duplicarlo.
-                descriptionSaved = await crearComentario(created.id, descriptionText).then(() => true, () => false);
+                descriptionSaved = await createReportComment(created.id, descriptionText).then(() => true, () => false);
             }
             // shortcut: PRUEBA. Los incidentes creados desde el web nacen verificados con una segunda llamada (solo admin).
             // Pasar estado y es_oficial en crearReporte cuando el backend los acepte (validando el rol); hoy es_oficial
             // no se puede activar desde ningún endpoint, así que el incidente queda verificado pero no oficial.
-            const verified = await cambiarEstadoReporte(created.id, "Verificado").then(() => true, () => false);
+            const verified = await updateReportStatus(created.id, "Verificado").then(() => true, () => false);
 
             const pending = [!descriptionSaved && "la descripción no se pudo guardar", !verified && "no se pudo marcar como verificado"].filter(Boolean);
             if (pending.length) {

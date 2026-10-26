@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useState, type ReactNode } from "react";
 import type { HexColor, subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 import { FiPlus } from "react-icons/fi";
@@ -6,15 +6,17 @@ import { FiPlus } from "react-icons/fi";
 interface CreateTagButton extends Omit<subsectionProps, 'format'>{
     format?: subsectionProps['format'],
     title?: string
+    onClick?: () => void
 }
 
-export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} : CreateTagButton) {
+export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar', onClick} : CreateTagButton) {
     return(
         <SubSection
             format={format}
             debug={debug}
             className="rounded-3xl bg-brand text-white font-bold flex-row px-3 py-1 items-center justify-center"
             as='button'
+            onClick={onClick}
         >
             <FiPlus className="text-lg"/>
             {title}
@@ -23,28 +25,48 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar'} 
 }
 
 interface TagProps extends Omit<subsectionProps, 'format'>{
-    name: string;
+    value: string;
     badge?: string | number;
-    color?: HexColor
+    color?: HexColor;
+    edit?: boolean;
+    onChange?: () => void
 }
 
-export function Tag({debug, name, badge, color = '#FFF'} : TagProps){
+export function Tag({debug, value, badge, color = '#FFF', edit = false, onChange} : TagProps){
+    const [ stateEdit, setStateEdit ] = useState(edit);
+
     return(
         <SubSection
             format={'col'}
             debug={debug}
             className="flex-row items-center justify-start gap-1 rounded-3xl bg-white px-3
-                shadow-raised font-bold 
+                shadow-raised font-bold py-1
             "
+            onDoubleClick={() => setStateEdit(true)}
         >
             <span
                 className="rounded-full w-2 h-2 shrink-0"
                 style={{ backgroundColor: color }}
             />
-            <span className="text-md text-ink">{name}</span>
+            {stateEdit ? (
+                <input
+                    type="text"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={() => setStateEdit(false)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            setStateEdit(false);
+                        }
+                    }}
+                    className="text-md ml-2 text-ink"
+                />
+            ) : (
+                <span className="text-md text-ink">{value}</span>
+            )}
             {badge && (
                 <span
-                    className=" text-md ml-2 text-ink"
+                    className="text-md ml-2 text-ink"
                 >
                     {badge}
                 </span>
@@ -59,6 +81,8 @@ interface TagPickerProps extends subsectionProps{
 }
 
 export function TagPicker({ format, debug, title, children }:TagPickerProps) {
+    
+    
     return(
         <SubSection
             format={format}

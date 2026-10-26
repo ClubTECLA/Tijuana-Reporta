@@ -13,15 +13,13 @@ import type {
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
 
 // GET /incidentes
-export function listarIncidentes(
+export function listIncidents(
     query?: ApiListarIncidentesQuery,
 ): Promise<ApiListarIncidentesResponse> {
     const searchParams = new URLSearchParams()
-
     if (query?.incluir_inactivos !== undefined) {
         searchParams.set('incluir_inactivos', String(query.incluir_inactivos))
     }
-
     const queryString = searchParams.size > 0 ? `?${searchParams.toString()}` : ''
 
     return requestJson(`${apiUrl}/incidentes${queryString}`, {
@@ -31,7 +29,7 @@ export function listarIncidentes(
 }
 
 // POST /incidentes (administradores)
-export function crearIncidente(
+export function createIncident(
     body: ApiCrearIncidenteRequest,
 ): Promise<ApiCrearIncidenteResponse> {
     return requestJson(`${apiUrl}/incidentes`, {
@@ -42,21 +40,21 @@ export function crearIncidente(
 }
 
 // GET /incidentes/{incidenteId}
-export function obtenerIncidente(
-    incidenteId: number,
+export function getIncident(
+    incidentId: number,
 ): Promise<ApiObtenerIncidenteResponse> {
-    return requestJson(`${apiUrl}/incidentes/${incidenteId}`, {
+    return requestJson(`${apiUrl}/incidentes/${incidentId}`, {
         method: 'GET',
         headers: { Authorization: getAuthorizationHeader() },
     })
 }
 
 // POST /incidentes/{incidenteId}/tags (administradores)
-export function agregarTags(
-    incidenteId: number,
+export function addIncidentTags(
+    incidentId: number,
     tags: ApiAgregarTagsRequest,
 ): Promise<ApiAgregarTagsResponse> {
-    return requestJson(`${apiUrl}/incidentes/${incidenteId}/tags`, {
+    return requestJson(`${apiUrl}/incidentes/${incidentId}/tags`, {
         method: 'POST',
         headers: getJsonHeaders(),
         body: JSON.stringify(tags),

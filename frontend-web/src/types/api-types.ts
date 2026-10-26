@@ -25,6 +25,10 @@ export type ApiCrearIncidenteRequest = components['schemas']['crear_incidente_re
 export type ApiListarReportesQuery = operations['listarReportes']['parameters']['query']
 export type ApiListarReportesResponse =
     operations['listarReportes']['responses'][200]['content']['application/json']
+export type ApiListarReportesCercanosQuery =
+    operations['listarReportesCercanos']['parameters']['query']
+export type ApiListarReportesCercanosResponse =
+    operations['listarReportesCercanos']['responses'][200]['content']['application/json']
 export type ApiCrearReporteResponse =
     operations['crearReporte']['responses'][201]['content']['application/json']
 export type ApiObtenerReporteParams = operations['obtenerReporte']['parameters']['path']
@@ -38,6 +42,8 @@ export type ApiCrearComentarioParams =
     operations['crearComentario']['parameters']['path']
 export type ApiCrearComentarioResponse =
     operations['crearComentario']['responses'][201]['content']['application/json']
+export type ApiSubirMultimediaResponse =
+    operations['subirMultimedia']['responses'][201]['content']['application/json']
 
 // Authentication endpoint request and response types
 export type LoginResponse = operations['login']['responses'][200]['content']['application/json']
