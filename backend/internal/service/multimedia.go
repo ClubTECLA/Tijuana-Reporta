@@ -131,6 +131,6 @@ func (s *MultimediaService) borrarHuerfano(ctx context.Context, path string) {
 	defer cancel()
 
 	if err := s.multimedia.Borrar(ctx, path); err != nil {
-		slog.WarnContext(ctx, "could'nt create an orphan file", "path", path, "error", err)
+		slog.WarnContext(ctx, "couldn't delete an orphan file", "path", path, "error", err)
 	}
 }
