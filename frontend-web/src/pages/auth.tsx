@@ -91,9 +91,10 @@ function Recovery_email({onSubmit}: recoveryProps) {
 }
 
 function Recovery_code({onSubmit}: recoveryProps) {
-    const [code, setCode] = useState("");
+    const [code, setCode] = useState<string[]>(() => Array(6).fill(""));
     const [secondsRemaining, setSecondsRemaining] = useState(45);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+    const isCodeComplete = code.every((digit) => /^\d$/.test(digit));
 
     const resendCode = useCallback(() => {
         //resend code
@@ -114,10 +115,11 @@ function Recovery_code({onSubmit}: recoveryProps) {
 
     const handleChange = (index: number, value: string) => {
         const digit = value.replace(/\D/g, "").slice(-1);
-        const nextCode = code.split("");
-        nextCode[index] = digit;
-        const updatedCode = nextCode.join("").slice(0, 6);
-        setCode(updatedCode);
+        setCode((currentCode) =>
+            currentCode.map((currentDigit, currentIndex) =>
+                currentIndex === index ? digit : currentDigit
+            )
+        );
 
         if (digit && index < 5) {
             inputRefs.current[index + 1]?.focus();
@@ -139,13 +141,13 @@ function Recovery_code({onSubmit}: recoveryProps) {
         if (!pastedCode) return;
 
         event.preventDefault();
-        setCode(pastedCode);
+        setCode(Array.from({ length: 6 }, (_, index) => pastedCode[index] ?? ""));
         inputRefs.current[Math.min(pastedCode.length, 5)]?.focus();
     }
 
     const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (code.length === 6) onSubmit();
+        if (isCodeComplete) onSubmit();
     }
 
     return(
@@ -170,7 +172,7 @@ function Recovery_code({onSubmit}: recoveryProps) {
                         inputMode="numeric"
                         maxLength={1}
                         type="text"
-                        value={code[index] ?? ""}
+                        value={code[index]}
                         onChange={(event) => handleChange(index, event.target.value)}
                         onKeyDown={(event) => handleKeyDown(index, event)}
                         className="
@@ -191,7 +193,7 @@ function Recovery_code({onSubmit}: recoveryProps) {
             <button
                 className={`${submitButtonStyle} mt-5`}
                 type="submit"
-                disabled={code.length !== 6}
+                disabled={!isCodeComplete}
             >
                 Verificar código
             </button>
