@@ -201,7 +201,7 @@ func RequestLogger() gin.HandlerFunc {
 			slog.String("route", c.FullPath()), // /v1/reportes/:reporteId, no el id real
 			slog.Int("status", status),
 			slog.Duration("latency", time.Since(start)),
-			slog.Int("bytes", c.Writer.Size()),
+			slog.Int("bytes", max(c.Writer.Size(), 0)),
 		}
 		// Auth reemplazó c.Request, así que aquí ya se ve el userID.
 		if uid, ok := UserIDFromContext(c.Request.Context()); ok {
