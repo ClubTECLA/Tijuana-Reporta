@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+            persist-credentials: false
 
       # Toma la versión de pnpm del campo "packageManager" de tu package.json.
       # Si no lo tienes, agrega al paso: with: { version: 10 } (la que uses en local).

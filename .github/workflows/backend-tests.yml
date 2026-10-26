@@ -27,6 +27,8 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v6
+        with:
+          persis-credentials: false
 
       - uses: actions/setup-go@v6
         with:
