@@ -55,7 +55,7 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 	r := gin.New()
 	r.Use(
 		middleware.RequestLogger(),
-		gin.CustomRecovery(func(c *gin.Context, rec any) {
+		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, rec any) {
 			slog.ErrorContext(c.Request.Context(), "panic", slog.Any("panic", rec),
 				slog.String("stack", string(debug.Stack())))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Message: "internal server error"})
