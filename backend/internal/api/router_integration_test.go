@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -772,6 +773,7 @@ func TestCreateIncidenteConTagsRollback(t *testing.T) {
 	_, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
 		Incidente: domain.CreateIncidenteParams{Nombre: nombre, Color: "#757575", EstaActivo: true},
 		Tags:      []domain.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
+		ActorID:   crearActor(t, store),
 	})
 	if !domain.IsUniqueViolation(err) {
 		t.Fatalf("CreateIncidenteConTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
@@ -990,19 +992,22 @@ func TestAgregarTags(t *testing.T) {
 func TestCreateTags(t *testing.T) {
 	pool := testPool(t)
 	store := database.NewStore(pool)
+	actorID := crearActor(t, store)
 
 	t.Run("rollback si uno falla", func(t *testing.T) {
 		d, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
 			Incidente: domain.CreateIncidenteParams{Nombre: nombreIncidente(), Color: "#757575", EstaActivo: true},
+			ActorID:   actorID,
 		})
 		if err != nil {
 			t.Fatalf("CreateIncidenteConTags() error = %v", err)
 		}
 		id := d.Incidente.ID
 
-		_, err = store.CreateTags(t.Context(), []domain.CreateTagParams{
-			{IncidenteID: id, Nombre: "nuevo", Peso: 1},
-			{IncidenteID: id, Nombre: "nuevo", Peso: 1},
+		_, err = store.CreateTags(t.Context(), domain.CreateTagsTxParams{
+			IncidenteID: id,
+			Tags:        []domain.CreateTagParams{{Nombre: "nuevo", Peso: 1}, {Nombre: "nuevo", Peso: 1}},
+			ActorID:     actorID,
 		})
 		if !domain.IsUniqueViolation(err) {
 			t.Fatalf("CreateTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
@@ -1015,11 +1020,18 @@ func TestCreateTags(t *testing.T) {
 		if n != 0 {
 			t.Errorf("quedaron %d tags tras el rollback, quería 0", n)
 		}
+		if n := contarHistorial(t, "incidente.agregar_tags", "incidente", strconv.Itoa(id)); n != 0 {
+			t.Errorf("quedaron %d eventos de historial tras el rollback, quería 0", n)
+		}
 	})
 
 	// El servicio traduce este FOREIGN KEY por nombre a ErrIncidenteNotFound.
 	t.Run("incidente inexistente", func(t *testing.T) {
-		_, err := store.CreateTags(t.Context(), []domain.CreateTagParams{{IncidenteID: 999999, Nombre: "a", Peso: 1}})
+		_, err := store.CreateTags(t.Context(), domain.CreateTagsTxParams{
+			IncidenteID: 999999,
+			Tags:        []domain.CreateTagParams{{Nombre: "a", Peso: 1}},
+			ActorID:     actorID,
+		})
 		if !domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
 			t.Fatalf("CreateTags() error = %v, quería el FOREIGN KEY tags_incidente_id_fkey", err)
 		}

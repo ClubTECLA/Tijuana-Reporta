@@ -22,7 +22,7 @@ type ReporteService interface {
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
 	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
-	CambiarEstado(ctx context.Context, rol string, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error)
+	CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error)
 	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ListReportesPorUbicacionRow, error)
 }
 
@@ -38,10 +38,10 @@ type AuthService interface {
 // IncidenteService es la interfaz que el handler de incidentes necesita del
 // servicio.
 type IncidenteService interface {
-	Crear(ctx context.Context, nuevo domain.NuevoIncidente) (domain.IncidenteDetalle, error)
+	Crear(ctx context.Context, nuevo domain.NuevoIncidente, userID uuid.UUID) (domain.IncidenteDetalle, error)
 	Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error)
 	Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error)
-	AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error)
+	AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]domain.Tag, error)
 }
 
 // MultimediaService es la interfaz que el handler de multimedia necesita del
