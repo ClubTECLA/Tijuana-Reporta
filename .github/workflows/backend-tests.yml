@@ -1,0 +1,51 @@
+name: Backend tests
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "shared/openapi/**"
+      - ".github/workflows/backend-tests.yml"
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  OAPI_CONFIG: openapi-codegen-config.yaml
+
+jobs:
+  test:
+    name: go test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persis-credentials: false
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: generated.go coincide con el contrato OpenAPI
+        run: |
+          version=$(go list -m -f '{{.Version}}' github.com/oapi-codegen/oapi-codegen/v2)
+          go install "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@${version}"
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          oapi-codegen -config "$OAPI_CONFIG" ../shared/openapi/openapi.yaml
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::generated.go no coincide con shared/openapi/openapi.yaml. Corre en backend/: oapi-codegen -config $OAPI_CONFIG ../shared/openapi/openapi.yaml y sube los cambios."
+            git status --short
+            exit 1
+          fi
+
+      - name: Tests
+        run: go test -count=1 -timeout 10m ./...
