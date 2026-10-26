@@ -6,10 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -170,5 +173,48 @@ func BodyLimitFunc(limite func(c *gin.Context) int64) func(c *gin.Context) {
 			return
 		}
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+	}
+}
+
+// RequestLogger reemplaza el logger de texto de gin: un registro JSON por
+// petición, con un request_id que también queda en el contexto.
+func RequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		id := c.GetHeader("X-Request-ID") // nginx puede mandarlo con $request_id
+		if id == "" {
+			id = uuid.NewString()
+		}
+		c.Header("X-Request-ID", id)
+		c.Request = c.Request.WithContext(logging.ContextWithRequestID(c.Request.Context(), id))
+
+		c.Next()
+
+		if c.Request.URL.Path == "/health" {
+			return
+		}
+
+		status := c.Writer.Status()
+		attrs := []any{
+			slog.String("method", c.Request.Method),
+			slog.String("route", c.FullPath()), // /v1/reportes/:reporteId, no el id real
+			slog.Int("status", status),
+			slog.Duration("latency", time.Since(start)),
+			slog.Int("bytes", c.Writer.Size()),
+		}
+		// Auth reemplazó c.Request, así que aquí ya se ve el userID.
+		if uid, ok := UserIDFromContext(c.Request.Context()); ok {
+			attrs = append(attrs, slog.String("user_id", uid.String()))
+		}
+
+		level := slog.LevelInfo
+		switch {
+		case status >= 500:
+			level = slog.LevelError
+		case status >= 400:
+			level = slog.LevelWarn
+		}
+		slog.Log(c.Request.Context(), level, "request", attrs...)
 	}
 }

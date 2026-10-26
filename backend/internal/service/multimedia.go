@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
@@ -131,6 +131,6 @@ func (s *MultimediaService) borrarHuerfano(ctx context.Context, path string) {
 	defer cancel()
 
 	if err := s.multimedia.Borrar(ctx, path); err != nil {
-		log.Printf("no se pudo borrar el archivo huérfano %s: %v", path, err)
+		slog.WarnContext(ctx, "could'nt create an orphan file", "path", path, "error", err)
 	}
 }

@@ -44,6 +44,9 @@ type Config struct {
 	AdminEmail     string
 	AdminUsername  string
 	AdminPassword  string
+
+	LogLevel  string
+	LogFormat string
 }
 
 func Load() (Config, error) {
@@ -60,6 +63,8 @@ func Load() (Config, error) {
 		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
 		AdminUsername: getEnvOrDefault("ADMIN_USERNAME", "Administrador"),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
+		LogLevel:      getEnvOrDefault("LOG_LEVEL", "info"),
+		LogFormat:     getEnvOrDefault("LOG_FORMAT", "json"),
 	}
 	var missing []string
 	if cfg.DatabaseURL == "" {

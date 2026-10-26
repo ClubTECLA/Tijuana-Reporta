@@ -55,6 +55,11 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-Administrador}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MULTIMEDIA_URL: http://multimedia:8081
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       postgres:
         condition: service_healthy
