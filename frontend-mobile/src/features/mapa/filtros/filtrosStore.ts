@@ -11,7 +11,7 @@ interface FiltrosState {
 // Copia profunda a mano: el store nunca comparte arrays/objetos con quien lo llama
 // ni con FILTROS_POR_DEFECTO, así que mutar uno no altera al otro.
 const copiar = (f: FiltrosMapa): FiltrosMapa => ({
-  categorias: [...f.categorias],
+  categorias: f.categorias && [...f.categorias],
   capas: { ...f.capas },
   periodo: f.periodo,
 });

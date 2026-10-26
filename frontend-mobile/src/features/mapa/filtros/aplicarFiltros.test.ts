@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { aplicarFiltros } from './aplicarFiltros';
-import { CATEGORIAS_FILTRO, FILTROS_POR_DEFECTO, VENTANA_PERIODO_MS } from './constantes';
+import { FILTROS_POR_DEFECTO, VENTANA_PERIODO_MS } from './constantes';
 import type { FiltrosMapa } from './types';
 
 const AHORA = new Date('2026-10-13T12:00:00.000Z');
@@ -24,7 +24,7 @@ function reporte(id: string, categorias: CategoriaReporte[], haceMs = 0): Report
 function filtros(parcial: Partial<FiltrosMapa> = {}): FiltrosMapa {
   return {
     ...FILTROS_POR_DEFECTO,
-    categorias: [...FILTROS_POR_DEFECTO.categorias],
+    categorias: FILTROS_POR_DEFECTO.categorias && [...FILTROS_POR_DEFECTO.categorias],
     capas: { ...FILTROS_POR_DEFECTO.capas },
     ...parcial,
   };
@@ -102,18 +102,28 @@ describe('aplicarFiltros', () => {
     expect(ids(aplicarFiltros(rs, f, AHORA))).toEqual(base);
   });
 
-  describe('reportes solo con categorías fuera del picker', () => {
-    const rs = [reporte('fuera', ['peligro', 'servicios', 'otro'])];
-
-    it('son visibles con las 6 categorías del picker activas', () => {
-      expect(ids(aplicarFiltros(rs, filtros({ categorias: [...CATEGORIAS_FILTRO] }), AHORA))).toEqual([
-        'fuera',
-      ]);
+  describe('categorías: null significa "todas" sin conocer la lista', () => {
+    it('por defecto es null y muestra cualquier categoría, incluidas las nuevas del backend', () => {
+      expect(FILTROS_POR_DEFECTO.categorias).toBeNull();
+      const rs = [reporte('a', ['incendio']), reporte('b', ['categoria-futura']), reporte('c', ['luz'])];
+      expect(ids(aplicarFiltros(rs, FILTROS_POR_DEFECTO, AHORA))).toEqual(['a', 'b', 'c']);
     });
 
-    it('se ocultan en cuanto se apaga una categoría del picker', () => {
-      const f = filtros({ categorias: CATEGORIAS_FILTRO.filter((c) => c !== 'luz') });
-      expect(aplicarFiltros(rs, f, AHORA)).toEqual([]);
+    it('un subconjunto explícito filtra, incluso por una categoría nueva', () => {
+      const rs = [reporte('a', ['incendio']), reporte('b', ['luz'])];
+      expect(ids(aplicarFiltros(rs, filtros({ categorias: ['incendio'] }), AHORA))).toEqual(['a']);
+    });
+  });
+
+  describe('reportes solo con categorías sin chip (otro, desconocidas)', () => {
+    const rs = [reporte('fuera', ['peligro', 'servicios', 'otro'])];
+
+    it('son visibles con "todas" (null)', () => {
+      expect(ids(aplicarFiltros(rs, filtros({ categorias: null }), AHORA))).toEqual(['fuera']);
+    });
+
+    it('se ocultan en cuanto se elige un subconjunto', () => {
+      expect(aplicarFiltros(rs, filtros({ categorias: ['arbol', 'socavon'] }), AHORA)).toEqual([]);
     });
 
     it('un reporte mixto (picker + fuera) se decide por su categoría del picker', () => {

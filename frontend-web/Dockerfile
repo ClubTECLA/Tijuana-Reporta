@@ -21,4 +21,5 @@ RUN pnpm --filter @tijuana-reporta/frontend-web build
 # --- Etapa 3: imagen final ---
 FROM nginx:alpine
 COPY --from=build /app/frontend-web/dist /usr/share/nginx/html
+COPY frontend-web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

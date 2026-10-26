@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Keyboard,
   Pressable,
@@ -24,7 +25,8 @@ import { useEnLinea } from '@/lib/red';
 import { CategoriaBadge } from '../crear/CategoriaBadge';
 import { CerrarButton } from '../crear/CerrarButton';
 import { etiquetaLabel } from '../crear/categorias';
-import { useComentar, useComentarios } from '../hooks';
+import { resolverCategoria } from '../../categorias/categorias';
+import { useCategorias, useComentar, useComentarios, useReporteDetalle } from '../hooks';
 
 interface ReporteDetalleProps {
   reporte: Reporte;
@@ -35,6 +37,11 @@ interface ReporteDetalleProps {
   /** Solo para el invitado: en lugar del campo de comentario se muestra un botón que llama a esto. */
   onPedirCuenta?: () => void;
 }
+
+const ALTURA_FOTO = 151;
+const ALTURA_FOTO_MIN = 56;
+/** Cuántos px de scroll en el hilo hacen falta para encoger la foto del todo. */
+const RECORRIDO_COLAPSO = ALTURA_FOTO - ALTURA_FOTO_MIN;
 
 /** Extrae la primera letra del autor en mayúscula, o una cadena vacía si no hay nombre. */
 const inicial = (autor: string) => autor.trim().charAt(0).toUpperCase();
@@ -63,8 +70,12 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
  * Tarjeta "Ver reporte" (Figma 22): foto, título, dirección, etiquetas e hilo de
  * comentarios. Se abre al tocar un pin del mapa o "Ver reporte" tras crear uno.
  */
-export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
+export function ReporteDetalle({ reporte: reporteLista, top, bottom, onClose, onPedirCuenta }: ReporteDetalleProps) {
+  // La lista no trae foto ni fecha real: cuando llega el detalle reemplaza al reporte de la lista.
+  const reporte = useReporteDetalle(reporteLista.id).data ?? reporteLista;
   const [categoriaPrincipal, ...categoriasExtra] = reporte.categorias;
+  const catalogo = useCategorias();
+  const colorDe = (slug: string) => resolverCategoria(slug, catalogo).color;
   const comentariosQuery = useComentarios(reporte.id);
   const comentarios = comentariosQuery.data ?? [];
   const estadoHilo = estadoDeQuery(comentariosQuery, (lista) => lista.length === 0);
@@ -73,7 +84,22 @@ export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }:
   const [texto, setTexto] = useState('');
   const hilo = useRef<ScrollView>(null);
   const [teclado, setTeclado] = useState(0);
+  const [altoVisible, setAltoVisible] = useState(0);
   const insets = useSafeAreaInsets();
+
+  // La foto se encoge poco a poco mientras se baja por los comentarios y vuelve a crecer al subir.
+  // Al crecer el hilo se acorta el recorrido posible, así que el encogimiento nunca deja contenido oculto.
+  const scroll = useRef(new Animated.Value(0)).current;
+  const alturaFoto = scroll.interpolate({
+    inputRange: [0, RECORRIDO_COLAPSO],
+    outputRange: [ALTURA_FOTO, ALTURA_FOTO_MIN],
+    extrapolate: 'clamp',
+  });
+  const opacidadBadge = scroll.interpolate({
+    inputRange: [0, RECORRIDO_COLAPSO * 0.6],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   // Con el teclado abierto la tarjeta sube y la foto se compacta, para que el hilo y el
   // campo de texto sigan visibles en pantallas bajas.
@@ -101,30 +127,26 @@ export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }:
 
   return (
     <View style={[styles.tarjeta, { top, bottom: teclado > 0 ? teclado + insets.bottom + 8 : bottom }]}>
-      <View style={[styles.encabezado, teclado > 0 && styles.encabezadoCompacto]}>
-        {reporte.image_url ? (
-          <Image source={{ uri: reporte.image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.fotoVacia]}>
-            {teclado === 0 && <CategoriaBadge categoria={categoriaPrincipal} size={64} glyphScale={1.2} />}
-          </View>
-        )}
-        <LinearGradient
-          colors={['transparent', colors.captionGradient]}
-          style={styles.pie}
-          pointerEvents="none"
-        />
-        <Text style={styles.pieTexto}>{hace(reporte.created_at)}</Text>
-        <View style={styles.cerrar}>
-          <CerrarButton onPress={onClose} />
-        </View>
-      </View>
-
+      {/* Todo lo que no es el campo de comentar se desplaza junto: al bajar, título, dirección y etiquetas
+          se van por debajo de la foto, que se encoge hasta quedar como un banner. */}
+      <View style={styles.contenido} onLayout={(e) => setAltoVisible(e.nativeEvent.layout.height)}>
+        <Animated.ScrollView
+          ref={hilo}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          // Con pocos comentarios también hay recorrido suficiente para que la foto se encoja entera.
+          contentContainerStyle={[styles.scrollContenido, { minHeight: altoVisible + RECORRIDO_COLAPSO }]}
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], {
+            useNativeDriver: false,
+          })}
+        >
+      <View style={{ height: teclado > 0 ? ALTURA_FOTO_MIN : ALTURA_FOTO }} />
       <View style={styles.titulo}>
         <View style={styles.badges}>
-          <CategoriaBadge categoria={categoriaPrincipal} size={23} />
+          <CategoriaBadge categoria={categoriaPrincipal} color={colorDe(categoriaPrincipal)} size={23} />
           {categoriasExtra.map((categoria) => (
-            <CategoriaBadge key={categoria} categoria={categoria} size={23} />
+            <CategoriaBadge key={categoria} categoria={categoria} color={colorDe(categoria)} size={23} />
           ))}
         </View>
         <Text style={styles.tituloTexto} numberOfLines={2}>
@@ -164,17 +186,40 @@ export function ReporteDetalle({ reporte, top, bottom, onClose, onPedirCuenta }:
         ) : estadoHilo === 'vacio' ? (
           <EstadoVista estado="vacio" mensaje="Aún no hay comentarios. Sé el primero en comentar." compacto />
         ) : (
-          <ScrollView
-            ref={hilo}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.hiloContenido}
-          >
+          <View style={styles.hiloContenido}>
             {comentarios.map((comentario) => (
               <Comentario key={comentario.id} comentario={comentario} />
             ))}
-          </ScrollView>
+          </View>
         )}
+      </View>
+        </Animated.ScrollView>
+
+        {/* La foto va encima del contenido: su altura sigue al scroll sin mover nada más. */}
+        <Animated.View
+          style={[styles.encabezado, { height: teclado > 0 ? ALTURA_FOTO_MIN : alturaFoto }]}
+        >
+          {reporte.image_url ? (
+            <Image source={{ uri: reporte.image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.fotoVacia]}>
+              {teclado === 0 && (
+                <Animated.View style={{ opacity: opacidadBadge }}>
+                  <CategoriaBadge categoria={categoriaPrincipal} color={colorDe(categoriaPrincipal)} size={64} glyphScale={1.2} />
+                </Animated.View>
+              )}
+            </View>
+          )}
+          <LinearGradient
+            colors={['transparent', colors.captionGradient]}
+            style={styles.pie}
+            pointerEvents="none"
+          />
+          <Text style={styles.pieTexto}>{hace(reporte.created_at)}</Text>
+          <View style={styles.cerrar}>
+            <CerrarButton onPress={onClose} />
+          </View>
+        </Animated.View>
       </View>
 
       {onPedirCuenta ? (
@@ -239,12 +284,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 5,
   },
-  encabezado: {
-    height: 151,
-    backgroundColor: colors.photoBackground,
+  contenido: {
+    flex: 1,
   },
-  encabezadoCompacto: {
-    height: 56,
+  scrollContenido: {
+    gap: 13,
+  },
+  encabezado: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.photoBackground,
   },
   fotoVacia: {
     alignItems: 'center',
@@ -320,7 +371,6 @@ const styles = StyleSheet.create({
   },
 
   hilo: {
-    flex: 1,
     borderTopWidth: 1.3,
     borderTopColor: colors.borderSubtle,
   },

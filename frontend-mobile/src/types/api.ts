@@ -1,13 +1,5 @@
-export type CategoriaReporte =
-  | 'socavon'
-  | 'peligro'
-  | 'drenaje'
-  | 'luz'
-  | 'deslave'
-  | 'arbol'
-  | 'inundacion'
-  | 'servicios'
-  | 'otro';
+/** Slug de la categoría (`incidentes.nombre` del backend: luz, socavon, incendio…); 'otro' si no se conoce. */
+export type CategoriaReporte = string;
 
 export type StatusReporte = 'pendiente' | 'en_proceso' | 'resuelto';
 
