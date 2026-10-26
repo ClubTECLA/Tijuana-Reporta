@@ -2,9 +2,12 @@
 FROM golang:1.27-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum* ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./cmd/api
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/api ./cmd/api
 
 # Etapa 2: imagen final, mínima
 FROM alpine:3.22

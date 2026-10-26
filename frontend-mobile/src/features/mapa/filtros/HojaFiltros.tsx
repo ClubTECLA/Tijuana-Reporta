@@ -9,11 +9,13 @@ import { EscudoIcon } from '@/components/icons/EscudoIcon';
 import { LocationPinIcon } from '@/components/icons/LocationPinIcon';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
-import { CATEGORIAS_FILTRO, FILTROS_POR_DEFECTO } from './constantes';
+import { useCategorias } from '@/features/reportes/hooks';
+import { FILTROS_POR_DEFECTO } from './constantes';
 import { ChipCategoria } from './ChipCategoria';
 import { FilaCapa } from './FilaCapa';
 import { SelectorPeriodo } from './SelectorPeriodo';
 import { useFiltrosStore } from './filtrosStore';
+import { alternarCategoria, categoriaActiva } from './seleccionCategorias';
 import type { CategoriaFiltro, FiltrosMapa } from './types';
 
 interface HojaFiltrosProps {
@@ -25,7 +27,7 @@ const ICONO_CAPA = 20;
 
 // Copia para que editar el borrador nunca toque el store ni FILTROS_POR_DEFECTO.
 const copiar = (f: FiltrosMapa): FiltrosMapa => ({
-  categorias: [...f.categorias],
+  categorias: f.categorias && [...f.categorias],
   capas: { ...f.capas },
   periodo: f.periodo,
 });
@@ -35,6 +37,7 @@ const copiar = (f: FiltrosMapa): FiltrosMapa => ({
 export function HojaFiltros({ visible, onClose }: HojaFiltrosProps) {
   const insets = useSafeAreaInsets();
   const aplicar = useFiltrosStore((s) => s.aplicar);
+  const categorias = useCategorias();
   const [borrador, setBorrador] = useState<FiltrosMapa>(() => copiar(useFiltrosStore.getState().filtros));
 
   // Al abrir se parte siempre del estado aplicado (no se escucha `filtros`: no debe pisar la edición).
@@ -42,11 +45,11 @@ export function HojaFiltros({ visible, onClose }: HojaFiltrosProps) {
     if (visible) setBorrador(copiar(useFiltrosStore.getState().filtros));
   }, [visible]);
 
-  const alternarCategoria = (categoria: CategoriaFiltro) =>
+  const alternar = (slug: CategoriaFiltro) =>
     setBorrador((b) => ({
       ...b,
-      // Se arma desde CATEGORIAS_FILTRO para conservar siempre el orden del picker.
-      categorias: CATEGORIAS_FILTRO.filter((c) => (c === categoria ? !b.categorias.includes(c) : b.categorias.includes(c))),
+      // Se arma desde el catálogo para conservar su orden; al completarlas todas vuelve a `null` (todas).
+      categorias: alternarCategoria(b.categorias, slug, categorias.map((c) => c.slug)),
     }));
 
   const cambiarCapa = (capa: keyof FiltrosMapa['capas'], activa: boolean) =>
@@ -77,14 +80,17 @@ export function HojaFiltros({ visible, onClose }: HojaFiltrosProps) {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+        <Text style={styles.seccion}>PERIODO</Text>
+        <SelectorPeriodo valor={borrador.periodo} onCambio={(periodo) => setBorrador((b) => ({ ...b, periodo }))} />
+
         <Text style={styles.seccion}>CATEGORÍAS</Text>
         <View style={styles.chips}>
-          {CATEGORIAS_FILTRO.map((categoria) => (
+          {categorias.map((categoria) => (
             <ChipCategoria
-              key={categoria}
+              key={categoria.slug}
               categoria={categoria}
-              activa={borrador.categorias.includes(categoria)}
-              onPress={() => alternarCategoria(categoria)}
+              activa={categoriaActiva(borrador.categorias, categoria.slug)}
+              onPress={() => alternar(categoria.slug)}
             />
           ))}
         </View>
@@ -113,9 +119,6 @@ export function HojaFiltros({ visible, onClose }: HojaFiltrosProps) {
             onCambio={(v) => cambiarCapa('avisosOficiales', v)}
           />
         </View>
-
-        <Text style={styles.seccion}>PERIODO</Text>
-        <SelectorPeriodo valor={borrador.periodo} onCambio={(periodo) => setBorrador((b) => ({ ...b, periodo }))} />
       </ScrollView>
 
       <View style={[styles.acciones, { paddingBottom: Math.max(insets.bottom, 0) + 16 }]}>

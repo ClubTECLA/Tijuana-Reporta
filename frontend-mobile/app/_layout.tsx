@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import { useSesionCargada, useSessionStore } from '@/lib/session';
+import { iniciarSesionDev } from '@/lib/devAuth';
 // Define la tarea de zonas de peligro en el ámbito global (debe existir aunque no haya vistas).
 import '@/lib/alertasCercanas';
 import {
@@ -33,6 +34,11 @@ export default function RootLayout() {
   const sesionCargada = useSesionCargada();
   const modo = useSessionStore((s) => s.modo);
   const listo = fontsReady && sesionCargada;
+
+  // Solo desarrollo con backend real (ver lib/devAuth): se espera a leer la sesión guardada para no pisarla.
+  useEffect(() => {
+    if (sesionCargada) void iniciarSesionDev();
+  }, [sesionCargada]);
 
   useEffect(() => {
     if (listo) {
