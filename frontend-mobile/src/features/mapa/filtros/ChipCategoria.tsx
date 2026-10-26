@@ -1,21 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { markerSpecs } from '@/features/mapa/markers';
+import type { CategoriaUI } from '@/features/categorias/categorias';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
-import type { CategoriaFiltro } from './types';
-
-/** Etiqueta en español de cada categoría del picker. */
-export const ETIQUETA_CATEGORIA: Record<CategoriaFiltro, string> = {
-  inundacion: 'Inundación',
-  deslave: 'Deslave',
-  drenaje: 'Drenaje',
-  arbol: 'Árbol',
-  socavon: 'Socavón',
-  luz: 'Luz',
-};
 
 interface ChipCategoriaProps {
-  categoria: CategoriaFiltro;
+  categoria: CategoriaUI;
   activa: boolean;
   onPress: () => void;
 }
@@ -23,8 +12,8 @@ interface ChipCategoriaProps {
 // Chip de categoría (Figma `Categoría/…`): activo = relleno del color del marcador con punto y
 // texto blancos; apagado = blanco con borde y punto del color de la categoría.
 export function ChipCategoria({ categoria, activa, onPress }: ChipCategoriaProps) {
-  const color = markerSpecs[categoria].color;
-  const etiqueta = ETIQUETA_CATEGORIA[categoria];
+  // Etiqueta y color vienen del catálogo del backend.
+  const { color, etiqueta } = categoria;
   return (
     <Pressable
       onPress={onPress}

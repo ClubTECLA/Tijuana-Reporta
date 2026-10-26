@@ -4,10 +4,13 @@ import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
 import { markerSpecs } from '@/features/mapa/markers';
 import { CategoriaBadge } from './CategoriaBadge';
-import { CATEGORIA_LABEL } from './categorias';
+import { etiquetaDeCategoria } from './categorias';
 
 interface CategoriaCardProps {
   categoria: CategoriaReporte;
+  /** Etiqueta y color del catálogo del backend; sin ellos, los locales. */
+  etiqueta?: string;
+  color?: string;
   selected: boolean;
   /** Estado de error: las tarjetas se atenúan dentro del recuadro rojo. */
   dimmed?: boolean;
@@ -17,9 +20,18 @@ interface CategoriaCardProps {
 }
 
 /** Muestra una categoría seleccionable con variantes compacta, seleccionada y atenuada. */
-export function CategoriaCard({ categoria, selected, dimmed = false, compact = false, onPress }: CategoriaCardProps) {
+export function CategoriaCard({
+  categoria,
+  etiqueta,
+  color: colorCatalogo,
+  selected,
+  dimmed = false,
+  compact = false,
+  onPress,
+}: CategoriaCardProps) {
   const s = compact ? 0.9375 : 1;
-  const label = CATEGORIA_LABEL[categoria];
+  const label = etiqueta ?? etiquetaDeCategoria(categoria);
+  const color = colorCatalogo ?? markerSpecs[categoria]?.color ?? colors.textMuted;
 
   return (
     <Pressable
@@ -35,16 +47,15 @@ export function CategoriaCard({ categoria, selected, dimmed = false, compact = f
           paddingTop: 17.05 * s,
         },
         // Seleccionada: la tarjeta se rellena con el color propio de la categoría
-        // (el mismo que su marcador en el mapa), no un azul genérico — así varias
-        // tarjetas elegidas a la vez se distinguen entre sí igual que en el Figma.
-        selected && { backgroundColor: markerSpecs[categoria].color, borderColor: markerSpecs[categoria].color },
+        // (el mismo que su marcador en el mapa), no un azul genérico.
+        selected && { backgroundColor: color, borderColor: color },
         dimmed && styles.dimmed,
       ]}
     >
       {/* Seleccionada: el círculo comparte color con la tarjeta, así que se
           separa con la sombra que trae el Figma. */}
       <View style={selected && styles.badgeSombra}>
-        <CategoriaBadge categoria={categoria} size={61.35 * s} />
+        <CategoriaBadge categoria={categoria} color={color} size={61.35 * s} />
       </View>
       <Text
         style={[

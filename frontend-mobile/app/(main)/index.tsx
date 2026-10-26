@@ -6,14 +6,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as MapLibreGL from '@maplibre/maplibre-react-native';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
-import { AvisoFlotante, type TipoAviso } from '@/components/estado/AvisoFlotante';
-import { useReportes } from '@/features/reportes/hooks';
+import { AvisoFlotante } from '@/components/estado/AvisoFlotante';
+import { avisoDeReportes, PERIODO_MAS_AMPLIO } from '@/features/reportes/avisos';
+import { useCategorias, useReportes } from '@/features/reportes/hooks';
 import { ReporteDetalle } from '@/features/reportes/detalle/ReporteDetalle';
 import { CapasFab } from '@/features/mapa/CapasFab';
 import { aplicarFiltros } from '@/features/mapa/filtros/aplicarFiltros';
 import { useFiltrosStore } from '@/features/mapa/filtros/filtrosStore';
 import { HojaFiltros } from '@/features/mapa/filtros/HojaFiltros';
-import { MapMarker } from '@/features/mapa/MapMarker';
+import { CapaReportes } from '@/features/mapa/CapaReportes';
 import { MapSearchBar } from '@/features/mapa/MapSearchBar';
 import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
@@ -46,42 +47,13 @@ const SEPARACION_FAB = 31;
 // Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
 const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
 
-interface AvisoDatos {
-  tipo: TipoAviso;
-  mensaje: string;
-  conReintentar?: boolean;
-}
-
-// Qué decir sobre los reportes del mapa. El mapa nunca se tapa: si ya hay reportes cargados se
-// siguen mostrando aunque falle una recarga o se pierda la conexión.
-function avisoDeReportes(
-  query: Pick<ReturnType<typeof useReportes>, 'data' | 'isError' | 'error'>,
-  enLinea: boolean,
-  sinCoincidencias: boolean,
-): AvisoDatos | null {
-  const hayDatos = query.data !== undefined;
-  if (!enLinea) {
-    return {
-      tipo: 'sin-conexion',
-      mensaje: hayDatos ? 'Sin conexión · mostrando los últimos reportes' : 'Sin conexión · los reportes se cargarán al reconectar',
-    };
-  }
-  if (query.isError) {
-    const motivo = esErrorDeRed(query.error) ? 'No pudimos conectar con el servidor' : 'No pudimos cargar los reportes';
-    return { tipo: 'error', mensaje: hayDatos ? 'No se pudieron actualizar los reportes' : motivo, conReintentar: true };
-  }
-  if (query.data === undefined) return { tipo: 'cargando', mensaje: 'Cargando reportes…' };
-  if (query.data.length === 0) return { tipo: 'info', mensaje: 'Aún no hay reportes en la ciudad' };
-  if (sinCoincidencias) return { tipo: 'info', mensaje: 'Ningún reporte coincide con tus filtros' };
-  return null;
-}
-
 /** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
   const reportesQuery = useReportes();
+  const categorias = useCategorias();
   const { data: reportes = [], isFetching: actualizandoReportes } = reportesQuery;
   const enLinea = useEnLinea();
   const esInvitado = useEsInvitado();
@@ -109,7 +81,17 @@ export default function MainMap() {
   const tarjetaBottom = fabBottom + FAB_ALTO + SEPARACION_FAB;
   const filtros = useFiltrosStore((s) => s.filtros);
   const reportesVisibles = useMemo(() => aplicarFiltros(reportes, filtros, new Date()), [reportes, filtros]);
-  const avisoDatos = avisoDeReportes(reportesQuery, enLinea, reportes.length > 0 && reportesVisibles.length === 0);
+  const avisoDatos = avisoDeReportes({
+    hayDatos: reportesQuery.data !== undefined,
+    vacia: reportesQuery.data?.length === 0,
+    isError: reportesQuery.isError,
+    errorDeRed: esErrorDeRed(reportesQuery.error),
+    enLinea,
+    periodo: filtros.periodo,
+    sinCoincidencias: reportes.length > 0 && reportesVisibles.length === 0,
+  });
+  // Aplica "7 días" al store: cambia la queryKey y la lista se vuelve a pedir sola.
+  const ampliarPeriodo = () => useFiltrosStore.getState().aplicar({ ...filtros, periodo: PERIODO_MAS_AMPLIO });
 
   // Si los filtros dejan fuera al reporte abierto, se cierra su tarjeta.
   useEffect(() => {
@@ -132,6 +114,12 @@ export default function MainMap() {
     },
     [pantallaAlto, tarjetaBottom],
   );
+
+  /** Tocar un grupo de pins: acerca la cámara al zoom en que el grupo se separa. */
+  const acercarAGrupo = useCallback((centro: [number, number], zoom: number) => {
+    huboGesto.current = true;
+    cameraRef.current?.flyTo({ center: centro, zoom, duration: 500, padding: SIN_PADDING });
+  }, []);
 
   // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa).
   useEffect(() => {
@@ -275,16 +263,13 @@ export default function MainMap() {
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}
-        {reportesVisibles.map((reporte) => (
-          <MapLibreGL.Marker
-            key={reporte.id}
-            id={reporte.id}
-            lngLat={[reporte.lng, reporte.lat]}
-            onPress={() => seleccionar(reporte)}
-          >
-            <MapMarker categoria={reporte.categorias[0]} halo={selectedReporte?.id === reporte.id} />
-          </MapLibreGL.Marker>
-        ))}
+        <CapaReportes
+          reportes={reportesVisibles}
+          catalogo={categorias}
+          seleccionadoId={selectedReporte?.id ?? null}
+          onSeleccionar={seleccionar}
+          onAcercar={acercarAGrupo}
+        />
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: buscadorTop }]} pointerEvents="box-none">
@@ -302,7 +287,13 @@ export default function MainMap() {
           <AvisoFlotante
             tipo={avisoDatos.tipo}
             mensaje={avisoDatos.mensaje}
-            accion={avisoDatos.conReintentar ? { etiqueta: 'Reintentar', onPress: () => void reportesQuery.refetch() } : undefined}
+            accion={
+              avisoDatos.conReintentar
+                ? { etiqueta: 'Reintentar', onPress: () => void reportesQuery.refetch() }
+                : avisoDatos.accion
+                  ? { etiqueta: avisoDatos.accion.texto, onPress: ampliarPeriodo }
+                  : undefined
+            }
           />
         </View>
       )}

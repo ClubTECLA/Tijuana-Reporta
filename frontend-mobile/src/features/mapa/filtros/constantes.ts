@@ -1,19 +1,11 @@
-import type { CategoriaFiltro, FiltrosMapa, Periodo } from './types';
-
-/** Orden del picker en el Figma. */
-export const CATEGORIAS_FILTRO: readonly CategoriaFiltro[] = [
-  'inundacion',
-  'deslave',
-  'drenaje',
-  'arbol',
-  'socavon',
-  'luz',
-];
+import type { FiltrosMapa, Periodo } from './types';
 
 export const FILTROS_POR_DEFECTO: FiltrosMapa = {
-  categorias: [...CATEGORIAS_FILTRO],
+  categorias: null, // todas, sin depender de la lista (el catálogo llega de forma asíncrona)
   capas: { incidentes: true, zonasRiesgo: true, avisosOficiales: true },
-  periodo: 'ahora',
+  // 7 días y no "ahora": con datos reales, si no hubo reportes en las últimas 2 h el mapa salía
+  // vacío. El store no persiste, así que no hay valores guardados que migrar.
+  periodo: '7d',
 };
 
 const HORA_MS = 60 * 60 * 1000;
