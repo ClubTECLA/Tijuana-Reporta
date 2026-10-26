@@ -7,8 +7,7 @@ import { useCommonPanel } from '../hooks/useCommonPanel'
 import useModals from '../hooks/useModals'
 import { IoChevronBack } from 'react-icons/io5'
 import { useRouter } from '../hooks/useRouter'
-import { BsPhone } from 'react-icons/bs'
-import { FiInfo, FiLock } from 'react-icons/fi'
+import { FiInfo, FiLock, FiMail } from 'react-icons/fi'
 import { GoPaperAirplane } from 'react-icons/go'
 import { FaRegQuestionCircle } from 'react-icons/fa'
 
@@ -63,7 +62,7 @@ function Recovery_email({onSubmit}: recoveryProps) {
             onSubmit={(e) => handleSubmit(e)}
         >
             <h1 className={titleStyle}>Recupera tu contraseña</h1>
-            <span className={subtitleStyle}>Escribe tu correo institucional. Te enviaremos un código al celular registrado en tu cuenta.</span>
+            <span className={subtitleStyle}>Escribe tu correo institucional. Te enviaremos un código a ese correo.</span>
             <div className={`${formsInputsDivsStyle} mt-4`}>
                 <label htmlFor="email" className={inputsLabelsStyle}>Correo institucional</label>
                 <input
@@ -84,7 +83,7 @@ function Recovery_email({onSubmit}: recoveryProps) {
             </button>
             <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3 mt-4">
                 <FaRegQuestionCircle className="size-4.5 shrink-0 text-ink-secondary" />
-                <span className="text-[13px] text-ink-secondary">¿Cambiaste de celular? Pide a un administrador que actualice tu cuenta.</span>
+                <span className="text-[13px] text-ink-secondary">¿No tienes acceso a tu correo? Pide a un administrador que actualice tu cuenta.</span>
             </div>        
         </form>
     )
@@ -156,7 +155,7 @@ function Recovery_code({onSubmit}: recoveryProps) {
             onSubmit={handleSubmit}
         >
             <h1 className={titleStyle}>Ingresa el código de recuperación</h1>
-            <span className={subtitleStyle}>Enviamos un código de 6 dígitos por SMS al celular terminado en {"•• 4421."}</span>
+            <span className={subtitleStyle}>Enviamos un código de 6 dígitos a tu correo.</span>
             <div
                 className="mt-5 flex w-full justify-between gap-2"
                 onPaste={handlePaste}
@@ -330,7 +329,7 @@ function RecoveryPasswordForm() {
                         p-3 text-blue-600 text-2xl
                     "
                 >
-                    {step === 1 ? <FiLock/> : <BsPhone/>}
+                    {step === 1 ? <FiLock/> : <FiMail/>}
                 </div>
             :    
                 <div className="
