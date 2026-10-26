@@ -61,7 +61,7 @@ export default function VerificarScreen() {
           <Text style={styles.sentToMuted}>Vence en: </Text>
           {formatTime(secondsLeft)}
         </Text>
-        <Text style={styles.resendLabel}>Reenviar SMS</Text>
+        <Text style={styles.resendLabel}>Reenviar código</Text>
       </View>
 
       <Text style={styles.attemptsLabel}>

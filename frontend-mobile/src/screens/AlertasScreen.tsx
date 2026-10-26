@@ -149,7 +149,7 @@ export const AlertasScreen = ({ onBack, onGuardar }: AlertasScreenProps) => {
             <View style={styles.avisoTexts}>
               <Text style={styles.permisoTitulo}>Activa las alertas en segundo plano</Text>
               <Text style={styles.permisoSubtitulo}>
-                Permite la ubicación "todo el tiempo" para avisarte aunque la app esté cerrada.
+                Permite la ubicación "todo el tiempo" para avisarte aunque no estés usando la app.
               </Text>
             </View>
             <Feather name="chevron-right" size={18} color={perfilColors.primary} />
