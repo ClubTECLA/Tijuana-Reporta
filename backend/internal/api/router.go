@@ -38,7 +38,7 @@ func WithMaxMultimediaBytes(n int64) RouterOption {
 }
 
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
-// contrato bajo /v1 (con el middleware de auth) y /v1/openapi.json.
+// contrato bajo /v1 (con el middleware de auth) /v1/openapi.json y /v1/docs.
 //
 // Vive aquí y no en cmd/api para que los tests de integración levanten
 // exactamente el mismo router que producción.
@@ -129,6 +129,9 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 		}
 		c.JSON(http.StatusOK, spec)
 	})
+
+	// Documentación interactiva del contrato; carga /v1/openapi.json.
+	r.GET("/v1/docs", serveDocs)
 
 	return r
 }

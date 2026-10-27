@@ -197,6 +197,7 @@ func TestStatus(t *testing.T) {
 	}{
 		{name: "health", method: http.MethodGet, path: "/health", want: http.StatusOK},
 		{name: "contrato OpenAPI", method: http.MethodGet, path: "/v1/openapi.json", want: http.StatusOK},
+		{name: "documentación", method: http.MethodGet, path: "/v1/docs", noAuth: true, want: http.StatusOK},
 		{
 			name: "login con contraseña incorrecta", method: http.MethodPost, path: "/v1/auth/login",
 			body: map[string]any{"email": "nadie@example.com", "password": "incorrecta123"},
