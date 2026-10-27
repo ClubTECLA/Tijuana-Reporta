@@ -1,8 +1,10 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"runtime/debug"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -38,7 +40,7 @@ func WithMaxMultimediaBytes(n int64) RouterOption {
 }
 
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
-// contrato bajo /v1 (con el middleware de auth) y /v1/openapi.json.
+// contrato bajo /v1 (con el middleware de auth) /v1/openapi.json y /v1/docs.
 //
 // Vive aquí y no en cmd/api para que los tests de integración levanten
 // exactamente el mismo router que producción.
@@ -48,7 +50,17 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 		opt(&cfg)
 	}
 
-	r := gin.Default()
+	// Registra acciones con el RequestLogger
+	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
+	r := gin.New()
+	r.Use(
+		middleware.RequestLogger(),
+		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, rec any) {
+			slog.ErrorContext(c.Request.Context(), "panic", slog.Any("panic", rec),
+				slog.String("stack", string(debug.Stack())))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Message: "internal server error"})
+		}),
+	)
 
 	// middleware.Auth agrega el userID al context.Context de la petición
 	// (c.Request.WithContext), no a *gin.Context.
@@ -87,7 +99,8 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 
 	swagger, err := GetSwagger()
 	if err != nil {
-		log.Fatalf("error loading swagger spec: %v", err)
+		slog.Error("error loading swagger spec", "error", err)
+		os.Exit(1)
 	}
 
 	swagger.Servers = openapi3.Servers{{URL: "/v1"}}
@@ -127,8 +140,14 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
+		// Relativo a la URL del contrato (/v1/ o /api/v1/ tras nginx), para
+		// que "Try it out" de Swagger UI llegue a las rutas reales.
+		spec.Servers = openapi3.Servers{{URL: "."}}
 		c.JSON(http.StatusOK, spec)
 	})
+
+	// Documentación interactiva del contrato; carga /v1/openapi.json.
+	r.GET("/v1/docs", serveDocs)
 
 	return r
 }
@@ -136,7 +155,7 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 // responderError escribe el error con la forma de ErrorResponse del contrato.
 func responderError(c *gin.Context, err error, statusCode int) {
 	if statusCode >= http.StatusInternalServerError {
-		log.Printf("error %d in %s %s: %v", statusCode, c.Request.Method, c.Request.URL.Path, err)
+		slog.ErrorContext(c.Request.Context(), "handle error", "status", statusCode, "route", c.FullPath(), "error", err)
 		c.JSON(statusCode, ErrorResponse{Message: "internal server error"})
 		return
 	}

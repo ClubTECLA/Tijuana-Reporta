@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,12 +29,12 @@ func Connect(databaseURL string) (*pgxpool.Pool, error) {
 	for attempt := 1; attempt <= connectMaxAttempts; attempt++ {
 		pool, err := connectOnce(config)
 		if err == nil {
-			log.Printf("Succesfully connected to PostgreSQL database")
+			slog.Info("connected to postgres")
 			return pool, nil
 		}
 
 		lastErr = err
-		log.Printf("Failed to connect to PostgreSQL (attempt %d/%d): %v", attempt, connectMaxAttempts, err)
+		slog.Warn("postgres connect failed", "attempt", attempt, "max", connectMaxAttempts, "error", err)
 		if attempt < connectMaxAttempts {
 			time.Sleep(connectRetryDelay)
 		}

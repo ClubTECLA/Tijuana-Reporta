@@ -20,8 +20,8 @@ type ReporteStore interface {
 	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
-	UpdateEstadoReporte(ctx context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error)
 	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
+	CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error)
 }
 
 type ReporteService struct {
@@ -182,13 +182,17 @@ func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) 
 	return a, nil
 }
 
-// CambiarEstado cambia el estado del reporte. Lo puede hacer cualquier rol
-// menos ciudadano
-func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+// CambiarEstado cambia el estado del reporte y lo registra en el historial a
+// nombre de userID. Lo puede hacer cualquier rol menos ciudadano.
+func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
 	if rol == "" || rol == domain.RolCiudadano {
 		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
 	}
-	_, err := s.store.UpdateEstadoReporte(ctx, domain.UpdateEstadoReporteParams{ID: id, EstadoActual: estado})
+
+	_, err := s.store.CambiarEstadoReporte(ctx, domain.CambiarEstadoReporteTxParams{
+		ID: id, Estado: estado, ActorID: userID,
+	})
+
 	if domain.IsNotFound(err) {
 		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
 	}

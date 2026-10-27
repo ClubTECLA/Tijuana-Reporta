@@ -10,6 +10,7 @@ import { GoogleButton } from '../../src/components/auth/GoogleButton';
 import { TermsCheckbox } from '../../src/components/auth/TermsCheckbox';
 import { useGoogleSignIn } from '../../src/hooks/useGoogleSignIn';
 import { iniciarSesionYEntrar } from '../../src/features/sesion/entrar';
+import { esCorreoValido, PASSWORD_MIN } from '../../src/lib/correo';
 import { puedeSimularSesion } from '../../src/lib/session';
 import { colors } from '../../src/theme/colors';
 import { fontFamily } from '../../src/theme/typography';
@@ -29,16 +30,21 @@ export default function AuthScreen() {
     },
   });
 
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  const correoValido = esCorreoValido(email);
   const canSubmitSignup =
-    !!name && !!phone && !!password && password === confirmPassword && acceptedTerms;
-  const canSubmitLogin = phone && password;
+    !!username.trim() &&
+    correoValido &&
+    password.length >= PASSWORD_MIN &&
+    password === confirmPassword &&
+    acceptedTerms;
+  const canSubmitLogin = correoValido && !!password;
 
   return (
     <AuthScreenShell title={tab === 'signup' ? 'Crear cuenta' : 'Iniciar sesión'}>
@@ -47,20 +53,19 @@ export default function AuthScreen() {
       {tab === 'signup' ? (
         <>
           <TextField
-            label="Nombre completo"
+            label="Nombre de usuario"
             placeholder="Alex Ramírez"
-            value={name}
-            onChangeText={setName}
+            value={username}
+            onChangeText={setUsername}
             autoCapitalize="words"
+            autoComplete="username"
+            maxLength={100}
           />
-          <TextField
-            label="Número de celular"
-            placeholder="664-XXX-XXXX"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
+          <CampoCorreo value={email} onChangeText={setEmail} />
           <PasswordField label="Contraseña" value={password} onChangeText={setPassword} />
+          {password.length > 0 && password.length < PASSWORD_MIN && (
+            <Text style={styles.ayuda}>Usa al menos {PASSWORD_MIN} caracteres.</Text>
+          )}
           <PasswordField
             label="Confirmar contraseña"
             value={confirmPassword}
@@ -72,19 +77,13 @@ export default function AuthScreen() {
             label="Registrarse"
             disabled={!canSubmitSignup}
             onPress={() =>
-              router.push({ pathname: '/(auth)/verificar', params: { mode: 'registro', phone } })
+              router.push({ pathname: '/(auth)/verificar', params: { mode: 'registro', email: email.trim() } })
             }
           />
         </>
       ) : (
         <>
-          <TextField
-            label="Número de celular"
-            placeholder="664-XXX-XXXX"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
+          <CampoCorreo value={email} onChangeText={setEmail} />
           <PasswordField label="Contraseña" value={password} onChangeText={setPassword} />
 
           <View style={styles.loginLinksRow}>
@@ -107,7 +106,7 @@ export default function AuthScreen() {
                 ? iniciarSesionYEntrar()
                 : Alert.alert(
                     'Inicio de sesión no disponible todavía',
-                    'Esta pantalla es solo de diseño por ahora — el inicio de sesión con teléfono y contraseña se conecta cuando el backend tenga el endpoint de auth.'
+                    'Esta pantalla es solo de diseño por ahora — el inicio de sesión con correo y contraseña todavía no está conectado al backend.'
                   )
             }
           />
@@ -125,7 +124,29 @@ export default function AuthScreen() {
   );
 }
 
+/** Campo de correo con el teclado y el autocompletado del sistema para correos. */
+function CampoCorreo(props: { value: string; onChangeText: (texto: string) => void }) {
+  return (
+    <TextField
+      label="Correo electrónico"
+      placeholder="tucorreo@ejemplo.com"
+      keyboardType="email-address"
+      autoCapitalize="none"
+      autoCorrect={false}
+      autoComplete="email"
+      textContentType="emailAddress"
+      {...props}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
+  ayuda: {
+    marginTop: -8,
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
   loginLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',

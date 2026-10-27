@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -32,6 +34,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	gin.SetMode(gin.TestMode)
+
 	code := m.Run()
 
 	if dbPool != nil {
@@ -39,7 +44,7 @@ func TestMain(m *testing.M) {
 	}
 	if dbContainer != nil {
 		if err := testcontainers.TerminateContainer(dbContainer); err != nil {
-			log.Printf("borrando el contenedor de postgres: %v", err)
+			fmt.Fprintf(os.Stderr, "borrando el contenedor de los tests: %v\n", err)
 		}
 	}
 	os.Exit(code)

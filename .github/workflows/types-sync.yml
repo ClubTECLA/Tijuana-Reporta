@@ -1,0 +1,50 @@
+name: Types sync
+
+on:
+  pull_request:
+    paths:
+      - "shared/openapi/**"
+      - "shared/types/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/types-sync.yml"
+
+concurrency:
+  group: types-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  types-sync:
+    name: api-types.ts coincide con el contrato OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+            persist-credentials: false
+
+      # Toma la versión de pnpm del campo "packageManager" de tu package.json.
+      # Si no lo tienes, agrega al paso: with: { version: 10 } (la que uses en local).
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerar api-types.ts
+        run: pnpm generate:types
+
+      - name: Verificar que no hay diferencias
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::shared/types/api-types.ts no coincide con el contrato. Corre pnpm generate:types y sube los cambios."
+            git diff --stat
+            exit 1
+          fi
