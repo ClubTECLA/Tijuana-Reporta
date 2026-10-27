@@ -218,6 +218,9 @@ func TestStatus(t *testing.T) {
 		{name: "cercanos con estado fuera del enum", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&estado=Arreglado", want: http.StatusBadRequest},
 		{name: "cercanos con límite 0", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000&limite=0", want: http.StatusBadRequest},
 		{name: "cercanos sin token", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=2000", noAuth: true, want: http.StatusUnauthorized},
+		{name: "mis reportes con límite 0", method: http.MethodGet, path: "/v1/reportes/me?limite=0", want: http.StatusBadRequest},
+		{name: "mis reportes con límite mayor al máximo", method: http.MethodGet, path: "/v1/reportes/me?limite=501", want: http.StatusBadRequest},
+		{name: "mis reportes sin token", method: http.MethodGet, path: "/v1/reportes/me", noAuth: true, want: http.StatusUnauthorized},
 		{name: "logout", method: http.MethodPost, path: "/v1/auth/logout", want: http.StatusNoContent},
 	}
 
@@ -551,6 +554,51 @@ func TestListarReportesCercanos(t *testing.T) {
 	t.Run("límite", func(t *testing.T) {
 		if rs := listar(t, "&radio=50000&limite=1"); len(rs) > 1 {
 			t.Errorf("con limite=1 regresó %d reportes", len(rs))
+		}
+	})
+}
+
+func TestListarMisReportes(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+	primero := c.crearReporte()
+	segundo := c.crearReporte()
+
+	// Un reporte de otro usuario no debe aparecer.
+	otro := *c
+	otro.login()
+	ajeno := otro.crearReporte()
+
+	listar := func(t *testing.T, query string) []api.ReporteResumen {
+		tc := *c
+		tc.t = t
+		return decode[[]api.ReporteResumen](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/me"+query, nil))
+	}
+
+	t.Run("solo los propios, del más reciente al más antiguo", func(t *testing.T) {
+		rs := listar(t, "")
+		ids := make([]uuid.UUID, 0, len(rs))
+		for _, r := range rs {
+			ids = append(ids, r.Id)
+		}
+		if !slices.Equal(ids, []uuid.UUID{segundo.Id, primero.Id}) {
+			t.Errorf("ids = %v, quería [%v %v] (sin el ajeno %v)", ids, segundo.Id, primero.Id, ajeno.Id)
+		}
+	})
+
+	t.Run("con límite", func(t *testing.T) {
+		if rs := listar(t, "?limite=1"); len(rs) != 1 || rs[0].Id != segundo.Id {
+			t.Errorf("con limite=1 regresó %+v, quería solo %v", rs, segundo.Id)
+		}
+	})
+
+	t.Run("usuario sin reportes", func(t *testing.T) {
+		nuevo := *c
+		nuevo.t = t
+		nuevo.login()
+		rec := nuevo.expect(http.StatusOK, http.MethodGet, "/v1/reportes/me", nil)
+		if body := strings.TrimSpace(rec.Body.String()); body != "[]" {
+			t.Errorf("body = %s, quería []", body)
 		}
 	})
 }

@@ -91,3 +91,15 @@ AND (sqlc.narg(estados)::text[] IS NULL OR r.estado_actual = ANY(sqlc.narg(estad
 AND (sqlc.narg(desde)::timestamptz IS NULL OR r.created_at >= sqlc.narg(desde)::timestamptz)
 ORDER BY distancia_m
 LIMIT sqlc.arg(limite)::int;
+
+-- name: ListReportesByUserId :many
+-- Incluye los históricos: es el historial del usuario, no el mapa.
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
+       r.direccion, i.etiqueta AS incidente_etiqueta
+FROM users_reports ur
+JOIN reporte r ON r.id = ur.reporte_id
+JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
+WHERE ur.user_id = $1
+ORDER BY r.created_at DESC
+LIMIT sqlc.arg(limite)::int;

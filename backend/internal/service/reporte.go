@@ -22,6 +22,7 @@ type ReporteStore interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 	UpdateEstadoReporte(ctx context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error)
 	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
+	ListReportesByUserId(ctx context.Context, arg domain.ListReportesByUserIdParams) ([]domain.ListReportesByUserIdRow, error)
 }
 
 type ReporteService struct {
@@ -168,6 +169,15 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 		Estados:      estadosTexto,
 		Desde:        desde,
 		Limite:       limite,
+	})
+}
+
+// ListarPorUsuario devuelve los reportes que creó el usuario, del más reciente
+// al más antiguo, incluidos los históricos.
+func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ListReportesByUserIdRow, error) {
+	return s.store.ListReportesByUserId(ctx, domain.ListReportesByUserIdParams{
+		UserID: userID,
+		Limite: limite,
 	})
 }
 

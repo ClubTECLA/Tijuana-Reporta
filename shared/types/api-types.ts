@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reportes creados por el usuario autenticado (todos los estados), del más reciente al más antiguo. */
+        get: operations["listarMisReportes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}": {
         parameters: {
             query?: never;
@@ -622,6 +639,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["reporte_cercano"][];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarMisReportes: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de mis reportes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_resumen"][];
                 };
             };
             /** @description Datos inválidos */

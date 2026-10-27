@@ -181,6 +181,31 @@ func (s *Server) ListarReportesCercanos(ctx context.Context, request ListarRepor
 	return res, nil
 }
 
+// ListarMisReportes devuelve los reportes que creó el usuario autenticado.
+func (s *Server) ListarMisReportes(ctx context.Context, request ListarMisReportesRequestObject) (ListarMisReportesResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, errors.New("userID not found in context")
+	}
+
+	limite := 200
+	if request.Params.Limite != nil {
+		limite = *request.Params.Limite
+	}
+
+	rows, err := s.services.Reportes.ListarPorUsuario(ctx, userID, limite)
+	if err != nil {
+		return nil, err
+	}
+	res := make(ListarMisReportes200JSONResponse, 0, len(rows))
+	for _, row := range rows {
+		// Las dos consultas devuelven las mismas columnas, así que sqlc genera
+		// structs idénticos y se puede convertir uno en otro.
+		res = append(res, toReporteResumen(domain.ListReportesResumenRow(row)))
+	}
+	return res, nil
+}
+
 func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error) {
 	if _, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId); err != nil {
 		if errors.Is(err, domain.ErrReporteNotFound) {

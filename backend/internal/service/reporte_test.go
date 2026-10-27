@@ -17,8 +17,8 @@ import (
 // CreateReporte imita a la transacción real (reporte + location) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
 // realista.
-// Guarda los últimos parámetros de CreateReporte, ListReportesResumen y
-// ListReportesPorUbicacion para revisarlos.
+// Guarda los últimos parámetros de CreateReporte, ListReportesResumen,
+// ListReportesPorUbicacion y ListReportesByUserId para revisarlos.
 type fakeReporteStore struct {
 	byID        map[uuid.UUID]domain.Reporte
 	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
@@ -28,12 +28,14 @@ type fakeReporteStore struct {
 	locations   map[uuid.UUID][]domain.Location
 	resumen     []domain.ListReportesResumenRow
 	cercanos    []domain.ListReportesPorUbicacionRow
+	delUsuario  []domain.ListReportesByUserIdRow
 
 	lastArg     domain.CreateReporteTxParams
 	lastListArg domain.ListReportesResumenParams
 	listCalled  bool
 
-	lastCercanosArg domain.ListReportesPorUbicacionParams
+	lastCercanosArg   domain.ListReportesPorUbicacionParams
+	lastDelUsuarioArg domain.ListReportesByUserIdParams
 
 	createErr error
 	listErr   error
@@ -118,6 +120,14 @@ func (f *fakeReporteStore) ListReportesPorUbicacion(_ context.Context, arg domai
 		return nil, f.listErr
 	}
 	return f.cercanos, nil
+}
+
+func (f *fakeReporteStore) ListReportesByUserId(_ context.Context, arg domain.ListReportesByUserIdParams) ([]domain.ListReportesByUserIdRow, error) {
+	f.lastDelUsuarioArg = arg
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.delUsuario, nil
 }
 
 func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
@@ -506,6 +516,34 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 
 	if _, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
+	}
+}
+
+func TestReporteService_ListarPorUsuario(t *testing.T) {
+	store := newFakeReporteStore()
+	store.delUsuario = []domain.ListReportesByUserIdRow{{ID: uuid.New()}}
+	svc := NewReporteService(store)
+	userID := uuid.New()
+
+	rows, err := svc.ListarPorUsuario(context.Background(), userID, 10)
+	if err != nil {
+		t.Fatalf("ListarPorUsuario() error = %v", err)
+	}
+	if len(rows) != 1 || rows[0].ID != store.delUsuario[0].ID {
+		t.Fatalf("ListarPorUsuario() = %+v, want la fila de la store", rows)
+	}
+	if a := store.lastDelUsuarioArg; a.UserID != userID || a.Limite != 10 {
+		t.Fatalf("ListReportesByUserId() arg = %+v, want el usuario y límite recibidos", a)
+	}
+}
+
+func TestReporteService_ListarPorUsuario_ErrorDeStore(t *testing.T) {
+	store := newFakeReporteStore()
+	store.listErr = errors.New("db caída")
+	svc := NewReporteService(store)
+
+	if _, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 200); !errors.Is(err, store.listErr) {
+		t.Fatalf("ListarPorUsuario() error = %v, want %v", err, store.listErr)
 	}
 }
 
