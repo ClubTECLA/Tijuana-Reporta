@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { MenuRow } from '../components/MenuRow';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { EstadoVista } from '../components/estado/EstadoVista';
 import { perfilColors } from '../theme/perfilTokens';
 
-// Datos de ejemplo
-const MOCK_USUARIO = {
-  nombre: 'Bruce Cervantes',
-  telefono: '+52 664 •••• 4421',
+// TODO: no existe endpoint de "reportes del usuario", notificaciones ni preferencias de alertas.
+// Estos contadores siguen siendo datos de ejemplo hasta que el backend los ofrezca.
+const MOCK_CONTADORES = {
   totalReportes: 12,
   reportesActivos: 2,
   reportesHistorial: 10,
@@ -19,6 +19,11 @@ const MOCK_USUARIO = {
 };
 
 interface PerfilScreenProps {
+  nombre: string;
+  correo?: string;
+  cargando?: boolean;
+  error?: boolean;
+  onReintentar?: () => void;
   onBack?: () => void;
   onMisReportes?: () => void;
   onNotificaciones?: () => void;
@@ -27,13 +32,18 @@ interface PerfilScreenProps {
 }
 
 export const PerfilScreen = ({
+  nombre,
+  correo,
+  cargando,
+  error,
+  onReintentar,
   onBack,
   onMisReportes,
   onNotificaciones,
   onAlertas,
   onCerrarSesion,
 }: PerfilScreenProps) => {
-  const u = MOCK_USUARIO;
+  const u = MOCK_CONTADORES;
   const [modoOscuro, setModoOscuro] = useState(false);
 
   return (
@@ -41,9 +51,17 @@ export const PerfilScreen = ({
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <ScreenHeader onBack={onBack} />
-          <Avatar nombre={u.nombre} />
-          <Text style={styles.nombre}>{u.nombre}</Text>
-          <Text style={styles.telefono}>{u.telefono}</Text>
+          {cargando ? (
+            <ActivityIndicator color={perfilColors.primary} style={styles.cargando} />
+          ) : error ? (
+            <EstadoVista estado="error" mensaje="No se pudo cargar tu perfil." onReintentar={onReintentar} compacto />
+          ) : (
+            <>
+              <Avatar nombre={nombre} />
+              <Text style={styles.nombre}>{nombre}</Text>
+              {correo ? <Text style={styles.correo}>{correo}</Text> : null}
+            </>
+          )}
           <Card style={styles.statCard}>
             <Text style={styles.statNumber}>{u.totalReportes}</Text>
             <Text style={styles.statLabel}>Reportes</Text>
@@ -69,7 +87,7 @@ export const PerfilScreen = ({
           />
         </Card>
 
-          <Text style={styles.section}>Preferencias</Text>
+        <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
           <MenuRow
             icon="moon"
@@ -102,8 +120,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 16,
   },
+  cargando: { marginVertical: 40 },
   nombre: { fontSize: 22, fontWeight: '700', color: perfilColors.textPrimary, marginTop: 12 },
-  telefono: { fontSize: 14, color: perfilColors.textSecondary, marginTop: 4 },
+  correo: { fontSize: 14, color: perfilColors.textSecondary, marginTop: 4 },
   statCard: { alignSelf: 'stretch', alignItems: 'center', marginHorizontal: 16, marginTop: 16, paddingVertical: 12 },
   statNumber: { fontSize: 26, fontWeight: '700', color: perfilColors.textPrimary },
   statLabel: { fontSize: 13, color: perfilColors.textSecondary },
