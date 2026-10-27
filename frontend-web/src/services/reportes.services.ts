@@ -29,7 +29,7 @@ export async function obtenerReporte(reporteId: string): Promise<ApiObtenerRepor
     })
 }
 
-// POST /reportes
+// POST /reportes. Con es_oficial: true, el backend responde 403 si quien lo crea es ciudadano.
 export async function crearReporte(
     body: ApiCrearReporteRequest,
 ): Promise<ApiCrearReporteResponse> {
@@ -40,7 +40,7 @@ export async function crearReporte(
     })
 }
 
-// PATCH /reportes/{reporteId}/estado (el backend solo lo permite a admin)
+// PATCH /reportes/{reporteId}/estado (cualquier rol menos ciudadano)
 export async function cambiarEstadoReporte(
     reporteId: string,
     estado: ApiEstadoReporte,

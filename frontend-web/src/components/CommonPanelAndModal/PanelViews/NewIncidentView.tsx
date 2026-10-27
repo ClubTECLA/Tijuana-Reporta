@@ -20,14 +20,16 @@ import type { ApiIncidente } from "../../../types/api-types";
 const VISIBLE_CATEGORIES = 6;
 // Límite del backend para un comentario (crear_comentario_request.yaml).
 const DESCRIPTION_MAX_LENGTH = 500;
+// Límite del backend para la dirección del reporte (crear_reporte_request.yaml).
+const ADDRESS_MAX_LENGTH = 255;
 
 type Position = { latitude: number; longitude: number };
 
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
-// "21. Incidente - NuevoIncidente" del Figma. Crea un reporte (POST /reportes) con la categoría
-// y la ubicación del marcador; la descripción se guarda como su primer comentario.
+// "21. Incidente - NuevoIncidente" del Figma. Crea un reporte oficial (POST /reportes) con la categoría, la ubicación
+// del marcador y su dirección; luego guarda la descripción como primer comentario y lo marca como verificado.
 // Etiquetas, fotos y borrador esperan soporte del backend.
 function NewIncidentForm() {
     const { map } = useMap();
@@ -164,24 +166,30 @@ function NewIncidentForm() {
 
         setPublishing(true);
         try {
+            // El web solo lo usan roles oficiales: el backend responde 403 si quien publica es ciudadano.
             const created = await crearReporte({
                 incidente_id: categoryId,
                 latitude: position.latitude,
                 longitude: position.longitude,
+                es_oficial: true,
+                direccion: address.trim().slice(0, ADDRESS_MAX_LENGTH) || undefined,
             });
-            const descriptionText = description.trim();
-            let descriptionSaved = true;
-            if (descriptionText) {
-                // shortcut: dos llamadas no atómicas; pasar la descripción en crearReporte cuando el backend acepte "comentario".
-                // Si falla, el reporte ya existe: no se reintenta la publicación para no duplicarlo.
-                descriptionSaved = await crearComentario(created.id, descriptionText).then(() => true, () => false);
-            }
-            // shortcut: PRUEBA. Los incidentes creados desde el web nacen verificados con una segunda llamada (solo admin).
-            // Pasar estado y es_oficial en crearReporte cuando el backend los acepte (validando el rol); hoy es_oficial
-            // no se puede activar desde ningún endpoint, así que el incidente queda verificado pero no oficial.
-            const verified = await cambiarEstadoReporte(created.id, "Verificado").then(() => true, () => false);
 
-            const pending = [!descriptionSaved && "la descripción no se pudo guardar", !verified && "no se pudo marcar como verificado"].filter(Boolean);
+            // shortcut: llamadas no atómicas tras crear el reporte; si alguna falla, el reporte ya existe y no se
+            // reintenta la publicación para no duplicarlo. Juntar descripción y estado en crearReporte cuando el
+            // backend acepte "comentario" y "estado" al crear.
+            const ok = () => true, failed = () => false;
+            const descriptionText = description.trim();
+            const [descriptionSaved, verified] = await Promise.all([
+                descriptionText ? crearComentario(created.id, descriptionText).then(ok, failed) : true,
+                // Los reportes oficiales siempre nacen verificados.
+                cambiarEstadoReporte(created.id, "Verificado").then(ok, failed),
+            ]);
+
+            const pending = [
+                !descriptionSaved && "la descripción no se pudo guardar",
+                !verified && "no se pudo marcar como verificado",
+            ].filter(Boolean);
             if (pending.length) {
                 showMessage(
                     `El incidente se publicó, pero ${pending.join(" y ")}.`,

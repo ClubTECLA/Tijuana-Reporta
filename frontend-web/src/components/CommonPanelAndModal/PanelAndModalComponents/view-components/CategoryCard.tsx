@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import type { ApiIncidente } from "../../../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../../../types/categories";
+import { categoryIcon } from "../../../../types/categories";
 
 interface CategoryCardProps {
     incidente: ApiIncidente
@@ -10,7 +10,7 @@ interface CategoryCardProps {
 
 // "Tarjeta de categoría" del Figma: círculo con el color de la categoría y su nombre.
 export default function CategoryCard({ incidente, selected = false, onClick }: CategoryCardProps) {
-    const label = categoryLabel(incidente.nombre);
+    const label = incidente.etiqueta;
 
     return (
         <button

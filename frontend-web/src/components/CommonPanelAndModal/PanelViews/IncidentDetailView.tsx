@@ -10,10 +10,9 @@ import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-componen
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { useReportes } from "../../../hooks/useReportes";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import { crearComentario, obtenerReporte } from "../../../services/reportes.services";
-import { direccionDe } from "../../../services/geocoding.services";
-import type { ApiComentario, ApiReporte } from "../../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../../types/categories";
+import { cambiarEstadoReporte, crearComentario, obtenerReporte } from "../../../services/reportes.services";
+import type { ApiComentario, ApiEstadoReporte, ApiReporte } from "../../../types/api-types";
+import { categoryIcon } from "../../../types/categories";
 import { folio, formatDateTime, pinOfficialFirst } from "../../../types/reportFormat";
 import { isOfficialRole, rolLabel } from "../../../types/users";
 
@@ -21,9 +20,11 @@ import { isOfficialRole, rolLabel } from "../../../types/users";
 const COMMENT_MAX_LENGTH = 500;
 const sectionTitleStyle = "text-xs font-semibold tracking-[0.72px] text-ink-muted";
 const noteStyle = "py-6 text-center text-sm text-ink-muted";
-// Acciones del Figma que aún no tienen endpoint (o lo tienen con error): se muestran deshabilitadas.
+// Acciones del Figma que aún no tienen endpoint: se muestran deshabilitadas.
 const SOON = "Próximamente";
-const STATE_PENDING = "Pendiente de backend: cambiar el estado devuelve error";
+const STATE_FORBIDDEN = "Solo los roles oficiales pueden cambiar el estado";
+// Estados que ofrece el botón "Estado"; Descartado tiene su propio botón.
+const STATE_OPTIONS: ApiEstadoReporte[] = ["Pendiente", "Probable", "Verificado", "Resuelto"];
 
 interface IncidentDetailViewProps {
     reporteId: string
@@ -33,28 +34,22 @@ interface IncidentDetailViewProps {
 // La cabecera usa el resumen que ya tiene ReportesContext, así se pinta al instante mientras llega el detalle.
 export default function IncidentDetailView({ reporteId }: IncidentDetailViewProps) {
     const { user } = useAuth();
-    const { reportes, categories } = useReportes();
+    const { reportes, categories, refresh } = useReportes();
     const { showMessage } = useSysMessage();
 
     const [reporte, setReporte] = useState<ApiReporte | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [address, setAddress] = useState<string | null>(null);
     const [tab, setTab] = useState(0);
     const [comment, setComment] = useState("");
     const [sending, setSending] = useState(false);
+    const [stateMenuOpen, setStateMenuOpen] = useState(false);
+    const [changingState, setChangingState] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
 
         obtenerReporte(reporteId)
-            .then((data) => {
-                if (cancelled) return;
-                setReporte(data);
-                // La dirección es solo informativa: si Nominatim falla se muestran las coordenadas.
-                direccionDe(data.latitude, data.longitude)
-                    .then((found) => { if (!cancelled) setAddress(found) })
-                    .catch(() => undefined);
-            })
+            .then((data) => { if (!cancelled) setReporte(data) })
             .catch((err: unknown) => {
                 if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar el incidente.");
             });
@@ -66,6 +61,23 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const category = base ? categories.get(base.incidente_id) : undefined;
     const color = category?.color ?? "var(--color-ink-muted)";
     const icon = createElement(categoryIcon(category?.nombre ?? ""), { "aria-hidden": true });
+    // Misma regla que el backend (PATCH /reportes/{id}/estado): cualquier rol menos ciudadano.
+    const canChangeState = isOfficialRole(user?.rol_name);
+
+    const handleChangeState = async (estado: ApiEstadoReporte) => {
+        if (changingState) return;
+        setChangingState(true);
+        try {
+            setReporte(await cambiarEstadoReporte(reporteId, estado));
+            setStateMenuOpen(false);
+            // La lista y el pin del mapa también muestran el estado.
+            void refresh();
+        } catch (err) {
+            showMessage(err instanceof Error ? err.message : "No se pudo cambiar el estado.", { color: "red", type: "float", title: "Estado" });
+        } finally {
+            setChangingState(false);
+        }
+    };
 
     const handleSendComment = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -87,10 +99,9 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const confirmations = base?.avistamientos ?? 0;
     const commentCount = reporte?.comentarios.length;
 
-    // shortcut: el backend solo devuelve user_id, así que solo se conoce el autor (y su rol) de los comentarios
-    // propios. Cuando el comentario traiga autor y rol, devolverlos aquí: la vista y el orden ya los usan.
+    // El backend devuelve el autor y su rol en cada comentario; sin ellos (respuestas antiguas) se muestra "Usuario".
     const authorOf = (item: ApiComentario): CommentAuthor | undefined =>
-        user && item.user_id === user.id ? { name: user.username, rol: user.rol_name } : undefined;
+        item.username ? { name: item.username, rol: item.rol_name } : undefined;
     const isOfficial = (item: ApiComentario) => isOfficialRole(authorOf(item)?.rol);
     const comments = pinOfficialFirst(reporte?.comentarios ?? [], isOfficial);
 
@@ -122,11 +133,12 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         {icon}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <h2 className="text-title font-bold text-ink">{category ? categoryLabel(category.nombre) : "Incidente"}</h2>
+                        <h2 className="text-title font-bold text-ink">{category?.etiqueta ?? "Incidente"}</h2>
                         {base &&
                             <span className="flex items-center gap-1 text-caption text-ink-muted">
                                 <LuMapPin className="size-3.5 shrink-0" aria-hidden />
-                                <span className="truncate">{address ?? `${base.latitude.toFixed(5)}, ${base.longitude.toFixed(5)}`}</span>
+                                {/* La dirección la guarda quien crea el reporte; sin ella se muestran las coordenadas. */}
+                                <span className="truncate">{base.direccion ?? `${base.latitude.toFixed(5)}, ${base.longitude.toFixed(5)}`}</span>
                             </span>
                         }
                     </div>
@@ -138,12 +150,42 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                     </div>
                 }
                 <div className="flex justify-between pt-1">
-                    <IncidentAction icon={<LuCheck />} label="Estado" tone="primary" disabled tooltip={STATE_PENDING} />
+                    <IncidentAction
+                        icon={<LuCheck />}
+                        label="Estado"
+                        tone="primary"
+                        expanded={stateMenuOpen}
+                        onClick={() => setStateMenuOpen((open) => !open)}
+                        disabled={!reporte || !canChangeState}
+                        tooltip={canChangeState ? undefined : STATE_FORBIDDEN}
+                    />
                     <IncidentAction icon={<LuPencil />} label="Editar" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuShare />} label="Compartir" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuDownload />} label="Exportar" disabled tooltip={SOON} />
-                    <IncidentAction icon={<LuTrash2 />} label="Descartar" tone="danger" disabled tooltip={STATE_PENDING} />
+                    <IncidentAction
+                        icon={<LuTrash2 />}
+                        label="Descartar"
+                        tone="danger"
+                        onClick={() => { void handleChangeState("Descartado") }}
+                        disabled={!reporte || !canChangeState || changingState || reporte.estado_actual === "Descartado"}
+                        tooltip={canChangeState ? "Marcar como descartado (se puede reabrir con Estado)" : STATE_FORBIDDEN}
+                    />
                 </div>
+                {stateMenuOpen && reporte &&
+                    <div role="group" aria-label="Cambiar estado" className="flex flex-wrap gap-2 rounded-2xl bg-subtle p-2.5">
+                        {STATE_OPTIONS.filter((estado) => estado !== reporte.estado_actual).map((estado) =>
+                            <button
+                                key={estado}
+                                type="button"
+                                disabled={changingState}
+                                onClick={() => { void handleChangeState(estado) }}
+                                className="rounded-full border border-line bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-subtle disabled:cursor-wait disabled:opacity-60"
+                            >
+                                {estado}
+                            </button>
+                        )}
+                    </div>
+                }
             </div>
 
             <SegmentedTabs format="row" activeTab={tab} onChange={setTab}>
