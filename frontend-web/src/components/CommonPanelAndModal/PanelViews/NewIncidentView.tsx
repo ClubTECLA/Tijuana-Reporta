@@ -210,7 +210,7 @@ function NewIncidentForm() {
         // común es w-fit: con un mínimo, una fila larga de etiquetas lo ensancharía antes de que flex-wrap las baje.
         // El scroll se extiende sobre el relleno para quedar pegado al borde, y el contenido llena el alto del panel:
         // los botones quedan abajo del todo, como en el Figma.
-        <div className="flex min-h-0 w-full flex-1 flex-col font-['Inter',sans-serif] sm:w-[max(25rem,calc(25vw-2rem))]">
+        <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
 
@@ -232,7 +232,7 @@ function NewIncidentForm() {
                     <button
                         type="button"
                         onClick={() => setShowAllCategories((prev) => !prev)}
-                        className="flex items-center gap-1.5 self-start text-[13px] font-semibold text-brand-text hover:underline"
+                        className="flex items-center gap-1.5 self-start text-caption font-semibold text-brand-text hover:underline"
                     >
                         <LuPlus className={`size-4 transition-transform ${showAllCategories ? 'rotate-45' : ''}`} />
                         {showAllCategories ? "Ver menos categorías" : `Ver las ${categories.length} categorías activas`}
@@ -320,7 +320,7 @@ function NewIncidentForm() {
                     >
                         <LuMapPin className="size-6" />
                     </span>
-                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-['Inter',sans-serif] text-xs font-semibold text-white">
+                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white">
                         <LuMapPin className="size-3.5" />
                         Arrastra el marcador o haz clic en el mapa
                     </span>

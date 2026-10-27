@@ -25,14 +25,14 @@ export default function IncidentRow({ reporte, incidente, onClick }: IncidentRow
             style={{ backgroundColor: incidente?.color ?? "#757575" }}
         >
             {createElement(categoryIcon(incidente?.nombre ?? ""), { className: "size-5.5", "aria-hidden": true })}
-            <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-['JetBrains_Mono',monospace] text-[11px] font-bold leading-none text-white">
+            <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-mono text-2xs font-bold leading-none text-white">
                 {reporte.avistamientos}
             </span>
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="truncate text-[15px] font-semibold text-ink">{title}</span>
-            <span className="truncate text-[13px] text-ink-muted">
+            <span className="truncate text-body font-semibold text-ink">{title}</span>
+            <span className="truncate text-caption text-ink-muted">
                 {reporte.latitude.toFixed(4)}, {reporte.longitude.toFixed(4)} · {folio(reporte.id)}
             </span>
             <span className="flex items-center gap-2">

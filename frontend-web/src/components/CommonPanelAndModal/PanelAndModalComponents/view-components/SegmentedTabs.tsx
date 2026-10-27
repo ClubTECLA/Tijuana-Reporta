@@ -24,7 +24,7 @@ export function TabItem({
             className={`
                 flex h-10 min-w-max shrink-0 flex-row items-center justify-center
                 gap-1.5 whitespace-nowrap rounded-full px-4
-                text-[15px] transition-colors duration-200
+                text-body transition-colors duration-200
                 ${isActive
                     ? "bg-white font-semibold text-ink drop-shadow-card"
                     : "bg-transparent font-medium text-ink-muted hover:text-icon"}

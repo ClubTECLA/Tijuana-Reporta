@@ -53,7 +53,7 @@ export default function ClusterPin({ count, segments }: ClusterPinProps) {
                     y={CENTER}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    className="fill-ink font-['Inter',sans-serif] text-[18px] font-bold"
+                    className="fill-ink font-ui text-[18px] font-bold"
                 >
                     {count}
                 </text>

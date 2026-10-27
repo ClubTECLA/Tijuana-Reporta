@@ -33,7 +33,7 @@ export default function IncidentPin({ reporte, incidente, isNew = false }: Incid
             >
                 {createElement(categoryIcon(incidente?.nombre ?? ""), { className: "size-6" })}
             </span>
-            <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-ink px-1.75 py-0.5 font-['JetBrains_Mono',monospace] text-xs font-bold leading-none text-white" aria-hidden>
+            <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-ink px-1.75 py-0.5 font-mono text-xs font-bold leading-none text-white" aria-hidden>
                 {reporte.avistamientos}
             </span>
         </span>

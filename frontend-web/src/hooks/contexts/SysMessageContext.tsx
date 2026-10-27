@@ -124,7 +124,7 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
                 <span className="shrink-0 [&>svg]:size-5 [&>svg]:text-inherit">{currentStyle.icon}</span>
                 <div className="flex flex-1 flex-col gap-0.5">
                     {title && <span className="text-sm font-semibold">{title}</span>}
-                    <span className="text-[13px]">{message}</span>
+                    <span className="text-caption">{message}</span>
                 </div>
                 <button
                     type="button"
