@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { folio } from "../../types/reportFormat";
 import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
 import { categoryIcon, categoryLabel } from "../../types/categories";
 
@@ -19,7 +20,8 @@ export default function IncidentPin({ reporte, incidente, isNew = false }: Incid
 
     return (
         <span title={label} className="relative flex size-12 items-center justify-center">
-            <span className="sr-only">{label}. Ver detalle</span>
+            {/* El folio distingue pines con la misma categoría, estado y confirmaciones, como en la lista. */}
+            <span className="sr-only">{label}, {folio(reporte.id)}. Ver detalle</span>
             {isNew && <span className="absolute inset-0 animate-ping rounded-full opacity-60" style={{ backgroundColor: color }} aria-hidden />}
             <span
                 className={`

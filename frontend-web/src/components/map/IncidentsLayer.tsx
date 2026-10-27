@@ -73,6 +73,7 @@ export default function IncidentsLayer() {
             if (!map.getSource(SOURCE_ID)) return;
 
             const nextItems = new Map<string, MarkerItem>();
+            const { clientWidth: width, clientHeight: height } = map.getContainer();
             for (const feature of map.querySourceFeatures(SOURCE_ID)) {
                 const props = feature.properties;
                 const key = props.cluster ? `c-${props.cluster_id}` : `p-${props.id}`;
@@ -108,6 +109,10 @@ export default function IncidentsLayer() {
                 } else {
                     entry.marker.setLngLat(coordinates);
                 }
+                // querySourceFeatures también devuelve los tiles cargados alrededor de la vista: lo que queda fuera
+                // no entra en el orden de Tab. Se recalcula en cada sincronización (moveend/idle).
+                const { x, y } = map.project(coordinates);
+                entry.element.tabIndex = x >= 0 && y >= 0 && x <= width && y <= height ? 0 : -1;
 
                 nextItems.set(key, props.cluster
                     ? {
@@ -122,6 +127,8 @@ export default function IncidentsLayer() {
 
             for (const [key, entry] of markers) {
                 if (!nextItems.has(key)) {
+                    // Si tenía el foco (p. ej. el cluster que se acaba de expandir), pasa al mapa para no perderlo.
+                    if (entry.element.contains(document.activeElement)) map.getCanvas().focus();
                     entry.marker.remove();
                     markers.delete(key);
                 }

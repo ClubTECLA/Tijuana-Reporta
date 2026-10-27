@@ -10,7 +10,8 @@ export function folio(id: string) {
 // Las fechas se muestran en la hora de Tijuana aunque el navegador tenga otra zona horaria.
 const TIME_ZONE = "America/Tijuana";
 const dateTimeFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE });
-const relativeFormat = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
+// "always": "hace 1 mes" y no "el mes pasado", porque timeAgo mide tiempo transcurrido, no meses ni días del calendario.
+const relativeFormat = new Intl.RelativeTimeFormat("es", { numeric: "always" });
 
 /** Milisegundos de una fecha ISO del backend, o NaN si no es válida. */
 const timeOf = (iso: string) => Date.parse(iso);

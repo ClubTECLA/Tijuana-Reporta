@@ -79,7 +79,7 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
                 {content}
                 {onChange &&
                     <span className="flex h-10 shrink-0 items-center">
-                        <Input type='checkbox' format='col' debug={debug} onChange={onChange} />
+                        <Input type='checkbox' format='col' debug={debug} onChange={onChange} ariaLabel={tileName} />
                     </span>
                 }
             </div>
