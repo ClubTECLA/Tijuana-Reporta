@@ -1,7 +1,13 @@
 // Geocodificación con Nominatim (OpenStreetMap), igual que frontend-mobile/src/features/lugares/nominatim.ts.
-// Política de uso: máx. ~1 petición/s; por eso solo se consulta al buscar o al soltar el marcador.
-// shortcut: Nominatim público sin SLA, válido para desarrollo; en producción pasar por un proxy o proveedor propio.
+// Política de uso: máx. 1 petición/s. Solo se consulta al buscar o al soltar el marcador, y nominatim() además
+// espacia las peticiones de esta pestaña para no pasar de ese ritmo aunque el usuario mueva el marcador muy rápido.
+// shortcut: el límite es por pestaña, no global; Nominatim público sin SLA, válido para desarrollo; en producción
+// pasar por un proxy o proveedor propio.
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org'
+const MIN_INTERVAL_MS = 1_000
+
+// Instante a partir del cual puede salir la siguiente petición; cada una reserva su hueco antes de esperar.
+let nextSlot = 0
 
 // Tijuana y sus delegaciones: sesga los resultados sin descartar direcciones de fuera.
 const TIJUANA_VIEWBOX = '-117.15,32.60,-116.85,32.40'
@@ -39,6 +45,12 @@ function shortAddress(result: NominatimResult): string {
 
 async function nominatim<T>(path: string, params: Record<string, string>): Promise<T> {
     const query = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', 'accept-language': 'es', ...params })
+
+    const now = Date.now()
+    const slot = Math.max(now, nextSlot)
+    nextSlot = slot + MIN_INTERVAL_MS
+    if (slot > now) await new Promise((resolve) => setTimeout(resolve, slot - now))
+
     const response = await fetch(`${NOMINATIM_URL}/${path}?${query}`)
 
     if (!response.ok) {

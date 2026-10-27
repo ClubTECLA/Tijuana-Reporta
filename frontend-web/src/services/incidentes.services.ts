@@ -13,7 +13,7 @@ import type {
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
 
 // GET /incidentes
-export function listarIncidentes(
+export async function listarIncidentes(
     query?: ApiListarIncidentesQuery,
 ): Promise<ApiListarIncidentesResponse> {
     const searchParams = new URLSearchParams()
@@ -31,7 +31,7 @@ export function listarIncidentes(
 }
 
 // POST /incidentes (administradores)
-export function crearIncidente(
+export async function crearIncidente(
     body: ApiCrearIncidenteRequest,
 ): Promise<ApiCrearIncidenteResponse> {
     return requestJson(`${apiUrl}/incidentes`, {
@@ -42,7 +42,7 @@ export function crearIncidente(
 }
 
 // GET /incidentes/{incidenteId}
-export function obtenerIncidente(
+export async function obtenerIncidente(
     incidenteId: number,
 ): Promise<ApiObtenerIncidenteResponse> {
     return requestJson(`${apiUrl}/incidentes/${incidenteId}`, {
@@ -52,7 +52,7 @@ export function obtenerIncidente(
 }
 
 // POST /incidentes/{incidenteId}/tags (administradores)
-export function agregarTags(
+export async function agregarTags(
     incidenteId: number,
     tags: ApiAgregarTagsRequest,
 ): Promise<ApiAgregarTagsResponse> {

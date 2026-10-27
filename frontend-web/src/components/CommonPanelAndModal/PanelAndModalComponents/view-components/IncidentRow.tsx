@@ -14,12 +14,13 @@ interface IncidentRowProps {
 
 // "Web/Fila de incidente" del Figma. El backend aún no da título, hora ni dirección del reporte:
 // se muestran la categoría, las coordenadas y las confirmaciones (avistamientos).
+// Todo es <span> porque la fila puede ser un <button>, que solo admite contenido en línea.
 export default function IncidentRow({ reporte, incidente, onClick }: IncidentRowProps) {
     const title = incidente ? categoryLabel(incidente.nombre) : "Incidente";
     const confirmations = reporte.avistamientos === 1 ? "1 confirmación" : `${reporte.avistamientos} confirmaciones`;
 
     const content = <>
-        <div
+        <span
             className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-white"
             style={{ backgroundColor: incidente?.color ?? "#757575" }}
         >
@@ -27,21 +28,21 @@ export default function IncidentRow({ reporte, incidente, onClick }: IncidentRow
             <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-['JetBrains_Mono',monospace] text-[11px] font-bold leading-none text-white">
                 {reporte.avistamientos}
             </span>
-        </div>
+        </span>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="truncate text-[15px] font-semibold text-ink">{title}</span>
             <span className="truncate text-[13px] text-ink-muted">
                 {reporte.latitude.toFixed(4)}, {reporte.longitude.toFixed(4)} · {folio(reporte.id)}
             </span>
-            <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2">
                 <StatusBadge estado={reporte.estado_actual} />
                 <span className="flex items-center gap-1 text-xs font-medium text-ink-secondary">
                     <LuUsers className="size-3.5" aria-hidden="true" />
                     {reporte.es_oficial ? "Aviso oficial" : confirmations}
                 </span>
-            </div>
-        </div>
+            </span>
+        </span>
 
         <LuChevronRight className="size-4.5 shrink-0 text-ink-muted" aria-hidden="true" />
     </>;

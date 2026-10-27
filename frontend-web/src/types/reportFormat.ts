@@ -7,19 +7,35 @@ export function folio(id: string) {
     return `INC-${hash + 1000}`;
 }
 
-const dateTimeFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" });
+// Las fechas se muestran en la hora de Tijuana aunque el navegador tenga otra zona horaria.
+const TIME_ZONE = "America/Tijuana";
+const dateTimeFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE });
 const relativeFormat = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 
-/** "17 oct 2026, 14:21" */
+/** Milisegundos de una fecha ISO del backend, o NaN si no es válida. */
+const timeOf = (iso: string) => Date.parse(iso);
+
+/** "17 oct 2026, 14:21"; con una fecha inválida, un guion en lugar de lanzar RangeError. */
 export function formatDateTime(iso: string) {
-    return dateTimeFormat.format(new Date(iso));
+    const time = timeOf(iso);
+    return Number.isNaN(time) ? "—" : dateTimeFormat.format(time);
 }
 
-const units: [Intl.RelativeTimeFormatUnit, number][] = [["day", 86_400], ["hour", 3_600], ["minute", 60]];
+// De la unidad más grande a la más pequeña; los meses y años son aproximados (30 y 365 días), como en mobile.
+const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["year", 31_536_000],
+    ["month", 2_592_000],
+    ["week", 604_800],
+    ["day", 86_400],
+    ["hour", 3_600],
+    ["minute", 60],
+];
 
-/** "hace 3 horas", "hace 5 minutos"; con menos de un minuto, "ahora". */
+/** "hace 3 horas", "hace 2 semanas"; con menos de un minuto, "ahora"; con una fecha inválida, "". */
 export function timeAgo(iso: string, now = Date.now()) {
-    const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
+    const time = timeOf(iso);
+    if (Number.isNaN(time)) return "";
+    const seconds = Math.round((time - now) / 1000);
     for (const [unit, size] of units) {
         if (Math.abs(seconds) >= size) return relativeFormat.format(Math.trunc(seconds / size), unit);
     }
@@ -29,11 +45,13 @@ export function timeAgo(iso: string, now = Date.now()) {
 /**
  * Comentarios oficiales (roles distintos de ciudadano) fijados arriba, el más reciente primero;
  * el resto en orden de publicación. No modifica la lista recibida.
+ * Se compara por instante y no por texto: "…05Z" y "…05.123Z" son el mismo segundo con distinta precisión.
  */
 export function pinOfficialFirst<T extends { created_at: string }>(items: T[], isOfficial: (item: T) => boolean): T[] {
     return [...items].sort((a, b) => {
         const officialA = isOfficial(a), officialB = isOfficial(b);
         if (officialA !== officialB) return officialA ? -1 : 1;
-        return officialA ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at);
+        const order = (timeOf(a.created_at) || 0) - (timeOf(b.created_at) || 0);
+        return officialA ? -order : order;
     });
 }

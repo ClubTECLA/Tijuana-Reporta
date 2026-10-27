@@ -22,8 +22,8 @@ const LOAD_LAYER_ID = "incidentes-carga";
 const CLUSTER_MAX_ZOOM = 14;
 
 type MarkerItem =
-    | { key: string; kind: "point"; element: HTMLDivElement; reporteId: string }
-    | { key: string; kind: "cluster"; element: HTMLDivElement; count: number; categoryCounts: [number, number][] };
+    | { key: string; kind: "point"; element: HTMLButtonElement; reporteId: string }
+    | { key: string; kind: "cluster"; element: HTMLButtonElement; count: number; categoryCounts: [number, number][] };
 
 function toFeatureCollection(reportes: ApiReporteResumen[]): FeatureCollection<Point> {
     return {
@@ -45,7 +45,7 @@ export default function IncidentsLayer() {
     const { setPanelView } = useCommonPanel();
     const [items, setItems] = useState<MarkerItem[]>([]);
 
-    const markersRef = useRef(new Map<string, { marker: Marker; element: HTMLDivElement }>());
+    const markersRef = useRef(new Map<string, { marker: Marker; element: HTMLButtonElement }>());
     const dataRef = useRef<FeatureCollection<Point>>(toFeatureCollection([]));
     const flownToRef = useRef<string | null>(null);
     // Los listeners de los marcadores se crean una vez; la ref les da siempre el setPanelView actual
@@ -81,7 +81,11 @@ export default function IncidentsLayer() {
                 const coordinates = (feature.geometry as Point).coordinates as [number, number];
                 let entry = markers.get(key);
                 if (!entry) {
-                    const element = document.createElement("div");
+                    // Botón y no div: el pin y el cluster responden al clic, así que también se enfocan con Tab
+                    // y se activan con Enter o espacio. El nombre accesible lo pone el texto sr-only del pin.
+                    const element = document.createElement("button");
+                    element.type = "button";
+                    element.className = "cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
                     element.addEventListener("mousedown", stopMapEvent);
                     element.addEventListener("click", stopMapEvent);
                     if (props.cluster) {
@@ -97,7 +101,6 @@ export default function IncidentsLayer() {
                         });
                     } else {
                         const reporteId = String(props.id);
-                        element.style.cursor = "pointer";
                         element.addEventListener("click", () => openDetailRef.current(reporteId));
                     }
                     entry = { marker: new Marker({ element }).setLngLat(coordinates).addTo(map), element };
@@ -205,7 +208,7 @@ export default function IncidentsLayer() {
                     return createPortal(
                         <ClusterPin
                             count={item.count}
-                            segments={item.categoryCounts.map(([id, value]) => ({ color: categories.get(id)?.color ?? "#757575", value }))}
+                            segments={item.categoryCounts.map(([id, value]) => ({ id, color: categories.get(id)?.color ?? "#757575", value }))}
                         />,
                         item.element,
                         item.key,
