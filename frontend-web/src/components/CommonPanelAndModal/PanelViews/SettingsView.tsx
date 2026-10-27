@@ -19,8 +19,10 @@ function CategoriesSection({debug} : subsectionProps) {
     const [categories, setCategories] = useState<ApiIncidente[]>([]);
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
+    const [ loadCategories, setLoadCategories ] = useState(true);
 
     useEffect(() => {
+        if(!loadCategories) return;
         const fetchCategories = async () => {
             try{
                 const res = await listIncidents({ incluir_inactivos: true });
@@ -30,8 +32,9 @@ function CategoriesSection({debug} : subsectionProps) {
                 setCategories([]);
             }
         }
-        fetchCategories();
-    }, []);
+        fetchCategories()
+        .finally(() => setLoadCategories(false));
+    }, [loadCategories]);
 
     const handleChangeIsActive = (e: ChangeEvent<HTMLInputElement>) => {
         setCategories(prev => prev.map(
@@ -127,6 +130,7 @@ function CategoriesSection({debug} : subsectionProps) {
                         format='col'
                         category={selectedCategory}
                         onClose={() => setOpenForm(false)}
+                        onCreateCategory={() => setLoadCategories(true)}
                     />
                 }
             </RowSection>
