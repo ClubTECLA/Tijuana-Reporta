@@ -34,7 +34,7 @@ export default function PermisoUbicacion() {
       puntos={[
         {
           icono: <CheckCircleIcon size={20} color={colors.bienvenidaCheck} />,
-          texto: 'Solo la usamos mientras la app está abierta.',
+          texto: 'También la usamos en segundo plano para avisarte si pasas cerca de un incidente.',
         },
         { icono: <CandadoIcon color={colors.brand} />, texto: 'Otros vecinos no ven tu ubicación exacta.' },
       ]}

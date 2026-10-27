@@ -1,9 +1,16 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { actualizarZonasPeligro } from '@/lib/alertasCercanas';
 import { useEsInvitado } from '@/lib/session';
 
 /** Configura la navegación principal y las pantallas de búsqueda y creación de reportes. */
 export default function MainLayout() {
   const esInvitado = useEsInvitado();
+
+  // Al entrar a la app se vuelven a tomar los incidentes cercanos como zonas de peligro.
+  useEffect(() => {
+    actualizarZonasPeligro().catch((err) => console.warn('[alertas] no se pudieron actualizar las zonas:', err));
+  }, []);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
