@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { leerRadioAlertaKm, RADIO_ALERTA_KM_DEFECTO } from '../lib/alertasCercanas';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { MenuRow } from '../components/MenuRow';
@@ -15,7 +17,6 @@ const MOCK_USUARIO = {
   reportesHistorial: 10,
   notificacionesNuevas: 3,
   notificacionesHistorial: 10,
-  radioAlertasKm: 1.5,
 };
 
 interface PerfilScreenProps {
@@ -35,6 +36,14 @@ export const PerfilScreen = ({
 }: PerfilScreenProps) => {
   const u = MOCK_USUARIO;
   const [modoOscuro, setModoOscuro] = useState(false);
+
+  // Perfil sigue montado debajo de "Alertas y lugares": se relee al volver para mostrar lo que se guardó.
+  const [radioAlertasKm, setRadioAlertasKm] = useState(RADIO_ALERTA_KM_DEFECTO);
+  useFocusEffect(
+    useCallback(() => {
+      leerRadioAlertaKm().then(setRadioAlertasKm).catch(() => {});
+    }, []),
+  );
 
   return (
     <View style={styles.screen}>
@@ -83,7 +92,7 @@ export const PerfilScreen = ({
             icon="map-pin"
             title="Alertas y lugares"
             subtitle="Radio, categorías y horario"
-            value={`${u.radioAlertasKm} km`}
+            value={`${radioAlertasKm.toFixed(1)} km`}
             onPress={onAlertas}
           />
           <View style={styles.divider} />

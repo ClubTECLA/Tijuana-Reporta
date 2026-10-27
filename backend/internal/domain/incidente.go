@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/google/uuid"
+
 // Archivo escrito a mano: convive con el código generado por sqlc, que solo
 // reescribe models.go, querier.go, db.go y los *.sql.go.
 
@@ -28,10 +30,19 @@ type NuevoTag struct {
 type CreateIncidenteTxParams struct {
 	Incidente CreateIncidenteParams
 	Tags      []CreateTagParams
+	ActorID   uuid.UUID
 }
 
 // IncidenteDetalle agrupa el incidente con los tags de su catálogo.
 type IncidenteDetalle struct {
 	Incidente Incidente
 	Tags      []Tag
+}
+
+// CreateTagsTxParams agrupa los tags que se agregan al catálogo de un
+// incidente existente y quién los agrega, para el historial.
+type CreateTagsTxParams struct {
+	IncidenteID int
+	Tags        []CreateTagParams
+	ActorID     uuid.UUID
 }

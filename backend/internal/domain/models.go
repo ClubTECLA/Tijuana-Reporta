@@ -123,12 +123,13 @@ type Comentario struct {
 }
 
 type Historial struct {
-	ID           uuid.UUID `json:"id"`
-	UserID       uuid.UUID `json:"user_id"`
-	AccionID     int       `json:"accion_id"`
-	NombreTarget *string   `json:"nombre_target"`
-	Descripcion  *string   `json:"descripcion"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID        int64      `json:"id"`
+	ActorID   *uuid.UUID `json:"actor_id"`
+	Accion    string     `json:"accion"`
+	Entidad   string     `json:"entidad"`
+	EntidadID string     `json:"entidad_id"`
+	Datos     []byte     `json:"datos"`
+	CreadoEn  time.Time  `json:"creado_en"`
 }
 
 type Incidente struct {

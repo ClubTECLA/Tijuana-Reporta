@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
+	CreateHistorialEvento(ctx context.Context, arg CreateHistorialEventoParams) error
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
 	// Se inserta junto con el usuario dentro de la misma transacción, para que
 	// nunca quede un usuario sin forma de autenticarse ni un auth_provider
@@ -27,6 +28,7 @@ type Querier interface {
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
+	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
@@ -36,6 +38,7 @@ type Querier interface {
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error)
+	ListHistorialPorEntidad(ctx context.Context, arg ListHistorialPorEntidadParams) ([]Historial, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
 	// administración).
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)

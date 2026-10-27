@@ -9,12 +9,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/google/uuid"
 )
 
 // IncidenteStore es el subconjunto de *database.Store que este servicio usa.
 type IncidenteStore interface {
 	CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error)
-	CreateTags(ctx context.Context, arg []domain.CreateTagParams) ([]domain.Tag, error)
+	CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) ([]domain.Tag, error)
 	GetIncidenteById(ctx context.Context, id int) (domain.Incidente, error)
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]domain.Incidente, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]domain.Tag, error)
@@ -54,7 +55,7 @@ var colorHex = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 // para responder 400 en vez de que la base rechace el INSERT con un 500.
 // Los tags repetidos también se rechazan aquí: así un UNIQUE roto en la base
 // solo puede ser el nombre del incidente.
-func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncidente) (domain.IncidenteDetalle, error) {
+func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncidente, userID uuid.UUID) (domain.IncidenteDetalle, error) {
 	nombre := strings.TrimSpace(nuevo.Nombre)
 	if nombre == "" || utf8.RuneCountInString(nombre) > maxNombreIncidente {
 		return domain.IncidenteDetalle{}, fmt.Errorf("%w: nombre debe tener entre 1 y %d caracteres", domain.ErrIncidenteInvalido, maxNombreIncidente)
@@ -100,6 +101,7 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 	detalle, err := s.store.CreateIncidenteConTags(ctx, domain.CreateIncidenteTxParams{
 		Incidente: params,
 		Tags:      tags,
+		ActorID:   userID,
 	})
 	if err != nil {
 		if domain.IsUniqueViolation(err) {
@@ -203,7 +205,7 @@ func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.Incident
 // El UNIQUE (incidente_id, nombre) de la base distingue mayúsculas, así que
 // aquí se compara contra los tags que ya tiene el incidente sin
 // distinguirlas, igual que validarTags dentro de la misma petición.
-func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, nuevos []domain.NuevoTag) ([]domain.Tag, error) {
+func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]domain.Tag, error) {
 	if len(nuevos) == 0 {
 		return nil, fmt.Errorf("%w: hay que mandar al menos un tag", domain.ErrIncidenteInvalido)
 	}
@@ -231,10 +233,13 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, nue
 		if usados[strings.ToLower(tags[i].Nombre)] {
 			return nil, fmt.Errorf("%w: %q", domain.ErrTagNameTaken, tags[i].Nombre)
 		}
-		tags[i].IncidenteID = incidenteID
 	}
 
-	creados, err := s.store.CreateTags(ctx, tags)
+	creados, err := s.store.CreateTags(ctx, domain.CreateTagsTxParams{
+		IncidenteID: incidenteID,
+		Tags:        tags,
+		ActorID:     userID,
+	})
 	if err != nil {
 		// Las dos comprobaciones de arriba pueden quedar viejas si otra
 		// petición crea el mismo tag o borra el incidente entre medio.

@@ -103,3 +103,5 @@ JOIN incidentes i ON i.id = r.incidente_id
 WHERE ur.user_id = $1
 ORDER BY r.created_at DESC
 LIMIT sqlc.arg(limite)::int;
+-- name: GetEstadoReporteForUpdate :one
+SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE;

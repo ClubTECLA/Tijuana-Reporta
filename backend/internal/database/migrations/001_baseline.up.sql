@@ -161,12 +161,13 @@ ALTER SEQUENCE public.multimedia_id_seq OWNED BY public.multimedia.id;
 -- Name: historial; Type: TABLE; Schema: public; Owner: -
 -- Historial de acciones realizadas por los usuarios (mas que nada dirigida a usuarios con roles superiores a ciudadano)
 CREATE TABLE public.historial (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    accion_id integer NOT NULL,
-    nombre_target text,
-    descripcion text,
-    created_at timestamptz DEFAULT now() NOT NULL
+    id          BIGSERIAL PRIMARY KEY,
+    actor_id    uuid,   -- NULL = sistema
+    accion      TEXT NOT NULL,
+    entidad     TEXT NOT NULL,
+    entidad_id  TEXT NOT NULL,
+    datos       JSONB,
+    creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Name: incidente_tags; Type: TABLE; Schema: public; Owner: -
@@ -469,10 +470,6 @@ ALTER TABLE ONLY public.multimedia
 ALTER TABLE ONLY public.multimedia
     ADD CONSTRAINT multimedia_reporte_id_user_id_key UNIQUE (reporte_id, user_id);
 
--- Name: historial historial_pkey; Type: CONSTRAINT; Schema: public; Owner: -
-ALTER TABLE ONLY public.historial
-    ADD CONSTRAINT historial_pkey PRIMARY KEY (id);
-
 -- Name: incidente_tags incidente_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.incidente_tags
     ADD CONSTRAINT incidente_tags_pkey PRIMARY KEY (id);
@@ -591,6 +588,12 @@ CREATE INDEX idx_puntos_origen_geom ON public.puntos_origen USING gist (geom);
 -- Name: location trg_update_puntos_origen; Type: TRIGGER; Schema: public; Owner: -
 CREATE TRIGGER trg_update_puntos_origen AFTER INSERT ON public.location FOR EACH ROW EXECUTE FUNCTION public.update_puntos_origen();
 
+-- Name: historial_entidad_idx
+CREATE INDEX historial_entidad_idx ON public.historial (entidad, entidad_id, creado_en DESC);
+
+-- Name: historial_actor_idx
+CREATE INDEX historial_actor_idx ON public.historial (actor_id, creado_en DESC);
+
 -- Name: incidente_tags trg_update_tag_counts; Type: TRIGGER; Schema: public; Owner: -
 CREATE TRIGGER trg_update_tag_counts AFTER INSERT OR DELETE ON public.incidente_tags FOR EACH ROW EXECUTE FUNCTION public.update_tag_counts();
 
@@ -614,13 +617,9 @@ ALTER TABLE ONLY public.multimedia
 ALTER TABLE ONLY public.multimedia
     ADD CONSTRAINT multimedia_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
--- Name: historial historial_accion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: historial historial_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.historial
-    ADD CONSTRAINT historial_accion_id_fkey FOREIGN KEY (accion_id) REFERENCES public.acciones(id);
-
--- Name: historial historial_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
-ALTER TABLE ONLY public.historial
-    ADD CONSTRAINT historial_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT historial_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id);
 
 -- Name: incidente_tags incidente_tags_added_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.incidente_tags
