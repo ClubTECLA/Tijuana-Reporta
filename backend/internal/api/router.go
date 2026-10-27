@@ -127,6 +127,9 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
+		// Relativo a la URL del contrato (/v1/ o /api/v1/ tras nginx), para
+		// que "Try it out" de Swagger UI llegue a las rutas reales.
+		spec.Servers = openapi3.Servers{{URL: "."}}
 		c.JSON(http.StatusOK, spec)
 	})
 
