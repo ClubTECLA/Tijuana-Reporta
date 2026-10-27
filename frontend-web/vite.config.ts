@@ -16,6 +16,8 @@ server: {
       changeOrigin: true,
       rewrite: (path) => path.replace(/^\/api/, ''),
     },
+    // Las fotos de los reportes no las sirve Go sino nginx (puerto 80 de docker compose), leyendo el volumen.
+    '/multimedia': 'http://localhost',
   },
 },
 })

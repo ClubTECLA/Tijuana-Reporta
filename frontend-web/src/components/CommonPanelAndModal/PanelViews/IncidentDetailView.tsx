@@ -10,7 +10,7 @@ import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-componen
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { useReportes } from "../../../hooks/useReportes";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import { cambiarEstadoReporte, crearComentario, obtenerReporte } from "../../../services/reportes.services";
+import { cambiarEstadoReporte, crearComentario, fotoUrl, obtenerReporte } from "../../../services/reportes.services";
 import type { ApiComentario, ApiEstadoReporte, ApiReporte } from "../../../types/api-types";
 import { categoryIcon } from "../../../types/categories";
 import { folio, formatDateTime, pinOfficialFirst } from "../../../types/reportFormat";
@@ -61,6 +61,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const category = base ? categories.get(base.incidente_id) : undefined;
     const color = category?.color ?? "var(--color-ink-muted)";
     const icon = createElement(categoryIcon(category?.nombre ?? ""), { "aria-hidden": true });
+    const photo = reporte?.multimedia[0];
     // Misma regla que el backend (PATCH /reportes/{id}/estado): cualquier rol menos ciudadano.
     const canChangeState = isOfficialRole(user?.rol_name);
 
@@ -108,7 +109,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     return (
         // Ancho fijo del Figma (440 px aprox.): con w-fit, un comentario largo ensancharía el panel.
         <div className="flex h-full min-h-0 w-full flex-col gap-2 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
-            <DetailHero color={color} icon={icon}>
+            <DetailHero color={color} icon={icon} photo={photo && fotoUrl(photo.path)}>
                 {!!reporte?.multimedia.length &&
                     <span className="flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1.25 text-xs font-semibold text-white">
                         <LuImage className="size-3.5" aria-hidden />

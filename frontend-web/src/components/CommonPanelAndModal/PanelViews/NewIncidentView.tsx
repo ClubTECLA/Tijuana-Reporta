@@ -12,7 +12,8 @@ import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { useReportes } from "../../../hooks/useReportes";
 import { listarIncidentes } from "../../../services/incidentes.services";
-import { cambiarEstadoReporte, crearComentario, crearReporte } from "../../../services/reportes.services";
+import { cambiarEstadoReporte, crearComentario, crearReporte, subirFotoReporte } from "../../../services/reportes.services";
+import { prepararFoto, type PreparedPhoto } from "../../../services/fotos.services";
 import { buscarDireccion, direccionDe } from "../../../services/geocoding.services";
 import type { ApiIncidente } from "../../../types/api-types";
 
@@ -29,8 +30,8 @@ const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
 // "21. Incidente - NuevoIncidente" del Figma. Crea un reporte oficial (POST /reportes) con la categoría, la ubicación
-// del marcador y su dirección; luego guarda la descripción como primer comentario y lo marca como verificado.
-// Etiquetas, fotos y borrador esperan soporte del backend.
+// del marcador y su dirección; luego guarda la descripción como primer comentario, lo marca como verificado y sube la foto.
+// Etiquetas y borrador esperan soporte del backend.
 function NewIncidentForm() {
     const { map } = useMap();
     const { setPanelView } = useCommonPanel();
@@ -46,6 +47,8 @@ function NewIncidentForm() {
     });
     const [address, setAddress] = useState("");
     const [description, setDescription] = useState("");
+    const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
+    const [preparingPhoto, setPreparingPhoto] = useState(false);
     const [publishing, setPublishing] = useState(false);
 
     // El marcador es un elemento propio de MapLibre; su contenido se pinta con React mediante un portal.
@@ -154,6 +157,20 @@ function NewIncidentForm() {
         setAddress(text);
     };
 
+    const handlePhotoSelect = async (file: File) => {
+        setPreparingPhoto(true);
+        try {
+            setPhoto(await prepararFoto(file));
+        } catch (error) {
+            showMessage(
+                error instanceof Error ? error.message : "No se pudo usar esa foto.",
+                { color: "red", type: "float", title: "Foto" },
+            );
+        } finally {
+            setPreparingPhoto(false);
+        }
+    };
+
     const handlePublish = async () => {
         if (!categoryId) {
             showMessage("Elige qué está pasando antes de publicar.", { color: "red", type: "float", title: "Falta la categoría" });
@@ -177,18 +194,20 @@ function NewIncidentForm() {
 
             // shortcut: llamadas no atómicas tras crear el reporte; si alguna falla, el reporte ya existe y no se
             // reintenta la publicación para no duplicarlo. Juntar descripción y estado en crearReporte cuando el
-            // backend acepte "comentario" y "estado" al crear.
+            // backend acepte "comentario" y "estado" al crear (la foto siempre va aparte: es multipart).
             const ok = () => true, failed = () => false;
             const descriptionText = description.trim();
-            const [descriptionSaved, verified] = await Promise.all([
+            const [descriptionSaved, verified, photoSaved] = await Promise.all([
                 descriptionText ? crearComentario(created.id, descriptionText).then(ok, failed) : true,
                 // Los reportes oficiales siempre nacen verificados.
                 cambiarEstadoReporte(created.id, "Verificado").then(ok, failed),
+                photo ? subirFotoReporte(created.id, photo.blob).then(ok, failed) : true,
             ]);
 
             const pending = [
                 !descriptionSaved && "la descripción no se pudo guardar",
                 !verified && "no se pudo marcar como verificado",
+                !photoSaved && "la foto no se pudo subir",
             ].filter(Boolean);
             if (pending.length) {
                 showMessage(
@@ -265,7 +284,13 @@ function NewIncidentForm() {
                     </span>
                 </div>
 
-                <PhotoDropzone disabled />
+                <PhotoDropzone
+                    preview={photo?.preview}
+                    busy={preparingPhoto}
+                    disabled={publishing}
+                    onSelect={(file) => { void handlePhotoSelect(file) }}
+                    onRemove={() => setPhoto(null)}
+                />
 
                 <div className="flex flex-col gap-2">
                     <span className={sectionTitleStyle}>Etiquetas</span>
@@ -315,7 +340,7 @@ function NewIncidentForm() {
                     icon={<LuSend />}
                     title={publishing ? "Publicando…" : "Publicar incidente"}
                     onClick={handlePublish}
-                    disabled={publishing}
+                    disabled={publishing || preparingPhoto}
                     className="flex-1"
                 />
             </div>
