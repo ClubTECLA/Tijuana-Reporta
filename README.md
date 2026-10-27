@@ -305,6 +305,15 @@ go test ./... -v
 
 Las rutas del backend se registran **sin** el prefijo `/api` (por ejemplo `/v1/reportes`), porque nginx quita ese prefijo antes de reenviar la petición. El frontend sí debe usar el prefijo completo (`/api/v1/reportes`) para que nginx sepa a dónde enrutarlo.
 
+## Documentación de la API
+
+El backend sirve la documentación interactiva (Swagger UI) de todas las rutas en `/v1/docs`, generada a partir de `shared/openapi`:
+
+- Con Docker: [http://localhost/api/v1/docs](http://localhost/api/v1/docs)
+- Backend directo: `http://localhost:<puerto>/v1/docs`
+
+Para autenticarte en la página, haz `POST /auth/login`, copia el `access_token` y pégalo en **Authorize**. Para documentar o cambiar una ruta, edita su `description` en `shared/openapi/paths/` y corre `task generate` en `backend/`. La página necesita internet (carga Swagger UI desde un CDN).
+
 ## Variables de entorno
 
 Ver `.env.example` para la lista completa. Algunas notas:
