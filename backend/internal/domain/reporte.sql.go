@@ -273,6 +273,66 @@ func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.
 	return items, nil
 }
 
+const listReportesByUserId = `-- name: ListReportesByUserId :many
+SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
+       r.direccion, i.etiqueta AS incidente_etiqueta
+FROM users_reports ur
+JOIN reporte r ON r.id = ur.reporte_id
+JOIN puntos_origen p ON p.reporte_id = r.id
+JOIN incidentes i ON i.id = r.incidente_id
+WHERE ur.user_id = $1
+ORDER BY r.created_at DESC
+LIMIT $2::int
+`
+
+type ListReportesByUserIdParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Limite int       `json:"limite"`
+}
+
+type ListReportesByUserIdRow struct {
+	ID                uuid.UUID `json:"id"`
+	IncidenteID       int       `json:"incidente_id"`
+	EstadoActual      Estado    `json:"estado_actual"`
+	Avistamientos     int       `json:"avistamientos"`
+	EsOficial         bool      `json:"es_oficial"`
+	Latitude          float64   `json:"latitude"`
+	Longitude         float64   `json:"longitude"`
+	Direccion         *string   `json:"direccion"`
+	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
+}
+
+// Incluye los históricos: es el historial del usuario, no el mapa.
+func (q *Queries) ListReportesByUserId(ctx context.Context, arg ListReportesByUserIdParams) ([]ListReportesByUserIdRow, error) {
+	rows, err := q.db.Query(ctx, listReportesByUserId, arg.UserID, arg.Limite)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReportesByUserIdRow
+	for rows.Next() {
+		var i ListReportesByUserIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncidenteID,
+			&i.EstadoActual,
+			&i.Avistamientos,
+			&i.EsOficial,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Direccion,
+			&i.IncidenteEtiqueta,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReportesPorUbicacion = `-- name: ListReportesPorUbicacion :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
        p.latitude, p.longitude, r.direccion, i.etiqueta AS incidente_etiqueta,
