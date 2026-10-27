@@ -926,6 +926,15 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
+            /** @description Usuario no encontrado */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
         };
     };
     register: {
@@ -1148,6 +1157,15 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
+            /** @description Usuario no encontrado */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
         };
     };
     obtenerIncidente: {
@@ -1252,6 +1270,15 @@ export interface operations {
             };
             /** @description El incidente ya tiene un tag con ese nombre (sin importar mayúsculas) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Usuario no encontrado */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
