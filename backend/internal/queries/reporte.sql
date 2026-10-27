@@ -91,3 +91,6 @@ AND (sqlc.narg(estados)::text[] IS NULL OR r.estado_actual = ANY(sqlc.narg(estad
 AND (sqlc.narg(desde)::timestamptz IS NULL OR r.created_at >= sqlc.narg(desde)::timestamptz)
 ORDER BY distancia_m
 LIMIT sqlc.arg(limite)::int;
+
+-- name: GetEstadoReporteForUpdate :one
+SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE;

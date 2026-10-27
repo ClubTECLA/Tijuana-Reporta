@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
 // toTagsCatalogo convierte tags del dominio en los TagCatalogo del contrato.
@@ -94,7 +95,12 @@ func (s *Server) ObtenerIncidente(ctx context.Context, request ObtenerIncidenteR
 // Solo llega aquí un admin: lo garantiza middleware.RequireRole con los
 // scopes de la ruta.
 func (s *Server) CrearIncidente(ctx context.Context, request CrearIncidenteRequestObject) (CrearIncidenteResponseObject, error) {
-	d, err := s.services.Incidentes.Crear(ctx, toNuevoIncidente(request.Body))
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return CrearIncidente500JSONResponse{Message: "usuario no encontrado"}, nil
+	}
+
+	d, err := s.services.Incidentes.Crear(ctx, toNuevoIncidente(request.Body), userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrIncidenteInvalido) {
 			return CrearIncidente400JSONResponse{Message: err.Error()}, nil
@@ -111,7 +117,12 @@ func (s *Server) CrearIncidente(ctx context.Context, request CrearIncidenteReque
 // AgregarTags agrega tags al catálogo de un incidente existente. Solo admins,
 // igual que CrearIncidente.
 func (s *Server) AgregarTags(ctx context.Context, request AgregarTagsRequestObject) (AgregarTagsResponseObject, error) {
-	tags, err := s.services.Incidentes.AgregarTags(ctx, request.IncidenteId, toNuevosTags(*request.Body))
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return AgregarTags500JSONResponse{Message: "usuario no encontrado"}, nil
+	}
+
+	tags, err := s.services.Incidentes.AgregarTags(ctx, request.IncidenteId, userID, toNuevosTags(*request.Body))
 	if err != nil {
 		if errors.Is(err, domain.ErrIncidenteInvalido) {
 			return AgregarTags400JSONResponse{Message: err.Error()}, nil

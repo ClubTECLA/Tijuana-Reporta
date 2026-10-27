@@ -152,6 +152,17 @@ func (q *Queries) EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporte
 	return exists, err
 }
 
+const getEstadoReporteForUpdate = `-- name: GetEstadoReporteForUpdate :one
+SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error) {
+	row := q.db.QueryRow(ctx, getEstadoReporteForUpdate, id)
+	var estado_actual Estado
+	err := row.Scan(&estado_actual)
+	return estado_actual, err
+}
+
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
 SELECT latitude, longitude
 FROM puntos_origen WHERE reporte_id = $1
