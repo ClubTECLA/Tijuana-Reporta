@@ -2,6 +2,10 @@ openapi: 3.0.3
 info:
   title: Tijuana Reporta API
   version: 1.0.0
+  description: |
+    Las rutas con candado requieren autenticación: haz `POST /auth/login` y pega el `access_token` en **Authorize**.
+
+    Esta página se genera del contrato (`shared/openapi`): para que aparezca una ruta nueva, agrégala ahí y corre `task generate` en `backend/`.
 
 security:
   - bearerAuth: []

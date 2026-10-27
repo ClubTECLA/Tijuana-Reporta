@@ -14,6 +14,7 @@ export interface paths {
         /** @description Reportes activos para el mapa. Si se manda el área visible, filtra por ella. */
         get: operations["listarReportes"];
         put?: never;
+        /** @description Crea un reporte en la ubicación indicada. La foto se sube después con `subirMultimedia`. Solo los roles distintos de ciudadano pueden mandar `es_oficial: true` (403 si no). */
         post: operations["crearReporte"];
         delete?: never;
         options?: never;
@@ -62,6 +63,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Devuelve un reporte por su id. 404 si no existe. */
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
@@ -84,6 +86,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** @description Suma un avistamiento (alguien más vio el mismo problema) al reporte y devuelve el reporte actualizado. */
         patch: operations["agregarAvistamiento"];
         trace?: never;
     };
@@ -96,6 +99,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Agrega un comentario del usuario autenticado a un reporte. */
         post: operations["crearComentario"];
         delete?: never;
         options?: never;
@@ -146,6 +150,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Crea una cuenta con email y contraseña (8 a 72 bytes) y devuelve un token de acceso. 409 si el email ya está registrado. */
         post: operations["register"];
         delete?: never;
         options?: never;
@@ -162,6 +167,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Valida email y contraseña y devuelve un token de acceso. Usa ese token como `Authorization: Bearer <token>` en el resto de rutas. */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -176,6 +182,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Devuelve el usuario dueño del token, con el nombre de su rol. */
         get: operations["me"];
         put?: never;
         post?: never;
@@ -194,6 +201,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Cierra la sesión. El token no se guarda en el servidor, así que solo responde 204; el cliente debe descartarlo. */
         post: operations["logout"];
         delete?: never;
         options?: never;

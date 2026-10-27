@@ -39,6 +39,7 @@ crearReporte:
 
   post:
     operationId: crearReporte
+    description: "Crea un reporte en la ubicación indicada. La foto se sube después con `subirMultimedia`. Solo los roles distintos de ciudadano pueden mandar `es_oficial: true` (403 si no)."
     requestBody:
       required: true
       content:
@@ -75,6 +76,7 @@ crearReporte:
 obtenerReporte:
   get:
     operationId: obtenerReporte
+    description: "Devuelve un reporte por su id. 404 si no existe."
     parameters:
       - name: reporteId
         in: path
@@ -107,6 +109,7 @@ obtenerReporte:
 agregarAvistamiento:
   patch:
     operationId: agregarAvistamiento
+    description: "Suma un avistamiento (alguien más vio el mismo problema) al reporte y devuelve el reporte actualizado."
     parameters:
       - name: reporteId
         in: path
