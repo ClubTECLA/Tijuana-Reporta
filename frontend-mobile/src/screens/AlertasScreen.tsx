@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  AppState,
   View,
   Text,
   ScrollView,
@@ -9,6 +10,13 @@ import {
   StatusBar as RNStatusBar,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import * as Location from 'expo-location';
+import {
+  activarAlertasEnSegundoPlano,
+  actualizarZonasPeligro,
+  leerRadioAlertaKm,
+  RADIO_ALERTA_KM_DEFECTO,
+} from '../lib/alertasCercanas';
 import { Feather } from '@expo/vector-icons';
 import { CategoryToggleChip } from '../components/CategoryToggleChip';
 import { CATEGORIAS, CategoriaAlerta } from '../types/alertas';
@@ -26,7 +34,7 @@ interface AlertasScreenProps {
 }
 
 export const AlertasScreen = ({ onBack, onGuardar }: AlertasScreenProps) => {
-  const [radioKm, setRadioKm] = useState(1.5);
+  const [radioKm, setRadioKm] = useState(RADIO_ALERTA_KM_DEFECTO);
   const [seleccionadas, setSeleccionadas] = useState<CategoriaAlerta[]>([
     'inundacion',
     'deslave',
@@ -34,6 +42,34 @@ export const AlertasScreen = ({ onBack, onGuardar }: AlertasScreenProps) => {
     'arbol',
     'socavon',
   ]);
+
+  // Hasta leer el radio guardado no se puede mover ni guardar: así la lectura nunca pisa una elección.
+  const [radioCargado, setRadioCargado] = useState(false);
+  useEffect(() => {
+    leerRadioAlertaKm()
+      .then(setRadioKm)
+      .catch(() => {})
+      .finally(() => setRadioCargado(true));
+  }, []);
+
+  // Sin ubicación "todo el tiempo" no llega ninguna alerta: se muestra y se ofrece activarla.
+  const [enSegundoPlano, setEnSegundoPlano] = useState<boolean | null>(null);
+  useEffect(() => {
+    const revisar = (alVolver: boolean) =>
+      Location.getBackgroundPermissionsAsync()
+        .then((p) => {
+          setEnSegundoPlano(p.granted);
+          // Si el permiso se dio en los ajustes del sistema, las alertas se activan sin reabrir el mapa.
+          if (alVolver && p.granted) {
+            actualizarZonasPeligro().catch((err) => console.warn('[alertas] no se pudieron activar:', err));
+          }
+        })
+        .catch(() => setEnSegundoPlano(false));
+    revisar(false);
+    // Al volver de los ajustes del sistema se refleja lo que el usuario haya cambiado.
+    const sub = AppState.addEventListener('change', (estado) => estado === 'active' && revisar(true));
+    return () => sub.remove();
+  }, []);
 
   const toggleCategoria = (id: CategoriaAlerta) => {
     setSeleccionadas((prev) =>
@@ -66,6 +102,7 @@ export const AlertasScreen = ({ onBack, onGuardar }: AlertasScreenProps) => {
           step={0.1}
           value={radioKm}
           onValueChange={setRadioKm}
+          disabled={!radioCargado}
           minimumTrackTintColor={perfilColors.primary}
           maximumTrackTintColor={perfilColors.divider}
           thumbTintColor={perfilColors.primary}
@@ -98,10 +135,36 @@ export const AlertasScreen = ({ onBack, onGuardar }: AlertasScreenProps) => {
           </View>
           <Feather name="lock" size={16} color="#92400E" />
         </View>
+
+        {enSegundoPlano === false && (
+          <TouchableOpacity
+            style={styles.permisoCard}
+            onPress={() => void activarAlertasEnSegundoPlano().then(setEnSegundoPlano)}
+            accessibilityRole="button"
+            accessibilityLabel="Activar alertas en segundo plano"
+          >
+            <View style={styles.permisoIconBox}>
+              <Feather name="map-pin" size={18} color={perfilColors.primary} />
+            </View>
+            <View style={styles.avisoTexts}>
+              <Text style={styles.permisoTitulo}>Activa las alertas en segundo plano</Text>
+              <Text style={styles.permisoSubtitulo}>
+                Permite la ubicación "todo el tiempo" para avisarte aunque no estés usando la app.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={perfilColors.primary} />
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.guardarBtn} onPress={guardar} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.guardarBtn}
+          onPress={guardar}
+          disabled={!radioCargado}
+          accessibilityState={{ disabled: !radioCargado }}
+          activeOpacity={0.8}
+        >
           <Feather name="check" size={16} color="#FFFFFF" />
           <Text style={styles.guardarText}>  Guardar cambios</Text>
         </TouchableOpacity>
@@ -171,6 +234,27 @@ const styles = StyleSheet.create({
   avisoTexts: { flex: 1 },
   avisoTitulo: { fontSize: 14, fontWeight: '600', color: '#78350F' },
   avisoSubtitulo: { fontSize: 12, color: '#92400E', marginTop: 2 },
+  permisoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: perfilRadius.card,
+    borderWidth: 1,
+    borderColor: perfilColors.primary,
+    padding: 14,
+    marginTop: 12,
+  },
+  permisoIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: perfilRadius.icon,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  permisoTitulo: { fontSize: 14, fontWeight: '600', color: perfilColors.textPrimary },
+  permisoSubtitulo: { fontSize: 12, color: perfilColors.textSecondary, marginTop: 2 },
   footer: { padding: 16, paddingBottom: 24 },
   guardarBtn: {
     flexDirection: 'row',

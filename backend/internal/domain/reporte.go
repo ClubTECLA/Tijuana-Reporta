@@ -48,3 +48,11 @@ type NuevoReporte struct {
 	EsOficial   bool
 	Direccion   *string
 }
+
+// CambiarEstadoReporteTxParams es lo que necesita el cambio de estado de un
+// reporte: el reporte, su nuevo estado y quién lo cambia, para el historial.
+type CambiarEstadoReporteTxParams struct {
+	ID      uuid.UUID
+	Estado  Estado
+	ActorID uuid.UUID
+}

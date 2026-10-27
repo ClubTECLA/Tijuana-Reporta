@@ -35,6 +35,9 @@ type fakeReporteStore struct {
 
 	lastCercanosArg domain.ListReportesPorUbicacionParams
 
+	lastCambiarEstadoArg domain.CambiarEstadoReporteTxParams
+	cambiarEstadoCalled  bool
+
 	createErr error
 	listErr   error
 }
@@ -130,12 +133,14 @@ func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) 
 	return domain.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
 }
 
-func (f *fakeReporteStore) UpdateEstadoReporte(_ context.Context, arg domain.UpdateEstadoReporteParams) (domain.Reporte, error) {
+func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error) {
+	f.cambiarEstadoCalled = true
+	f.lastCambiarEstadoArg = arg
 	r, ok := f.byID[arg.ID]
 	if !ok {
 		return domain.Reporte{}, pgx.ErrNoRows
 	}
-	r.EstadoActual = arg.EstadoActual
+	r.EstadoActual = arg.Estado
 	f.byID[arg.ID] = r
 	return r, nil
 }
@@ -532,9 +537,20 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 				t.Fatalf("Crear() error = %v", err)
 			}
 
-			r, err := svc.CambiarEstado(context.Background(), tt.rol, creado.Reporte.ID, domain.EstadoVerificado)
+			actorID := uuid.New()
+			r, err := svc.CambiarEstado(context.Background(), tt.rol, actorID, creado.Reporte.ID, domain.EstadoVerificado)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("CambiarEstado() error = %v, want %v", err, tt.wantErr)
+			}
+			// Un rol sin permiso no debe llegar a la store (ni dejar historial).
+			if store.cambiarEstadoCalled != (tt.wantErr == nil) {
+				t.Fatalf("CambiarEstadoReporte llamado = %v, want %v", store.cambiarEstadoCalled, tt.wantErr == nil)
+			}
+			if tt.wantErr == nil {
+				want := domain.CambiarEstadoReporteTxParams{ID: creado.Reporte.ID, Estado: domain.EstadoVerificado, ActorID: actorID}
+				if store.lastCambiarEstadoArg != want {
+					t.Fatalf("CambiarEstadoReporte recibió %+v, want %+v", store.lastCambiarEstadoArg, want)
+				}
 			}
 			want := domain.EstadoVerificado
 			if tt.wantErr != nil {
@@ -545,5 +561,14 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 				t.Fatalf("estado = %q, want %q", r.Reporte.EstadoActual, want)
 			}
 		})
+	}
+}
+
+func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
+	svc := NewReporteService(newFakeReporteStore())
+
+	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), domain.EstadoVerificado)
+	if !errors.Is(err, domain.ErrReporteNotFound) {
+		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrReporteNotFound)
 	}
 }
