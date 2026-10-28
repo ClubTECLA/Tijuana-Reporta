@@ -85,7 +85,15 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
             return;
         }
         try{
-
+            if (categoryForEdit.nombre.length > 100) {
+                showMessage("El nombre debe tener máximo 100 caracteres", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+                return;
+            }
+            if (categoryForEdit.radio != null && (!Number.isFinite(categoryForEdit.radio) || categoryForEdit.radio < 0)) {
+                showMessage("El radio debe ser un número mayor o igual a 0", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+                return;
+            }
+            
             const tags = categoryForEdit.tags.map(({ nombre, peso }) => ({
                 nombre: nombre.trim(),
                 peso

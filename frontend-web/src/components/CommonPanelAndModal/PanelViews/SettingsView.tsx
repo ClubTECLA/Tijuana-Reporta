@@ -14,8 +14,10 @@ import CategoryForm from "../PanelAndModalComponents/view-components/specifics-c
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 import type { subsectionProps } from "../../../types/utils-types";
 import { listarIncidentes } from "../../../services/incidentes.services";
+import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 
 function CategoriesSection({debug} : subsectionProps) {
+    const { showMessage } = useSysMessage();
     const [categories, setCategories] = useState<ApiIncidente[]>([]);
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
@@ -29,7 +31,7 @@ function CategoriesSection({debug} : subsectionProps) {
                 setCategories(res);
             }catch(err){
                 console.error(err);
-                setCategories([]);
+                showMessage("Error al cargar las categorias",{'color': 'red', 'showTime': 3000, 'title': 'Error'});
             }
         }
         fetchCategories()
