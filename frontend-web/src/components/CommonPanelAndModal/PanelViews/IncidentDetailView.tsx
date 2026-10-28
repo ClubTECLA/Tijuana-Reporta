@@ -96,7 +96,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
     return (
         // Ancho fijo del Figma (440 px aprox.): con w-fit, un comentario largo ensancharía el panel.
-        <div className="flex h-full min-h-0 w-full flex-col gap-2 font-['Inter',sans-serif] sm:w-[max(25rem,calc(25vw-2rem))]">
+        <div className="flex h-full min-h-0 w-full flex-col gap-2 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <DetailHero color={color} icon={icon}>
                 {!!reporte?.multimedia.length &&
                     <span className="flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1.25 text-xs font-semibold text-white">
@@ -122,9 +122,9 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         {icon}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <h2 className="text-[22px] font-bold text-ink">{category ? categoryLabel(category.nombre) : "Incidente"}</h2>
+                        <h2 className="text-title font-bold text-ink">{category ? categoryLabel(category.nombre) : "Incidente"}</h2>
                         {base &&
-                            <span className="flex items-center gap-1 text-[13px] text-ink-muted">
+                            <span className="flex items-center gap-1 text-caption text-ink-muted">
                                 <LuMapPin className="size-3.5 shrink-0" aria-hidden />
                                 <span className="truncate">{address ?? `${base.latitude.toFixed(5)}, ${base.longitude.toFixed(5)}`}</span>
                             </span>
@@ -134,7 +134,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                 {base &&
                     <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge estado={base.estado_actual} />
-                        <span className="font-['JetBrains_Mono',monospace] text-xs font-medium text-ink-muted">{folio(base.id)}</span>
+                        <span className="font-mono text-xs font-medium text-ink-muted">{folio(base.id)}</span>
                     </div>
                 }
                 <div className="flex justify-between pt-1">
@@ -160,7 +160,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                 {reporte && tab === 0 && <>
                     <section className="flex flex-col gap-1 rounded-2xl bg-subtle px-4 py-3.5">
                         <h3 className="text-sm font-semibold text-ink">Confirmaciones de vecinos</h3>
-                        <p className="text-[13px] text-ink-secondary">
+                        <p className="text-caption text-ink-secondary">
                             {reporte.es_oficial
                                 ? "Aviso oficial: no necesita confirmaciones de vecinos."
                                 : confirmations
@@ -185,7 +185,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         ? <div className="flex flex-wrap gap-2">
                             {reporte.tags.map((tag) => <Badge key={tag.id}>{`${tag.nombre} · ${tag.count}`}</Badge>)}
                         </div>
-                        : <span className="text-[13px] text-ink-muted">Nadie ha agregado etiquetas todavía.</span>
+                        : <span className="text-caption text-ink-muted">Nadie ha agregado etiquetas todavía.</span>
                     }
                 </>}
 
@@ -216,7 +216,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         )}
                     </ol>
                     {/* shortcut: solo creación y estado actual; mostrar todos los cambios cuando el backend exponga el historial. */}
-                    <p className="flex gap-2 rounded-2xl bg-brand-subtle px-4 py-3 text-[13px] text-brand-text">
+                    <p className="flex gap-2 rounded-2xl bg-brand-subtle px-4 py-3 text-caption text-brand-text">
                         <LuInfo className="mt-0.5 size-4 shrink-0" aria-hidden />
                         El historial completo de cambios de estado llegará cuando el backend lo exponga.
                     </p>

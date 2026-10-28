@@ -5,31 +5,32 @@ import { IoIosArrowForward } from "react-icons/io";
 import Input from "./Input";
 import { validateChildren } from "./validateChildren";
 
+// Tono de cada fila: fondo y colores de icono, nombre, descripción e insignia.
 const colorWrapped = {
     'white' : {
         iconStyle: 'text-brand bg-brand-subtle',
-        wrappedStyle: 'bg-white hover:brightness-95',
+        wrappedStyle: 'bg-white',
         textStyle: 'text-ink',
         descriptionStyle: 'text-ink-muted',
         badgeStyle: "text-brand-text"
     },
     'blue' : {
         iconStyle: 'text-brand bg-brand-subtle',
-        wrappedStyle: 'bg-brand-subtle hover:brightness-95',
+        wrappedStyle: 'bg-brand-subtle',
         textStyle: 'text-brand-text',
         descriptionStyle: 'text-brand',
         badgeStyle: "text-brand-text"
     },
     'red' : {
         iconStyle: 'text-danger bg-danger-subtle',
-        wrappedStyle: 'bg-danger-subtle hover:brightness-95',
+        wrappedStyle: 'bg-danger-subtle',
         textStyle: 'text-danger',
         descriptionStyle: 'text-danger',
         badgeStyle: "text-danger"
     },
     'yellow' : {
         iconStyle: 'text-warning bg-warning-subtle',
-        wrappedStyle: 'bg-warning-subtle hover:brightness-95',
+        wrappedStyle: 'bg-warning-subtle',
         textStyle: 'text-warning',
         descriptionStyle: 'text-warning',
         badgeStyle: "text-warning"
@@ -48,81 +49,54 @@ interface listTileProps {
     icon?: ReactNode;
     tileName: string;
     tileDescription?: string;
+    /** "button": la fila entera es un botón con flecha; "checkbox": la fila lleva un interruptor a la derecha. */
     type?: 'button' | 'checkbox';
-    valueBagde?: string | number;
+    /** Valor junto a la flecha (p. ej. el número de sesiones activas). Solo en type="button". */
+    valueBadge?: string | number;
     onClick?: () => void;
     onChange?: () => void;
 }
 
-export function ListTile({debug, icon, tileName, type = 'button', tileDescription, valueBagde, onChange, onClick, color = 'white'} : listTileProps) {
-    return(
-        <>
-            {type === 'button' && 
-                <button
-                    onClick={onClick}
-                    className={`flex flex-row items-center w-full px-2 py-1 ${colorWrapped[color].wrappedStyle} rounded-2xl ${debug ? 'border-2 border-blue-400' : ''}`}
-                >
-                    {icon &&
-                        <div 
-                            className={`
-                                rounded-xl ${colorWrapped[color].iconStyle}
-                                flex items-center 
-                                justify-center w-10 h-10 text-xl
-                            `}
-                        >{icon}</div>
-                    }
-                    <div className="flex flex-col items-start justify-center pl-4 w-60">
-                        <span className={`font-semibold text-md ${colorWrapped[color].textStyle}`}>{tileName}</span>
-                        <span className={`${colorWrapped[color].descriptionStyle} text-sm`}>{tileDescription}</span>
-                    </div>
-                    {onClick && 
-                        <div className="
-                            flex flex-row items-center 
-                            justify-end text-2xl 
-                            text-ink-secondary gap-1 
-                            w-30 h-10"
-                        >
-                            <div className={`text-lg font-bold ${colorWrapped[color].badgeStyle}`}>{valueBagde}</div>
-                            <IoIosArrowForward/>
-                        </div>
-                    }
-                </button>
-            }
-            {type === 'checkbox' && 
-                <div
-                    className={`flex flex-row items-center w-full px-2 py-1 rounded-2xl ${debug ? 'border-2 border-blue-400' : ''}`}
-                >
-                    <div 
-                        className="
-                            rounded-xl bg-brand-subtle 
-                            text-brand flex items-center 
-                            justify-center w-10 h-10 text-xl
-                        "
-                    >{icon}</div>
-                    <div className="flex flex-col items-start justify-center pl-4 w-60">
-                        <span className="font-semibold text-md text-ink">{tileName}</span>
-                        <span className="text-ink-muted text-sm">{tileDescription}</span>
-                    </div>  
-                    {onChange &&
-                        <div className="
-                            flex flex-row items-center 
-                            justify-end text-2xl 
-                            text-ink-secondary 
-                            w-30 h-10"
-                        >
-                            <Input
-                                type='checkbox'
-                                format='col'
-                                debug={debug}
-                                onChange={onChange}
-                            />
-                        </div>
+// Fila de una lista de opciones (perfil, notificaciones, ayuda, menú de usuario). Las dos variantes comparten
+// la misma estructura (icono, nombre y descripción que ocupan el ancho libre, y el control a la derecha) y el tono.
+export function ListTile({debug, icon, tileName, type = 'button', tileDescription, valueBadge, onChange, onClick, color = 'white'} : listTileProps) {
+    const tone = colorWrapped[color];
+    const rowStyle = `flex w-full flex-row items-center gap-4 rounded-2xl px-2 py-1 text-left ${tone.wrappedStyle} ${debug ? 'border-2 border-blue-400' : ''}`;
 
-                    }
-                </div>
+    const content = <>
+        {icon &&
+            <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-xl ${tone.iconStyle}`}>{icon}</span>
+        }
+        <span className="flex min-w-0 flex-1 flex-col items-start justify-center">
+            <span className={`text-base font-semibold ${tone.textStyle}`}>{tileName}</span>
+            {tileDescription && <span className={`text-sm ${tone.descriptionStyle}`}>{tileDescription}</span>}
+        </span>
+    </>;
+
+    if (type === 'checkbox') {
+        return (
+            <div className={rowStyle}>
+                {content}
+                {onChange &&
+                    <span className="flex h-10 shrink-0 items-center">
+                        <Input type='checkbox' format='col' debug={debug} onChange={onChange} ariaLabel={tileName} />
+                    </span>
+                }
+            </div>
+        );
+    }
+
+    return (
+        <button type="button" onClick={onClick} className={`${rowStyle} transition hover:brightness-95`}>
+            {content}
+            {onClick &&
+                <span className="flex h-10 shrink-0 items-center gap-1 text-2xl text-ink-secondary">
+                    {valueBadge !== undefined && <span className={`text-lg font-bold ${tone.badgeStyle}`}>{valueBadge}</span>}
+                    <IoIosArrowForward aria-hidden />
+                </span>
             }
-        </>
-    )
+        </button>
+    );
 }
 
 interface optionsListProps extends subsectionProps {
@@ -130,27 +104,24 @@ interface optionsListProps extends subsectionProps {
     children: ReactNode
 }
 
-
+// Lista con título y borde que agrupa filas ListTile; el modo debug de la lista se propaga a cada fila.
 export function OptionList({ debug, format, title, children} : optionsListProps) {
     validateChildren(children, "OptionList", [ListTile], "ListTile");
 
     return(
-        <SubSection 
-            debug={debug} 
+        <SubSection
+            debug={debug}
             format={format}
             className="flex flex-col mt-2"
         >
-            {title && <span className="text-md text-ink-muted font-semibold">{title}</span>}
+            {title && <span className="text-base text-ink-muted font-semibold">{title}</span>}
             <div className="outline-1 outline-line mt-2 rounded-2xl p-2">
-                {Children.map(children, (child) => {
-                    if (isValidElement<listTileProps>(child) && child.type === ListTile) {
-                        return cloneElement(child, {
-                            debug: debug || child.props.debug
-                        })
-                    }
-
-                    return child;
-                })}
+                {/* validateChildren ya garantiza que todos los hijos son ListTile. */}
+                {Children.map(children, (child) =>
+                    isValidElement<listTileProps>(child)
+                        ? cloneElement(child, { debug: debug || child.props.debug })
+                        : child
+                )}
             </div>
         </SubSection>
     )

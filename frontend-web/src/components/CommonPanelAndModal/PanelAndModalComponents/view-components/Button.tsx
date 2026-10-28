@@ -14,7 +14,7 @@ const variants = {
 
 // sm y md son los tamaños de "Web/Botón"; lg es el botón en píldora de 48 px de las pantallas.
 const sizes = {
-    sm: "h-8 gap-2 rounded-lg px-3.5 text-[13px] font-semibold",
+    sm: "h-8 gap-2 rounded-lg px-3.5 text-caption font-semibold",
     md: "h-10 gap-2 rounded-lg px-4.5 text-sm font-semibold",
     lg: "h-12 gap-2.5 rounded-full px-5.5 text-base font-bold",
 } as const satisfies Record<string, string>;
@@ -69,7 +69,7 @@ export default function Button({
         ${title ? "" : "aspect-square px-0"}
         ${fullWidthFormats.includes(format) ? "w-full" : ""}
         shrink-0 flex-row items-center justify-center whitespace-nowrap
-        font-['Inter',sans-serif] transition duration-200
+        font-ui transition duration-200
         ${debug ? "border-2" : ""}
         ${className ?? ""}
     `;

@@ -32,7 +32,7 @@ export default function SearchBar() {
             className={`
                 flex h-14 w-full max-w-110 min-w-0 items-center gap-3
                 rounded-full border-2 bg-white
-                font-['Inter',sans-serif]
+                font-ui
                 shadow-float
                 transition-colors duration-200
                 ${isActive ? 'border-brand px-2' : 'border-transparent px-7.5'}

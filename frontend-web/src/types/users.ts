@@ -14,9 +14,18 @@ export function rolLabel(rol: string) {
     return rolLabels[rol] ?? rol;
 }
 
-/** Roles con más peso que el ciudadano: sus comentarios son oficiales y se fijan arriba. */
+/**
+ * Roles con más peso que el ciudadano: publican reportes oficiales, cambian estados y sus comentarios se fijan arriba.
+ * Es a propósito la misma regla que el backend (rol != domain.RolCiudadano en el servicio de reportes): un rol
+ * nuevo cuenta como oficial en los dos lados. Si el backend pasa a una lista explícita, cambiarla aquí igual.
+ */
 export function isOfficialRole(rol?: string | null) {
     return !!rol && rol !== "ciudadano";
+}
+
+/** Puede publicar incidentes desde el web: rol oficial, salvo el analista (vista de solo lectura en el Figma). */
+export function canPublishIncidents(rol?: string | null) {
+    return isOfficialRole(rol) && rol !== "analista";
 }
 
 /** "Bruce Cervantes" → "BC"; con una sola palabra, sus dos primeras letras. */

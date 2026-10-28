@@ -26,7 +26,7 @@ export default function CommentItem({ comentario, author }: CommentItemProps) {
         </time>
     );
     const avatar = (
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-semibold text-white" aria-hidden>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-2xs font-semibold text-white" aria-hidden>
             {initials(name)}
         </span>
     );

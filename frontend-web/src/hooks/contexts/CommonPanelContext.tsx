@@ -39,10 +39,8 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
 
     const [current, setCurrent] = useState<PanelEntry | null>(null);
     const [previousView, setPreviousView] = useState<PanelEntry[]>([]);
-    const [ open, setOpen ] = useState(true);
 
     const closePanel = () => {
-        setOpen(false);
         setCurrent(null);
         setPreviousView([]);
     }
@@ -60,8 +58,6 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
     };
 
     const setPanelView: CommonPanelContextType["setPanelView"] = (view, ...[options]) => {
-        setOpen(true);
-
         if (!view) {
             setCurrent(null);
             return;
@@ -85,7 +81,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
     return (
         <CommonPanelContext.Provider
             value={{
-                currentPanelView: open && current ? current.view : null,
+                currentPanelView: current ? current.view : null,
                 setPanelView,
                 backView,
                 hasPrevView: previousView.length !== 0,
@@ -93,7 +89,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
             }}
         >
             {children}
-            {current && open && (
+            {current && (
                 <section
                     className="
                         fixed left-2 right-2 top-20 bottom-2
