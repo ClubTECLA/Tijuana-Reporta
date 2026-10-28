@@ -10,7 +10,7 @@ import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-componen
 import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { useReportes } from "../../../hooks/useReportes";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import { createReportComment, getReport } from "../../../services/reports.services";
+import { crearComentario, obtenerReporte } from "../../../services/reportes.services";
 import { direccionDe } from "../../../services/geocoding.services";
 import type { ApiComentario, ApiReporte } from "../../../types/api-types";
 import { categoryIcon, categoryLabel } from "../../../types/categories";
@@ -46,7 +46,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     useEffect(() => {
         let cancelled = false;
 
-        getReport(reporteId)
+        obtenerReporte(reporteId)
             .then((data) => {
                 if (cancelled) return;
                 setReporte(data);
@@ -74,7 +74,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
         setSending(true);
         try {
-            const created = await createReportComment(reporteId, text);
+            const created = await crearComentario(reporteId, text);
             setReporte((prev) => prev && { ...prev, comentarios: [...prev.comentarios, created] });
             setComment("");
         } catch (err) {

@@ -4,18 +4,49 @@ import type {
     ApiCrearReporteRequest,
     ApiCrearReporteResponse,
     ApiListarReportesResponse,
+    ApiListarReportesQuery,
+    ApiListarReportesCercanosQuery,
+    ApiListarReportesCercanosResponse,
+    ApiAgregarAvistamientoResponse,
     ApiEstadoReporte,
     ApiObtenerReporteResponse,
     ApiReporte,
+    ApiSubirMultimediaResponse,
 } from '../types/api-types'
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
+
+function toQueryString(query: object): string {
+    const searchParams = new URLSearchParams()
+
+    for (const [key, value] of Object.entries(query)) {
+        if (value === undefined) continue
+
+        if (Array.isArray(value)) {
+            for (const item of value) searchParams.append(key, String(item))
+        } else {
+            searchParams.set(key, String(value))
+        }
+    }
+
+    return searchParams.size > 0 ? `?${searchParams.toString()}` : ''
+}
 
 // El id va codificado: un valor con "/" o "?" no debe poder cambiar la ruta de la petición.
 const reporteUrl = (reporteId: string) => `${apiUrl}/reportes/${encodeURIComponent(reporteId)}`
 
 // GET /reportes (todos los no históricos, en cualquier estado)
-export async function listarReportes(): Promise<ApiListarReportesResponse> {
-    return requestJson(`${apiUrl}/reportes`, {
+export async function listarReportes(query?: ApiListarReportesQuery): Promise<ApiListarReportesResponse> {
+    return requestJson(`${apiUrl}/reportes${toQueryString(query ?? {})}`, {
+        method: 'GET',
+        headers: { Authorization: getAuthorizationHeader() },
+    })
+}
+
+// GET /reportes/cercanos
+export async function listarReportesCercanos(
+    query: ApiListarReportesCercanosQuery,
+): Promise<ApiListarReportesCercanosResponse> {
+    return requestJson(`${apiUrl}/reportes/cercanos${toQueryString(query)}`, {
         method: 'GET',
         headers: { Authorization: getAuthorizationHeader() },
     })
@@ -61,5 +92,28 @@ export async function crearComentario(
         method: 'POST',
         headers: getJsonHeaders(),
         body: JSON.stringify({ comentario }),
+    })
+}
+
+// PATCH /reportes/{reporteId}/avistamientos
+export async function agregarAvistamiento(reporteId: string): Promise<ApiAgregarAvistamientoResponse> {
+    return requestJson(`${reporteUrl(reporteId)}/avistamientos`, {
+        method: 'PATCH',
+        headers: { Authorization: getAuthorizationHeader() },
+    })
+}
+
+// POST /reportes/{reporteId}/multimedia
+export async function subirMultimedia(
+    reporteId: string,
+    file: File,
+): Promise<ApiSubirMultimediaResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    return requestJson(`${reporteUrl(reporteId)}/multimedia`, {
+        method: 'POST',
+        headers: { Authorization: getAuthorizationHeader() },
+        body: formData,
     })
 }

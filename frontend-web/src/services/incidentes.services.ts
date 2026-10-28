@@ -1,6 +1,4 @@
-import {
-    apiUrl,
-} from '../types/global-variables'
+import { apiUrl } from '../types/global-variables'
 import type {
     ApiAgregarTagsRequest,
     ApiAgregarTagsResponse,
@@ -13,7 +11,7 @@ import type {
 import { getAuthorizationHeader, getJsonHeaders, requestJson } from './http'
 
 // GET /incidentes
-export async function listIncidents(
+export async function listarIncidentes(
     query?: ApiListarIncidentesQuery,
 ): Promise<ApiListarIncidentesResponse> {
     const searchParams = new URLSearchParams()
@@ -29,7 +27,7 @@ export async function listIncidents(
 }
 
 // POST /incidentes (administradores)
-export async function createIncident(
+export async function crearIncidente(
     body: ApiCrearIncidenteRequest,
 ): Promise<ApiCrearIncidenteResponse> {
     return requestJson(`${apiUrl}/incidentes`, {
@@ -40,21 +38,21 @@ export async function createIncident(
 }
 
 // GET /incidentes/{incidenteId}
-export async function getIncident(
-    incidentId: number,
+export async function obtenerIncidente(
+    incidenteId: number,
 ): Promise<ApiObtenerIncidenteResponse> {
-    return requestJson(`${apiUrl}/incidentes/${incidentId}`, {
+    return requestJson(`${apiUrl}/incidentes/${incidenteId}`, {
         method: 'GET',
         headers: { Authorization: getAuthorizationHeader() },
     })
 }
 
 // POST /incidentes/{incidenteId}/tags (administradores)
-export async function addIncidentTags(
-    incidentId: number,
+export async function agregarTags(
+    incidenteId: number,
     tags: ApiAgregarTagsRequest,
 ): Promise<ApiAgregarTagsResponse> {
-    return requestJson(`${apiUrl}/incidentes/${incidentId}/tags`, {
+    return requestJson(`${apiUrl}/incidentes/${incidenteId}/tags`, {
         method: 'POST',
         headers: getJsonHeaders(),
         body: JSON.stringify(tags),

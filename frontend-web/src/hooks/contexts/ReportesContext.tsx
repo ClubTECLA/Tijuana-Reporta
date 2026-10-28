@@ -1,7 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import { listIncidents } from "../../services/incidents.services";
-import { listReports } from "../../services/reports.services";
+import { listarIncidentes } from "../../services/incidentes.services";
+import { listarReportes } from "../../services/reportes.services";
 import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
 import { filterReportes, type ReportFilters, type ReportTab, type StatusFilter } from "../../types/reportFilters";
 
@@ -55,9 +55,9 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         const isCurrent = () => session === sessionRef.current && request === requestRef.current;
         try {
             const [reportList, categoryList] = await Promise.all([
-                listReports(),
+                listarReportes(),
                 // También las inactivas: puede haber reportes de una categoría que ya se desactivó.
-                listIncidents({ incluir_inactivos: true }),
+                listarIncidentes({ incluir_inactivos: true }),
             ]);
             if (!isCurrent()) return;
             setError(null);

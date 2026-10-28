@@ -8,7 +8,7 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import { CreateTagButton, Tag, TagPicker } from "../TagPicker";
 import Button from "../Button";
 import { useSysMessage, SysMessage } from "../../../../../hooks/contexts/SysMessageContext";
-import { createIncident } from "../../../../../services/incidents.services";
+import { crearIncidente } from "../../../../../services/incidentes.services";
 
 interface CategoryFormProp extends subsectionProps {
     category?: ApiIncidente | null
@@ -111,7 +111,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
 
             if(!isEdit){
                 setSubmitting(true);
-                createIncident(incidentRequest)
+                crearIncidente(incidentRequest)
                 .then(() => {
                     showMessage(
                         isEdit ? "Categoria editada exitosamente!!" :

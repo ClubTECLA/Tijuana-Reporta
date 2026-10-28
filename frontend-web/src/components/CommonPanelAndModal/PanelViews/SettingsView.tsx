@@ -13,7 +13,7 @@ import type { ApiIncidente } from "../../../types/api-types";
 import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 import type { subsectionProps } from "../../../types/utils-types";
-import { listIncidents } from "../../../services/incidents.services";
+import { listarIncidentes } from "../../../services/incidentes.services";
 
 function CategoriesSection({debug} : subsectionProps) {
     const [categories, setCategories] = useState<ApiIncidente[]>([]);
@@ -25,7 +25,7 @@ function CategoriesSection({debug} : subsectionProps) {
         if(!loadCategories) return;
         const fetchCategories = async () => {
             try{
-                const res = await listIncidents({ incluir_inactivos: true });
+                const res = await listarIncidentes({ incluir_inactivos: true });
                 setCategories(res);
             }catch(err){
                 console.error(err);
