@@ -19,6 +19,7 @@ interface CategoryFormProp extends subsectionProps {
 export default function CategoryForm({format, debug, category, onClose, onCreateCategory } : CategoryFormProp) {
     const {showMessage} = useSysMessage();
     const isEdit = !!category;
+    const [ submitting, setSubmitting ] = useState(false);
     const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
         id: 0,
         nombre: "",
@@ -61,7 +62,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
 
     const handleAddTag = (value: string, badge?: number) => {
         const nombre = value.trim();
-        if(categoryForEdit.tags.some(tag => tag.nombre === nombre)){
+        if(categoryForEdit.tags.some(tag => tag.nombre.toLowerCase() === nombre.toLowerCase())){
             showMessage("Ya existe una etiqueta con ese nombre", {'color': 'red', 'showTime': 3000, 'type': 'float'});
             return;
         }
@@ -84,28 +85,54 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
             return;
         }
         try{
+
+            const tags = categoryForEdit.tags.map(({ nombre, peso }) => ({
+                nombre: nombre.trim(),
+                peso
+            }));
+            const tagNames = tags.map(({ nombre }) => nombre.toLowerCase());
+            if (
+                tags.some(({ nombre }) => nombre === "") ||
+                new Set(tagNames).size !== tagNames.length
+            ) {
+                showMessage("Las etiquetas deben tener nombres únicos y no vacíos", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+                return;
+            }
+
             const incidentRequest: ApiCrearIncidenteRequest = {
                 nombre: categoryForEdit.nombre,
                 etiqueta: categoryForEdit.etiqueta.length === 0 ? undefined : (categoryForEdit.etiqueta[0].toUpperCase() + categoryForEdit.etiqueta.slice(1).toLowerCase()),
                 tiempo_limite: categoryForEdit.tiempo_limite ?? undefined,
                 radio: categoryForEdit.radio ?? undefined,
-                esta_activo: categoryForEdit.esta_activo,
+                esta_activo: isEdit ? categoryForEdit.esta_activo : true,
                 color: categoryForEdit.color,
-                tags: categoryForEdit.tags.map(({ nombre, peso }) => ({ nombre, peso }))
+                tags
             };
 
             if(!isEdit){
+                setSubmitting(true);
                 createIncident(incidentRequest)
-                .finally(() => {
+                .then(() => {
+                    showMessage(
+                        isEdit ? "Categoria editada exitosamente!!" :
+                        "Categoria de incidente creada exitosamente!!",
+                        {'color': 'green', 'showTime': 3000, 'type': 'float'});
                     onCreateCategory?.();
                     onClose?.();
-                    
+                })
+                .catch((err) => {
+                    console.log('Error al crear incidente: ', err);
+                    showMessage(
+                        isEdit ? 
+                        "Error al editar la categoria" : 
+                        "Error al crear categoria", 
+                        {'color': 'red', 'showTime': 3000, 'type': 'inline'}
+                    );
+                })
+                .finally(() => {
+                    setSubmitting(false);
                 });
                 
-                showMessage(
-                    isEdit ? "Categoria editada exitosamente!!" :
-                    "Categoria de incidente creada exitosamente!!",
-                    {'color': 'green', 'showTime': 3000, 'type': 'float'});
             }else{
 
             }
@@ -118,6 +145,13 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                 {'color': 'red', 'showTime': 3000, 'type': 'inline'}
             );
         }
+    }
+
+    const handleRemoveTag = (tagId: number) => {
+        setCategoryForEdit((previousCategory) => ({
+            ...previousCategory,
+            tags: previousCategory.tags.filter((tag) => tag.id !== tagId)
+        }));
     }
 
     return (
@@ -238,6 +272,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                                 ))
                             }));
                         }}
+                        onRemove={() => handleRemoveTag(tag.id)}
                     />
                 )}
                 <CreateTagButton
@@ -266,6 +301,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                     variant="primary"
                     icon={isEdit ? null : <FiPlus/>}
                     title={isEdit ? "Aceptar" : "Crear Categoria"}
+                    disabled={submitting}
                     onClick={handleSubmitForm}
                 />
             </SubSection>

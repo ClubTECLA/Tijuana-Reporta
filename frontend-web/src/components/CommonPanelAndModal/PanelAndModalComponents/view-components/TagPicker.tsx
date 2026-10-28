@@ -2,6 +2,7 @@ import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useSt
 import type { HexColor, subsectionProps } from "../../../../types/utils-types";
 import SubSection from "../primitive-components/SubSection";
 import { FiPlus } from "react-icons/fi";
+import { IoMdClose } from "react-icons/io";
 
 interface CreateTagButton extends Omit<subsectionProps, 'format'>{
     format?: subsectionProps['format'],
@@ -37,9 +38,27 @@ interface TagProps extends Omit<subsectionProps, 'format'>{
     onFocusBadge?: () => void;
     onBlurValue?: () => void;
     onBlurBadge?: () => void;
+    onRemove?: () => void;
 }
 
-export function Tag({debug, value, badge = 0, color = '#FFF', editValue = false, editBadge = false, autoFocus = false, onChangeValue, onChangeBadge, onFocusValue, onFocusBadge, onBlurValue, onBlurBadge} : TagProps){
+export function Tag(
+    {
+        debug, 
+        value, 
+        badge = 0, 
+        color = '#FFF', 
+        editValue = false, 
+        editBadge = false, 
+        autoFocus = false, 
+        onChangeValue, 
+        onChangeBadge, 
+        onFocusValue, 
+        onFocusBadge, 
+        onBlurValue, 
+        onBlurBadge, 
+        onRemove
+    } : TagProps
+){
     const [ stateEditValue, setStateEditValue ] = useState(editValue);
     const [ stateEditBadge, setStateEditBadge ] = useState(editBadge);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -95,18 +114,38 @@ export function Tag({debug, value, badge = 0, color = '#FFF', editValue = false,
                                 e.currentTarget.blur();
                             }
                         }}
-                        className="text-md text-ink w-full rounded-lg pl-1"
+                        className="text-md text-ink w-fit max-w-26 rounded-lg pl-1"
                     />
                 ) : (
-                    <span className={`text-md ${value ? "text-ink" : "text-gray-500"} min-w-1/2`}
-                        onClick={() => setStateEditValue(true)}
-                    >{value || "sin valor"}</span>
+                    <span
+                        className={`text-md ${value ? "text-ink" : "text-gray-500"} min-w-1/2`}
+                        onDoubleClick={() => setStateEditValue(true)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setStateEditValue(true);
+                            }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                    >
+                        {value || "sin valor"}
+                    </span>
                 )}
                 {badge !== undefined && badge !== null && badge !== "" &&
                     <>
                     {!stateEditBadge ?
                         <span
+                            role="button"
+                            tabIndex={0}
                             className="text-md ml-2 text-ink"
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setBadgeValue(String(badge));
+                                    setStateEditBadge(true);
+                                }
+                            }}
                             onDoubleClick={() => {
                                 setBadgeValue(String(badge));
                                 setStateEditBadge(true);
@@ -154,6 +193,20 @@ export function Tag({debug, value, badge = 0, color = '#FFF', editValue = false,
                     </>
                 }
             </SubSection>
+            {(stateEditValue || stateEditBadge) && (
+                <SubSection
+                    as='button'
+                    type="button"
+                    className='h-full flex items-center justify-center'
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove?.()
+                    }}
+                >
+                    <IoMdClose className="p-1/2 bg-red-500 text-white text-xl rounded-2xl"/>
+                </SubSection>
+            )}
         </SubSection>
     )
 }
@@ -268,6 +321,7 @@ export function TagPicker({ format, debug, title, children, onCreateTag }:TagPic
                         value={extraTag.value}
                         badge={extraTag.badge}
                         autoFocus={extraTag.autoFocus}
+                        editValue={extraTag.edit}
                         editBadge
                         onChangeValue={(event) => handleTagChange(extraTag.id, { value: event.target.value })}
                         onChangeBadge={(event) => {
@@ -281,6 +335,7 @@ export function TagPicker({ format, debug, title, children, onCreateTag }:TagPic
                         onBlurValue={() => handleTagChange(extraTag.id, { valueBlurred: true })}
                         onBlurBadge={() => handleTagChange(extraTag.id, { badgeBlurred: true })}
                         color="#FFF"
+                        onRemove={() => setExtraTag(null)}
                     />
                 )}
             </div>
