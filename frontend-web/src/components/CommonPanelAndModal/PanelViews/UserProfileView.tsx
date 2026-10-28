@@ -19,7 +19,7 @@ type FormState = {
 };
 
 export default function UserProfileView() {
-    const { setPanelView } = useCommonPanel();
+    const { openPanel } = useCommonPanel();
     const { user, isAuthenticated } = useAuth();
     const [form, setForm] = useState<FormState>({
         username: "",
@@ -116,13 +116,13 @@ export default function UserProfileView() {
                 <ListTile
                     tileName="Notificaciones"
                     tileDescription="Que te avisamos y por donde"
-                    onClick={() => setPanelView('Notificaciones')}
+                    onClick={() => openPanel('Notificaciones')}
                     icon={<IoMdNotificationsOutline />}
                 />
                 <ListTile
                     tileName="Ayudas y guias"
                     tileDescription="Respuestas rapidas para el equipo"
-                    onClick={() => setPanelView('Ayudas y guias')}
+                    onClick={() => openPanel('Ayudas y guias')}
                     icon={<FiHelpCircle />}
                 />
             </OptionList>

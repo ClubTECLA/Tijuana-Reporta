@@ -31,7 +31,7 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
     )
 }
 export default function NavBar() {
-    const { currentPanelView, setPanelView } = useCommonPanel();
+    const { currentPanelView, openPanel } = useCommonPanel();
 
     const router = useRouter();
     const currentPath = router.pathname;
@@ -82,7 +82,7 @@ export default function NavBar() {
         >
                 {navItems.map((item, idx) => {
                 const panelView = item.panelView
-                const onClick = panelView ? () => setPanelView(panelView) : item.onClick
+                const onClick = panelView ? () => openPanel(panelView) : item.onClick
                 // Las secciones que abren un panel se marcan mientras su panel está abierto; las demás, por la ruta.
                 const isActive = panelView
                     ? currentPanelView === panelView || (!!currentPanelView && !!item.activeOnPanelViews?.includes(currentPanelView))

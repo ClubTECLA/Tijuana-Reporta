@@ -6,7 +6,7 @@ import UserProfileWidget from "./UserProfileWidget";
 import useModals from '../hooks/useModals';
 
 export default function NavigationWrapper() {
-    const { setModalView, currentModal} = useModals()
+    const { openModal, closeModal, currentModal} = useModals()
     const { pathname } = useRouter();
 
     if(pathname === '/auth'){
@@ -25,15 +25,13 @@ export default function NavigationWrapper() {
                 </div>
                 <div className="col-start-2 row-start-1 flex items-center justify-end gap-1 sm:flex-1/6 sm:gap-2">
                     <BellButton 
-                        onClick={() => setModalView(
-                            currentModal === 'Menu de Notificaciones'
-                                ? null
-                                : 'Menu de Notificaciones'
-                        )}
+                        onClick={() => currentModal === 'Menu de Notificaciones'
+                            ? closeModal()
+                            : openModal('Menu de Notificaciones')}
                     />
                     <UserProfileWidget 
                         className="" 
-                        onClick={() => setModalView('Menu de Usuario')}
+                        onClick={() => openModal('Menu de Usuario')}
                     />    
                 </div>
                 <div className="col-span-2 row-start-2 w-full sm:hidden">

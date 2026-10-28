@@ -42,17 +42,17 @@ const stopMapEvent = (event: Event) => event.stopPropagation();
 export default function IncidentsLayer() {
     const { map } = useMap();
     const { filteredReportes, categories, createdId } = useReportes();
-    const { setPanelView } = useCommonPanel();
+    const { openPanel } = useCommonPanel();
     const [items, setItems] = useState<MarkerItem[]>([]);
 
     const markersRef = useRef(new Map<string, { marker: Marker; element: HTMLButtonElement }>());
     const dataRef = useRef<FeatureCollection<Point>>(toFeatureCollection([]));
     const flownToRef = useRef<string | null>(null);
-    // Los listeners de los marcadores se crean una vez; la ref les da siempre el setPanelView actual
-    // (con uno viejo, el historial de paneles quedaría desfasado).
-    const openDetailRef = useRef((reporteId: string) => setPanelView("Detalle Incidente", { props: { reporteId } }));
+    // Los listeners de los marcadores se crean una vez; la ref les da siempre el openPanel actual
+    // para que los clics registren la navegación usando el estado más reciente del router.
+    const openDetailRef = useRef((reporteId: string) => openPanel("Detalle Incidente", { reporteId }));
     useEffect(() => {
-        openDetailRef.current = (reporteId: string) => setPanelView("Detalle Incidente", { props: { reporteId } });
+        openDetailRef.current = (reporteId: string) => openPanel("Detalle Incidente", { reporteId });
     });
 
     const reportesById = useMemo(() => new Map(filteredReportes.map((reporte) => [reporte.id, reporte])), [filteredReportes]);
