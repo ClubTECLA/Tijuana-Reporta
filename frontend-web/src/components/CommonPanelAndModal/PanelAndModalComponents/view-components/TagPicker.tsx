@@ -193,18 +193,19 @@ export function Tag(
                     </>
                 }
             </SubSection>
-            {(stateEditValue || stateEditBadge) && (
+            {onRemove && (
                 <SubSection
                     as='button'
                     type="button"
-                    className='h-full flex items-center justify-center'
+                    ariaLabel="Eliminar etiqueta"
+                    className='h-full flex items-center justify-center hover:scale-110'
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={(e) => {
                         e.stopPropagation();
-                        onRemove?.()
+                        onRemove();
                     }}
                 >
-                    <IoMdClose className="p-1/2 bg-red-500 text-white text-xl rounded-2xl"/>
+                    <IoMdClose className="p-1/2 text-gray-700 text-xl rounded-2xl"/>
                 </SubSection>
             )}
         </SubSection>

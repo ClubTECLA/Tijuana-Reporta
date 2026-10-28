@@ -138,6 +138,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
             }
         }catch(err){
             console.log('Error al crear incidente: ', err);
+            setSubmitting(false);
             showMessage(
                 isEdit ? 
                 "Error al editar la categoria" : 
