@@ -23,6 +23,13 @@ const DESCRIPTION_MAX_LENGTH = 500;
 
 type Position = { latitude: number; longitude: number };
 
+// Cancela la búsqueda de dirección anterior y devuelve la señal de la nueva.
+function restartLookup(ref: { current: AbortController | null }) {
+    ref.current?.abort();
+    ref.current = new AbortController();
+    return ref.current.signal;
+}
+
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
@@ -49,9 +56,10 @@ function NewIncidentForm() {
     // El marcador es un elemento propio de MapLibre; su contenido se pinta con React mediante un portal.
     const [markerElement] = useState(() => document.createElement("div"));
     const markerRef = useRef<Marker | null>(null);
-    // Una sola secuencia para toda búsqueda de dirección (inicial, al mover el marcador, al buscar) y para lo que
-    // escribe el usuario: cada una invalida las anteriores, así una respuesta tardía no pisa la ubicación ni el texto.
-    const lookupRef = useRef(0);
+    // Una sola búsqueda de dirección viva (inicial, al mover el marcador, al buscar): cada una, lo que escribe el
+    // usuario y cerrar el panel cancelan la anterior. Así una respuesta tardía no pisa la ubicación ni el texto, y lo
+    // cancelado sale de la cola de Nominatim en vez de retrasar la búsqueda actual.
+    const lookupRef = useRef<AbortController | null>(null);
 
     const selectedCategory = categories?.find((c) => c.id === categoryId);
     const visibleCategories = showAllCategories ? categories : categories?.slice(0, VISIBLE_CATEGORIES);
@@ -79,14 +87,11 @@ function NewIncidentForm() {
     useEffect(() => {
         if (!map) return;
 
-        // active corta las búsquedas de este efecto al cerrar el panel; lookupRef, las que quedaron viejas.
-        let active = true;
         const lookupAddress = (latitude: number, longitude: number) => {
-            const lookup = ++lookupRef.current;
-            const isCurrent = () => active && lookup === lookupRef.current;
-            direccionDe(latitude, longitude)
-                .then((found) => { if (isCurrent()) setAddress(found ?? "") })
-                .catch(() => { if (isCurrent()) setAddress("") });
+            const signal = restartLookup(lookupRef);
+            direccionDe(latitude, longitude, signal)
+                .then((found) => { if (!signal.aborted) setAddress(found ?? "") })
+                .catch(() => { if (!signal.aborted) setAddress("") });
         };
         const placeAt = (latitude: number, longitude: number) => {
             setPosition({ latitude, longitude });
@@ -118,19 +123,21 @@ function NewIncidentForm() {
             map.getCanvas().style.cursor = "";
             marker.remove();
             markerRef.current = null;
-            active = false;
+            // Se quiere la búsqueda viva al cerrar (puede ser de handleSearchAddress), no la de cuando montó el efecto.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            lookupRef.current?.abort();
         };
     }, [map, markerElement]);
 
     const handleSearchAddress = async (query: string) => {
         if (!query.trim()) return;
 
-        const lookup = ++lookupRef.current;
-        // Vigente si nadie movió el marcador ni volvió a escribir, y el formulario sigue abierto
-        // (al cerrarlo, la limpieza del efecto deja markerRef en null): así no mueve el mapa ni avisa tarde.
-        const isCurrent = () => lookup === lookupRef.current && markerRef.current !== null;
+        // Cancelada si alguien movió el marcador, volvió a escribir o cerró el formulario: así no mueve el mapa ni avisa tarde.
+        // Sin marcador (mapa aún sin cargar) tampoco se aplica: la posición publicada debe ser la del marcador.
+        const signal = restartLookup(lookupRef);
+        const isCurrent = () => !signal.aborted && markerRef.current !== null;
         try {
-            const found = await buscarDireccion(query);
+            const found = await buscarDireccion(query, signal);
             if (!isCurrent()) return;
             if (!found) {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
@@ -146,9 +153,9 @@ function NewIncidentForm() {
         }
     };
 
-    // Escribir en el buscador invalida las búsquedas pendientes: lo escrito no se sustituye por una respuesta vieja.
+    // Escribir en el buscador cancela la búsqueda pendiente: lo escrito no se sustituye por una respuesta vieja.
     const handleAddressChange = (text: string) => {
-        lookupRef.current++;
+        lookupRef.current?.abort();
         setAddress(text);
     };
 
@@ -210,7 +217,7 @@ function NewIncidentForm() {
         // común es w-fit: con un mínimo, una fila larga de etiquetas lo ensancharía antes de que flex-wrap las baje.
         // El scroll se extiende sobre el relleno para quedar pegado al borde, y el contenido llena el alto del panel:
         // los botones quedan abajo del todo, como en el Figma.
-        <div className="flex min-h-0 w-full flex-1 flex-col font-['Inter',sans-serif] sm:w-[max(25rem,calc(25vw-2rem))]">
+        <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
 
@@ -232,7 +239,7 @@ function NewIncidentForm() {
                     <button
                         type="button"
                         onClick={() => setShowAllCategories((prev) => !prev)}
-                        className="flex items-center gap-1.5 self-start text-[13px] font-semibold text-brand-text hover:underline"
+                        className="flex items-center gap-1.5 self-start text-caption font-semibold text-brand-text hover:underline"
                     >
                         <LuPlus className={`size-4 transition-transform ${showAllCategories ? 'rotate-45' : ''}`} />
                         {showAllCategories ? "Ver menos categorías" : `Ver las ${categories.length} categorías activas`}
@@ -320,7 +327,7 @@ function NewIncidentForm() {
                     >
                         <LuMapPin className="size-6" />
                     </span>
-                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-['Inter',sans-serif] text-xs font-semibold text-white">
+                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white">
                         <LuMapPin className="size-3.5" />
                         Arrastra el marcador o haz clic en el mapa
                     </span>

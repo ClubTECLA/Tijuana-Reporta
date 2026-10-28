@@ -20,7 +20,7 @@ export default function CategoryChip ({ label, count, isSelected = false, onPres
     >
       <span>{label}</span>
       {count !== undefined && (
-        <span className={`rounded-full px-1.75 py-px font-mono text-[11px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-canvas text-ink-muted'}`}>{count}</span>
+        <span className={`rounded-full px-1.75 py-px font-mono text-2xs font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-canvas text-ink-muted'}`}>{count}</span>
       )}
     </button>
   )

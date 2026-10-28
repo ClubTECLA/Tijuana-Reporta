@@ -17,7 +17,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                 flex-row items-center gap-2.5
                 rounded-full border border-white bg-white
                 py-1.5 pl-1.5 ${open ? 'pr-4.5' : 'pr-1.5'}
-                font-['Inter',sans-serif]
+                font-ui
                 shadow-raised
                 transition-[padding] duration-700 ease-out
                 ${className ?? ''}
@@ -46,10 +46,10 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                 }`}
             >
                 {!isAuthenticated ?
-                    <span className="text-[13px] font-semibold text-ink">Iniciar sesión</span>
+                    <span className="text-caption font-semibold text-ink">Iniciar sesión</span>
                 :
                     <>
-                    <span className="max-w-48 truncate text-[13px] font-semibold text-ink">{user?.username || "Usuario"}</span>
+                    <span className="max-w-48 truncate text-caption font-semibold text-ink">{user?.username || "Usuario"}</span>
                     <span className="max-w-48 truncate text-xs text-ink-muted">
                         {user?.rol_name ? rolLabel(user.rol_name) : "Invitado"}
                     </span>

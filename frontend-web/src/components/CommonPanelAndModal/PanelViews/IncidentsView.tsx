@@ -9,6 +9,7 @@ import { useAuth } from "../../../hooks/contexts/AuthContext";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useReportes } from "../../../hooks/useReportes";
 import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } from "../../../types/reportFilters";
+import { canPublishIncidents } from "../../../types/users";
 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
 const PAGE_SIZE = 7;
@@ -41,8 +42,8 @@ export default function IncidentsView() {
         { key: "todos", label: "Todos" },
     ];
 
-    // El analista tiene la vista de solo lectura en el Figma.
-    const newButton = user?.rol_name !== "analista" &&
+    // Mismo criterio que el dock del mapa: sin botón para el analista (solo lectura) ni para el ciudadano.
+    const newButton = canPublishIncidents(user?.rol_name) &&
         <Button variant="report" size="lg" icon={<LuPlus />} title="Nuevo" onClick={() => setPanelView("Nuevo Incidente")} />;
 
     return (
@@ -54,7 +55,7 @@ export default function IncidentsView() {
             className="min-h-0"
         >
             {/* Mismo ancho que "Nuevo incidente": ocupa el ancho mínimo del panel común (25vw menos su relleno). */}
-            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-['Inter',sans-serif] sm:min-w-[max(25rem,calc(25vw-2rem))]">
+            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:min-w-[max(25rem,calc(25vw-2rem))]">
                 {/* La pestaña vive en ReportesContext (también filtra el mapa), así que las pestañas van controladas. */}
                 <SegmentedTabs
                     format="row"

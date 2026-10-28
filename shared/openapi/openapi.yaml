@@ -15,6 +15,8 @@ paths:
     $ref: './paths/reportes.yaml#/crearReporte'
   /reportes/cercanos:
     $ref: './paths/reportes.yaml#/listarReportesCercanos'
+  /reportes/me:
+    $ref: './paths/reportes.yaml#/listarMisReportes'
   /reportes/{reporteId}:
     $ref: './paths/reportes.yaml#/obtenerReporte'
   /reportes/{reporteId}/avistamientos:

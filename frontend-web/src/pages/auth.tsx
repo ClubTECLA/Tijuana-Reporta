@@ -37,7 +37,7 @@ const formsStyle = `
     shadow-float
 `
 const titleStyle = `text-2xl font-bold text-ink sm:text-[28px]`
-const subtitleStyle = `text-[15px] leading-5.5 text-ink-secondary`
+const subtitleStyle = `text-body leading-5.5 text-ink-secondary`
 
 interface recoveryProps {
     onSubmit:  () => void 
@@ -83,7 +83,7 @@ function Recovery_email({onSubmit}: recoveryProps) {
             </button>
             <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3 mt-4">
                 <FaRegQuestionCircle className="size-4.5 shrink-0 text-ink-secondary" />
-                <span className="text-[13px] text-ink-secondary">¿No tienes acceso a tu correo? Pide a un administrador que actualice tu cuenta.</span>
+                <span className="text-caption text-ink-secondary">¿No tienes acceso a tu correo? Pide a un administrador que actualice tu cuenta.</span>
             </div>        
         </form>
     )
@@ -491,7 +491,7 @@ function SignInForm() {
             </button>
             <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3">
                 <LuShield className="size-4.5 shrink-0 text-ink-secondary" />
-                <span className="text-[13px] text-ink-secondary">¿Eres ciudadano? Descarga la app Tijuana Reporta para reportar incidentes.</span>
+                <span className="text-caption text-ink-secondary">¿Eres ciudadano? Descarga la app Tijuana Reporta para reportar incidentes.</span>
             </div>
         </form>
     )
@@ -517,7 +517,7 @@ export default function AuthPage() {
     }, []);
 
     return(
-        <div className="relative min-h-screen w-full font-['Inter',sans-serif]">
+        <div className="relative min-h-screen w-full font-ui">
             {/* Captura del fondo del Figma */}
             <img src="/auth/fondo.webp" alt="" aria-hidden="true" className="pointer-events-none fixed inset-0 size-full object-cover object-left lg:object-center" />
 
@@ -541,8 +541,8 @@ export default function AuthPage() {
                             </div>
                             <h1 className="text-[32px] font-bold text-white lg:text-[40px]">ClimAlert</h1>
                         </div>
-                        <h2 className="text-[22px] font-semibold leading-7.5 text-white lg:text-[30px] lg:leading-9.5">Panel de operación para Protección Civil y personal autorizado</h2>
-                        <h2 className="text-[15px] leading-6 text-blue-100 lg:text-[17px] lg:leading-6.5">Revisa reportes ciudadanos, verifica incidentes y avisa a la comunidad en tiempo real durante la temporada de El Niño.</h2>
+                        <h2 className="text-title font-semibold leading-7.5 text-white lg:text-[30px] lg:leading-9.5">Panel de operación para Protección Civil y personal autorizado</h2>
+                        <h2 className="text-body leading-6 text-blue-100 lg:text-[17px] lg:leading-6.5">Revisa reportes ciudadanos, verifica incidentes y avisa a la comunidad en tiempo real durante la temporada de El Niño.</h2>
                     </div>
 
                     <div className="flex justify-center [grid-area:card] lg:items-center lg:justify-end">
@@ -551,17 +551,17 @@ export default function AuthPage() {
 
                     <div className="flex flex-row gap-3 whitespace-nowrap [grid-area:stats] lg:self-start">
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-[22px] font-bold text-white'>{23}</span>
-                            <span className="text-[13px] text-blue-100">Incidentes activos</span>
+                            <span className='text-title font-bold text-white'>{23}</span>
+                            <span className="text-caption text-blue-100">Incidentes activos</span>
                         </div>
                         <div className={trendLineChartDivStyle}>
-                            <span className='text-[22px] font-bold text-white'>{1240}</span>
-                            <span className="text-[13px] text-blue-100">Personas notificadas hoy</span>
+                            <span className='text-title font-bold text-white'>{1240}</span>
+                            <span className="text-caption text-blue-100">Personas notificadas hoy</span>
                         </div>
                     </div>
                 </div>
 
-                <span className="mx-auto mt-8 w-full max-w-130 text-[13px] text-line-soft lg:absolute lg:bottom-6 lg:left-[7.29%] lg:mt-0 lg:w-auto lg:max-w-none">
+                <span className="mx-auto mt-8 w-full max-w-130 text-caption text-line-soft lg:absolute lg:bottom-6 lg:left-[7.29%] lg:mt-0 lg:w-auto lg:max-w-none">
                     Uso exclusivo de personal autorizado · Actividad registrada en bitácora
                 </span>
             </div>

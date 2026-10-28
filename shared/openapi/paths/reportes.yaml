@@ -244,6 +244,34 @@ listarReportesCercanos:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+listarMisReportes:
+  get:
+    operationId: listarMisReportes
+    description: Reportes creados por el usuario autenticado (todos los estados), del más reciente al más antiguo.
+    parameters:
+      - { name: limite, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
+    responses:
+      '200':
+        description: Lista de mis reportes
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReporteResumen'
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Reporte:

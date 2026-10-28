@@ -21,6 +21,7 @@ type ReporteStore interface {
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
 	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
+	ListReportesByUserId(ctx context.Context, arg domain.ListReportesByUserIdParams) ([]domain.ListReportesByUserIdRow, error)
 	CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error)
 }
 
@@ -168,6 +169,15 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 		Estados:      estadosTexto,
 		Desde:        desde,
 		Limite:       limite,
+	})
+}
+
+// ListarPorUsuario devuelve los reportes que creó el usuario, del más reciente
+// al más antiguo, incluidos los históricos.
+func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ListReportesByUserIdRow, error) {
+	return s.store.ListReportesByUserId(ctx, domain.ListReportesByUserIdParams{
+		UserID: userID,
+		Limite: limite,
 	})
 }
 

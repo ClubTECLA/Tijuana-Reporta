@@ -100,7 +100,7 @@ export default function UserProfileView() {
                 <ListTile
                     tileName="Sesiones activas"
                     tileDescription="Chrome . Windows (esta) . iPad"
-                    valueBagde={2}
+                    valueBadge={2}
                     onClick={() => {}}
                     icon={<FiSmartphone />}
                 />

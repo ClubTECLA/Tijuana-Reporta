@@ -45,16 +45,21 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
     // Sesión a la que pertenece cada petición: al cerrar sesión se incrementa y se descartan las respuestas
     // que lleguen después, para no restaurar los datos del usuario anterior.
     const sessionRef = useRef(0);
+    // Pueden coincidir varias cargas (sondeo, volver a la pestaña, publicar o cambiar un estado): solo se aplica
+    // la última que se pidió, para que una respuesta lenta y vieja no pise a una más nueva.
+    const requestRef = useRef(0);
 
     const refresh = useCallback(async () => {
         const session = sessionRef.current;
+        const request = ++requestRef.current;
+        const isCurrent = () => session === sessionRef.current && request === requestRef.current;
         try {
             const [reportList, categoryList] = await Promise.all([
                 listReports(),
                 // También las inactivas: puede haber reportes de una categoría que ya se desactivó.
                 listIncidents({ incluir_inactivos: true }),
             ]);
-            if (session !== sessionRef.current) return;
+            if (!isCurrent()) return;
             setError(null);
 
             const signature = JSON.stringify([reportList, categoryList]);
@@ -64,7 +69,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             setReportes(reportList);
             setCategories(new Map(categoryList.map((category) => [category.id, category])));
         } catch (err) {
-            if (session !== sessionRef.current) return;
+            if (!isCurrent()) return;
             setError(err instanceof Error ? err.message : "No se pudieron cargar los incidentes.");
         }
     }, []);
@@ -92,8 +97,9 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         };
 
         // Carga inicial fuera del cuerpo del efecto (refresh actualiza el estado al llegar la respuesta).
+        // Siempre se carga una vez, pero el sondeo solo empieza si la pestaña está visible; si no, al volver a ella.
         const initialLoadId = setTimeout(() => { void refresh() }, 0);
-        startPolling();
+        if (document.visibilityState === "visible") startPolling();
         document.addEventListener("visibilitychange", handleVisibility);
 
         return () => {
@@ -104,6 +110,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             lastSignatureRef.current = "";
             setReportes(null);
             setCategories(new Map());
+            setError(null);
         };
     }, [isAuthenticated, refresh]);
 

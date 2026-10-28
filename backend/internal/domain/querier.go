@@ -44,6 +44,8 @@ type Querier interface {
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error)
+	// Incluye los históricos: es el historial del usuario, no el mapa.
+	ListReportesByUserId(ctx context.Context, arg ListReportesByUserIdParams) ([]ListReportesByUserIdRow, error)
 	// sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
 	// cast explícito; sin él se generaría como interface{}.
 	// ST_DWithin usa el índice GiST de puntos_origen.geom.

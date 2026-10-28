@@ -25,7 +25,7 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
             <span className="text-lg">{icon}</span>
             <span>{title}</span>
             {!!cantNoti &&
-                <span className="rounded-full bg-report px-1.75 py-px text-[11px] font-bold text-white">{cantNoti}</span>
+                <span className="rounded-full bg-report px-1.75 py-px text-2xs font-bold text-white">{cantNoti}</span>
             }
         </>
     )

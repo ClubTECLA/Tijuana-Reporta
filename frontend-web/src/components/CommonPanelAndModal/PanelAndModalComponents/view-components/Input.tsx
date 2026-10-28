@@ -8,6 +8,8 @@ type labelPositionType = 'top' | 'left';
 interface inputProps extends subsectionProps {
   type?: inputTypes;
   label?: string;
+  /** Checkbox sin label: nombre para lectores de pantalla cuando el texto visible está fuera del Input. */
+  ariaLabel?: string;
   labelPosition?: labelPositionType;
   value?: string | number;
   checked?: boolean;
@@ -28,6 +30,7 @@ interface inputProps extends subsectionProps {
 export default function Input({
   type = 'text',
   label,
+  ariaLabel,
   debug,
   onChange,
   value,
@@ -57,7 +60,7 @@ export default function Input({
                     id={inputId}
                     type="checkbox"
                     role="switch"
-                    aria-label={label ? undefined : "Activar opción"}
+                    aria-label={label ? undefined : (ariaLabel ?? "Activar opción")}
                     checked={checked}
                     defaultChecked={checked === undefined ? defaultChecked : undefined}
                     onChange={onChange}
