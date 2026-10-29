@@ -1,7 +1,3 @@
-const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
-
-export const apiUrl = (configuredApiUrl || '/api/v1').replace(/\/+$/, '')
-
 export const userTest = {
     "created_at": "2026-09-29T17:37:16.517218Z",
     "email": "test@example.com",

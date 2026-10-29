@@ -5,7 +5,7 @@ import CategoryChip from "../../CategoryChip";
 import IncidentRow from "../PanelAndModalComponents/view-components/IncidentRow";
 import Button from "../PanelAndModalComponents/view-components/Button";
 import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
-import { useAuth } from "../../../hooks/contexts/AuthContext";
+import { useAuth } from "../../../hooks/useAuth";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useReportes } from "../../../hooks/useReportes";
 import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } from "../../../types/reportFilters";

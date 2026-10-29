@@ -1,5 +1,5 @@
 import { LuPlus } from "react-icons/lu";
-import { useAuth } from "../hooks/contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useCommonPanel } from "../hooks/useCommonPanel";
 import Button from "./CommonPanelAndModal/PanelAndModalComponents/view-components/Button";
 import { canPublishIncidents } from "../types/users";
