@@ -7,7 +7,8 @@ import { SysMessageProvider } from './hooks/contexts/SysMessageContext.tsx'
 import NavigationWrapper from './components/NavigationWrapper.tsx'
 import { BrowserRouter } from 'react-router-dom'
 import { CommonPanelProvider } from './hooks/contexts/CommonPanelContext.tsx'
-import { ModalOverlay, ModalsProvider } from './hooks/contexts/CommonModalContext.tsx'
+import { ModalsProvider } from './hooks/contexts/CommonModalContext.tsx'
+import ModalChrome from './panels/ModalChrome.tsx'
 import { MapProvider } from './hooks/contexts/MapContext.tsx'
 import { ReportesProvider } from './hooks/contexts/ReportesContext.tsx'
 
@@ -20,7 +21,8 @@ createRoot(document.getElementById('root')!).render(
             <MapProvider>
               <ReportesProvider>
                 <CommonPanelProvider>
-                  <ModalOverlay />
+                  {/* Chrome vive en el nivel raíz para superponerse al contenido de navegación. */}
+                  <ModalChrome />
                   <NavigationWrapper />
                   <App />
                 </CommonPanelProvider>

@@ -20,7 +20,7 @@ const noteStyle = "py-6 text-center text-sm text-ink-muted";
 // que comparte con la capa del mapa: los chips y pestañas filtran también los pines.
 export default function IncidentsView() {
     const { user } = useAuth();
-    const { setPanelView } = useCommonPanel();
+    const { openPanel } = useCommonPanel();
     const { reportes, categories, error, filteredReportes: filtered, filters, setTab, toggleStatus: toggleStatusFilter, toggleOfficial: toggleOfficialFilter } = useReportes();
     const { tab, statusFilters, onlyOfficial } = filters;
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -44,7 +44,7 @@ export default function IncidentsView() {
 
     // Mismo criterio que el dock del mapa: sin botón para el analista (solo lectura) ni para el ciudadano.
     const newButton = canPublishIncidents(user?.rol_name) &&
-        <Button variant="report" size="lg" icon={<LuPlus />} title="Nuevo" onClick={() => setPanelView("Nuevo Incidente")} />;
+        <Button variant="report" size="lg" icon={<LuPlus />} title="Nuevo" onClick={() => openPanel("Nuevo Incidente")} />;
 
     return (
         <ColSection
@@ -91,7 +91,7 @@ export default function IncidentsView() {
                             key={reporte.id}
                             reporte={reporte}
                             incidente={categories.get(reporte.incidente_id)}
-                            onClick={() => setPanelView("Detalle Incidente", { props: { reporteId: reporte.id } })}
+                            onClick={() => openPanel("Detalle Incidente", { reporteId: reporte.id })}
                         />
                     )}
                 </div>

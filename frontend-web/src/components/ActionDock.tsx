@@ -8,7 +8,7 @@ import { canPublishIncidents } from "../types/users";
 // Sin el botón para quien no puede publicar: el analista (solo lectura) y el ciudadano (el backend le respondería 403).
 export default function ActionDock() {
     const { isAuthenticated, user } = useAuth();
-    const { setPanelView } = useCommonPanel();
+    const { openPanel } = useCommonPanel();
 
     if (!isAuthenticated || !canPublishIncidents(user?.rol_name)) return null;
 
@@ -19,7 +19,7 @@ export default function ActionDock() {
                 size="lg"
                 icon={<LuPlus />}
                 title="Nuevo incidente"
-                onClick={() => setPanelView("Nuevo Incidente")}
+                onClick={() => openPanel("Nuevo Incidente")}
             />
         </div>
     );

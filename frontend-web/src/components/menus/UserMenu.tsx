@@ -12,7 +12,7 @@ import UserCart from "../CommonPanelAndModal/PanelAndModalComponents/view-compon
 
 export default function UserMenu() {
     const { user, logout } = useAuth();
-    const { setPanelView, closePanel } = useCommonPanel();
+    const { openPanel, closePanel } = useCommonPanel();
     const { closeModal } = useModals();
 
     return (
@@ -38,7 +38,7 @@ export default function UserMenu() {
                 <ListTile
                     tileName="Mi perfil y contraseña"
                     onClick={() => {
-                        setPanelView("Mi perfil");
+                        openPanel("Mi perfil");
                         closeModal();
                     }}
                     icon={<FiUser />}

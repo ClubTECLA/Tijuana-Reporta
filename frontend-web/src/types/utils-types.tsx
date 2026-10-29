@@ -2,7 +2,7 @@ import {
   type ReactNode,
   type HTMLAttributes,
 } from "react"
-import type { PanelViewKey } from "./global-views"
+import type { PanelViewKey } from "../panels/panelTypes"
 import { IoDocumentTextOutline } from "react-icons/io5"
 import { LuMessageCircle } from "react-icons/lu"
 import { MdOutlineReportProblem } from "react-icons/md"

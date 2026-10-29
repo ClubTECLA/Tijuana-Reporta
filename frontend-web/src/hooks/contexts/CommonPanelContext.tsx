@@ -1,110 +1,43 @@
-import { createContext, createElement, useState, type ComponentType, type ReactNode } from "react";
-import { panelViews, type PanelViewKey, type PanelViewProps } from "../../types/global-views";
+import { useState, type ReactNode } from "react";
 import { validateChildren } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/validateChildren";
-
-/** Opciones al abrir un panel. `props` es obligatorio si el panel necesita datos (p. ej. `{ reporteId }`). */
-export type PanelViewOptions<K extends PanelViewKey> = { replace?: boolean } & (
-    Partial<PanelViewProps<K>> extends PanelViewProps<K>
-        ? { props?: PanelViewProps<K> }
-        : { props: PanelViewProps<K> }
-);
-
-// Un panel sin datos admite llamarse sin opciones; uno con datos exige pasarlas.
-type SetPanelViewArgs<K extends PanelViewKey> = Partial<PanelViewProps<K>> extends PanelViewProps<K>
-    ? [options?: PanelViewOptions<K>]
-    : [options: PanelViewOptions<K>];
-
-type PanelEntry = { view: PanelViewKey; props: object };
-
-// Identifica una entrada por panel y datos: el detalle del incidente A y el del B son entradas distintas.
-const entryKey = ({ view, props }: PanelEntry) => `${view}:${JSON.stringify(props)}`;
-
-interface CommonPanelContextType {
-    /** Panel abierto en este momento (null si no hay ninguno), p. ej. para marcar su sección en la NavBar. */
-    currentPanelView: PanelViewKey | null;
-    /**
-     * Abre un panel. Con `props` le pasa sus datos; con `replace`, sustituye al actual sin apilarlo
-     * en el historial (p. ej. volver a la lista tras publicar).
-     */
-    setPanelView: <K extends PanelViewKey>(view: K | null, ...args: SetPanelViewArgs<K>) => void;
-    backView: () => void;
-    hasPrevView: boolean;
-    closePanel: () => void;
-}
-
-export const CommonPanelContext = createContext<CommonPanelContextType | undefined>(undefined);
+import PanelChrome from "../../panels/PanelChrome";
+import {
+    backPanel as navigateBack,
+    closePanel as resetPanel,
+    createPanelRouterState,
+    hasPreviousPanel,
+    openPanel as navigateToPanel,
+} from "../../panels/panelRouter";
+import { CommonPanelContext } from "./CommonPanelContext.ts";
+import type { OpenPanel, PanelEntry } from "../../panels/panelTypes";
 
 export function CommonPanelProvider({ children }: { children: ReactNode }) {
     validateChildren(children, "CommonPanelProvider");
 
-    const [current, setCurrent] = useState<PanelEntry | null>(null);
-    const [previousView, setPreviousView] = useState<PanelEntry[]>([]);
+    const [routerState, setRouterState] = useState(createPanelRouterState);
 
-    const closePanel = () => {
-        setCurrent(null);
-        setPreviousView([]);
-    }
-
-    const backView = () => {
-        if (previousView.length === 0) return;
-
-        const nextPrevious = [...previousView];
-        const previous = nextPrevious.pop();
-
-        if (!previous) return;
-
-        setCurrent(previous);
-        setPreviousView(nextPrevious);
+    // El Provider adapta la API pública al router puro; las decisiones de historial viven en panelRouter.
+    const openPanel: OpenPanel = (view, ...args) => {
+        const [props, options] = args;
+        const entry = { view, props: props ?? {} } as PanelEntry;
+        setRouterState((state) => navigateToPanel(state, entry, options));
     };
 
-    const setPanelView: CommonPanelContextType["setPanelView"] = (view, ...[options]) => {
-        if (!view) {
-            setCurrent(null);
-            return;
-        }
-
-        if (!(view in panelViews)) return;
-
-        const next: PanelEntry = { view, props: options?.props ?? {} };
-        if (current && entryKey(current) === entryKey(next)) return;
-
-        if (options?.replace) {
-            // Sin apilar el panel actual; y si el destino ya estaba en el historial, se quita para no volver a él con "atrás".
-            setPreviousView((prev) => prev.filter((item) => entryKey(item) !== entryKey(next)));
-        } else if (current) {
-            setPreviousView((prev) => [...prev.filter((item) => entryKey(item) !== entryKey(current)), current]);
-        }
-
-        setCurrent(next);
-    };
+    const backView = () => setRouterState((state) => navigateBack(state));
+    const closePanel = () => setRouterState((state) => resetPanel(state));
 
     return (
         <CommonPanelContext.Provider
             value={{
-                currentPanelView: current ? current.view : null,
-                setPanelView,
+                currentPanelView: routerState.current?.view ?? null,
+                openPanel,
                 backView,
-                hasPrevView: previousView.length !== 0,
-                closePanel
+                hasPrevView: hasPreviousPanel(routerState),
+                closePanel,
             }}
         >
             {children}
-            {current && (
-                <section
-                    className="
-                        fixed left-2 right-2 top-20 bottom-2
-                        min-w-0 max-w-none
-                        bg-white/90 rounded-2xl
-                        shadow-float p-3
-                        z-50
-                        sm:left-3 sm:right-auto sm:bottom-5
-                        sm:w-fit sm:max-w-3/4 sm:min-w-1/4 sm:p-4
-                    "
-                >
-                    {/* key: al pasar del detalle A al B el panel se monta de nuevo y no arrastra el estado del anterior. */}
-                    {createElement(panelViews[current.view] as ComponentType<object>, { key: entryKey(current), ...current.props })}
-                </section>
-            )}
+            {routerState.current && <PanelChrome entry={routerState.current} />}
         </CommonPanelContext.Provider>
     );
 }

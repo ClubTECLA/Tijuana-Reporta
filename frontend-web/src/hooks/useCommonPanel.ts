@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { CommonPanelContext } from "./contexts/CommonPanelContext";
+import { CommonPanelContext } from "./contexts/CommonPanelContext.ts";
 
 export const useCommonPanel = () => {
     const context = useContext(CommonPanelContext);

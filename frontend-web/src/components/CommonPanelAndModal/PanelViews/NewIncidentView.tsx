@@ -38,7 +38,7 @@ const pendingNoteStyle = "text-xs text-ink-muted";
 // Etiquetas, fotos y borrador esperan soporte del backend.
 function NewIncidentForm() {
     const { map } = useMap();
-    const { setPanelView } = useCommonPanel();
+    const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
     const { refresh, markCreated } = useReportes();
 
@@ -201,7 +201,8 @@ function NewIncidentForm() {
             markCreated(created.id);
             void refresh();
             // Vuelve a la lista sin dejar este formulario en el historial.
-            setPanelView("Incidentes", { replace: true });
+            // Tras publicar, la lista reemplaza el formulario: "atrás" no debe reabrir el formulario enviado.
+            openPanel("Incidentes", undefined, { replace: true });
         } catch (error) {
             showMessage(
                 error instanceof Error ? error.message : "No se pudo publicar el incidente.",
