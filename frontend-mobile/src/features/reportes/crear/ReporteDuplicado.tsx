@@ -14,6 +14,8 @@ interface ReporteDuplicadoProps {
   reporte: Reporte;
   distanciaM: number;
   confirmando: boolean;
+  /** El usuario ya había elegido una foto: al confirmar no se sube, porque el reporte es de otra persona. */
+  fotoDescartada?: boolean;
   /** Error al confirmar o al crear el reporte nuevo (p. ej. sin conexión); se muestra sobre los botones. */
   error?: string | null;
   onConfirmar: () => void;
@@ -32,6 +34,7 @@ export function ReporteDuplicado({
   reporte,
   distanciaM,
   confirmando,
+  fotoDescartada = false,
   error,
   onConfirmar,
   onRechazar,
@@ -88,8 +91,10 @@ export function ReporteDuplicado({
         <View style={styles.info}>
           <InfoIcon size={18} color={colors.slate} />
           <Text style={styles.infoTexto}>
-            Si es el mismo, confirmarlo ayuda a verificarlo más rápido y evita reportes repetidos. Tu foto se agrega
-            al incidente.
+            Si es el mismo, confirmarlo ayuda a verificarlo más rápido y evita reportes repetidos.
+            {fotoDescartada
+              ? ' La foto que elegiste no se agrega: solo quien creó el reporte puede subirla. Si prefieres conservarla, crea uno nuevo.'
+              : ''}
           </Text>
         </View>
       </View>

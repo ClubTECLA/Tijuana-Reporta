@@ -3,7 +3,10 @@ import { mensajeDeError } from '@/lib/estados';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { cambiarCategoria, tituloReporte } from './crear/categorias';
 import { buscarDuplicado, desdeDuplicados, RADIO_BUSQUEDA_DUPLICADO_M } from './crear/duplicados';
-import { useConfirmarDuplicado, useCrearReporteMutation } from './hooks';
+import type { ErrorFoto } from './foto/crearConFoto';
+import { esFotoReintentable, mensajeSubidaFoto } from './foto/errores';
+import { elegirFoto as seleccionarFoto, type OrigenFoto } from './foto/seleccionar';
+import { useConfirmarDuplicado, useCrearReporteMutation, useSubirFoto } from './hooks';
 import { reportesApi } from './api';
 
 // ---------------------------------------------------------------------------
@@ -16,7 +19,8 @@ interface FormState {
   lat: number | null;
   lng: number | null;
   direccion: string | null;
-  imageBase64: string | null;
+  /** Foto ya reducida (JPEG < 2 MB) lista para subir tras crear el reporte; `null` si no se eligió. */
+  fotoUri: string | null;
 }
 
 interface FormErrors {
@@ -35,6 +39,21 @@ export interface UseCrearReporteReturn {
   creadoViaDuplicado: boolean;
   /** Distinto de null mientras se espera la decisión de "¿Es el mismo incidente?". */
   duplicado: { reporte: Reporte; distanciaM: number } | null;
+  /** Se está abriendo el selector o reduciendo la foto elegida. */
+  preparandoFoto: boolean;
+  /** Por qué no se pudo elegir o reducir la foto; `null` si no hay problema. */
+  errorSeleccionFoto: string | null;
+  /** El usuario negó el permiso de la cámara: hay que mandarlo a Ajustes. */
+  sinPermisoCamara: boolean;
+  /** El reporte se creó pero su foto no se pudo subir; `null` si no hubo problema. */
+  errorFoto: ErrorFoto | null;
+  /** Se está reintentando subir la foto de un reporte ya creado. */
+  subiendoFoto: boolean;
+  /** Abre la cámara o la galería y deja la foto reducida en el formulario. */
+  elegirFoto: (origen: OrigenFoto) => Promise<void>;
+  quitarFoto: () => void;
+  /** Reintenta subir la foto al reporte ya creado, sin crear otro. */
+  reintentarFoto: () => Promise<void>;
   /** Elige la categoría (reemplaza a la anterior) o, si ya era la elegida, la deselecciona. */
   elegirCategoria: (categoria: CategoriaReporte) => void;
   toggleTag: (tag: string) => void;
@@ -59,7 +78,7 @@ const INITIAL_FORM: FormState = {
   lat: null,
   lng: null,
   direccion: null,
-  imageBase64: null,
+  fotoUri: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -76,9 +95,52 @@ export function useCrearReporte(): UseCrearReporteReturn {
   // Mientras se descargan los reportes vigentes para buscar un duplicado todavía no hay mutación
   // en curso, pero el botón de enviar ya debe verse ocupado.
   const [buscandoDuplicado, setBuscandoDuplicado] = useState(false);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
+  const [errorSeleccionFoto, setErrorSeleccionFoto] = useState<string | null>(null);
+  const [sinPermisoCamara, setSinPermisoCamara] = useState(false);
+  const [errorFoto, setErrorFoto] = useState<ErrorFoto | null>(null);
   const crear = useCrearReporteMutation();
   const confirmar = useConfirmarDuplicado();
+  const subirFoto = useSubirFoto();
   const enviando = useRef(false);
+  // Candado síncrono, como `enviando`: dos toques seguidos no deben abrir el selector dos veces.
+  const eligiendoFoto = useRef(false);
+
+  /** Abre el selector, reduce la foto y la deja en el formulario. Cancelar no es un error. */
+  const elegirFoto = async (origen: OrigenFoto): Promise<void> => {
+    if (eligiendoFoto.current) return;
+    eligiendoFoto.current = true;
+    setPreparandoFoto(true);
+    setErrorSeleccionFoto(null);
+    setSinPermisoCamara(false);
+    try {
+      const resultado = await seleccionarFoto(origen);
+      if (resultado.tipo === 'ok') setForm((prev) => ({ ...prev, fotoUri: resultado.uri }));
+      else if (resultado.tipo === 'sin_permiso') setSinPermisoCamara(true);
+      else if (resultado.tipo === 'error') setErrorSeleccionFoto(resultado.mensaje);
+    } finally {
+      setPreparandoFoto(false);
+      eligiendoFoto.current = false;
+    }
+  };
+
+  const quitarFoto = (): void => {
+    setForm((prev) => ({ ...prev, fotoUri: null }));
+    setErrorSeleccionFoto(null);
+    setSinPermisoCamara(false);
+  };
+
+  /** La foto de un reporte que ya existe: reintenta solo la subida, nunca vuelve a crear el reporte. */
+  const reintentarFoto = async (): Promise<void> => {
+    if (!creado || form.fotoUri === null || subirFoto.isPending) return;
+    try {
+      const imageUrl = await subirFoto.mutateAsync({ id: creado.id, uri: form.fotoUri });
+      setCreado({ ...creado, image_url: imageUrl });
+      setErrorFoto(null);
+    } catch (err) {
+      setErrorFoto({ mensaje: mensajeSubidaFoto(err), reintentable: esFotoReintentable(err) });
+    }
+  };
 
   /**
    * Selección única: elegir otra categoría reemplaza a la anterior y tocar la elegida la quita. Se
@@ -121,18 +183,21 @@ export function useCrearReporte(): UseCrearReporteReturn {
   /** Envía los datos del formulario ya validado y guarda el reporte creado para la pantalla de éxito. */
   const crearNuevo = async (): Promise<Reporte | null> => {
     const categorias = form.categorias;
-    const nuevo = await crear.mutateAsync({
-      titulo: tituloReporte(categorias[0], form.direccion),
-      categorias,
-      tags: form.tags,
-      lat: form.lat as number,
-      lng: form.lng as number,
-      ...(form.direccion !== null && { direccion: form.direccion }),
-      ...(form.imageBase64 !== null && { image_base64: form.imageBase64 }),
+    const { reporte, errorFoto: falloFoto } = await crear.mutateAsync({
+      req: {
+        titulo: tituloReporte(categorias[0], form.direccion),
+        categorias,
+        tags: form.tags,
+        lat: form.lat as number,
+        lng: form.lng as number,
+        ...(form.direccion !== null && { direccion: form.direccion }),
+      },
+      fotoUri: form.fotoUri,
     });
-    setCreado(nuevo);
+    setCreado(reporte);
     setCreadoViaDuplicado(false);
-    return nuevo;
+    setErrorFoto(falloFoto);
+    return reporte;
   };
 
   // Candado síncrono: `isPending` solo cambia tras el siguiente render, así
@@ -186,11 +251,10 @@ export function useCrearReporte(): UseCrearReporteReturn {
     try {
       crear.reset();
       confirmar.reset();
-      const actualizado = await confirmar.mutateAsync({
-        id: duplicado.reporte.id,
-        ...(form.imageBase64 !== null && { imageBase64: form.imageBase64 }),
-      });
+      // Sin foto: el reporte existente es de otra persona y el backend solo deja subirla a su creador.
+      const actualizado = await confirmar.mutateAsync({ id: duplicado.reporte.id });
       setCreado(actualizado);
+      setErrorFoto(null);
       setCreadoViaDuplicado(true);
       setDuplicado(null);
     } catch (err) {
@@ -224,7 +288,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
   return {
     form,
     errors,
-    isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending,
+    isSubmitting: buscandoDuplicado || crear.isPending || confirmar.isPending || preparandoFoto,
     submitError: crear.isError
       ? mensajeDeError(crear.error, 'No se pudo enviar el reporte. Intenta de nuevo.')
       : confirmar.isError
@@ -233,6 +297,14 @@ export function useCrearReporte(): UseCrearReporteReturn {
     creado,
     creadoViaDuplicado,
     duplicado,
+    preparandoFoto,
+    errorSeleccionFoto,
+    sinPermisoCamara,
+    errorFoto,
+    subiendoFoto: subirFoto.isPending,
+    elegirFoto,
+    quitarFoto,
+    reintentarFoto,
     elegirCategoria,
     toggleTag,
     setLocation,

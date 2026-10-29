@@ -290,10 +290,17 @@ export const reportesMock: ReportesApi = {
       user_id: 'mock-user-123',
       created_at: new Date().toISOString(),
       ...(req.direccion !== undefined && { direccion: req.direccion }),
-      ...(req.image_base64 !== undefined && { image_url: req.image_base64 }),
     };
     reportes = [nuevo, ...reportes];
     return nuevo;
+  },
+
+  /** Guarda la uri local como foto del reporte y la devuelve; falla si el reporte no existe. */
+  async subirFoto(reporteId, uri) {
+    await delay(500);
+    if (!reportes.some((r) => r.id === reporteId)) throw new Error(`Reporte ${reporteId} no encontrado`);
+    reportes = reportes.map((r) => (r.id === reporteId ? { ...r, image_url: uri } : r));
+    return uri;
   },
 
   async apoyar(id) {
@@ -301,14 +308,10 @@ export const reportesMock: ReportesApi = {
     reportes = reportes.map((r) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r));
   },
 
-  /** Suma un apoyo, reemplaza la foto si se proporciona y devuelve el reporte; falla si no existe. */
-  async confirmarDuplicado(id, imageBase64) {
+  /** Suma un apoyo y devuelve el reporte; falla si no existe. */
+  async confirmarDuplicado(id) {
     await delay(600);
-    reportes = reportes.map((r) =>
-      r.id === id
-        ? { ...r, upvotes: r.upvotes + 1, ...(imageBase64 !== undefined && { image_url: imageBase64 }) }
-        : r,
-    );
+    reportes = reportes.map((r) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r));
     const actualizado = reportes.find((r) => r.id === id);
     if (!actualizado) throw new Error(`Reporte ${id} no encontrado`);
     return actualizado;

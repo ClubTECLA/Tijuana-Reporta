@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CameraIcon } from '@/components/icons/CameraIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { useEnLinea } from '@/lib/red';
@@ -25,6 +24,7 @@ import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { ReporteCreado } from '@/features/reportes/crear/ReporteCreado';
 import { ReporteDuplicado } from '@/features/reportes/crear/ReporteDuplicado';
 import { EtiquetaChip } from '@/features/reportes/crear/EtiquetaChip';
+import { FotoReporte } from '@/features/reportes/crear/FotoReporte';
 import { UbicacionActual } from '@/features/reportes/crear/UbicacionActual';
 import {
   categoriasDelPicker,
@@ -52,6 +52,14 @@ export default function CrearReporte() {
     creado,
     creadoViaDuplicado,
     duplicado,
+    preparandoFoto,
+    errorSeleccionFoto,
+    sinPermisoCamara,
+    errorFoto,
+    subiendoFoto,
+    elegirFoto,
+    quitarFoto,
+    reintentarFoto,
     elegirCategoria,
     toggleTag,
     setLocation,
@@ -93,6 +101,9 @@ export default function CrearReporte() {
         <ReporteCreado
           reporte={creado}
           viaDuplicado={creadoViaDuplicado}
+          errorFoto={errorFoto}
+          subiendoFoto={subiendoFoto}
+          onReintentarFoto={reintentarFoto}
           onVer={() => {
             setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo, reporteId: creado.id });
             router.back();
@@ -165,6 +176,7 @@ export default function CrearReporte() {
             reporte={duplicado.reporte}
             distanciaM={duplicado.distanciaM}
             confirmando={isSubmitting}
+            fotoDescartada={form.fotoUri !== null}
             error={submitError}
             onConfirmar={() => void confirmarEsElMismo()}
             onRechazar={() => void seguirReportando()}
@@ -223,16 +235,15 @@ export default function CrearReporte() {
 
             {/* Foto */}
             <Text style={[styles.label, styles.seccionFoto]}>toma o sube una foto (opcional)</Text>
-            {/* TODO: habilitar con expo-image-picker (requiere reconstruir el dev client). */}
-            <Pressable
-              style={[styles.foto, styles.fotoDeshabilitada]}
-              disabled
-              accessibilityRole="button"
-              accessibilityLabel="Tomar o subir una foto (próximamente)"
-              accessibilityState={{ disabled: true }}
-            >
-              <CameraIcon />
-            </Pressable>
+            <FotoReporte
+              fotoUri={form.fotoUri}
+              preparando={preparandoFoto}
+              error={errorSeleccionFoto}
+              sinPermisoCamara={sinPermisoCamara}
+              deshabilitado={isSubmitting}
+              onElegir={elegirFoto}
+              onQuitar={quitarFoto}
+            />
 
             {/* Información adicional (etiquetas por categoría) */}
             <View style={[styles.filaLabel, styles.seccionDescripcion]}>
@@ -440,23 +451,6 @@ const styles = StyleSheet.create({
   fila: {
     flexDirection: 'row',
     gap: 3.6,
-  },
-
-  // ── Foto ─────────────────────────────────────────────────────────────────
-  foto: {
-    marginTop: 9.7,
-    height: 81,
-    borderRadius: 13.16,
-    borderWidth: 1.645,
-    borderStyle: 'dashed',
-    borderColor: colors.black,
-    backgroundColor: colors.photoBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  fotoDeshabilitada: {
-    opacity: 0.6,
   },
 
   // ── Etiquetas ────────────────────────────────────────────────────────────
