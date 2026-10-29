@@ -1,7 +1,7 @@
 import { LuTarget } from "react-icons/lu";
-import type { ApiComentario } from "../../../../types/api-types";
-import { formatDateTime, timeAgo } from "../../../../types/reportFormat";
-import { initials, isOfficialRole, rolLabel } from "../../../../types/users";
+import type { ApiComentario } from "../../types/api-types";
+import { formatDateTime, timeAgo } from "../reportFormat";
+import { initials, isOfficialRole, rolLabel } from "../../sesion/users";
 import { Badge } from "./Badge";
 
 export type CommentAuthor = {

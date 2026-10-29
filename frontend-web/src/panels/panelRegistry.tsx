@@ -3,9 +3,9 @@ import UserProfileView from "../components/CommonPanelAndModal/PanelViews/UserPr
 import HelpAndGuidesView from "../components/CommonPanelAndModal/PanelViews/HelpAndGuidesView";
 import NotificationsView from "../components/CommonPanelAndModal/PanelViews/NotificationsView";
 import SettingView from "../components/CommonPanelAndModal/PanelViews/SettingsView";
-import NewIncidentView from "../components/CommonPanelAndModal/PanelViews/NewIncidentView";
-import IncidentsView from "../components/CommonPanelAndModal/PanelViews/IncidentsView";
-import IncidentDetailView from "../components/CommonPanelAndModal/PanelViews/IncidentDetailView";
+import NewIncidentView from "../reportes/views/NewIncidentView";
+import IncidentsView from "../reportes/views/IncidentsView";
+import IncidentDetailView from "../reportes/views/IncidentDetailView";
 import type { PanelViewKey, PanelViewPropsMap } from "./panelTypes";
 
 // Punto de composición visual: los tipos y el router no importan este registro.

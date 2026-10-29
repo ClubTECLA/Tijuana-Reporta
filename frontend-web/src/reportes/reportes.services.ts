@@ -12,7 +12,7 @@ import type {
     ApiReporte,
     ApiSubirMultimediaResponse,
 } from '../types/api-types'
-import { apiRequest } from './http'
+import { apiRequest } from '../lib/http'
 
 // El id va codificado: un valor con "/" o "?" no debe poder cambiar la ruta de la petición.
 const reportePath = (reporteId: string) => `/reportes/${encodeURIComponent(reporteId)}`

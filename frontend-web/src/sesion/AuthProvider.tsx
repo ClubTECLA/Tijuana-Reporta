@@ -1,38 +1,23 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type {
-    AuthApiUser,
-    AuthContextUser,
     AuthEndpoint,
     AuthRequest,
     AuthResponseFor,
-    MeResponse,
-} from '../../types/api-types'
-import { apiRequest, onSessionExpired, sessionToken } from '../../services/http'
-import { useSysMessage } from './SysMessageContext'
+    SessionUser,
+} from '../types/api-types'
+import { apiRequest, onSessionExpired, sessionToken } from '../lib/http'
+import { useSysMessage } from '../hooks/contexts/SysMessageContext'
 import { AuthContext } from './AuthContext.ts'
-
-function toUser(user: AuthApiUser): AuthContextUser {
-    return {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        phone: null,
-        password_hash: null,
-        rol_id: 'rol_id' in user ? user.rol_id : undefined,
-        created_at: 'created_at' in user ? user.created_at : undefined,
-        updated_at: 'created_at' in user ? user.created_at : undefined,
-        rol_name: 'rol_name' in user ? user.rol_name : undefined,
-    }
-}
 
 /**
  * Sesión del usuario: restaura la sesión al recargar y expone login, registro y logout. El token lo guarda el cliente
- * de la API (services/http.ts); si el backend lo rechaza, el cliente cierra la sesión y aquí solo se avisa.
+ * de la API (lib/http.ts); si el backend lo rechaza, el cliente cierra la sesión y aquí solo se avisa.
+ * El usuario siempre sale de GET /auth/me (también tras login y registro), que es el único que trae el rol.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { showMessage } = useSysMessage()
-    const [user, setUser] = useState<AuthContextUser | null>(null);
+    const [user, setUser] = useState<SessionUser | null>(null);
     const [isLoading, setIsLoading] = useState(() => sessionToken.get() !== null)
 
     async function loadUser(): Promise<void> {
@@ -40,9 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!token) return
 
         try {
-            const currentUser = await apiRequest<MeResponse>('/auth/me')
+            const currentUser = await apiRequest<SessionUser>('/auth/me')
             // Si mientras tanto se cerró o cambió la sesión, la respuesta ya no es de este usuario.
-            if (sessionToken.get() === token) setUser(toUser(currentUser))
+            if (sessionToken.get() === token) setUser(currentUser)
         } finally {
             setIsLoading(false)
         }

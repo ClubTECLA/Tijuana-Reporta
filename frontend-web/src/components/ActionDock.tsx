@@ -1,8 +1,8 @@
 import { LuPlus } from "react-icons/lu";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../sesion/useAuth";
 import { useCommonPanel } from "../hooks/useCommonPanel";
 import Button from "./CommonPanelAndModal/PanelAndModalComponents/view-components/Button";
-import { canPublishIncidents } from "../types/users";
+import { canPublishIncidents } from "../sesion/users";
 
 // "Dock de acciones" del Figma: acciones principales sobre el mapa.
 // Sin el botón para quien no puede publicar: el analista (solo lectura) y el ciudadano (el backend le respondería 403).

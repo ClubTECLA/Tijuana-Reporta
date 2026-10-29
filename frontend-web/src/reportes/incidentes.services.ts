@@ -7,7 +7,7 @@ import type {
     ApiListarIncidentesResponse,
     ApiObtenerIncidenteResponse,
 } from '../types/api-types'
-import { apiRequest } from './http'
+import { apiRequest } from '../lib/http'
 
 // GET /incidentes
 export async function listarIncidentes(

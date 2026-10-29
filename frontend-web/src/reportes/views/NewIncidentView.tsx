@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuMapPin, LuPlus, LuSend } from "react-icons/lu";
-import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
-import CategoryCard from "../PanelAndModalComponents/view-components/CategoryCard";
-import PhotoDropzone from "../PanelAndModalComponents/view-components/PhotoDropzone";
-import Button from "../PanelAndModalComponents/view-components/Button";
-import SearchBar from "../PanelAndModalComponents/view-components/SearchBar";
-import { useCommonPanel } from "../../../hooks/useCommonPanel";
-import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import { useReportes } from "../../../hooks/useReportes";
-import { useLocationPicker } from "../../../hooks/useLocationPicker";
+import ColSection from "../../components/CommonPanelAndModal/PanelAndModalComponents/primitive-components/ColSection";
+import CategoryCard from "../components/CategoryCard";
+import PhotoDropzone from "../components/PhotoDropzone";
+import Button from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/Button";
+import SearchField from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/SearchField";
+import { useCommonPanel } from "../../hooks/useCommonPanel";
+import { useSysMessage } from "../../hooks/contexts/SysMessageContext";
+import { useReportes } from "../useReportes";
+import { useLocationPicker } from "../../mapa/useLocationPicker";
 
 // Tarjetas visibles antes de "Ver las N categorías activas" (Figma: 2 filas de 3).
 const VISIBLE_CATEGORIES = 6;
@@ -135,7 +135,7 @@ function NewIncidentForm() {
                 <div className="flex flex-col gap-1.5">
                     <label htmlFor="new-incident-address" className={sectionTitleStyle}>Ubicación</label>
                     {/* Controlado: el texto también cambia al mover el marcador (dirección inversa). */}
-                    <SearchBar
+                    <SearchField
                         format="col"
                         inputId="new-incident-address"
                         value={address}

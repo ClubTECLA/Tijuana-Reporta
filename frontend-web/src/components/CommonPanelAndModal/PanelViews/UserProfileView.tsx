@@ -6,7 +6,7 @@ import UserCart from "../PanelAndModalComponents/view-components/UserCart";
 import { GoShieldCheck } from "react-icons/go";
 import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import { useAuth } from "../../../hooks/useAuth";
+import { useAuth } from "../../../sesion/useAuth";
 import { FaUserLock } from "react-icons/fa6";
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../PanelAndModalComponents/view-components/Button";

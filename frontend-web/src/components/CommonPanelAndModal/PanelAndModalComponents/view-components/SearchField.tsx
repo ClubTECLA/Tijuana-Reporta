@@ -3,7 +3,7 @@ import { LuSearch } from 'react-icons/lu';
 import SubSection from '../primitive-components/SubSection';
 import type { subsectionProps } from '../../../../types/utils-types';
 
-interface SearchBarProps extends subsectionProps {
+interface SearchFieldProps extends subsectionProps {
     /** Se llama al pulsar Enter o la lupa, con el texto escrito. */
     onSubmit?: (value: string) => void;
     /** Texto controlado desde fuera; sin él, el componente guarda lo escrito. */
@@ -16,7 +16,7 @@ interface SearchBarProps extends subsectionProps {
 }
 
 // "Web/Campo · Búsqueda" del Figma: 44 px de alto, borde que se pinta de azul al enfocar y lupa a la derecha.
-export default function SearchBar({ format, debug, onSubmit, value, onChange, placeholder, inputId, ariaLabel, className }: SearchBarProps) {
+export default function SearchField({ format, debug, onSubmit, value, onChange, placeholder, inputId, ariaLabel, className }: SearchFieldProps) {
     const [ internalValue, setInternalValue ] = useState<string>("");
     const currentValue = value ?? internalValue;
 

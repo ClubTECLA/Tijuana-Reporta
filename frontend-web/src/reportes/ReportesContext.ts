@@ -1,9 +1,9 @@
 import { createContext } from "react";
-import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
-import type { ReportFilters, ReportTab, StatusFilter } from "../../types/reportFilters";
-import type { NuevoReporte, Publicacion } from "../../services/publicarReporte";
+import type { ApiIncidente, ApiReporteResumen } from "../types/api-types";
+import type { ReportFilters, ReportTab, StatusFilter } from "./reportFilters";
+import type { NuevoReporte, Publicacion } from "./publicarReporte";
 
-// El contexto solo declara el contrato; el Provider de .tsx lo conecta con la API, el sondeo y los filtros.
+// El contexto solo declara el contrato; ReportesProvider lo conecta con la API, el sondeo y los filtros.
 // Es la única puerta de las vistas a los reportes y a las categorías (en el backend, "incidentes").
 export interface ReportesContextType {
     /** null mientras llega la primera carga. */

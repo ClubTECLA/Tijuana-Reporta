@@ -13,7 +13,7 @@ import type { ApiIncidente } from "../../../types/api-types";
 import CategoryForm from "../PanelAndModalComponents/view-components/specifics-components/CategoryForm";
 import SubSection from "../PanelAndModalComponents/primitive-components/SubSection";
 import type { subsectionProps } from "../../../types/utils-types";
-import { listarIncidentes } from "../../../services/incidentes.services";
+import { listarIncidentes } from "../../../reportes/incidentes.services";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 
 function CategoriesSection({debug} : subsectionProps) {

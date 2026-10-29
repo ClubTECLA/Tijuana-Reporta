@@ -8,7 +8,7 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import { CreateTagButton, Tag, TagPicker } from "../TagPicker";
 import Button from "../Button";
 import { useSysMessage, SysMessage } from "../../../../../hooks/contexts/SysMessageContext";
-import { crearIncidente } from "../../../../../services/incidentes.services";
+import { crearIncidente } from "../../../../../reportes/incidentes.services";
 
 interface CategoryFormProp extends subsectionProps {
     category?: ApiIncidente | null

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ApiEstadoReporte } from "../../../../types/api-types";
+import type { ApiEstadoReporte } from "../../types/api-types";
 
 // "Web/Etiqueta" del Figma: píldora con tono y, opcionalmente, un punto del mismo color.
 const tones = {

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { componentProps } from "../types/utils-types";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../sesion/useAuth";
 import { LuLogIn } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import { initials, rolLabel } from "../types/users";
+import { initials, rolLabel } from "../sesion/users";
 
 export default function UserProfileWidget({className, onClick} : componentProps) {
     const { isAuthenticated, user } = useAuth();

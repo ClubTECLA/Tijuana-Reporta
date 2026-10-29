@@ -1,7 +1,7 @@
 import { createElement } from "react";
-import { folio } from "../../types/reportFormat";
-import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../types/categories";
+import { folio } from "../reportes/reportFormat";
+import type { ApiIncidente, ApiReporteResumen } from "../types/api-types";
+import { categoryIcon, categoryLabel } from "../reportes/categories";
 
 interface IncidentPinProps {
     reporte: ApiReporteResumen

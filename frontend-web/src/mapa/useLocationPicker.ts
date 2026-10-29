@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { useMap } from "./useMap";
-import { buscarDireccion, direccionDe } from "../services/geocoding.services";
+import { buscarDireccion, direccionDe } from "./geocoding.services";
 
 export type Position = { latitude: number; longitude: number };
 

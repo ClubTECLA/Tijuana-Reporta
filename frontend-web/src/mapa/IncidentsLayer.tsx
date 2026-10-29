@@ -4,10 +4,10 @@ import { Marker, type GeoJSONSource, type MapSourceDataEvent } from "maplibre-gl
 import type { FeatureCollection, Point } from "geojson";
 import IncidentPin from "./IncidentPin";
 import ClusterPin from "./ClusterPin";
-import { useMap } from "../../hooks/useMap";
-import { useReportes } from "../../hooks/useReportes";
-import { useCommonPanel } from "../../hooks/useCommonPanel";
-import type { ApiReporteResumen } from "../../types/api-types";
+import { useMap } from "./useMap";
+import { useReportes } from "../reportes/useReportes";
+import { useCommonPanel } from "../hooks/useCommonPanel";
+import type { ApiReporteResumen } from "../types/api-types";
 
 // Capa de incidentes del mapa (opción híbrida):
 // - Los puntos van en una fuente GeoJSON con clustering; MapLibre agrupa en su web worker (supercluster),

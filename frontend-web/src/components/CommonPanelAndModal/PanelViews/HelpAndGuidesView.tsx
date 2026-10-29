@@ -1,4 +1,4 @@
-import SearchBar from '../PanelAndModalComponents/view-components/SearchBar';
+import SearchField from '../PanelAndModalComponents/view-components/SearchField';
 import ColSection from '../PanelAndModalComponents/primitive-components/ColSection';
 import { ListTile, OptionList } from '../PanelAndModalComponents/view-components/OptionsList';
 import { HiOutlineDocumentReport, HiOutlinePaperAirplane } from 'react-icons/hi';
@@ -43,7 +43,7 @@ export default function HelpAndGuidesView() {
             subtitle="Respuestas rápidas para el equipo"
             footerText="Tijuana Reporta · consola v1.0 · sep 2026"
         >
-            <SearchBar
+            <SearchField
                 format='col'
                 placeholder='Buscar en la ayuda'
             />

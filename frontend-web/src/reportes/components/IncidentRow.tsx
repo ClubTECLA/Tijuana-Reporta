@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { LuChevronRight, LuUsers } from "react-icons/lu";
-import type { ApiIncidente, ApiReporteResumen } from "../../../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../../../types/categories";
-import { folio } from "../../../../types/reportFormat";
+import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
+import { categoryIcon, categoryLabel } from "../categories";
+import { folio } from "../reportFormat";
 import { StatusBadge } from "./Badge";
 
 interface IncidentRowProps {

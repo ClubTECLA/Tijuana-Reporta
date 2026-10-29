@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { crearComentario, obtenerReporte } from "../services/reportes.services";
-import { direccionDe } from "../services/geocoding.services";
+import { crearComentario, obtenerReporte } from "./reportes.services";
+import { direccionDe } from "../mapa/geocoding.services";
 import type { ApiReporte } from "../types/api-types";
 
 /**

@@ -1,4 +1,4 @@
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../sesion/useAuth";
 import { FiUser } from "react-icons/fi";
 import { IoIosClose } from "react-icons/io";
 import { useCommonPanel } from "../../hooks/useCommonPanel";

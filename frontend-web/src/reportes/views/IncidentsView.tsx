@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { LuPlus } from "react-icons/lu";
-import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
-import CategoryChip from "../../CategoryChip";
-import IncidentRow from "../PanelAndModalComponents/view-components/IncidentRow";
-import Button from "../PanelAndModalComponents/view-components/Button";
-import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
-import { useAuth } from "../../../hooks/useAuth";
-import { useCommonPanel } from "../../../hooks/useCommonPanel";
-import { useReportes } from "../../../hooks/useReportes";
-import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } from "../../../types/reportFilters";
-import { canPublishIncidents } from "../../../types/users";
+import ColSection from "../../components/CommonPanelAndModal/PanelAndModalComponents/primitive-components/ColSection";
+import CategoryChip from "../../components/CategoryChip";
+import IncidentRow from "../components/IncidentRow";
+import Button from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/Button";
+import { SegmentedTabs, TabItem } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/SegmentedTabs";
+import { useAuth } from "../../sesion/useAuth";
+import { useCommonPanel } from "../../hooks/useCommonPanel";
+import { useReportes } from "../useReportes";
+import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } from "../reportFilters";
+import { canPublishIncidents } from "../../sesion/users";
 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
 const PAGE_SIZE = 7;

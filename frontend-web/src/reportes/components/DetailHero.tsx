@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import PanelNavButton from "../primitive-components/PanelNavButton";
+import PanelNavButton from "../../components/CommonPanelAndModal/PanelAndModalComponents/primitive-components/PanelNavButton";
 
 interface DetailHeroProps {
     /** Color de fondo mientras no hay foto (p. ej. el de la categoría). */

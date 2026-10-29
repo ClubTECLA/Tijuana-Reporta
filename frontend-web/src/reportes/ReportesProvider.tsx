@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useAuth } from "../useAuth";
-import { listarIncidentes } from "../../services/incidentes.services";
-import { listarReportes } from "../../services/reportes.services";
-import { publicarReporte, type NuevoReporte } from "../../services/publicarReporte";
-import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
-import { filterReportes, type ReportFilters } from "../../types/reportFilters";
+import { useAuth } from "../sesion/useAuth";
+import { listarIncidentes } from "./incidentes.services";
+import { listarReportes } from "./reportes.services";
+import { publicarReporte, type NuevoReporte } from "./publicarReporte";
+import type { ApiIncidente, ApiReporteResumen } from "../types/api-types";
+import { filterReportes, type ReportFilters } from "./reportFilters";
 import { ReportesContext, type ReportesContextType } from "./ReportesContext.ts";
 
 // Datos de incidentes compartidos por el panel "Incidentes", "Nuevo incidente" y la capa del mapa, para que haya

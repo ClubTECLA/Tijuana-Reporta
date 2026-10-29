@@ -1,4 +1,4 @@
-import type { ApiEstadoReporte, ApiReporteResumen } from "./api-types";
+import type { ApiEstadoReporte, ApiReporteResumen } from "../types/api-types";
 
 // Filtros de incidentes compartidos por el panel "Incidentes" (pestañas y chips) y la capa del mapa.
 

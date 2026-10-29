@@ -1,6 +1,6 @@
 import { createElement } from "react";
-import type { ApiIncidente } from "../../../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../../../types/categories";
+import type { ApiIncidente } from "../../types/api-types";
+import { categoryIcon, categoryLabel } from "../categories";
 
 interface CategoryCardProps {
     incidente: ApiIncidente

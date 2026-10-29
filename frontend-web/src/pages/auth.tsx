@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } fro
 import { Link, useNavigate } from 'react-router-dom'
 import { LuCircleCheckBig, LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '../hooks/contexts/SysMessageContext'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../sesion/useAuth'
 import { useCommonPanel } from '../hooks/useCommonPanel'
 import useModals from '../hooks/useModals'
 import { IoChevronBack } from 'react-icons/io5'

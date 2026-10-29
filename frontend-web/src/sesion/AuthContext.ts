@@ -1,9 +1,9 @@
 import { createContext } from 'react'
-import type { AuthContextUser } from '../../types/api-types'
+import type { SessionUser } from '../types/api-types'
 
-// El contexto solo declara el contrato; el Provider de .tsx lo conecta con el cliente de la API.
+// El contexto solo declara el contrato; AuthProvider lo conecta con el cliente de la API.
 export interface AuthContextType {
-    user: AuthContextUser | null
+    user: SessionUser | null
     isAuthenticated: boolean
     isLoading: boolean
     login: (email: string, password: string) => Promise<void>

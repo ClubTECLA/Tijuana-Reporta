@@ -1,20 +1,20 @@
 import { createElement, useState, type SubmitEvent } from "react";
 import { LuBell, LuCheck, LuClock, LuDownload, LuImage, LuInfo, LuMapPin, LuPencil, LuSend, LuShare, LuTrash2, LuUser, LuUsers } from "react-icons/lu";
-import DetailHero from "../PanelAndModalComponents/view-components/DetailHero";
-import IncidentAction from "../PanelAndModalComponents/view-components/IncidentAction";
-import DetailRow from "../PanelAndModalComponents/view-components/DetailRow";
-import CommentItem, { type CommentAuthor } from "../PanelAndModalComponents/view-components/CommentItem";
-import Button from "../PanelAndModalComponents/view-components/Button";
-import { Badge, StatusBadge } from "../PanelAndModalComponents/view-components/Badge";
-import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
-import { useAuth } from "../../../hooks/useAuth";
-import { useReportes } from "../../../hooks/useReportes";
-import { useReporteDetalle } from "../../../hooks/useReporteDetalle";
-import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import type { ApiComentario } from "../../../types/api-types";
-import { categoryIcon, categoryLabel } from "../../../types/categories";
-import { folio, formatDateTime, pinOfficialFirst } from "../../../types/reportFormat";
-import { isOfficialRole, rolLabel } from "../../../types/users";
+import DetailHero from "../components/DetailHero";
+import IncidentAction from "../components/IncidentAction";
+import DetailRow from "../components/DetailRow";
+import CommentItem, { type CommentAuthor } from "../components/CommentItem";
+import Button from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/Button";
+import { Badge, StatusBadge } from "../components/Badge";
+import { SegmentedTabs, TabItem } from "../../components/CommonPanelAndModal/PanelAndModalComponents/view-components/SegmentedTabs";
+import { useAuth } from "../../sesion/useAuth";
+import { useReportes } from "../useReportes";
+import { useReporteDetalle } from "../useReporteDetalle";
+import { useSysMessage } from "../../hooks/contexts/SysMessageContext";
+import type { ApiComentario } from "../../types/api-types";
+import { categoryIcon, categoryLabel } from "../categories";
+import { folio, formatDateTime, pinOfficialFirst } from "../reportFormat";
+import { isOfficialRole, rolLabel } from "../../sesion/users";
 
 // Mismo límite que el backend para un comentario (crear_comentario_request.yaml).
 const COMMENT_MAX_LENGTH = 500;
