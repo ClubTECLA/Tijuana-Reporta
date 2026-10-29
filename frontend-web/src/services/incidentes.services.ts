@@ -1,6 +1,4 @@
-import {
-    apiUrl,
-} from '../types/global-variables'
+import { apiUrl } from '../types/global-variables'
 import type {
     ApiAgregarTagsRequest,
     ApiAgregarTagsResponse,
@@ -17,11 +15,9 @@ export async function listarIncidentes(
     query?: ApiListarIncidentesQuery,
 ): Promise<ApiListarIncidentesResponse> {
     const searchParams = new URLSearchParams()
-
     if (query?.incluir_inactivos !== undefined) {
         searchParams.set('incluir_inactivos', String(query.incluir_inactivos))
     }
-
     const queryString = searchParams.size > 0 ? `?${searchParams.toString()}` : ''
 
     return requestJson(`${apiUrl}/incidentes${queryString}`, {

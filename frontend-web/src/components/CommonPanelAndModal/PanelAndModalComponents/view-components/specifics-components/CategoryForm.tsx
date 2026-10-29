@@ -1,4 +1,4 @@
-import type { ApiIncidente } from "../../../../../types/api-types";
+import type { ApiCrearIncidenteRequest, ApiIncidente } from "../../../../../types/api-types";
 import type { HexColor, subsectionProps } from "../../../../../types/utils-types";
 import SubSection from "../../primitive-components/SubSection";
 import { FiPlus, FiUpload } from "react-icons/fi";
@@ -7,16 +7,19 @@ import { ColorSwatchSelector, CustomColorPickerButton, SwatchItem } from "../Col
 import { useState, useEffect, type ChangeEvent } from "react";
 import { CreateTagButton, Tag, TagPicker } from "../TagPicker";
 import Button from "../Button";
-import { useSysMessage } from "../../../../../hooks/contexts/SysMessageContext";
+import { useSysMessage, SysMessage } from "../../../../../hooks/contexts/SysMessageContext";
+import { crearIncidente } from "../../../../../services/incidentes.services";
 
 interface CategoryFormProp extends subsectionProps {
     category?: ApiIncidente | null
     onClose?: () => void
+    onCreateCategory?: () => void
 }
 
-export default function CategoryForm({format, debug, category, onClose } : CategoryFormProp) {
+export default function CategoryForm({format, debug, category, onClose, onCreateCategory } : CategoryFormProp) {
     const {showMessage} = useSysMessage();
     const isEdit = !!category;
+    const [ submitting, setSubmitting ] = useState(false);
     const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
         id: 0,
         nombre: "",
@@ -46,28 +49,110 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
         }
     }, [category])
 
-     const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
+    const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
+        
         setCategoryForEdit(prev => ({
             ...prev,
             [name]: name === 'radio'
                 ? value === '' ? null : Number(value)
                 : value,
         }))
-     }
+    }
+
+    const handleAddTag = (value: string, badge?: number) => {
+        const nombre = value.trim();
+        if(categoryForEdit.tags.some(tag => tag.nombre.toLowerCase() === nombre.toLowerCase())){
+            showMessage("Ya existe una etiqueta con ese nombre", {'color': 'red', 'showTime': 3000, 'type': 'float'});
+            return;
+        }
+        setCategoryForEdit((previousCategory) => ({
+            ...previousCategory,
+            tags: [
+                ...previousCategory.tags,
+                {
+                    id: Math.max(0, ...previousCategory.tags.map((tag) => tag.id)) + 1,
+                    nombre,
+                    peso: badge ?? 1
+                }
+            ]
+        }));
+    }
 
     const handleSubmitForm = () => {
         if(categoryForEdit.nombre === ""){
-            showMessage("Es necesario que ingreses un nombre para la categoria", {'color': 'red', 'showTime': 3000, 'type': 'float'});
+            showMessage("Es necesario que ingreses un nombre para la categoria", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
             return;
         }
-        //edit or created incident in db whith fetch
+        try{
 
-        showMessage(
-            isEdit ? "Categoria editada exitosamente!!" :
-            "Categoria de incidente creada exitosamente!!",
-             {'color': 'green', 'showTime': 3000, 'type': 'float'});
-        onClose?.()
+            const tags = categoryForEdit.tags.map(({ nombre, peso }) => ({
+                nombre: nombre.trim(),
+                peso
+            }));
+            const tagNames = tags.map(({ nombre }) => nombre.toLowerCase());
+            if (
+                tags.some(({ nombre }) => nombre === "") ||
+                new Set(tagNames).size !== tagNames.length
+            ) {
+                showMessage("Las etiquetas deben tener nombres únicos y no vacíos", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+                return;
+            }
+
+            const incidentRequest: ApiCrearIncidenteRequest = {
+                nombre: categoryForEdit.nombre,
+                etiqueta: categoryForEdit.etiqueta.length === 0 ? undefined : (categoryForEdit.etiqueta[0].toUpperCase() + categoryForEdit.etiqueta.slice(1).toLowerCase()),
+                tiempo_limite: categoryForEdit.tiempo_limite ?? undefined,
+                radio: categoryForEdit.radio ?? undefined,
+                esta_activo: isEdit ? categoryForEdit.esta_activo : true,
+                color: categoryForEdit.color,
+                tags
+            };
+
+            if(!isEdit){
+                setSubmitting(true);
+                crearIncidente(incidentRequest)
+                .then(() => {
+                    showMessage(
+                        isEdit ? "Categoria editada exitosamente!!" :
+                        "Categoria de incidente creada exitosamente!!",
+                        {'color': 'green', 'showTime': 3000, 'type': 'float'});
+                    onCreateCategory?.();
+                    onClose?.();
+                })
+                .catch((err) => {
+                    console.log('Error al crear incidente: ', err);
+                    showMessage(
+                        isEdit ? 
+                        "Error al editar la categoria" : 
+                        "Error al crear categoria", 
+                        {'color': 'red', 'showTime': 3000, 'type': 'inline'}
+                    );
+                })
+                .finally(() => {
+                    setSubmitting(false);
+                });
+                
+            }else{
+
+            }
+        }catch(err){
+            console.log('Error al crear incidente: ', err);
+            setSubmitting(false);
+            showMessage(
+                isEdit ? 
+                "Error al editar la categoria" : 
+                "Error al crear categoria", 
+                {'color': 'red', 'showTime': 3000, 'type': 'inline'}
+            );
+        }
+    }
+
+    const handleRemoveTag = (tagId: number) => {
+        setCategoryForEdit((previousCategory) => ({
+            ...previousCategory,
+            tags: previousCategory.tags.filter((tag) => tag.id !== tagId)
+        }));
     }
 
     return (
@@ -118,6 +203,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                     >Aparecera en la app al crearla</span>
                 </div>
             </div>
+            <SysMessage/>
             <ColorSwatchSelector
                 format='row'
                 onChangeColor={(color) => setCategoryForEdit({...categoryForEdit, color: color})}
@@ -155,17 +241,43 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
             <TagPicker
                 format={format}
                 title="Etiquetas sugeridas"
+                onCreateTag={handleAddTag}
             >
                 {categoryForEdit.tags.map((tag) => 
                     <Tag
                         key={tag.id}
-                        name={tag.nombre}
+                        value={tag.nombre}
                         badge={tag.peso}
                         color={categoryForEdit.color as HexColor}
+                        onChangeValue={(event) => {
+                            const nombre = event.currentTarget.value;
+                            setCategoryForEdit((previous) => ({
+                                ...previous,
+                                tags: previous.tags.map((previousTag) => (
+                                    previousTag.id === tag.id
+                                        ? { ...previousTag, nombre }
+                                        : previousTag
+                                ))
+                            }));
+                        }}
+                        onChangeBadge={(event) => {
+                            const peso = event.currentTarget.valueAsNumber;
+                            if (!Number.isInteger(peso) || peso < 1) return;
+
+                            setCategoryForEdit((previous) => ({
+                                ...previous,
+                                tags: previous.tags.map((previousTag) => (
+                                    previousTag.id === tag.id
+                                        ? { ...previousTag, peso }
+                                        : previousTag
+                                ))
+                            }));
+                        }}
+                        onRemove={() => handleRemoveTag(tag.id)}
                     />
                 )}
                 <CreateTagButton
-                    
+                        
                 />
             </TagPicker>
             <Input
@@ -190,6 +302,7 @@ export default function CategoryForm({format, debug, category, onClose } : Categ
                     variant="primary"
                     icon={isEdit ? null : <FiPlus/>}
                     title={isEdit ? "Aceptar" : "Crear Categoria"}
+                    disabled={submitting}
                     onClick={handleSubmitForm}
                 />
             </SubSection>
