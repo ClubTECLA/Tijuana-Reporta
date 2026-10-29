@@ -1,35 +1,19 @@
-import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "../useAuth";
 import { listarIncidentes } from "../../services/incidentes.services";
 import { listarReportes } from "../../services/reportes.services";
+import { publicarReporte, type NuevoReporte } from "../../services/publicarReporte";
 import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
-import { filterReportes, type ReportFilters, type ReportTab, type StatusFilter } from "../../types/reportFilters";
+import { filterReportes, type ReportFilters } from "../../types/reportFilters";
+import { ReportesContext, type ReportesContextType } from "./ReportesContext.ts";
 
-// Datos de incidentes compartidos por el panel "Incidentes" y la capa del mapa, para que haya una sola
-// descarga y ambos se actualicen a la vez (p. ej. al publicar un incidente nuevo).
+// Datos de incidentes compartidos por el panel "Incidentes", "Nuevo incidente" y la capa del mapa, para que haya
+// una sola descarga y todos se actualicen a la vez (p. ej. al publicar un incidente nuevo).
 
 // "En vivo": el backend no tiene websockets, así que se consulta cada cierto tiempo.
 const POLL_INTERVAL_MS = 30_000;
 // Tiempo que el pin de un incidente recién publicado se mantiene resaltado.
 const CREATED_HIGHLIGHT_MS = 4_000;
-
-interface ReportesContextType {
-    reportes: ApiReporteResumen[] | null
-    categories: Map<number, ApiIncidente>
-    error: string | null
-    /** Reportes que pasan los filtros del panel (pestaña y chips); los usan la lista y el mapa. */
-    filteredReportes: ApiReporteResumen[]
-    filters: ReportFilters
-    setTab: (tab: ReportTab) => void
-    toggleStatus: (status: StatusFilter) => void
-    toggleOfficial: () => void
-    refresh: () => Promise<void>
-    /** Id del incidente recién publicado, para animar su pin; se limpia solo. */
-    createdId: string | null
-    markCreated: (id: string) => void
-}
-
-export const ReportesContext = createContext<ReportesContextType | undefined>(undefined);
 
 export function ReportesProvider({ children }: { children: ReactNode }) {
     const { isAuthenticated } = useAuth();
@@ -73,6 +57,14 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             setError(err instanceof Error ? err.message : "No se pudieron cargar los incidentes.");
         }
     }, []);
+
+    const publicar = useCallback(async (nuevo: NuevoReporte) => {
+        const publicacion = await publicarReporte(nuevo);
+        // La lista y el mapa muestran el reporte nuevo, y su pin se anima.
+        setCreatedId(publicacion.reporte.id);
+        void refresh();
+        return publicacion;
+    }, [refresh]);
 
     // Carga al iniciar sesión, consulta periódica solo con la pestaña visible, y recarga al volver a ella.
     useEffect(() => {
@@ -137,9 +129,9 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         })),
         toggleOfficial: () => setFilters((prev) => ({ ...prev, onlyOfficial: !prev.onlyOfficial })),
         refresh,
+        publicar,
         createdId,
-        markCreated: setCreatedId,
-    }), [reportes, categories, error, filteredReportes, filters, refresh, createdId]);
+    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId]);
 
     return (
         <ReportesContext.Provider value={value}>

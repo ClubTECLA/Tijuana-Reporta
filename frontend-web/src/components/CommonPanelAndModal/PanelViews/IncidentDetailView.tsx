@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState, type SubmitEvent } from "react";
+import { createElement, useState, type SubmitEvent } from "react";
 import { LuBell, LuCheck, LuClock, LuDownload, LuImage, LuInfo, LuMapPin, LuPencil, LuSend, LuShare, LuTrash2, LuUser, LuUsers } from "react-icons/lu";
 import DetailHero from "../PanelAndModalComponents/view-components/DetailHero";
 import IncidentAction from "../PanelAndModalComponents/view-components/IncidentAction";
@@ -9,10 +9,9 @@ import { Badge, StatusBadge } from "../PanelAndModalComponents/view-components/B
 import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
 import { useAuth } from "../../../hooks/useAuth";
 import { useReportes } from "../../../hooks/useReportes";
+import { useReporteDetalle } from "../../../hooks/useReporteDetalle";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
-import { crearComentario, obtenerReporte } from "../../../services/reportes.services";
-import { direccionDe } from "../../../services/geocoding.services";
-import type { ApiComentario, ApiReporte } from "../../../types/api-types";
+import type { ApiComentario } from "../../../types/api-types";
 import { categoryIcon, categoryLabel } from "../../../types/categories";
 import { folio, formatDateTime, pinOfficialFirst } from "../../../types/reportFormat";
 import { isOfficialRole, rolLabel } from "../../../types/users";
@@ -34,33 +33,12 @@ interface IncidentDetailViewProps {
 export default function IncidentDetailView({ reporteId }: IncidentDetailViewProps) {
     const { user } = useAuth();
     const { reportes, categories } = useReportes();
+    const { reporte, error, address, comentar } = useReporteDetalle(reporteId);
     const { showMessage } = useSysMessage();
 
-    const [reporte, setReporte] = useState<ApiReporte | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [address, setAddress] = useState<string | null>(null);
     const [tab, setTab] = useState(0);
     const [comment, setComment] = useState("");
     const [sending, setSending] = useState(false);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        obtenerReporte(reporteId)
-            .then((data) => {
-                if (cancelled) return;
-                setReporte(data);
-                // La dirección es solo informativa: si Nominatim falla se muestran las coordenadas.
-                direccionDe(data.latitude, data.longitude)
-                    .then((found) => { if (!cancelled) setAddress(found) })
-                    .catch(() => undefined);
-            })
-            .catch((err: unknown) => {
-                if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar el incidente.");
-            });
-
-        return () => { cancelled = true };
-    }, [reporteId]);
 
     const base = reporte ?? reportes?.find((item) => item.id === reporteId);
     const category = base ? categories.get(base.incidente_id) : undefined;
@@ -74,8 +52,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
         setSending(true);
         try {
-            const created = await crearComentario(reporteId, text);
-            setReporte((prev) => prev && { ...prev, comentarios: [...prev.comentarios, created] });
+            await comentar(text);
             setComment("");
         } catch (err) {
             showMessage(err instanceof Error ? err.message : "No se pudo publicar el comentario.", { color: "red", type: "float", title: "Comentario" });
