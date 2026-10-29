@@ -65,7 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         const data = await apiRequest<AuthResponseFor<T>>(`/auth/${endpoint}`, { method: 'POST', json: body, auth: false })
         sessionToken.set(data.access_token)
-        await loadUser()
+        try {
+            await loadUser()
+        } catch (error) {
+            // Sin /auth/me no hay usuario y el login falla entero: no debe quedar un token que, al recargar,
+            // restaure una sesión que el usuario no vio abrirse. (Restaurar al recargar sí lo conserva: ver arriba.)
+            if (sessionToken.get() === data.access_token) sessionToken.clear()
+            throw error
+        }
     }
 
     const login = (email: string, password: string) =>
