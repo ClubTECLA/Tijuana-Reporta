@@ -58,7 +58,8 @@ export function useLocationPicker() {
             .setLngLat(center)
             .addTo(map);
         markerRef.current = marker;
-        lookupAddress(center.lat, center.lng);
+        // También la posición: si el mapa no existía al montar, el estado inicial quedó en null.
+        placeAt(center.lat, center.lng);
 
         const handleDragEnd = () => {
             const { lat, lng } = marker.getLngLat();
