@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { LuMapPin, LuPlus, LuSend } from "react-icons/lu";
@@ -11,10 +11,7 @@ import { useMap } from "../../../hooks/useMap";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { useReportes } from "../../../hooks/useReportes";
-import { listarIncidentes } from "../../../services/incidentes.services";
-import { cambiarEstadoReporte, crearComentario, crearReporte } from "../../../services/reportes.services";
 import { buscarDireccion, direccionDe } from "../../../services/geocoding.services";
-import type { ApiIncidente } from "../../../types/api-types";
 
 // Tarjetas visibles antes de "Ver las N categorías activas" (Figma: 2 filas de 3).
 const VISIBLE_CATEGORIES = 6;
@@ -33,16 +30,21 @@ function restartLookup(ref: { current: AbortController | null }) {
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
-// "21. Incidente - NuevoIncidente" del Figma. Crea un reporte (POST /reportes) con la categoría
-// y la ubicación del marcador; la descripción se guarda como su primer comentario.
+// "21. Incidente - NuevoIncidente" del Figma. Publica un reporte con la categoría, la ubicación del marcador y la
+// descripción; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
 // Etiquetas, fotos y borrador esperan soporte del backend.
 function NewIncidentForm() {
     const { map } = useMap();
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
-    const { refresh, markCreated } = useReportes();
+    const { categories: allCategories, categoriesLoaded, error: loadError, refresh, publicar } = useReportes();
 
-    const [categories, setCategories] = useState<ApiIncidente[] | null>(null);
+    // Las categorías salen del contexto (una sola descarga); aquí solo las activas. null hasta que llegan, sin
+    // depender de los reportes: si la lista de reportes falla, se puede publicar igual.
+    const categories = useMemo(
+        () => categoriesLoaded ? [...allCategories.values()].filter((category) => category.esta_activo) : null,
+        [categoriesLoaded, allCategories],
+    );
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);
     const [position, setPosition] = useState<Position | null>(() => {
@@ -64,24 +66,11 @@ function NewIncidentForm() {
     const selectedCategory = categories?.find((c) => c.id === categoryId);
     const visibleCategories = showAllCategories ? categories : categories?.slice(0, VISIBLE_CATEGORIES);
 
+    // Al abrir el formulario se recargan los datos compartidos: una categoría recién creada en Ajustes debe aparecer
+    // sin esperar al siguiente sondeo.
     useEffect(() => {
-        let cancelled = false;
-
-        listarIncidentes()
-            .then((activeCategories) => {
-                if (!cancelled) setCategories(activeCategories);
-            })
-            .catch((error: unknown) => {
-                if (cancelled) return;
-                setCategories([]);
-                showMessage(
-                    error instanceof Error ? error.message : "No se pudieron cargar las categorías.",
-                    { color: "red", type: "float", title: "Categorías" },
-                );
-            });
-
-        return () => { cancelled = true };
-    }, [showMessage]);
+        void refresh();
+    }, [refresh]);
 
     // Marcador arrastrable: se mueve arrastrándolo o haciendo clic en el mapa, y se quita al cerrar el panel.
     useEffect(() => {
@@ -171,35 +160,20 @@ function NewIncidentForm() {
 
         setPublishing(true);
         try {
-            const created = await crearReporte({
-                incidente_id: categoryId,
+            const { pendientes } = await publicar({
+                categoriaId: categoryId,
                 latitude: position.latitude,
                 longitude: position.longitude,
+                descripcion: description,
             });
-            const descriptionText = description.trim();
-            let descriptionSaved = true;
-            if (descriptionText) {
-                // shortcut: dos llamadas no atómicas; pasar la descripción en crearReporte cuando el backend acepte "comentario".
-                // Si falla, el reporte ya existe: no se reintenta la publicación para no duplicarlo.
-                descriptionSaved = await crearComentario(created.id, descriptionText).then(() => true, () => false);
-            }
-            // shortcut: PRUEBA. Los incidentes creados desde el web nacen verificados con una segunda llamada (solo admin).
-            // Pasar estado y es_oficial en crearReporte cuando el backend los acepte (validando el rol); hoy es_oficial
-            // no se puede activar desde ningún endpoint, así que el incidente queda verificado pero no oficial.
-            const verified = await cambiarEstadoReporte(created.id, "Verificado").then(() => true, () => false);
-
-            const pending = [!descriptionSaved && "la descripción no se pudo guardar", !verified && "no se pudo marcar como verificado"].filter(Boolean);
-            if (pending.length) {
+            if (pendientes.length) {
                 showMessage(
-                    `El incidente se publicó, pero ${pending.join(" y ")}.`,
+                    `El incidente se publicó, pero ${pendientes.join(" y ")}.`,
                     { color: "yellow", type: "float", title: "Publicado con avisos" },
                 );
             } else {
                 showMessage("El incidente ya aparece en la app.", { color: "green", type: "float", title: "Incidente publicado" });
             }
-            // Recarga los datos compartidos: la lista y el mapa muestran el incidente nuevo, y su pin se anima.
-            markCreated(created.id);
-            void refresh();
             // Vuelve a la lista sin dejar este formulario en el historial.
             // Tras publicar, la lista reemplaza el formulario: "atrás" no debe reabrir el formulario enviado.
             openPanel("Incidentes", undefined, { replace: true });
@@ -222,7 +196,7 @@ function NewIncidentForm() {
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
 
-                {!categories && <span className={pendingNoteStyle}>Cargando categorías…</span>}
+                {!categories && <span className={pendingNoteStyle}>{loadError ?? "Cargando categorías…"}</span>}
                 {categories?.length === 0 && <span className={pendingNoteStyle}>No hay categorías activas.</span>}
                 {!!visibleCategories?.length &&
                     <div className="grid grid-cols-3 gap-2.5">

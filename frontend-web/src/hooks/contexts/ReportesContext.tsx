@@ -1,47 +1,35 @@
-import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "../useAuth";
 import { listarIncidentes } from "../../services/incidentes.services";
 import { listarReportes } from "../../services/reportes.services";
+import { publicarReporte, type NuevoReporte } from "../../services/publicarReporte";
 import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
-import { filterReportes, type ReportFilters, type ReportTab, type StatusFilter } from "../../types/reportFilters";
+import { filterReportes, type ReportFilters } from "../../types/reportFilters";
+import { ReportesContext, type ReportesContextType } from "./ReportesContext.ts";
 
-// Datos de incidentes compartidos por el panel "Incidentes" y la capa del mapa, para que haya una sola
-// descarga y ambos se actualicen a la vez (p. ej. al publicar un incidente nuevo).
+// Datos de incidentes compartidos por el panel "Incidentes", "Nuevo incidente" y la capa del mapa, para que haya
+// una sola descarga y todos se actualicen a la vez (p. ej. al publicar un incidente nuevo).
 
 // "En vivo": el backend no tiene websockets, así que se consulta cada cierto tiempo.
 const POLL_INTERVAL_MS = 30_000;
 // Tiempo que el pin de un incidente recién publicado se mantiene resaltado.
 const CREATED_HIGHLIGHT_MS = 4_000;
-
-interface ReportesContextType {
-    reportes: ApiReporteResumen[] | null
-    categories: Map<number, ApiIncidente>
-    error: string | null
-    /** Reportes que pasan los filtros del panel (pestaña y chips); los usan la lista y el mapa. */
-    filteredReportes: ApiReporteResumen[]
-    filters: ReportFilters
-    setTab: (tab: ReportTab) => void
-    toggleStatus: (status: StatusFilter) => void
-    toggleOfficial: () => void
-    refresh: () => Promise<void>
-    /** Id del incidente recién publicado, para animar su pin; se limpia solo. */
-    createdId: string | null
-    markCreated: (id: string) => void
-}
-
-export const ReportesContext = createContext<ReportesContextType | undefined>(undefined);
+// Mientras no llegan las categorías se expone un Map vacío y estable (la capa del mapa depende de su identidad).
+const NO_CATEGORIES = new Map<number, ApiIncidente>();
 
 export function ReportesProvider({ children }: { children: ReactNode }) {
     const { isAuthenticated } = useAuth();
 
     const [reportes, setReportes] = useState<ApiReporteResumen[] | null>(null);
-    const [categories, setCategories] = useState<Map<number, ApiIncidente>>(new Map());
+    // null hasta que llegan por primera vez.
+    const [categories, setCategories] = useState<Map<number, ApiIncidente> | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [filters, setFilters] = useState<ReportFilters>({ tab: "activos", statusFilters: [], onlyOfficial: false });
     const [createdId, setCreatedId] = useState<string | null>(null);
 
-    // Firma de la última respuesta: si no cambió, no se toca el estado y ni la lista ni el mapa se repintan.
-    const lastSignatureRef = useRef("");
+    // Firma de la última respuesta de cada lista: si no cambió, no se toca el estado y ni la lista ni el mapa se repintan.
+    const reportesSignatureRef = useRef("");
+    const categoriesSignatureRef = useRef("");
     // Sesión a la que pertenece cada petición: al cerrar sesión se incrementa y se descartan las respuestas
     // que lleguen después, para no restaurar los datos del usuario anterior.
     const sessionRef = useRef(0);
@@ -53,26 +41,43 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         const session = sessionRef.current;
         const request = ++requestRef.current;
         const isCurrent = () => session === sessionRef.current && request === requestRef.current;
-        try {
-            const [reportList, categoryList] = await Promise.all([
-                listarReportes(),
-                // También las inactivas: puede haber reportes de una categoría que ya se desactivó.
-                listarIncidentes({ incluir_inactivos: true }),
-            ]);
-            if (!isCurrent()) return;
-            setError(null);
+        const [reportResult, categoryResult] = await Promise.allSettled([
+            listarReportes(),
+            // También las inactivas: puede haber reportes de una categoría que ya se desactivó.
+            listarIncidentes({ incluir_inactivos: true }),
+        ]);
+        if (!isCurrent()) return;
 
-            const signature = JSON.stringify([reportList, categoryList]);
-            if (signature === lastSignatureRef.current) return;
-            lastSignatureRef.current = signature;
-
-            setReportes(reportList);
-            setCategories(new Map(categoryList.map((category) => [category.id, category])));
-        } catch (err) {
-            if (!isCurrent()) return;
-            setError(err instanceof Error ? err.message : "No se pudieron cargar los incidentes.");
+        // Cada lista se aplica por separado: si fallan los reportes, las categorías siguen llegando (Nuevo incidente
+        // solo necesita esas), y al revés. Lo que falla conserva lo último que se cargó bien.
+        if (reportResult.status === "fulfilled") {
+            const signature = JSON.stringify(reportResult.value);
+            if (signature !== reportesSignatureRef.current) {
+                reportesSignatureRef.current = signature;
+                setReportes(reportResult.value);
+            }
         }
+        if (categoryResult.status === "fulfilled") {
+            const signature = JSON.stringify(categoryResult.value);
+            if (signature !== categoriesSignatureRef.current) {
+                categoriesSignatureRef.current = signature;
+                setCategories(new Map(categoryResult.value.map((category) => [category.id, category])));
+            }
+        }
+
+        const failed = [reportResult, categoryResult].find((result) => result.status === "rejected");
+        setError(failed
+            ? (failed.reason instanceof Error ? failed.reason.message : "No se pudieron cargar los incidentes.")
+            : null);
     }, []);
+
+    const publicar = useCallback(async (nuevo: NuevoReporte) => {
+        const publicacion = await publicarReporte(nuevo);
+        // La lista y el mapa muestran el reporte nuevo, y su pin se anima.
+        setCreatedId(publicacion.reporte.id);
+        void refresh();
+        return publicacion;
+    }, [refresh]);
 
     // Carga al iniciar sesión, consulta periódica solo con la pestaña visible, y recarga al volver a ella.
     useEffect(() => {
@@ -107,9 +112,10 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             clearInterval(intervalId);
             document.removeEventListener("visibilitychange", handleVisibility);
             // Al cerrar sesión no deben quedar datos del usuario anterior.
-            lastSignatureRef.current = "";
+            reportesSignatureRef.current = "";
+            categoriesSignatureRef.current = "";
             setReportes(null);
-            setCategories(new Map());
+            setCategories(null);
             setError(null);
         };
     }, [isAuthenticated, refresh]);
@@ -124,7 +130,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
 
     const value = useMemo<ReportesContextType>(() => ({
         reportes,
-        categories,
+        categories: categories ?? NO_CATEGORIES,
+        categoriesLoaded: categories !== null,
         error,
         filteredReportes,
         filters,
@@ -137,9 +144,9 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         })),
         toggleOfficial: () => setFilters((prev) => ({ ...prev, onlyOfficial: !prev.onlyOfficial })),
         refresh,
+        publicar,
         createdId,
-        markCreated: setCreatedId,
-    }), [reportes, categories, error, filteredReportes, filters, refresh, createdId]);
+    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId]);
 
     return (
         <ReportesContext.Provider value={value}>
