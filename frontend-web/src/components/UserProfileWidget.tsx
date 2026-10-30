@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { componentProps } from "../types/utils-types";
-import { useAuth } from "../hooks/contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { LuLogIn } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import { initials, rolLabel } from "../types/users";

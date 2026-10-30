@@ -7,7 +7,7 @@ import CommentItem, { type CommentAuthor } from "../PanelAndModalComponents/view
 import Button from "../PanelAndModalComponents/view-components/Button";
 import { Badge, StatusBadge } from "../PanelAndModalComponents/view-components/Badge";
 import { SegmentedTabs, TabItem } from "../PanelAndModalComponents/view-components/SegmentedTabs";
-import { useAuth } from "../../../hooks/contexts/AuthContext";
+import { useAuth } from "../../../hooks/useAuth";
 import { useReportes } from "../../../hooks/useReportes";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { crearComentario, obtenerReporte } from "../../../services/reportes.services";

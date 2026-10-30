@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type {
-    ApiErrorResponse,
     AuthApiUser,
     AuthContextUser,
     AuthEndpoint,
@@ -9,20 +8,9 @@ import type {
     AuthResponseFor,
     MeResponse,
 } from '../../types/api-types'
-import { apiUrl} from '../../types/global-variables'
-
-const accessTokenKey = 'access_token'
-
-interface AuthContextType {
-    user: AuthContextUser | null
-    isAuthenticated: boolean
-    isLoading: boolean
-    login: (email: string, password: string) => Promise<void>
-    register: (email: string, username: string, password: string) => Promise<void>
-    logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { apiRequest, onSessionExpired, sessionToken } from '../../services/http'
+import { useSysMessage } from './SysMessageContext'
+import { AuthContext } from './AuthContext.ts'
 
 function toUser(user: AuthApiUser): AuthContextUser {
     return {
@@ -38,72 +26,53 @@ function toUser(user: AuthApiUser): AuthContextUser {
     }
 }
 
-async function readError(response: Response): Promise<string> {
-    try {
-        const data = await response.json() as ApiErrorResponse
-        return data.message ?? 'No se pudo completar la solicitud.'
-    } catch {
-        return 'No se pudo completar la solicitud.'
-    }
-}
-
-/** Sesión del usuario: guarda el token, restaura la sesión al recargar y expone login, registro y logout. */
+/**
+ * Sesión del usuario: restaura la sesión al recargar y expone login, registro y logout. El token lo guarda el cliente
+ * de la API (services/http.ts); si el backend lo rechaza, el cliente cierra la sesión y aquí solo se avisa.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
+    const { showMessage } = useSysMessage()
     const [user, setUser] = useState<AuthContextUser | null>(null);
-    const [isLoading, setIsLoading] = useState(() => localStorage.getItem(accessTokenKey) !== null)
+    const [isLoading, setIsLoading] = useState(() => sessionToken.get() !== null)
 
-    function loadUser(): Promise<void> {
-        
-        const token = localStorage.getItem(accessTokenKey)
-        if (!token) return Promise.resolve()
-        
-        return fetch(`${apiUrl}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then(async (response) => {
-                if (!response.ok) {
-                    throw new Error(await readError(response))
-                }
-                return response.json() as Promise<MeResponse>
-            })
-            .then((currentUser) => {
-                if (localStorage.getItem(accessTokenKey) === token) {
-                    setUser(toUser(currentUser))
-                }
-            })
-            .catch((error: unknown) => {
-                if (localStorage.getItem(accessTokenKey) === token) {
-                    localStorage.removeItem(accessTokenKey)
-                    setUser(null)
-                }
-                throw error
-            })
-            .finally(() => setIsLoading(false))
+    async function loadUser(): Promise<void> {
+        const token = sessionToken.get()
+        if (!token) return
+
+        try {
+            const currentUser = await apiRequest<MeResponse>('/auth/me')
+            // Si mientras tanto se cerró o cambió la sesión, la respuesta ya no es de este usuario.
+            if (sessionToken.get() === token) setUser(toUser(currentUser))
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     useEffect(() => {
+        // Un token caducado responde 401 y lo resuelve onSessionExpired; ante otro error (p. ej. sin conexión)
+        // el token se conserva para no obligar a entrar de nuevo por un fallo pasajero.
         loadUser().catch((error: unknown) => {
             console.error('Failed to load current user:', error)
         });
     }, [])
 
+    useEffect(() => onSessionExpired(() => {
+        setUser(null)
+        showMessage('Tu sesión expiró. Vuelve a iniciar sesión para seguir.', { color: 'yellow', type: 'float', title: 'Sesión' })
+    }), [showMessage])
+
     const authenticate = async <T extends AuthEndpoint>(endpoint: T, body: AuthRequest<T>) => {
         setUser(null);
-        const response = await fetch(`${apiUrl}/auth/${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        })
-
-        if (!response.ok) {
-            throw Object.assign(new Error(await readError(response)), { status: response.status })
+        const data = await apiRequest<AuthResponseFor<T>>(`/auth/${endpoint}`, { method: 'POST', json: body, auth: false })
+        sessionToken.set(data.access_token)
+        try {
+            await loadUser()
+        } catch (error) {
+            // Sin /auth/me no hay usuario y el login falla entero: no debe quedar un token que, al recargar,
+            // restaure una sesión que el usuario no vio abrirse. (Restaurar al recargar sí lo conserva: ver arriba.)
+            if (sessionToken.get() === data.access_token) sessionToken.clear()
+            throw error
         }
-
-        const data = await response.json() as AuthResponseFor<T>
-
-        localStorage.setItem(accessTokenKey, data.access_token)
-        
-        await loadUser()
     }
 
     const login = (email: string, password: string) =>
@@ -114,14 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     /** Cierra la sesión en el backend y borra el token guardado, aunque la petición falle. */
     const logout = async () => {
-        try{
-            await fetch(`${apiUrl}/auth/logout`,{
-                method: 'POST',
-            })
-        }catch(error){
+        try {
+            // El backend no guarda el token (security: [] en el contrato): no hace falta enviarlo.
+            await apiRequest('/auth/logout', { method: 'POST', auth: false })
+        } catch (error) {
             console.error('Logout request failed:', error)
-        }finally{
-            localStorage.removeItem(accessTokenKey)
+        } finally {
+            sessionToken.clear()
             setUser(null)
         }
     }
@@ -131,12 +99,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             {children}
         </AuthContext.Provider>
     )
-}
-
-export const useAuth = () => {
-    const context = useContext(AuthContext)
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider')
-    }
-    return context
 }

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../useAuth";
 import { listarIncidentes } from "../../services/incidentes.services";
 import { listarReportes } from "../../services/reportes.services";
 import type { ApiIncidente, ApiReporteResumen } from "../../types/api-types";
