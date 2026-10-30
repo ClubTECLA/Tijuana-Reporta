@@ -37,12 +37,13 @@ function NewIncidentForm() {
     const { map } = useMap();
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
-    const { reportes, categories: allCategories, error: loadError, refresh, publicar } = useReportes();
+    const { categories: allCategories, categoriesLoaded, error: loadError, refresh, publicar } = useReportes();
 
-    // Las categorías salen del contexto (una sola descarga); aquí solo las activas. null mientras llega la primera carga.
+    // Las categorías salen del contexto (una sola descarga); aquí solo las activas. null hasta que llegan, sin
+    // depender de los reportes: si la lista de reportes falla, se puede publicar igual.
     const categories = useMemo(
-        () => reportes === null ? null : [...allCategories.values()].filter((category) => category.esta_activo),
-        [reportes, allCategories],
+        () => categoriesLoaded ? [...allCategories.values()].filter((category) => category.esta_activo) : null,
+        [categoriesLoaded, allCategories],
     );
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);

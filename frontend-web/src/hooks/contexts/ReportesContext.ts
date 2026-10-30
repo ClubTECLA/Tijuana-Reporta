@@ -10,6 +10,9 @@ export interface ReportesContextType {
     reportes: ApiReporteResumen[] | null
     /** Todas las categorías, también las inactivas (puede haber reportes de una que ya se desactivó). */
     categories: Map<number, ApiIncidente>
+    /** false hasta que llegan las categorías; no depende de los reportes (si fallan, las categorías siguen llegando). */
+    categoriesLoaded: boolean
+    /** Último fallo al cargar reportes o categorías; null si la última carga fue bien. */
     error: string | null
     /** Reportes que pasan los filtros del panel (pestaña y chips); los usan la lista y el mapa. */
     filteredReportes: ApiReporteResumen[]
