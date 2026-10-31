@@ -179,6 +179,8 @@ func (s *Store) CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) (
 
 // CambiarEstadoReporte actualiza el estado del reporte y registra el cambio
 // (estado anterior y nuevo) en el historial, en la misma transacción.
+// Devuelve domain.ErrTransicionInvalida si el reporte no puede pasar de su
+// estado actual al nuevo (ver domain.ValidarTransicion).
 func (s *Store) CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error) {
 	var reporte domain.Reporte
 
@@ -186,6 +188,12 @@ func (s *Store) CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEsta
 		anterior, err := q.GetEstadoReporteForUpdate(ctx, arg.ID)
 		if err != nil {
 			return err // pgx.ErrNoRows, lo mapea IsNotFound en el service
+		}
+
+		// Se valida con la fila bloqueada para que dos cambios simultáneos no
+		// partan los dos del mismo estado anterior.
+		if err := domain.ValidarTransicion(anterior, arg.Estado); err != nil {
+			return err
 		}
 
 		if reporte, err = q.UpdateEstadoReporte(ctx, domain.UpdateEstadoReporteParams{

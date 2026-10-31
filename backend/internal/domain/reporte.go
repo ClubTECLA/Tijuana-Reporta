@@ -1,6 +1,10 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"slices"
+
+	"github.com/google/uuid"
+)
 
 // Archivo escrito a mano: convive con el código generado por sqlc, que solo
 // reescribe models.go, querier.go, db.go y los *.sql.go.
@@ -24,16 +28,71 @@ func TituloReporte(etiquetaIncidente string, direccion *string) string {
 	return etiquetaIncidente + " en " + *direccion
 }
 
+// transiciones dice a qué estados puede pasar un reporte desde cada estado.
+// Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto) y
+// se pueden saltar pasos; Descartado se alcanza desde cualquier estado no
+// final. Resuelto y Descartado son finales: no tienen salida.
+var transiciones = map[Estado][]Estado{
+	EstadoPendiente:  {EstadoProbable, EstadoVerificado, EstadoResuelto, EstadoDescartado},
+	EstadoProbable:   {EstadoVerificado, EstadoResuelto, EstadoDescartado},
+	EstadoVerificado: {EstadoResuelto, EstadoDescartado},
+	EstadoResuelto:   {},
+	EstadoDescartado: {},
+}
+
+// EstadoValido reporta si e es uno de los valores del enum estado.
+func EstadoValido(e Estado) bool {
+	_, ok := transiciones[e]
+	return ok
+}
+
+// ValidarTransicion devuelve ErrTransicionInvalida si un reporte no puede
+// pasar del estado de al estado a, incluido quedarse en el mismo estado.
+func ValidarTransicion(de, a Estado) error {
+	if !slices.Contains(transiciones[de], a) {
+		return ErrTransicionInvalida
+	}
+	return nil
+}
+
 // ReporteDetalle agrupa el reporte con todo lo que depende de este.
 type ReporteDetalle struct {
-	Reporte           Reporte
-	IncidenteEtiqueta string
-	Latitude          float64
-	Longitude         float64
-	Comentarios       []ComentarioConAutor
-	Multimedia        []Multimedia
-	Tags              []ListTagsByReporteIdRow
-	Locations         []Location
+	Reporte     Reporte
+	Titulo      string
+	Latitude    float64
+	Longitude   float64
+	Comentarios []ComentarioConAutor
+	Multimedia  []Multimedia
+	Tags        []TagConteo
+	Locations   []Location
+}
+
+// TagConteo es un tag del reporte junto con cuántas veces se ha confirmado.
+type TagConteo struct {
+	ID     int
+	Nombre string
+	Count  int
+}
+
+// ReporteResumen es lo que se muestra de un reporte en una lista o en el
+// mapa: sin comentarios, multimedia ni tags.
+type ReporteResumen struct {
+	ID            uuid.UUID
+	IncidenteID   int
+	Titulo        string
+	Direccion     *string
+	EstadoActual  Estado
+	Avistamientos int
+	EsOficial     bool
+	Latitude      float64
+	Longitude     float64
+}
+
+// ReporteCercano es el resumen de un reporte junto con su distancia, en
+// metros, al punto de la búsqueda.
+type ReporteCercano struct {
+	ReporteResumen
+	DistanciaM float64
 }
 
 type NuevoReporte struct {
@@ -42,9 +101,6 @@ type NuevoReporte struct {
 	IncidenteID int
 	Latitude    float64
 	Longitude   float64
-	Comentarios []Comentario
-	Tags        []ListTagsByReporteIdRow
-	Locations   []Location
 	EsOficial   bool
 	Direccion   *string
 }

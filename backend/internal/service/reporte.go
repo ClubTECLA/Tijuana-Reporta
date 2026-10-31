@@ -37,11 +37,10 @@ func NewReporteService(store ReporteStore) *ReporteService {
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario. La foto o el video se suben después con MultimediaService.Subir.
 //
-// EsOficial lo puede pedir cualquier rol menos ciudadano. Se compara contra
-// ciudadano (y no contra una lista de roles permitidos) para que un rol nuevo
-// en la tabla roles pueda crear reportes oficiales sin tocar este código.
+// EsOficial solo lo puede pedir un rol que gestiona reportes
+// (domain.PuedeGestionar).
 func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error) {
-	if nuevo.EsOficial && (nuevo.Rol == "" || nuevo.Rol == domain.RolCiudadano) {
+	if nuevo.EsOficial && !domain.PuedeGestionar(nuevo.Rol) {
 		return domain.ReporteDetalle{}, domain.ErrOficialNoPermitido
 	}
 
@@ -110,9 +109,13 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 		return domain.ReporteDetalle{}, err
 	}
 
-	tags, err := s.store.ListTagsByReporteId(ctx, id)
+	tagRows, err := s.store.ListTagsByReporteId(ctx, id)
 	if err != nil {
 		return domain.ReporteDetalle{}, err
+	}
+	tags := make([]domain.TagConteo, 0, len(tagRows))
+	for _, t := range tagRows {
+		tags = append(tags, domain.TagConteo{ID: t.ID, Nombre: t.Nombre, Count: t.Count})
 	}
 
 	locations, err := s.store.ListLocationsByReporteId(ctx, id)
@@ -121,17 +124,34 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 	}
 
 	return domain.ReporteDetalle{
-		Reporte:           r.Reporte,
-		IncidenteEtiqueta: r.IncidenteEtiqueta,
-		Latitude:          punto.Latitude,
-		Longitude:         punto.Longitude,
-		Comentarios:       comentarios,
-		Multimedia:        multimedia,
-		Tags:              tags,
-		Locations:         locations}, nil
+		Reporte:     r.Reporte,
+		Titulo:      domain.TituloReporte(r.IncidenteEtiqueta, r.Reporte.Direccion),
+		Latitude:    punto.Latitude,
+		Longitude:   punto.Longitude,
+		Comentarios: comentarios,
+		Multimedia:  multimedia,
+		Tags:        tags,
+		Locations:   locations}, nil
 }
 
-func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error) {
+// toResumen convierte una fila de resumen en el modelo que devuelve el
+// servicio. Las consultas de resumen devuelven las mismas columnas, así que
+// sqlc genera structs idénticos y cualquiera se convierte a este.
+func toResumen(r domain.ListReportesResumenRow) domain.ReporteResumen {
+	return domain.ReporteResumen{
+		ID:            r.ID,
+		IncidenteID:   r.IncidenteID,
+		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Direccion:     r.Direccion,
+		EstadoActual:  r.EstadoActual,
+		Avistamientos: r.Avistamientos,
+		EsOficial:     r.EsOficial,
+		Latitude:      r.Latitude,
+		Longitude:     r.Longitude,
+	}
+}
+
+func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ReporteResumen, error) {
 	n := 0
 	for _, v := range []*float64{minLat, maxLat, minLng, maxLng} {
 		if v != nil {
@@ -146,22 +166,30 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 		return nil, domain.ErrAreaInvalida
 	}
 
-	return s.store.ListReportesResumen(ctx, domain.ListReportesResumenParams{
+	rows, err := s.store.ListReportesResumen(ctx, domain.ListReportesResumenParams{
 		MinLat: minLat,
 		MaxLat: maxLat,
 		MinLng: minLng,
 		MaxLng: maxLng,
 	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.ReporteResumen, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, toResumen(r))
+	}
+	return out, nil
 }
 
-func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ListReportesPorUbicacionRow, error) {
+func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error) {
 	// La consulta recibe los estados como text[] (ver reporte.sql). Se deja
 	// nil si no hay estados, porque nil es "sin filtro".
 	var estadosTexto []string
 	for _, e := range estados {
 		estadosTexto = append(estadosTexto, string(e))
 	}
-	return s.store.ListReportesPorUbicacion(ctx, domain.ListReportesPorUbicacionParams{
+	rows, err := s.store.ListReportesPorUbicacion(ctx, domain.ListReportesPorUbicacionParams{
 		Lng:          lng,
 		Lat:          lat,
 		Radio:        radio,
@@ -170,33 +198,70 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 		Desde:        desde,
 		Limite:       limite,
 	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.ReporteCercano, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, domain.ReporteCercano{
+			ReporteResumen: toResumen(domain.ListReportesResumenRow{
+				ID:                r.ID,
+				IncidenteID:       r.IncidenteID,
+				EstadoActual:      r.EstadoActual,
+				Avistamientos:     r.Avistamientos,
+				EsOficial:         r.EsOficial,
+				Latitude:          r.Latitude,
+				Longitude:         r.Longitude,
+				Direccion:         r.Direccion,
+				IncidenteEtiqueta: r.IncidenteEtiqueta,
+			}),
+			DistanciaM: r.DistanciaM,
+		})
+	}
+	return out, nil
 }
 
 // ListarPorUsuario devuelve los reportes que creó el usuario, del más reciente
 // al más antiguo, incluidos los históricos.
-func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ListReportesByUserIdRow, error) {
-	return s.store.ListReportesByUserId(ctx, domain.ListReportesByUserIdParams{
+func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error) {
+	rows, err := s.store.ListReportesByUserId(ctx, domain.ListReportesByUserIdParams{
 		UserID: userID,
 		Limite: limite,
 	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.ReporteResumen, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, toResumen(domain.ListReportesResumenRow(r)))
+	}
+	return out, nil
 }
 
-func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
-	a, err := s.store.AddAvistamientoById(ctx, id)
+// AgregarAvistamiento suma un avistamiento al reporte y lo devuelve ya
+// actualizado.
+func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error) {
+	_, err := s.store.AddAvistamientoById(ctx, id)
 	if domain.IsNotFound(err) {
-		return domain.AddAvistamientoByIdRow{}, domain.ErrReporteNotFound
+		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
 	}
 	if err != nil {
-		return domain.AddAvistamientoByIdRow{}, err
+		return domain.ReporteDetalle{}, err
 	}
-	return a, nil
+	return s.Obtener(ctx, id)
 }
 
 // CambiarEstado cambia el estado del reporte y lo registra en el historial a
-// nombre de userID. Lo puede hacer cualquier rol menos ciudadano.
+// nombre de userID. Solo lo puede hacer un rol que gestiona reportes
+// (domain.PuedeGestionar), y solo hacia un estado al que el reporte puede
+// pasar desde el actual (domain.ValidarTransicion, que la store aplica con
+// la fila bloqueada).
 func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
-	if rol == "" || rol == domain.RolCiudadano {
+	if !domain.PuedeGestionar(rol) {
 		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
+	}
+	if !domain.EstadoValido(estado) {
+		return domain.ReporteDetalle{}, domain.ErrEstadoInvalido
 	}
 
 	_, err := s.store.CambiarEstadoReporte(ctx, domain.CambiarEstadoReporteTxParams{
