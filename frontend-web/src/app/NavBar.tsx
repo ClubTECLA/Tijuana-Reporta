@@ -1,0 +1,117 @@
+import { Fragment, type ReactNode } from "react"
+import { useRouter } from "@/lib/useRouter"
+import { Link } from "react-router-dom"
+
+//import icons
+import { LuMap, LuSun, LuTent, LuTrendingUp, LuTriangleAlert, LuUsers } from "react-icons/lu"
+import type { NavItemsType } from "@/types/utils-types"
+import { useCommonPanel } from "@/panels/useCommonPanel"
+
+
+const navItemStyle = (isActive: boolean) => `
+    flex h-11 shrink-0 flex-row items-center gap-2
+    rounded-full px-4 text-sm
+    transition-colors duration-200
+    ${isActive ? 
+        'bg-ink-strong font-bold text-white' 
+        : 
+        'font-semibold text-icon hover:bg-subtle'
+    }
+`
+
+function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: string, cantNoti?: number }) {
+    return (
+        <>
+            <span className="text-lg">{icon}</span>
+            <span>{title}</span>
+            {!!cantNoti &&
+                <span className="rounded-full bg-report px-1.75 py-px text-2xs font-bold text-white">{cantNoti}</span>
+            }
+        </>
+    )
+}
+export default function NavBar() {
+    const { currentPanelView, openPanel } = useCommonPanel();
+
+    const router = useRouter();
+    const currentPath = router.pathname;
+    
+    const navItems: NavItemsType = [
+            {
+                icon: <LuMap/>,
+                title: "Resumen",
+                cantNoti: 12,
+                onClick: () => {}
+            },
+            {
+                icon: <LuTriangleAlert />,
+                title: "Incidentes",
+                panelView: 'Incidentes',
+                activeOnPanelViews: ['Nuevo Incidente', 'Detalle Incidente']
+            },
+            {
+                icon: <LuTent />,
+                title: "Refugios",
+                onClick: () => {}
+            },
+            {
+                icon: <LuTrendingUp />,
+                title: "Riesgo",
+                onClick: () => {}
+            },
+            {
+                icon: <LuUsers />,
+                title: "Usuarios",
+                onClick: () => {}
+            },
+            {
+                icon: <LuSun/>,
+                title: "Ajustes",
+                panelView: 'Ajustes'
+            }
+        ]
+
+    return(
+        <section 
+            className="
+                mx-auto flex h-14 w-fit flex-row items-center gap-0.5 p-1
+                rounded-full border border-glass-line bg-white
+                font-['Plus_Jakarta_Sans',sans-serif]
+                shadow-soft
+            "
+        >
+                {navItems.map((item, idx) => {
+                const panelView = item.panelView
+                const onClick = panelView ? () => openPanel(panelView) : item.onClick
+                // Las secciones que abren un panel se marcan mientras su panel está abierto; las demás, por la ruta.
+                const isActive = panelView
+                    ? currentPanelView === panelView || (!!currentPanelView && !!item.activeOnPanelViews?.includes(currentPanelView))
+                    : currentPath === item.destinationPath
+
+                return (
+                <Fragment key={idx}>
+                    {item.destinationPath && !onClick &&
+                        <Link
+                            className={navItemStyle(isActive)}
+                            to={item.destinationPath}
+                            aria-current={isActive ? 'page' : undefined}
+                        >
+                            <NavItemContent {...item} />
+                        </Link>
+                    }
+                    {!item.destinationPath && onClick &&
+                        <button
+                            type="button"
+                            className={navItemStyle(isActive)}
+                            onClick={onClick}
+                            aria-pressed={isActive}
+                        >
+                            <NavItemContent {...item} />
+                        </button>
+                    }
+                </Fragment>
+                )
+            })}
+        </section>
+    )
+}
