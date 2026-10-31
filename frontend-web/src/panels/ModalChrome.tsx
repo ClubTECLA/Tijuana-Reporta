@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { modalRegistry } from "./modalRegistry";
 import type { ModalViewKey, ModalViewProps } from "./modalTypes";
-import useModals from "../hooks/useModals";
+import useModals from "./useModals";
 
 function renderModal<K extends ModalViewKey>(view: K, props: ModalViewProps<K>) {
     const ModalView = modalRegistry[view] as ComponentType<object>;

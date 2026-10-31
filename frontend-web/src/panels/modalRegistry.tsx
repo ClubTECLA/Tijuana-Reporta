@@ -1,5 +1,5 @@
-import UserMenu from "../components/menus/UserMenu";
-import NotificationsMenu from "../components/menus/NotificationsMenu";
+import UserMenu from "@/features/perfil/views/UserMenu";
+import NotificationsMenu from "@/features/notificaciones/views/NotificationsMenu";
 
 // Se guardan componentes para que ModalChrome los monte con las props de cada apertura.
 export const modalRegistry = {

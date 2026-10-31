@@ -1,11 +1,11 @@
 import type { ComponentType } from "react";
-import UserProfileView from "../components/CommonPanelAndModal/PanelViews/UserProfileView";
-import HelpAndGuidesView from "../components/CommonPanelAndModal/PanelViews/HelpAndGuidesView";
-import NotificationsView from "../components/CommonPanelAndModal/PanelViews/NotificationsView";
-import SettingView from "../components/CommonPanelAndModal/PanelViews/SettingsView";
-import NewIncidentView from "../components/CommonPanelAndModal/PanelViews/NewIncidentView";
-import IncidentsView from "../components/CommonPanelAndModal/PanelViews/IncidentsView";
-import IncidentDetailView from "../components/CommonPanelAndModal/PanelViews/IncidentDetailView";
+import UserProfileView from "@/features/perfil/views/UserProfileView";
+import HelpAndGuidesView from "@/features/ayuda/views/HelpAndGuidesView";
+import NotificationsView from "@/features/notificaciones/views/NotificationsView";
+import SettingView from "@/features/ajustes/views/SettingsView";
+import NewIncidentView from "@/features/reportes/views/NewIncidentView";
+import IncidentsView from "@/features/reportes/views/IncidentsView";
+import IncidentDetailView from "@/features/reportes/views/IncidentDetailView";
 import type { PanelViewKey, PanelViewPropsMap } from "./panelTypes";
 
 // Punto de composición visual: los tipos y el router no importan este registro.
