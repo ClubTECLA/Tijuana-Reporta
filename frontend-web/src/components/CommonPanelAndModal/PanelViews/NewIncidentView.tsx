@@ -1,31 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { LuMapPin, LuPlus, LuSend } from "react-icons/lu";
 import ColSection from "../PanelAndModalComponents/primitive-components/ColSection";
 import CategoryCard from "../PanelAndModalComponents/view-components/CategoryCard";
 import PhotoDropzone from "../PanelAndModalComponents/view-components/PhotoDropzone";
 import Button from "../PanelAndModalComponents/view-components/Button";
 import SearchBar from "../PanelAndModalComponents/view-components/SearchBar";
-import { useMap } from "../../../hooks/useMap";
 import { useCommonPanel } from "../../../hooks/useCommonPanel";
 import { useSysMessage } from "../../../hooks/contexts/SysMessageContext";
 import { useReportes } from "../../../hooks/useReportes";
-import { buscarDireccion, direccionDe } from "../../../services/geocoding.services";
+import { useLocationPicker } from "../../../hooks/useLocationPicker";
 
 // Tarjetas visibles antes de "Ver las N categorías activas" (Figma: 2 filas de 3).
 const VISIBLE_CATEGORIES = 6;
 // Límite del backend para un comentario (crear_comentario_request.yaml).
 const DESCRIPTION_MAX_LENGTH = 500;
-
-type Position = { latitude: number; longitude: number };
-
-// Cancela la búsqueda de dirección anterior y devuelve la señal de la nueva.
-function restartLookup(ref: { current: AbortController | null }) {
-    ref.current?.abort();
-    ref.current = new AbortController();
-    return ref.current.signal;
-}
 
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
@@ -34,7 +23,6 @@ const pendingNoteStyle = "text-xs text-ink-muted";
 // descripción; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
 // Etiquetas, fotos y borrador esperan soporte del backend.
 function NewIncidentForm() {
-    const { map } = useMap();
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
     const { categories: allCategories, categoriesLoaded, error: loadError, refresh, publicar } = useReportes();
@@ -47,21 +35,10 @@ function NewIncidentForm() {
     );
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);
-    const [position, setPosition] = useState<Position | null>(() => {
-        const center = map?.getCenter();
-        return center ? { latitude: center.lat, longitude: center.lng } : null;
-    });
-    const [address, setAddress] = useState("");
     const [description, setDescription] = useState("");
     const [publishing, setPublishing] = useState(false);
-
-    // El marcador es un elemento propio de MapLibre; su contenido se pinta con React mediante un portal.
-    const [markerElement] = useState(() => document.createElement("div"));
-    const markerRef = useRef<Marker | null>(null);
-    // Una sola búsqueda de dirección viva (inicial, al mover el marcador, al buscar): cada una, lo que escribe el
-    // usuario y cerrar el panel cancelan la anterior. Así una respuesta tardía no pisa la ubicación ni el texto, y lo
-    // cancelado sale de la cola de Nominatim en vez de retrasar la búsqueda actual.
-    const lookupRef = useRef<AbortController | null>(null);
+    // Marcador, posición y dirección: el hook se ocupa de MapLibre y Nominatim; aquí solo se pinta el marcador.
+    const { markerElement, position, address, editAddress, search } = useLocationPicker();
 
     const selectedCategory = categories?.find((c) => c.id === categoryId);
     const visibleCategories = showAllCategories ? categories : categories?.slice(0, VISIBLE_CATEGORIES);
@@ -72,80 +49,14 @@ function NewIncidentForm() {
         void refresh();
     }, [refresh]);
 
-    // Marcador arrastrable: se mueve arrastrándolo o haciendo clic en el mapa, y se quita al cerrar el panel.
-    useEffect(() => {
-        if (!map) return;
-
-        const lookupAddress = (latitude: number, longitude: number) => {
-            const signal = restartLookup(lookupRef);
-            direccionDe(latitude, longitude, signal)
-                .then((found) => { if (!signal.aborted) setAddress(found ?? "") })
-                .catch(() => { if (!signal.aborted) setAddress("") });
-        };
-        const placeAt = (latitude: number, longitude: number) => {
-            setPosition({ latitude, longitude });
-            lookupAddress(latitude, longitude);
-        };
-
-        const center = map.getCenter();
-        const marker = new Marker({ element: markerElement, draggable: true, anchor: "center" })
-            .setLngLat(center)
-            .addTo(map);
-        markerRef.current = marker;
-        lookupAddress(center.lat, center.lng);
-
-        const handleDragEnd = () => {
-            const { lat, lng } = marker.getLngLat();
-            placeAt(lat, lng);
-        };
-        const handleMapClick = (e: MapMouseEvent) => {
-            marker.setLngLat(e.lngLat);
-            placeAt(e.lngLat.lat, e.lngLat.lng);
-        };
-
-        marker.on("dragend", handleDragEnd);
-        map.on("click", handleMapClick);
-        map.getCanvas().style.cursor = "crosshair";
-
-        return () => {
-            map.off("click", handleMapClick);
-            map.getCanvas().style.cursor = "";
-            marker.remove();
-            markerRef.current = null;
-            // Se quiere la búsqueda viva al cerrar (puede ser de handleSearchAddress), no la de cuando montó el efecto.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            lookupRef.current?.abort();
-        };
-    }, [map, markerElement]);
-
     const handleSearchAddress = async (query: string) => {
-        if (!query.trim()) return;
-
-        // Cancelada si alguien movió el marcador, volvió a escribir o cerró el formulario: así no mueve el mapa ni avisa tarde.
-        // Sin marcador (mapa aún sin cargar) tampoco se aplica: la posición publicada debe ser la del marcador.
-        const signal = restartLookup(lookupRef);
-        const isCurrent = () => !signal.aborted && markerRef.current !== null;
         try {
-            const found = await buscarDireccion(query, signal);
-            if (!isCurrent()) return;
-            if (!found) {
+            if (await search(query) === "not-found") {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
-                return;
             }
-            markerRef.current?.setLngLat([found.longitude, found.latitude]);
-            map?.flyTo({ center: [found.longitude, found.latitude], zoom: 16 });
-            setPosition({ latitude: found.latitude, longitude: found.longitude });
-            setAddress(found.address);
         } catch {
-            if (!isCurrent()) return;
             showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
         }
-    };
-
-    // Escribir en el buscador cancela la búsqueda pendiente: lo escrito no se sustituye por una respuesta vieja.
-    const handleAddressChange = (text: string) => {
-        lookupRef.current?.abort();
-        setAddress(text);
     };
 
     const handlePublish = async () => {
@@ -228,7 +139,7 @@ function NewIncidentForm() {
                         format="col"
                         inputId="new-incident-address"
                         value={address}
-                        onChange={handleAddressChange}
+                        onChange={editAddress}
                         onSubmit={handleSearchAddress}
                         placeholder="Busca una dirección o colonia"
                     />
