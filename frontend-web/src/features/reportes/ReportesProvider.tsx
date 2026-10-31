@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useAuth } from "@/features/sesion/useAuth";
 import { listarIncidentes } from "@/features/categorias/incidentes.services";
 import { listarReportes } from "./reportes.services";
-import { publicarReporte, type NuevoReporte } from "./publicarReporte";
+import { publicarReporte, subirFoto, type NuevoReporte } from "./publicarReporte";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import { filterReportes, type ReportFilters } from "./reportFilters";
 import { ReportesContext, type ReportesContextType } from "./ReportesContext.ts";
@@ -145,6 +145,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         toggleOfficial: () => setFilters((prev) => ({ ...prev, onlyOfficial: !prev.onlyOfficial })),
         refresh,
         publicar,
+        // La lista y el mapa no muestran fotos: reintentarla no necesita recargar nada.
+        reintentarFoto: (reporteId, foto) => subirFoto(reporteId, foto),
         createdId,
     }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId]);
 

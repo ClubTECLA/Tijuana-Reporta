@@ -17,6 +17,9 @@ import { apiRequest } from '@/lib/http'
 // El id va codificado: un valor con "/" o "?" no debe poder cambiar la ruta de la petición.
 const reportePath = (reporteId: string) => `/reportes/${encodeURIComponent(reporteId)}`
 
+// Una foto de 3 MiB en una conexión lenta tarda más que el límite general de lib/http.
+const UPLOAD_TIMEOUT_MS = 60_000
+
 // GET /reportes (todos los no históricos, en cualquier estado)
 export async function listarReportes(query?: ApiListarReportesQuery): Promise<ApiListarReportesResponse> {
     return apiRequest('/reportes', { query })
@@ -34,14 +37,14 @@ export async function obtenerReporte(reporteId: string): Promise<ApiObtenerRepor
     return apiRequest(reportePath(reporteId))
 }
 
-// POST /reportes
+// POST /reportes. Con es_oficial: true, el backend responde 403 si quien lo crea es ciudadano.
 export async function crearReporte(
     body: ApiCrearReporteRequest,
 ): Promise<ApiCrearReporteResponse> {
     return apiRequest('/reportes', { method: 'POST', json: body })
 }
 
-// PATCH /reportes/{reporteId}/estado (el backend solo lo permite a admin)
+// PATCH /reportes/{reporteId}/estado (cualquier rol menos ciudadano)
 export async function cambiarEstadoReporte(
     reporteId: string,
     estado: ApiEstadoReporte,
@@ -62,13 +65,17 @@ export async function agregarAvistamiento(reporteId: string): Promise<ApiAgregar
     return apiRequest(`${reportePath(reporteId)}/avistamientos`, { method: 'PATCH' })
 }
 
-// POST /reportes/{reporteId}/multimedia
+// POST /reportes/{reporteId}/multimedia: la foto del creador del reporte (una por usuario, JPEG ya reducido con prepararFoto).
 export async function subirMultimedia(
     reporteId: string,
-    file: File,
+    file: Blob,
 ): Promise<ApiSubirMultimediaResponse> {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file, 'foto.jpg')
 
-    return apiRequest(`${reportePath(reporteId)}/multimedia`, { method: 'POST', body: formData })
+    return apiRequest(`${reportePath(reporteId)}/multimedia`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+    })
 }
