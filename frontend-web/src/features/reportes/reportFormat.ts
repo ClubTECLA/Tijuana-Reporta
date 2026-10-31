@@ -7,6 +7,11 @@ export function folio(id: string) {
     return `INC-${hash + 1000}`;
 }
 
+/** URL pública de una foto guardada: la sirve nginx fuera de /api (en desarrollo, el proxy de Vite). */
+export function fotoUrl(path: string) {
+    return `/multimedia/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
 // Las fechas se muestran en la hora de Tijuana aunque el navegador tenga otra zona horaria.
 const TIME_ZONE = "America/Tijuana";
 const dateTimeFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE });

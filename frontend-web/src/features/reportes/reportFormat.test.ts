@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { folio, formatDateTime, pinOfficialFirst, timeAgo } from "./reportFormat";
+import { folio, formatDateTime, fotoUrl, pinOfficialFirst, timeAgo } from "./reportFormat";
 
 const now = Date.parse("2026-10-26T12:00:00Z");
 
@@ -7,6 +7,11 @@ describe("reportFormat", () => {
     it("folio es estable y tiene el formato de mobile", () => {
         expect(folio("abc")).toBe(folio("abc"));
         expect(folio("abc")).toMatch(/^INC-\d{4}$/);
+    });
+
+    it("fotoUrl apunta a /multimedia y codifica cada tramo sin tocar las barras", () => {
+        expect(fotoUrl("reportes/r1/ab12.jpg")).toBe("/multimedia/reportes/r1/ab12.jpg");
+        expect(fotoUrl("reportes/a b/x?.jpg")).toBe("/multimedia/reportes/a%20b/x%3F.jpg");
     });
 
     it("una fecha inválida no rompe: guion en la fecha y vacío en el tiempo relativo", () => {
