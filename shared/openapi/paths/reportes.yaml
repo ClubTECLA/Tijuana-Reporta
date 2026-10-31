@@ -151,6 +151,9 @@ cambiarEstadoReporte:
     description: >-
       Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no
       con scopes) para que un rol nuevo quede permitido sin tocar el contrato.
+      Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto,
+      pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no
+      final. Resuelto y Descartado son finales; cualquier otro cambio es 409.
     security:
     - bearerAuth: []
     parameters:
@@ -196,6 +199,12 @@ cambiarEstadoReporte:
 
       '404':
         description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: El reporte no puede pasar de su estado actual al pedido
         content:
           application/json:
             schema:

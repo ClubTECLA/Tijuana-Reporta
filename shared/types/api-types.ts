@@ -137,7 +137,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. */
+        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto, pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no final. Resuelto y Descartado son finales; cualquier otro cambio es 409. */
         patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
@@ -984,6 +984,15 @@ export interface operations {
             };
             /** @description Reporte no encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El reporte no puede pasar de su estado actual al pedido */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

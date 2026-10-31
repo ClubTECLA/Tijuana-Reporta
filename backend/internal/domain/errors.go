@@ -26,6 +26,7 @@ var (
 	ErrTagNameTaken        = errors.New("tag name taken")
 	ErrAreaIncompleta      = errors.New("area incompleta")
 	ErrAreaInvalida        = errors.New("area invalida")
+	ErrEstadoInvalido      = errors.New("estado invalido")
 	ErrTransicionInvalida  = errors.New("transicion invalida")
 	ErrOficialNoPermitido  = errors.New("rol no puede crear reportes oficiales")
 	ErrEstadoNoPermitido   = errors.New("rol no puede cambiar el estado de reportes")

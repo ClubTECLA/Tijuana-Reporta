@@ -440,6 +440,10 @@ func TestCambiarEstadoReporte(t *testing.T) {
 	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Resuelto {
 		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Resuelto)
 	}
+
+	// Resuelto es final: ni un admin lo reabre.
+	admin.expect(http.StatusConflict, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Pendiente"})
+	admin.expect(http.StatusBadRequest, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Arreglado"})
 }
 
 func TestListarReportes(t *testing.T) {

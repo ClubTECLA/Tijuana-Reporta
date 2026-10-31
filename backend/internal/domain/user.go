@@ -8,6 +8,15 @@ import "github.com/google/uuid"
 // RolCiudadano es el rol por defecto de los usuarios registrados (tabla roles).
 const RolCiudadano = "ciudadano"
 
+// PuedeGestionar reporta si el rol puede gestionar reportes: crearlos como
+// oficiales y cambiarles el estado. Puede cualquier rol menos ciudadano. Se
+// compara contra ciudadano (y no contra una lista de roles permitidos) para
+// que un rol nuevo en la tabla roles quede permitido sin tocar este código.
+// Un rol vacío (token anterior al claim "rol") cuenta como ciudadano.
+func PuedeGestionar(rol string) bool {
+	return rol != "" && rol != RolCiudadano
+}
+
 // UserWithRol es un usuario junto con el nombre de su rol, ya resuelto contra
 // la tabla roles.
 type UserWithRol struct {

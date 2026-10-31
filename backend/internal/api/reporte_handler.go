@@ -19,7 +19,7 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 		EstadoActual:  EstadoReporte(r.Reporte.EstadoActual),
 		Id:            r.Reporte.ID,
 		IncidenteId:   r.Reporte.IncidenteID,
-		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Reporte.Direccion),
+		Titulo:        r.Titulo,
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
 		Locations:     make([]Location, 0, len(r.Locations)),
@@ -98,11 +98,11 @@ func (s *Server) ObtenerReporte(ctx context.Context, request ObtenerReporteReque
 	return ObtenerReporte200JSONResponse(toReporte(r)), nil
 }
 
-func toReporteResumen(r domain.ListReportesResumenRow) ReporteResumen {
+func toReporteResumen(r domain.ReporteResumen) ReporteResumen {
 	return ReporteResumen{
 		Id:            r.ID,
 		IncidenteId:   r.IncidenteID,
-		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Titulo:        r.Titulo,
 		Direccion:     r.Direccion,
 		EstadoActual:  EstadoReporte(r.EstadoActual),
 		Avistamientos: r.Avistamientos,
@@ -136,7 +136,7 @@ func toEstado(e EstadoReporte) domain.Estado {
 	return domain.Estado(e)
 }
 
-func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
+func toReporteCercano(r domain.ReporteCercano) ReporteCercano {
 	return ReporteCercano{
 		Avistamientos: r.Avistamientos,
 		Direccion:     r.Direccion,
@@ -147,7 +147,7 @@ func toReporteCercano(r domain.ListReportesPorUbicacionRow) ReporteCercano {
 		IncidenteId:   r.IncidenteID,
 		Latitude:      r.Latitude,
 		Longitude:     r.Longitude,
-		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Titulo:        r.Titulo,
 	}
 }
 
@@ -199,31 +199,26 @@ func (s *Server) ListarMisReportes(ctx context.Context, request ListarMisReporte
 	}
 	res := make(ListarMisReportes200JSONResponse, 0, len(rows))
 	for _, row := range rows {
-		// Las dos consultas devuelven las mismas columnas, así que sqlc genera
-		// structs idénticos y se puede convertir uno en otro.
-		res = append(res, toReporteResumen(domain.ListReportesResumenRow(row)))
+		res = append(res, toReporteResumen(row))
 	}
 	return res, nil
 }
 
 func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error) {
-	if _, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId); err != nil {
+	r, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId)
+	if err != nil {
 		if errors.Is(err, domain.ErrReporteNotFound) {
 			return AgregarAvistamiento404JSONResponse{Message: "reporte no encontrado"}, nil
 		}
 		return nil, err
 	}
-
-	r, err := s.services.Reportes.Obtener(ctx, request.ReporteId)
-	if err != nil {
-		return nil, err
-	}
 	return AgregarAvistamiento200JSONResponse(toReporte(r)), nil
 }
 
-// CambiarEstadoReporte cambia el estado de un reporte a cualquier valor del
-// enum. El router no valida el body contra el contrato, así que un estado
-// fuera del enum (o ausente) se rechaza aquí con 400.
+// CambiarEstadoReporte cambia el estado de un reporte. Qué rol puede y a qué
+// estados se puede pasar lo decide el servicio; aquí solo se traducen sus
+// errores. El router no valida el body contra el contrato, así que un estado
+// fuera del enum (o ausente) llega al servicio y vuelve como 400.
 func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
@@ -236,8 +231,14 @@ func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstado
 		if errors.Is(err, domain.ErrEstadoNoPermitido) {
 			return CambiarEstadoReporte403JSONResponse{Message: "un ciudadano no puede cambiar el estado de un reporte"}, nil
 		}
+		if errors.Is(err, domain.ErrEstadoInvalido) {
+			return CambiarEstadoReporte400JSONResponse{Message: "estado invalido"}, nil
+		}
 		if errors.Is(err, domain.ErrReporteNotFound) {
 			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
+		}
+		if errors.Is(err, domain.ErrTransicionInvalida) {
+			return CambiarEstadoReporte409JSONResponse{Message: "el reporte no puede pasar de su estado actual al pedido"}, nil
 		}
 		return nil, err
 	}
