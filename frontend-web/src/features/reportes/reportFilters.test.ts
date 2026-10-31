@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterReportes } from "./reportFilters";
+import { activeFilterLabels, DEFAULT_FILTERS, filterReportes } from "./reportFilters";
 import type { ApiEstadoReporte, ApiReporteResumen } from "@/types/api-types";
 
 const reporte = (id: string, estado_actual: ApiEstadoReporte, es_oficial = false) =>
@@ -28,5 +28,17 @@ describe("filterReportes", () => {
 
     it("solo oficiales", () => {
         expect(ids(filterReportes(reportes, { tab: "todos", statusFilters: [], onlyOfficial: true }))).toEqual(["verificado"]);
+    });
+});
+
+describe("activeFilterLabels", () => {
+    it("con los filtros de entrada no hay nada que avisar", () => {
+        expect(activeFilterLabels(DEFAULT_FILTERS)).toEqual([]);
+    });
+
+    it("nombra la pestaña distinta de Activos, los chips de estado y Oficiales, en ese orden", () => {
+        expect(activeFilterLabels({ tab: "resueltos", statusFilters: ["Pendiente", "Verificado"], onlyOfficial: true }))
+            .toEqual(["Resueltos", "Pendiente", "Verificado", "Oficiales"]);
+        expect(activeFilterLabels({ ...DEFAULT_FILTERS, tab: "todos" })).toEqual(["Todos los estados"]);
     });
 });

@@ -20,6 +20,8 @@ export interface ReportesContextType {
     setTab: (tab: ReportTab) => void
     toggleStatus: (status: StatusFilter) => void
     toggleOfficial: () => void
+    /** Vuelve a DEFAULT_FILTERS (los activos, sin chips). */
+    resetFilters: () => void
     refresh: () => Promise<void>
     /** Publica un reporte (ver publicarReporte), resalta su pin y recarga la lista y el mapa. */
     publicar: (nuevo: NuevoReporte) => Promise<Publicacion>

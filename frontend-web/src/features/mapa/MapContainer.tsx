@@ -9,6 +9,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useMap } from './useMap';
 import ActionDock from '@/features/reportes/components/ActionDock';
+import ActiveFiltersBadge from '@/features/reportes/components/ActiveFiltersBadge';
 import IncidentsLayer from './IncidentsLayer';
 
 setWorkerUrl(workerUrl);
@@ -114,6 +115,7 @@ export default function MapContainer() {
       </div>
 
       <ActionDock />
+      <ActiveFiltersBadge />
       <IncidentsLayer />
     </div>
   );
