@@ -20,11 +20,11 @@ type ComentarioService interface {
 type ReporteService interface {
 	Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error)
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
-	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ListReportesResumenRow, error)
-	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
+	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ReporteResumen, error)
+	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error)
-	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ListReportesPorUbicacionRow, error)
-	ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ListReportesByUserIdRow, error)
+	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error)
+	ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error)
 }
 
 // AuthService devuelve, junto con el usuario, el access token ya firmado y

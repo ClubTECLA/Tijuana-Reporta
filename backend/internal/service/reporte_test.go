@@ -16,7 +16,7 @@ import (
 // fakeReporteStore implementa ReporteStore en memoria.
 // CreateReporte imita a la transacción real (reporte + location) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
-// realista.
+// realista. CambiarEstadoReporte valida la transición igual que la real.
 // Guarda los últimos parámetros de CreateReporte, ListReportesResumen,
 // ListReportesPorUbicacion y ListReportesByUserId para revisarlos.
 type fakeReporteStore struct {
@@ -65,6 +65,8 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateRep
 		IncidenteID: arg.Reporte.IncidenteID,
 		EsOficial:   arg.Reporte.EsOficial,
 		Direccion:   arg.Reporte.Direccion,
+		// El DEFAULT de la columna estado_actual.
+		EstadoActual: domain.EstadoPendiente,
 	}
 	f.byID[r.ID] = r
 	f.locations[r.ID] = []domain.Location{
@@ -149,6 +151,9 @@ func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.Ca
 	r, ok := f.byID[arg.ID]
 	if !ok {
 		return domain.Reporte{}, pgx.ErrNoRows
+	}
+	if err := domain.ValidarTransicion(r.EstadoActual, arg.Estado); err != nil {
+		return domain.Reporte{}, err
 	}
 	r.EstadoActual = arg.Estado
 	f.byID[arg.ID] = r
@@ -459,8 +464,8 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 		if err != nil {
 			t.Fatalf("AgregarAvistamiento() error = %v", err)
 		}
-		if a.ID != id || a.Avistamientos != want {
-			t.Fatalf("AgregarAvistamiento() = %+v, want id=%v avistamientos=%d", a, id, want)
+		if a.Reporte.ID != id || a.Reporte.Avistamientos != want {
+			t.Fatalf("AgregarAvistamiento() = %+v, want id=%v avistamientos=%d", a.Reporte, id, want)
 		}
 	}
 }
@@ -608,5 +613,58 @@ func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
 	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), domain.EstadoVerificado)
 	if !errors.Is(err, domain.ErrReporteNotFound) {
 		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrReporteNotFound)
+	}
+}
+
+func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+	creado, err := svc.Crear(context.Background(), domain.NuevoReporte{
+		UserID: uuid.New(), Rol: domain.RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+	})
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	id := creado.Reporte.ID
+
+	if _, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, domain.EstadoResuelto); err != nil {
+		t.Fatalf("CambiarEstado(Resuelto) error = %v", err)
+	}
+
+	// Resuelto es final: no se puede reabrir.
+	_, err = svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, domain.EstadoPendiente)
+	if !errors.Is(err, domain.ErrTransicionInvalida) {
+		t.Fatalf("CambiarEstado(Pendiente) error = %v, want %v", err, domain.ErrTransicionInvalida)
+	}
+	if got := store.byID[id].EstadoActual; got != domain.EstadoResuelto {
+		t.Fatalf("estado = %q, want %q", got, domain.EstadoResuelto)
+	}
+}
+
+func TestReporteService_CambiarEstado_EstadoInvalido(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewReporteService(store)
+
+	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), domain.Estado("Arreglado"))
+	if !errors.Is(err, domain.ErrEstadoInvalido) {
+		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrEstadoInvalido)
+	}
+	if store.cambiarEstadoCalled {
+		t.Fatal("CambiarEstado() llegó a la store con un estado fuera del enum")
+	}
+}
+
+func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
+	store := newFakeReporteStore()
+	direccion := "Av. Revolución 1234"
+	store.delUsuario = []domain.ListReportesByUserIdRow{{ID: uuid.New(), IncidenteEtiqueta: "Socavón", Direccion: &direccion}}
+	svc := NewReporteService(store)
+
+	rows, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 10)
+	if err != nil {
+		t.Fatalf("ListarPorUsuario() error = %v", err)
+	}
+	if want := "Socavón en Av. Revolución 1234"; len(rows) != 1 || rows[0].Titulo != want {
+		t.Fatalf("ListarPorUsuario() = %+v, want titulo %q", rows, want)
 	}
 }
