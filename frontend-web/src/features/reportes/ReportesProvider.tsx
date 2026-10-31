@@ -26,6 +26,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
     const [createdId, setCreatedId] = useState<string | null>(null);
+    const [lastSync, setLastSync] = useState<number | null>(null);
 
     // Firma de la última respuesta de cada lista: si no cambió, no se toca el estado y ni la lista ni el mapa se repintan.
     const reportesSignatureRef = useRef("");
@@ -51,6 +52,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         // Cada lista se aplica por separado: si fallan los reportes, las categorías siguen llegando (Nuevo incidente
         // solo necesita esas), y al revés. Lo que falla conserva lo último que se cargó bien.
         if (reportResult.status === "fulfilled") {
+            setLastSync(Date.now());
             const signature = JSON.stringify(reportResult.value);
             if (signature !== reportesSignatureRef.current) {
                 reportesSignatureRef.current = signature;
@@ -117,6 +119,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             setReportes(null);
             setCategories(null);
             setError(null);
+            setLastSync(null);
         };
     }, [isAuthenticated, refresh]);
 
@@ -149,7 +152,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         // La lista y el mapa no muestran fotos: reintentarla no necesita recargar nada.
         reintentarFoto: (reporteId, foto) => subirFoto(reporteId, foto),
         createdId,
-    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId]);
+        lastSync,
+    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId, lastSync]);
 
     return (
         <ReportesContext.Provider value={value}>

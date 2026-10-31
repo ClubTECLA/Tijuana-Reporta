@@ -29,6 +29,8 @@ export interface ReportesContextType {
     reintentarFoto: (reporteId: string, foto: Blob) => Promise<FalloFoto | null>
     /** Id del reporte recién publicado, para animar su pin; se limpia solo. */
     createdId: string | null
+    /** Momento (ms) de la última carga correcta de los reportes; null hasta la primera. Lo muestra el "En vivo" del dock. */
+    lastSync: number | null
 }
 
 export const ReportesContext = createContext<ReportesContextType | undefined>(undefined);
