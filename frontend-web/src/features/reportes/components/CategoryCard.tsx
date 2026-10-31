@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import type { ApiIncidente } from "@/types/api-types";
-import { categoryIcon, categoryLabel } from "@/features/categorias/categories";
+import { categoryIcon } from "@/features/categorias/categories";
 
 interface CategoryCardProps {
     incidente: ApiIncidente
@@ -10,8 +10,6 @@ interface CategoryCardProps {
 
 // "Tarjeta de categoría" del Figma: círculo con el color de la categoría y su nombre.
 export default function CategoryCard({ incidente, selected = false, onClick }: CategoryCardProps) {
-    const label = categoryLabel(incidente.nombre);
-
     return (
         <button
             type="button"
@@ -30,7 +28,7 @@ export default function CategoryCard({ incidente, selected = false, onClick }: C
                 {createElement(categoryIcon(incidente.nombre), { className: "size-5", "aria-hidden": true })}
             </span>
             <span className={`text-[11.6px] font-medium leading-3.5 ${selected ? 'text-white' : 'text-ink'}`}>
-                {label}
+                {incidente.etiqueta}
             </span>
         </button>
     );

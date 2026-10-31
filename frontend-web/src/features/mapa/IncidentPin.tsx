@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { folio } from "@/features/reportes/reportFormat";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
-import { categoryIcon, categoryLabel } from "@/features/categorias/categories";
+import { categoryIcon } from "@/features/categorias/categories";
 
 interface IncidentPinProps {
     reporte: ApiReporteResumen
@@ -16,7 +16,7 @@ interface IncidentPinProps {
 export default function IncidentPin({ reporte, incidente, isNew = false }: IncidentPinProps) {
     const color = incidente?.color ?? "#757575";
     const pending = reporte.estado_actual === "Pendiente";
-    const label = `${incidente ? categoryLabel(incidente.nombre) : "Incidente"}, ${reporte.estado_actual}, ${reporte.avistamientos} confirmaciones`;
+    const label = `${reporte.titulo}, ${reporte.estado_actual}, ${reporte.avistamientos} confirmaciones`;
 
     return (
         <span title={label} className="relative flex size-12 items-center justify-center">
