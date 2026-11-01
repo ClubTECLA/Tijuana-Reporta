@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { folio, formatDateTime, fotoUrl, pinOfficialFirst, shortDate, timeAgo } from "./reportFormat";
+import { confirmaciones, folio, formatDateTime, fotoUrl, pinOfficialFirst, shortDate, timeAgo } from "./reportFormat";
 
 const now = Date.parse("2026-10-26T12:00:00Z");
 
@@ -7,6 +7,12 @@ describe("reportFormat", () => {
     it("folio es estable y tiene el formato de mobile", () => {
         expect(folio("abc")).toBe(folio("abc"));
         expect(folio("abc")).toMatch(/^INC-\d{4}$/);
+    });
+
+    it("confirmaciones en singular solo con una", () => {
+        expect(confirmaciones(0)).toBe("0 confirmaciones");
+        expect(confirmaciones(1)).toBe("1 confirmación");
+        expect(confirmaciones(2)).toBe("2 confirmaciones");
     });
 
     it("fotoUrl apunta a /multimedia y codifica cada tramo sin tocar las barras", () => {

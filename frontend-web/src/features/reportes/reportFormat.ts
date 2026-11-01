@@ -7,6 +7,11 @@ export function folio(id: string) {
     return `INC-${hash + 1000}`;
 }
 
+/** "1 confirmación", "3 confirmaciones". */
+export function confirmaciones(avistamientos: number) {
+    return `${avistamientos} ${avistamientos === 1 ? "confirmación" : "confirmaciones"}`;
+}
+
 /** URL pública de una foto guardada: la sirve nginx fuera de /api (en desarrollo, el proxy de Vite). */
 export function fotoUrl(path: string) {
     return `/multimedia/${path.split("/").map(encodeURIComponent).join("/")}`;
