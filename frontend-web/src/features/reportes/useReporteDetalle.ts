@@ -32,7 +32,16 @@ export function useReporteDetalle(reporteId: string) {
 
     /** Cambia el estado (solo roles oficiales); si falla, lanza el error para que la vista lo muestre. */
     const cambiarEstado = useCallback(async (estado: ApiEstadoReporte) => {
-        setReporte(await cambiarEstadoReporte(reporteId, estado));
+        try {
+            setReporte(await cambiarEstadoReporte(reporteId, estado));
+        } catch (err) {
+            if ((err as { status?: number } | null)?.status !== 409) throw err;
+            // 409: el estado ya no permite ese cambio, normalmente porque otra persona lo cambió mientras tanto.
+            // Se recarga para que el menú ofrezca solo los cambios válidos desde el estado real.
+            setReporte(await obtenerReporte(reporteId));
+            void refresh();
+            throw new Error("El estado de este incidente cambió mientras tanto. Ya se muestra el estado actual.", { cause: err });
+        }
         // La lista y el pin del mapa también muestran el estado.
         void refresh();
     }, [reporteId, refresh]);

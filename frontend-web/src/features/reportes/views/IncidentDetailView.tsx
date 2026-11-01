@@ -15,6 +15,7 @@ import type { ApiComentario, ApiEstadoReporte } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
 import { folio, formatDateTime, fotoUrl, pinOfficialFirst } from "@/features/reportes/reportFormat";
 import { isOfficialRole, rolLabel } from "@/features/sesion/users";
+import { esEstadoFinal, estadosSiguientes } from "@/features/reportes/estadoTransiciones";
 
 // Mismo límite que el backend para un comentario (crear_comentario_request.yaml).
 const COMMENT_MAX_LENGTH = 500;
@@ -23,8 +24,7 @@ const noteStyle = "py-6 text-center text-sm text-ink-muted";
 // Acciones del Figma que aún no tienen endpoint: se muestran deshabilitadas.
 const SOON = "Próximamente";
 const STATE_FORBIDDEN = "Solo los roles oficiales pueden cambiar el estado";
-// Estados que ofrece el botón "Estado"; Descartado tiene su propio botón.
-const STATE_OPTIONS: ApiEstadoReporte[] = ["Pendiente", "Probable", "Verificado", "Resuelto"];
+const stateFinal = (estado: ApiEstadoReporte) => `${estado} es un estado final: ya no se puede cambiar`;
 
 interface IncidentDetailViewProps {
     reporteId: string
@@ -43,6 +43,8 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const [sending, setSending] = useState(false);
     const [stateMenuOpen, setStateMenuOpen] = useState(false);
     const [changingState, setChangingState] = useState(false);
+    // Estado final (Resuelto o Descartado) pendiente de confirmar: después ya no se puede cambiar.
+    const [confirming, setConfirming] = useState<ApiEstadoReporte | null>(null);
 
     const base = reporte ?? reportes?.find((item) => item.id === reporteId);
     const category = base ? categories.get(base.incidente_id) : undefined;
@@ -51,6 +53,9 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const photo = reporte?.multimedia[0];
     // Misma regla que el backend (PATCH /reportes/{id}/estado): cualquier rol menos ciudadano.
     const canChangeState = isOfficialRole(user?.rol_name);
+    // Mismas transiciones que el backend: solo se ofrecen los cambios que va a aceptar.
+    const nextStates = reporte ? estadosSiguientes(reporte.estado_actual) : [];
+    const isFinal = !!reporte && esEstadoFinal(reporte.estado_actual);
 
     const handleChangeState = async (estado: ApiEstadoReporte) => {
         if (changingState) return;
@@ -62,7 +67,14 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
             showMessage(err instanceof Error ? err.message : "No se pudo cambiar el estado.", { color: "red", type: "float", title: "Estado" });
         } finally {
             setChangingState(false);
+            setConfirming(null);
         }
+    };
+
+    // Resuelto y Descartado no tienen vuelta atrás: se piden confirmar antes de enviarlos.
+    const requestState = (estado: ApiEstadoReporte) => {
+        if (esEstadoFinal(estado)) setConfirming(estado);
+        else void handleChangeState(estado);
     };
 
     const handleSendComment = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -140,9 +152,9 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         label="Estado"
                         tone="primary"
                         expanded={stateMenuOpen}
-                        onClick={() => setStateMenuOpen((open) => !open)}
-                        disabled={!reporte || !canChangeState}
-                        tooltip={canChangeState ? undefined : STATE_FORBIDDEN}
+                        onClick={() => { setConfirming(null); setStateMenuOpen((open) => !open) }}
+                        disabled={!reporte || !canChangeState || isFinal}
+                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined}
                     />
                     <IncidentAction icon={<LuPencil />} label="Editar" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuShare />} label="Compartir" disabled tooltip={SOON} />
@@ -151,19 +163,36 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         icon={<LuTrash2 />}
                         label="Descartar"
                         tone="danger"
-                        onClick={() => { void handleChangeState("Descartado") }}
-                        disabled={!reporte || !canChangeState || changingState || reporte.estado_actual === "Descartado"}
-                        tooltip={canChangeState ? "Marcar como descartado (se puede reabrir con Estado)" : STATE_FORBIDDEN}
+                        onClick={() => requestState("Descartado")}
+                        disabled={!reporte || !canChangeState || changingState || !nextStates.includes("Descartado")}
+                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)"}
                     />
                 </div>
-                {stateMenuOpen && reporte &&
+                {confirming
+                    ? <div role="group" aria-label="Confirmar cambio de estado" className="flex flex-col gap-2.5 rounded-2xl bg-subtle p-3">
+                        <p className="text-caption text-ink-secondary">
+                            ¿Marcar este incidente como <span className="font-semibold text-ink">{confirming}</span>? Es un estado final: después ya no se podrá cambiar.
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={changingState} />
+                            <Button
+                                size="sm"
+                                variant={confirming === "Descartado" ? "danger" : "primary"}
+                                title={`Marcar como ${confirming}`}
+                                onClick={() => { void handleChangeState(confirming) }}
+                                disabled={changingState}
+                            />
+                        </div>
+                    </div>
+                    : stateMenuOpen && reporte && !isFinal &&
                     <div role="group" aria-label="Cambiar estado" className="flex flex-wrap gap-2 rounded-2xl bg-subtle p-2.5">
-                        {STATE_OPTIONS.filter((estado) => estado !== reporte.estado_actual).map((estado) =>
+                        {/* Descartado tiene su propio botón. */}
+                        {nextStates.filter((estado) => estado !== "Descartado").map((estado) =>
                             <button
                                 key={estado}
                                 type="button"
                                 disabled={changingState}
-                                onClick={() => { void handleChangeState(estado) }}
+                                onClick={() => requestState(estado)}
                                 className="rounded-full border border-line bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-subtle disabled:cursor-wait disabled:opacity-60"
                             >
                                 {estado}
