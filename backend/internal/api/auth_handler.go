@@ -2,11 +2,11 @@ package api
 
 import (
 	"context"
-	"errors"
 	"time"
 	"unicode/utf8"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -32,9 +32,6 @@ func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (R
 
 	user, token, ttl, err := s.services.Auth.Register(ctx, string(request.Body.Email), username, password)
 	if err != nil {
-		if errors.Is(err, domain.ErrEmailTaken) {
-			return Register409JSONResponse{Message: "el email ya está registrado"}, nil
-		}
 		return nil, err
 	}
 
@@ -45,9 +42,6 @@ func (s *Server) Register(ctx context.Context, request RegisterRequestObject) (R
 func (s *Server) Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error) {
 	user, token, ttl, err := s.services.Auth.Login(ctx, string(request.Body.Email), request.Body.Password)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
-			return Login401JSONResponse{Message: "invalid credentials"}, nil
-		}
 		return nil, err
 	}
 
@@ -58,14 +52,11 @@ func (s *Server) Login(ctx context.Context, request LoginRequestObject) (LoginRe
 func (s *Server) Me(ctx context.Context, request MeRequestObject) (MeResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return nil, errors.New("userID not found in context")
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	user, err := s.services.Auth.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
-			return Me401JSONResponse{Message: "no autenticado"}, nil
-		}
 		return nil, err
 	}
 

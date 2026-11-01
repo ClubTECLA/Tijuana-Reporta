@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
@@ -39,7 +40,7 @@ func archivoDelMultipart(r *multipart.Reader) (*multipart.Part, error) {
 func (s *Server) SubirMultimedia(ctx context.Context, request SubirMultimediaRequestObject) (SubirMultimediaResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return nil, errors.New("userID not found in context")
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	archivo, err := archivoDelMultipart(request.Body)
@@ -52,22 +53,9 @@ func (s *Server) SubirMultimedia(ctx context.Context, request SubirMultimediaReq
 	defer archivo.Close()
 
 	m, err := s.services.Multimedia.Subir(ctx, request.ReporteId, userID, archivo)
-	switch {
-	case err == nil:
-		return SubirMultimedia201JSONResponse(toMultimedia(m)), nil
-	case errors.Is(err, domain.ErrReporteNotFound):
-		return SubirMultimedia404JSONResponse{Message: "reporte no encontrado"}, nil
-	case errors.Is(err, domain.ErrMultimediaYaExiste):
-		return SubirMultimedia409JSONResponse{Message: err.Error()}, nil
-	case errors.Is(err, domain.ErrArchivoInvalido):
-		return SubirMultimedia400JSONResponse{Message: err.Error()}, nil
-	case errors.Is(err, domain.ErrArchivoMuyGrande):
-		return SubirMultimedia413JSONResponse{Message: err.Error()}, nil
-	case errors.Is(err, domain.ErrImagenMuyGrande):
-		return SubirMultimedia422JSONResponse{Message: err.Error()}, nil
-	case errors.Is(err, domain.ErrAlmacenNoDisponible):
-		return SubirMultimedia503JSONResponse{Message: "almacenamiento no disponible, intenta más tarde"}, nil
-	default:
+	if err != nil {
 		return nil, err
 	}
+
+	return SubirMultimedia201JSONResponse(toMultimedia(m)), nil
 }

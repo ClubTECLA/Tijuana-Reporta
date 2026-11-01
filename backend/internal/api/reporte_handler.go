@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
@@ -52,7 +53,7 @@ func toReporte(r domain.ReporteDetalle) Reporte {
 func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestObject) (CrearReporteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return nil, errors.New("userID not found in context")
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	// Sin rol en el contexto (token anterior al claim "rol") se trata como
@@ -73,13 +74,11 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 	}
 	r, err := s.services.Reportes.Crear(ctx, nuevoReporte)
 	if err != nil {
-		if errors.Is(err, domain.ErrOficialNoPermitido) {
-			return CrearReporte403JSONResponse{Message: "un ciudadano no puede crear reportes oficiales"}, nil
-		}
 		if errors.Is(err, domain.ErrIncidenteNotFound) {
 			return CrearReporte400JSONResponse{Message: "incidente no encontrado"}, nil
 		}
 		return nil, err
+
 	}
 
 	return CrearReporte201JSONResponse(toReporte(r)), nil
@@ -89,9 +88,6 @@ func (s *Server) CrearReporte(ctx context.Context, request CrearReporteRequestOb
 func (s *Server) ObtenerReporte(ctx context.Context, request ObtenerReporteRequestObject) (ObtenerReporteResponseObject, error) {
 	r, err := s.services.Reportes.Obtener(ctx, request.ReporteId)
 	if err != nil {
-		if errors.Is(err, domain.ErrReporteNotFound) {
-			return ObtenerReporte404JSONResponse{Message: "reporte no encontrado"}, nil
-		}
 		return nil, err
 	}
 
@@ -117,12 +113,6 @@ func (s *Server) ListarReportes(ctx context.Context, request ListarReportesReque
 	p := request.Params
 	rows, err := s.services.Reportes.Listar(ctx, p.MinLat, p.MaxLat, p.MinLng, p.MaxLng)
 	if err != nil {
-		if errors.Is(err, domain.ErrAreaIncompleta) {
-			return ListarReportes400JSONResponse{Message: "area incompleta"}, nil
-		}
-		if errors.Is(err, domain.ErrAreaInvalida) {
-			return ListarReportes400JSONResponse{Message: "area invalida"}, nil
-		}
 		return nil, err
 	}
 	res := make(ListarReportes200JSONResponse, 0, len(rows))
@@ -185,7 +175,7 @@ func (s *Server) ListarReportesCercanos(ctx context.Context, request ListarRepor
 func (s *Server) ListarMisReportes(ctx context.Context, request ListarMisReportesRequestObject) (ListarMisReportesResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return nil, errors.New("userID not found in context")
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	limite := 200
@@ -207,9 +197,6 @@ func (s *Server) ListarMisReportes(ctx context.Context, request ListarMisReporte
 func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistamientoRequestObject) (AgregarAvistamientoResponseObject, error) {
 	r, err := s.services.Reportes.AgregarAvistamiento(ctx, request.ReporteId)
 	if err != nil {
-		if errors.Is(err, domain.ErrReporteNotFound) {
-			return AgregarAvistamiento404JSONResponse{Message: "reporte no encontrado"}, nil
-		}
 		return nil, err
 	}
 	return AgregarAvistamiento200JSONResponse(toReporte(r)), nil
@@ -222,24 +209,12 @@ func (s *Server) AgregarAvistamiento(ctx context.Context, request AgregarAvistam
 func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstadoReporteRequestObject) (CambiarEstadoReporteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return CambiarEstadoReporte500JSONResponse{Message: "usuario no encontrado"}, nil
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	rol, _ := middleware.RolFromContext(ctx)
 	r, err := s.services.Reportes.CambiarEstado(ctx, rol, userID, request.ReporteId, domain.Estado(request.Body.Estado))
 	if err != nil {
-		if errors.Is(err, domain.ErrEstadoNoPermitido) {
-			return CambiarEstadoReporte403JSONResponse{Message: "un ciudadano no puede cambiar el estado de un reporte"}, nil
-		}
-		if errors.Is(err, domain.ErrEstadoInvalido) {
-			return CambiarEstadoReporte400JSONResponse{Message: "estado invalido"}, nil
-		}
-		if errors.Is(err, domain.ErrReporteNotFound) {
-			return CambiarEstadoReporte404JSONResponse{Message: "reporte no encontrado"}, nil
-		}
-		if errors.Is(err, domain.ErrTransicionInvalida) {
-			return CambiarEstadoReporte409JSONResponse{Message: "el reporte no puede pasar de su estado actual al pedido"}, nil
-		}
 		return nil, err
 	}
 	return CambiarEstadoReporte200JSONResponse(toReporte(r)), nil

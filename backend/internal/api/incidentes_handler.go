@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
@@ -82,9 +82,6 @@ func (s *Server) ListarIncidentes(ctx context.Context, request ListarIncidentesR
 func (s *Server) ObtenerIncidente(ctx context.Context, request ObtenerIncidenteRequestObject) (ObtenerIncidenteResponseObject, error) {
 	d, err := s.services.Incidentes.Obtener(ctx, request.IncidenteId)
 	if err != nil {
-		if errors.Is(err, domain.ErrIncidenteNotFound) {
-			return ObtenerIncidente404JSONResponse{Message: "incidente no encontrado"}, nil
-		}
 		return nil, err
 	}
 
@@ -97,17 +94,11 @@ func (s *Server) ObtenerIncidente(ctx context.Context, request ObtenerIncidenteR
 func (s *Server) CrearIncidente(ctx context.Context, request CrearIncidenteRequestObject) (CrearIncidenteResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return CrearIncidente500JSONResponse{Message: "usuario no encontrado"}, nil
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	d, err := s.services.Incidentes.Crear(ctx, toNuevoIncidente(request.Body), userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrIncidenteInvalido) {
-			return CrearIncidente400JSONResponse{Message: err.Error()}, nil
-		}
-		if errors.Is(err, domain.ErrIncidenteNameTaken) {
-			return CrearIncidente409JSONResponse{Message: "ya existe un incidente con ese nombre"}, nil
-		}
 		return nil, err
 	}
 
@@ -119,20 +110,11 @@ func (s *Server) CrearIncidente(ctx context.Context, request CrearIncidenteReque
 func (s *Server) AgregarTags(ctx context.Context, request AgregarTagsRequestObject) (AgregarTagsResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return AgregarTags500JSONResponse{Message: "usuario no encontrado"}, nil
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	tags, err := s.services.Incidentes.AgregarTags(ctx, request.IncidenteId, userID, toNuevosTags(*request.Body))
 	if err != nil {
-		if errors.Is(err, domain.ErrIncidenteInvalido) {
-			return AgregarTags400JSONResponse{Message: err.Error()}, nil
-		}
-		if errors.Is(err, domain.ErrIncidenteNotFound) {
-			return AgregarTags404JSONResponse{Message: "incidente no encontrado"}, nil
-		}
-		if errors.Is(err, domain.ErrTagNameTaken) {
-			return AgregarTags409JSONResponse{Message: "el incidente ya tiene un tag con ese nombre"}, nil
-		}
 		return nil, err
 	}
 
