@@ -1,4 +1,4 @@
-package service
+package comentario
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg sqlc.Creat
 }
 
 func TestComentarioService_Crear(t *testing.T) {
-	svc := NewComentarioService(&fakeComentarioStore{})
+	svc := NewService(&fakeComentarioStore{})
 	reporteID, userID := uuid.New(), uuid.New()
 
 	c, err := svc.Crear(context.Background(), reporteID, userID, "todo bien")

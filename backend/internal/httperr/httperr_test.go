@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
@@ -13,7 +14,7 @@ import (
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, domain.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, domain.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -84,6 +85,7 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 	errs := []error{
 		reporte.ErrNotFound,
 		reporte.ErrIncidenteNotFound,
+		comentario.ErrReporteNotFound,
 		domain.ErrEmailTaken,
 		domain.ErrInvalidCredentials,
 		domain.ErrUserNotFound,

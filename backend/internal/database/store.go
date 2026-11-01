@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
@@ -50,26 +49,4 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg sqlc.Create
 	}
 
 	return user, nil
-}
-
-// CreateComentario inserta el comentario y lo registra en el historial en la
-// misma transacción. Tapa al CreateComentario de sqlc con la misma firma, así
-// que el servicio no cambia.
-func (s *Store) CreateComentario(ctx context.Context, arg sqlc.CreateComentarioParams) (sqlc.CreateComentarioRow, error) {
-	var row sqlc.CreateComentarioRow
-
-	err := s.execTx(ctx, func(q *sqlc.Queries) error {
-		var err error
-		if row, err = q.CreateComentario(ctx, arg); err != nil {
-			return err
-		}
-
-		return historial.Registrar(ctx, q, arg.UserID, "comentario.crear", "comentario", strconv.Itoa(row.ID),
-			map[string]string{"reporte_id": arg.ReporteID.String()})
-	})
-	if err != nil {
-		return sqlc.CreateComentarioRow{}, err
-	}
-
-	return row, nil
 }

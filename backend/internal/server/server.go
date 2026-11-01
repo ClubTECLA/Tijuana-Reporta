@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
@@ -31,12 +32,12 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 	}
 
 	return NewRouter(Handlers{
-		Reportes:   reporte.NewHandler(reporte.NewService(reporte.NewStore(pool))),
-		Incidentes: incidente.NewHandler(incidente.NewService(incidente.NewStore(pool))),
+		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(pool))),
+		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(pool))),
+		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(pool))),
 		Services: httpapi.Services{
-			Comentarios: service.NewComentarioService(store),
-			Auth:        auth,
-			Usuarios:    service.NewUsuarioService(store),
+			Auth:     auth,
+			Usuarios: service.NewUsuarioService(store),
 			Multimedia: service.NewMultimediaService(store, multimedia.NewCliente(cfg.MultimediaURL, multimediaTimeout), service.OpcionesFoto{
 				MaxBytes:   cfg.MaxFotoBytes,
 				MaxPixeles: cfg.MaxFotoPixeles,

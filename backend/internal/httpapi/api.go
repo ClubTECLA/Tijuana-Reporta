@@ -10,12 +10,6 @@ import (
 	uuid "github.com/google/uuid"
 )
 
-// ComentarioService es la interfaz que el handler de comentarios necesita del
-// servicio.
-type ComentarioService interface {
-	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error)
-}
-
 // AuthService devuelve, junto con el usuario, el access token ya firmado y
 // su tiempo de vida, para que el handler pueda armar el AuthResponse del
 // contrato sin conocer nada sobre cómo se firma o valida el token.
@@ -37,10 +31,9 @@ type UsuarioService interface {
 
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
-	Comentarios ComentarioService
-	Auth        AuthService
-	Usuarios    UsuarioService
-	Multimedia  MultimediaService
+	Auth       AuthService
+	Usuarios   UsuarioService
+	Multimedia MultimediaService
 }
 
 // Server implementa las operaciones del contrato que todavía no tienen

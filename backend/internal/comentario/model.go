@@ -1,4 +1,4 @@
-package domain
+package comentario
 
 import (
 	"time"
@@ -6,9 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// ComentarioConAutor es un comentario junto con el username y el nombre del
+// ConAutor es un comentario junto con el username y el nombre del
 // rol de su autor, ya resueltos contra las tablas users y roles.
-type ComentarioConAutor struct {
+type ConAutor struct {
 	ID         int
 	ReporteID  uuid.UUID
 	UserID     uuid.UUID

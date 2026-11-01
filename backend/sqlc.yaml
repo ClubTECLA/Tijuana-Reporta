@@ -9,6 +9,7 @@ sql:
       - "internal/historial/historial.sql"
       - "internal/reporte/reporte.sql"
       - "internal/incidente/incidente.sql"
+      - "internal/comentario/comentario.sql"
     schema: "internal/db/migrations"
     gen:
       go:

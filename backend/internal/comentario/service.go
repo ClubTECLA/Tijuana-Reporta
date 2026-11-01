@@ -1,31 +1,31 @@
-package service
+package comentario
 
 import (
 	"context"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
-// ComentarioStore es el subconjunto de *database.Store que este servicio usa.
-type ComentarioStore interface {
+// store es lo que el servicio necesita de Store; los tests lo cumplen con un
+// falso en memoria.
+type store interface {
 	CreateComentario(ctx context.Context, arg sqlc.CreateComentarioParams) (sqlc.CreateComentarioRow, error)
 }
 
-type ComentarioService struct {
-	store ComentarioStore
+type Service struct {
+	store store
 }
 
-// NewComentarioService crea un servicio de comentarios con la store dada.
-func NewComentarioService(store ComentarioStore) *ComentarioService {
-	return &ComentarioService{store: store}
+// NewService crea un servicio de comentarios con la store dada.
+func NewService(store store) *Service {
+	return &Service{store: store}
 }
 
 // Crear crea un comentario para el reporte y usuario dados y lo devuelve con
 // el username y el rol de su autor.
-func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error) {
+func (s *Service) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (ConAutor, error) {
 	row, err := s.store.CreateComentario(ctx, sqlc.CreateComentarioParams{
 		ReporteID:  reporteID,
 		UserID:     userID,
@@ -33,14 +33,14 @@ func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UU
 	})
 
 	if db.IsForeignKeyViolation(err, "comentarios_reporte_id_fkey") {
-		return domain.ComentarioConAutor{}, domain.ErrReporteNotFound
+		return ConAutor{}, ErrReporteNotFound
 	}
 
 	if err != nil {
-		return domain.ComentarioConAutor{}, err
+		return ConAutor{}, err
 	}
 
-	return domain.ComentarioConAutor{
+	return ConAutor{
 		ID:         row.ID,
 		ReporteID:  row.ReporteID,
 		UserID:     row.UserID,

@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
@@ -67,11 +68,11 @@ func newTestClient(t *testing.T) *testClient {
 
 	gin.SetMode(gin.TestMode)
 	router := server.NewRouter(server.Handlers{
-		Reportes:   reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
-		Incidentes: incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
+		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
+		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
+		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(testPool(t)))),
 		Services: httpapi.Services{
-			Comentarios: service.NewComentarioService(store),
-			Auth:        auth,
+			Auth: auth,
 			Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
 				MaxBytes:   3 << 20,
 				MaxPixeles: 16_000_000,
