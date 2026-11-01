@@ -1,4 +1,4 @@
-package api
+package httpapi
 
 import (
 	_ "embed"
@@ -10,7 +10,7 @@ import (
 //go:embed docs.html
 var docsHTML []byte
 
-// serveDocs muestra la documentación interactiva (Swagger UI) del contrato.
-func serveDocs(c *gin.Context) {
+// ServeDocs muestra la documentación interactiva (Swagger UI) del contrato.
+func ServeDocs(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", docsHTML)
 }

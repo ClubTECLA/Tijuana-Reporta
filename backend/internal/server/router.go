@@ -1,4 +1,4 @@
-package api
+package server
 
 import (
 	"log/slog"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -43,13 +45,17 @@ func WithMaxMultimediaBytes(n int64) RouterOption {
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
 // contrato bajo /v1 (con el middleware de auth) /v1/openapi.json y /v1/docs.
 //
-// Vive aquí y no en cmd/api para que los tests de integración levanten
-// exactamente el mismo router que producción.
-func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.Engine {
+// New lo usa con los servicios de producción y los tests de integración con
+// los suyos, así que ambos levantan exactamente el mismo router.
+func NewRouter(services httpapi.Services, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+
+	// Una sola tabla con las reglas de todos los errores que pueden devolver
+	// los handlers.
+	tabla := httperr.NewTabla(domain.ReglasHTTP)
 
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
@@ -59,7 +65,7 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, rec any) {
 			slog.ErrorContext(c.Request.Context(), "panic", slog.Any("panic", rec),
 				slog.String("stack", string(debug.Stack())))
-			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Message: "internal server error"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, httpapi.ErrorResponse{Message: "internal server error"})
 		}),
 	)
 
@@ -83,20 +89,20 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 	//
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
-	strict := NewStrictHandlerWithOptions(
-		NewServer(services),
+	strict := httpapi.NewStrictHandlerWithOptions(
+		httpapi.NewServer(services),
 		nil,
-		StrictGinServerOptions{
+		httpapi.StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {
 				httperr.ResponderConStatus(c, http.StatusBadRequest, err.Error())
 			},
-			HandlerErrorFunc: httperr.Responder,
+			HandlerErrorFunc: tabla.Responder,
 			ResponseErrorHandlerFunc: func(c *gin.Context, err error) {
 				httperr.ResponderConStatus(c, http.StatusInternalServerError, err.Error())
 			},
 		})
 
-	swagger, err := GetSwagger()
+	swagger, err := httpapi.GetSwagger()
 	if err != nil {
 		slog.Error("error loading swagger spec", "error", err)
 		os.Exit(1)
@@ -114,14 +120,14 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 		},
 	})
 
-	RegisterHandlersWithOptions(r, strict, GinServerOptions{
+	httpapi.RegisterHandlersWithOptions(r, strict, httpapi.GinServerOptions{
 		BaseURL: "/v1",
 		ErrorHandler: func(c *gin.Context, err error, status int) {
 			httperr.ResponderConStatus(c, status, err.Error())
 		},
-		Middlewares: []MiddlewareFunc{
-			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
-			middleware.RequireRole(string(BearerAuthScopes)),
+		Middlewares: []httpapi.MiddlewareFunc{
+			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes)),
+			middleware.RequireRole(string(httpapi.BearerAuthScopes)),
 			// Antes del validador, que lee el body completo para validarlo.
 			middleware.BodyLimitFunc(func(c *gin.Context) int64 {
 				if c.FullPath() == rutaMultimedia {
@@ -129,16 +135,16 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 				}
 				return maxRequestBodyBytes
 			}),
-			MiddlewareFunc(validator),
+			httpapi.MiddlewareFunc(validator),
 		},
 	})
 
 	// El contrato, servido desde el propio binario, para que web y móvil puedan
 	// generar sus tipos contra la API que de verdad está corriendo.
 	r.GET("/v1/openapi.json", func(c *gin.Context) {
-		spec, err := GetSpec()
+		spec, err := httpapi.GetSpec()
 		if err != nil {
-			httperr.Responder(c, err)
+			tabla.Responder(c, err)
 			return
 		}
 		// Relativo a la URL del contrato (/v1/ o /api/v1/ tras nginx), para
@@ -148,7 +154,7 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 	})
 
 	// Documentación interactiva del contrato; carga /v1/openapi.json.
-	r.GET("/v1/docs", serveDocs)
+	r.GET("/v1/docs", httpapi.ServeDocs)
 
 	return r
 }

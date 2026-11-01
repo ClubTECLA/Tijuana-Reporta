@@ -1,4 +1,4 @@
-package api_test
+package server_test
 
 // Tests de integración de POST /reportes/{id}/multimedia: el router real con su
 // validación de OpenAPI y su límite de body, contra Postgres. El servicio multimedia
@@ -19,8 +19,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 )
 
 // multimediaFalso hace de servicio multimedia: guarda lo que recibe y anota lo que se borra.
@@ -138,7 +138,7 @@ func TestSubirMultimedia(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, quería %d; body: %s", rec.Code, http.StatusCreated, rec.Body)
 	}
-	m := decode[api.Multimedia](t, rec)
+	m := decode[httpapi.Multimedia](t, rec)
 	wantPath := "reportes/" + reporte.Id.String() + "/falso1.jpg"
 	if m.Path != wantPath {
 		t.Errorf("path = %q, quería %q", m.Path, wantPath)
@@ -159,7 +159,7 @@ func TestSubirMultimedia(t *testing.T) {
 	}
 
 	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
-	obtenido := decode[api.Reporte](t, rec)
+	obtenido := decode[httpapi.Reporte](t, rec)
 	if len(obtenido.Multimedia) != 1 || obtenido.Multimedia[0].Path != wantPath {
 		t.Errorf("multimedia del reporte = %+v, quería un archivo con path %q", obtenido.Multimedia, wantPath)
 	}
@@ -210,7 +210,7 @@ func TestSubirMultimedia_SegundaVezEs409YBorraElArchivo(t *testing.T) {
 	}
 
 	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
+	if obtenido := decode[httpapi.Reporte](t, rec); len(obtenido.Multimedia) != 1 {
 		t.Errorf("el reporte tiene %d archivos, quería 1", len(obtenido.Multimedia))
 	}
 }

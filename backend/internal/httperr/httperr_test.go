@@ -10,6 +10,9 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 )
 
+// tabla es la que arma el servidor: las reglas de dominio y las de transporte.
+var tabla = httperr.NewTabla(domain.ReglasHTTP)
+
 func TestResolver(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -51,7 +54,7 @@ func TestResolver(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, body := httperr.Resolver(tt.err)
+			status, body := tabla.Resolver(tt.err)
 			if status != tt.wantStatus {
 				t.Errorf("status = %d, quería %d", status, tt.wantStatus)
 			}
@@ -63,7 +66,7 @@ func TestResolver(t *testing.T) {
 }
 
 func TestResolver_ErrorDesconocido(t *testing.T) {
-	status, body := httperr.Resolver(errors.New("pq: password authentication failed for user admin"))
+	status, body := tabla.Resolver(errors.New("pq: password authentication failed for user admin"))
 	if status != http.StatusInternalServerError {
 		t.Errorf("status = %d, quería %d", status, http.StatusInternalServerError)
 	}
@@ -99,10 +102,10 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 	}
 
 	for _, err := range errs {
-		status, _ := httperr.Resolver(err)
+		status, _ := tabla.Resolver(err)
 		// 503 es un estado buscado (almacén caído), no la caída por defecto.
 		if status == http.StatusInternalServerError {
-			t.Errorf("%q resuelve a 500: falta su regla en httperr.tabla", err)
+			t.Errorf("%q resuelve a 500: falta su regla en domain.ReglasHTTP", err)
 		}
 	}
 }

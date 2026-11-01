@@ -1,4 +1,4 @@
-package api_test
+package server_test
 
 import (
 	"encoding/json"
@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/google/uuid"
 )
 
@@ -68,7 +68,7 @@ func ultimoHistorial(t *testing.T, entidad, entidadID string) sqlc.Historial {
 func (c *testClient) usuarioActual() uuid.UUID {
 	c.t.Helper()
 
-	return decode[api.UsuarioMeResponse](c.t, c.expect(http.StatusOK, http.MethodGet, "/v1/auth/me", nil)).Id
+	return decode[httpapi.UsuarioMeResponse](c.t, c.expect(http.StatusOK, http.MethodGet, "/v1/auth/me", nil)).Id
 }
 
 // TestHistorial revisa que cada operación que escribe deje su evento en el
@@ -88,7 +88,7 @@ func TestHistorial(t *testing.T) {
 	rec := ciudadano.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
 		"comentario": "Sigue ahí",
 	})
-	comentario := decode[api.Comentario](t, rec)
+	comentario := decode[httpapi.Comentario](t, rec)
 	if n := contarHistorial(t, "comentario.crear", "comentario", strconv.Itoa(comentario.Id)); n != 1 {
 		t.Errorf("comentario.crear: %d eventos, quería 1", n)
 	}

@@ -2,7 +2,9 @@ package domain
 
 import (
 	"errors"
+	"net/http"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -28,6 +30,30 @@ var (
 	ErrOficialNoPermitido  = errors.New("rol no puede crear reportes oficiales")
 	ErrEstadoNoPermitido   = errors.New("rol no puede cambiar el estado de reportes")
 )
+
+// ReglasHTTP dice con qué status y mensaje responde la API cada error de
+// arriba. Al agregar un Err…, agrégale aquí su regla.
+var ReglasHTTP = []httperr.Regla{
+	{Err: ErrReporteNotFound, Status: http.StatusNotFound, Message: "reporte no encontrado"},
+	{Err: ErrTransicionInvalida, Status: http.StatusConflict, Message: "transicion no valida"},
+	{Err: ErrEmailTaken, Status: http.StatusConflict, Message: "el email ya está registrado"},
+	{Err: ErrInvalidCredentials, Status: http.StatusUnauthorized, Message: "credenciales invalidas"},
+	{Err: ErrUserNotFound, Status: http.StatusUnauthorized, Message: "no autenticado"},
+	{Err: ErrMultimediaYaExiste, Status: http.StatusConflict, Message: "multimedia ya existe"},
+	{Err: ErrArchivoInvalido, Status: http.StatusBadRequest, Message: "archivo invalido"},
+	{Err: ErrArchivoMuyGrande, Status: http.StatusRequestEntityTooLarge, Message: "archivo muy grande"},
+	{Err: ErrImagenMuyGrande, Status: http.StatusUnprocessableEntity, Message: "imagen muy grande"},
+	{Err: ErrAlmacenNoDisponible, Status: http.StatusServiceUnavailable, Message: "almacenamiento no disponible, intenta más tarde"},
+	{Err: ErrIncidenteNotFound, Status: http.StatusNotFound, Message: "incidente no encontrado"},
+	{Err: ErrIncidenteInvalido, Status: http.StatusBadRequest}, // con el detalle del servicio
+	{Err: ErrIncidenteNameTaken, Status: http.StatusConflict, Message: "ya existe un incidente con ese nombre"},
+	{Err: ErrTagNameTaken, Status: http.StatusConflict, Message: "el incidente ya tiene un tag con ese nombre"},
+	{Err: ErrAreaIncompleta, Status: http.StatusBadRequest, Message: "area incompleta"},
+	{Err: ErrAreaInvalida, Status: http.StatusBadRequest, Message: "area invalida"},
+	{Err: ErrEstadoInvalido, Status: http.StatusBadRequest, Message: "estado invalido"},
+	{Err: ErrOficialNoPermitido, Status: http.StatusForbidden, Message: "un ciudadano no puede crear reportes oficiales"},
+	{Err: ErrEstadoNoPermitido, Status: http.StatusForbidden, Message: "un ciudadano no puede cambiar el estado de un reporte"},
+}
 
 // Códigos de error de Postgres.
 // https://www.postgresql.org/docs/current/errcodes-appendix.html

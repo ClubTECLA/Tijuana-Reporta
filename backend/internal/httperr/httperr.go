@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,6 +12,8 @@ type Body struct {
 	Message string `json:"message"`
 }
 
+// Errores de transporte: los produce el middleware o el handler antes de
+// llegar a la lógica de negocio. Sus reglas van en toda Tabla.
 var (
 	ErrNoAutenticado = errors.New("no autenticado")
 	ErrTokenInvalido = errors.New("token invalido")
@@ -21,32 +22,15 @@ var (
 	ErrBodyInvalido  = errors.New("body invalido")
 )
 
-type regla struct {
-	err     error
-	status  int
-	message string
+// Regla traduce un error (o cualquiera que lo envuelva) a un status y un
+// mensaje. Un Message vacío responde con err.Error() tal cual.
+type Regla struct {
+	Err     error
+	Status  int
+	Message string
 }
 
-var tabla = []regla{
-	{domain.ErrReporteNotFound, http.StatusNotFound, "reporte no encontrado"},
-	{domain.ErrTransicionInvalida, http.StatusConflict, "transicion no valida"},
-	{domain.ErrEmailTaken, http.StatusConflict, "el email ya está registrado"},
-	{domain.ErrInvalidCredentials, http.StatusUnauthorized, "credenciales invalidas"},
-	{domain.ErrUserNotFound, http.StatusUnauthorized, "no autenticado"},
-	{domain.ErrMultimediaYaExiste, http.StatusConflict, "multimedia ya existe"},
-	{domain.ErrArchivoInvalido, http.StatusBadRequest, "archivo invalido"},
-	{domain.ErrArchivoMuyGrande, http.StatusRequestEntityTooLarge, "archivo muy grande"},
-	{domain.ErrImagenMuyGrande, http.StatusUnprocessableEntity, "imagen muy grande"},
-	{domain.ErrAlmacenNoDisponible, http.StatusServiceUnavailable, "almacenamiento no disponible, intenta más tarde"},
-	{domain.ErrIncidenteNotFound, http.StatusNotFound, "incidente no encontrado"},
-	{domain.ErrIncidenteInvalido, http.StatusBadRequest, ""},
-	{domain.ErrIncidenteNameTaken, http.StatusConflict, "ya existe un incidente con ese nombre"},
-	{domain.ErrTagNameTaken, http.StatusConflict, "el incidente ya tiene un tag con ese nombre"},
-	{domain.ErrAreaIncompleta, http.StatusBadRequest, "area incompleta"},
-	{domain.ErrAreaInvalida, http.StatusBadRequest, "area invalida"},
-	{domain.ErrEstadoInvalido, http.StatusBadRequest, "estado invalido"},
-	{domain.ErrOficialNoPermitido, http.StatusForbidden, "un ciudadano no puede crear reportes oficiales"},
-	{domain.ErrEstadoNoPermitido, http.StatusForbidden, "un ciudadano no puede cambiar el estado de un reporte"},
+var transporte = []Regla{
 	{ErrNoAutenticado, http.StatusUnauthorized, "no autenticado"},
 	{ErrTokenInvalido, http.StatusUnauthorized, "token invalido"},
 	{ErrProhibido, http.StatusForbidden, "prohibido"},
@@ -54,25 +38,53 @@ var tabla = []regla{
 	{ErrBodyInvalido, http.StatusBadRequest, "body invalido"},
 }
 
-func Resolver(err error) (int, Body) {
-	for _, r := range tabla {
-		if errors.Is(err, r.err) {
-			msg := r.message
+// Tabla es la lista de reglas con la que se responde un error. Cada
+// funcionalidad declara las reglas de sus errores y el servidor las junta en
+// una sola Tabla; así este paquete no importa a ninguna funcionalidad.
+type Tabla struct {
+	reglas []Regla
+}
+
+// NewTabla junta las reglas dadas, en orden, seguidas de las de transporte.
+func NewTabla(grupos ...[]Regla) *Tabla {
+	t := &Tabla{}
+	for _, g := range grupos {
+		t.reglas = append(t.reglas, g...)
+	}
+	t.reglas = append(t.reglas, transporte...)
+	return t
+}
+
+// Resolver devuelve el status y el body de la primera regla cuyo error está
+// en la cadena de err; si ninguna aplica, 500 sin filtrar el error original.
+func (t *Tabla) Resolver(err error) (int, Body) {
+	for _, r := range t.reglas {
+		if errors.Is(err, r.Err) {
+			msg := r.Message
 			if msg == "" {
 				msg = err.Error()
 			}
-			return r.status, Body{Message: msg}
+			return r.Status, Body{Message: msg}
 		}
 	}
 	return http.StatusInternalServerError, Body{Message: "internal server error"}
 }
 
-func Responder(c *gin.Context, err error) {
-	status, body := Resolver(err)
+func (t *Tabla) Responder(c *gin.Context, err error) {
+	status, body := t.Resolver(err)
 	if status >= http.StatusInternalServerError {
 		slog.ErrorContext(c.Request.Context(), "handle error", "status", status, "route", c.FullPath(), "error", err)
 	}
 	c.AbortWithStatusJSON(status, body)
+}
+
+var soloTransporte = NewTabla()
+
+// Responder responde err con las reglas de transporte. Es para el
+// middleware, que solo produce esos errores; los handlers devuelven sus
+// errores y el servidor los responde con la Tabla completa.
+func Responder(c *gin.Context, err error) {
+	soloTransporte.Responder(c, err)
 }
 
 func ResponderConStatus(c *gin.Context, status int, msg string) {

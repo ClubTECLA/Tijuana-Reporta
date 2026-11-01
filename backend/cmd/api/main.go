@@ -6,19 +6,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/gin-gonic/gin"
 )
-
-// multimediaTimeout es lo que se espera a que multimedia reciba y guarde un archivo.
-const multimediaTimeout = 30 * time.Second
 
 func main() {
 	cfg, err := config.Load()
@@ -54,32 +48,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Un solo Store para todos los servicios: expone las consultas generadas
-	// por sqlc y las operaciones transaccionales sobre el mismo pool.
-	store := database.NewStore(pool)
-
-	comentarios := service.NewComentarioService(store)
-	reportes := service.NewReporteService(store)
-	incidentes := service.NewIncidenteService(store)
-	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
-	usuarios := service.NewUsuarioService(store)
-	multimediaSvc := service.NewMultimediaService(store, multimedia.NewCliente(cfg.MultimediaURL, multimediaTimeout), service.OpcionesFoto{
-		MaxBytes:   cfg.MaxFotoBytes,
-		MaxPixeles: cfg.MaxFotoPixeles,
-	})
+	r, err := server.New(ctx, pool, cfg)
 	if err != nil {
-		slog.Error("failed to initialize auth service", "error", err)
+		slog.Error("failed to initialize server", "error", err)
 		os.Exit(1)
 	}
-
-	r := api.NewRouter(api.Services{
-		Comentarios: comentarios,
-		Reportes:    reportes,
-		Incidentes:  incidentes,
-		Auth:        auth,
-		Usuarios:    usuarios,
-		Multimedia:  multimediaSvc,
-	}, cfg.JWTSecret, api.WithMaxMultimediaBytes(cfg.MaxMultimediaBytes))
 
 	slog.Info("server listening", "port", cfg.APIPort)
 	if err := r.Run(":" + cfg.APIPort); err != nil {

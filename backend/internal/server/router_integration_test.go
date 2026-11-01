@@ -1,6 +1,6 @@
-package api_test
+package server_test
 
-// Tests de integración: corren el router real (api.NewRouter) contra una base
+// Tests de integración: corren el router real (server.NewRouter) contra una base
 // Postgres real, sin levantar el servidor HTTP. Reemplazan las pruebas manuales
 // de cmd/http-tests/requests.http.
 //
@@ -25,10 +25,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -63,7 +64,7 @@ func newTestClient(t *testing.T) *testClient {
 	multimedia := &multimediaFalso{}
 
 	gin.SetMode(gin.TestMode)
-	router := api.NewRouter(api.Services{
+	router := server.NewRouter(httpapi.Services{
 		Comentarios: service.NewComentarioService(store),
 		Reportes:    service.NewReporteService(store),
 		Incidentes:  service.NewIncidenteService(store),
@@ -135,7 +136,7 @@ func credenciales() (email, password string) {
 
 // login registra un usuario nuevo e inicia sesión con él, dejando el token
 // en el cliente.
-func (c *testClient) login() api.AuthResponse {
+func (c *testClient) login() httpapi.AuthResponse {
 	c.t.Helper()
 
 	email, password := credenciales()
@@ -146,19 +147,19 @@ func (c *testClient) login() api.AuthResponse {
 	rec := c.expect(http.StatusOK, http.MethodPost, "/v1/auth/login", map[string]any{
 		"email": email, "password": password,
 	})
-	auth := decode[api.AuthResponse](c.t, rec)
+	auth := decode[httpapi.AuthResponse](c.t, rec)
 	c.token = auth.AccessToken
 	return auth
 }
 
 // crearReporte crea un reporte de socavón en el centro de Tijuana.
-func (c *testClient) crearReporte() api.Reporte {
+func (c *testClient) crearReporte() httpapi.Reporte {
 	c.t.Helper()
 
 	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
 	})
-	return decode[api.Reporte](c.t, rec)
+	return decode[httpapi.Reporte](c.t, rec)
 }
 
 // loginComo registra un usuario, le asigna el rol dado directo en la base y
@@ -181,7 +182,7 @@ func (c *testClient) loginComo(rol string) {
 	rec := c.expect(http.StatusOK, http.MethodPost, "/v1/auth/login", map[string]any{
 		"email": email, "password": password,
 	})
-	c.token = decode[api.AuthResponse](c.t, rec).AccessToken
+	c.token = decode[httpapi.AuthResponse](c.t, rec).AccessToken
 }
 
 // TestStatus cubre las peticiones donde solo importa el código de respuesta.
@@ -258,7 +259,7 @@ func TestUsuarioActual(t *testing.T) {
 	auth := c.login()
 
 	rec := c.expect(http.StatusOK, http.MethodGet, "/v1/auth/me", nil)
-	me := decode[api.UsuarioMeResponse](t, rec)
+	me := decode[httpapi.UsuarioMeResponse](t, rec)
 
 	if me.Id != auth.User.Id {
 		t.Errorf("id = %v, quería %v", me.Id, auth.User.Id)
@@ -278,7 +279,7 @@ func TestCrearYObtenerReporte(t *testing.T) {
 	}
 
 	rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	obtenido := decode[api.Reporte](t, rec)
+	obtenido := decode[httpapi.Reporte](t, rec)
 
 	if obtenido.Id != creado.Id {
 		t.Errorf("id = %v, quería %v", obtenido.Id, creado.Id)
@@ -300,7 +301,7 @@ func TestCrearReporte_IgnoraElCampoMultimediaAnterior(t *testing.T) {
 		"multimedia": map[string]any{"path": "/multimedia/socavon.jpg"},
 	})
 
-	if creado := decode[api.Reporte](t, rec); len(creado.Multimedia) != 0 {
+	if creado := decode[httpapi.Reporte](t, rec); len(creado.Multimedia) != 0 {
 		t.Errorf("multimedia = %+v, quería ninguna", creado.Multimedia)
 	}
 }
@@ -314,12 +315,12 @@ func TestCrearReporteOficial(t *testing.T) {
 	rescatista := newTestClient(t)
 	rescatista.loginComo("rescatista")
 	rec := rescatista.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
-	creado := decode[api.Reporte](t, rec)
+	creado := decode[httpapi.Reporte](t, rec)
 	if !creado.EsOficial {
 		t.Errorf("es_oficial = false, quería true")
 	}
 	rec = rescatista.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); !obtenido.EsOficial {
+	if obtenido := decode[httpapi.Reporte](t, rec); !obtenido.EsOficial {
 		t.Errorf("es_oficial al obtener = false, quería true")
 	}
 
@@ -329,7 +330,7 @@ func TestCrearReporteOficial(t *testing.T) {
 
 	body["es_oficial"] = false
 	rec = ciudadano.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body)
-	if decode[api.Reporte](t, rec).EsOficial {
+	if decode[httpapi.Reporte](t, rec).EsOficial {
 		t.Errorf("es_oficial = true, quería false")
 	}
 }
@@ -342,12 +343,12 @@ func TestCrearReporteDireccion(t *testing.T) {
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
 		"direccion": "Av. Revolución 1234 · Zona Centro",
 	})
-	creado := decode[api.Reporte](t, rec)
+	creado := decode[httpapi.Reporte](t, rec)
 	if creado.Direccion == nil || *creado.Direccion != "Av. Revolución 1234 · Zona Centro" {
 		t.Errorf("direccion = %v, quería %q", creado.Direccion, "Av. Revolución 1234 · Zona Centro")
 	}
 	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+creado.Id.String(), nil)
-	if obtenido := decode[api.Reporte](t, rec); obtenido.Direccion == nil || *obtenido.Direccion != *creado.Direccion {
+	if obtenido := decode[httpapi.Reporte](t, rec); obtenido.Direccion == nil || *obtenido.Direccion != *creado.Direccion {
 		t.Errorf("direccion al obtener = %v, quería %q", obtenido.Direccion, *creado.Direccion)
 	}
 
@@ -355,7 +356,7 @@ func TestCrearReporteDireccion(t *testing.T) {
 	rec = c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
 		"incidente_id": incidenteSocavon, "latitude": 32.5149, "longitude": -117.0382,
 	})
-	if d := decode[api.Reporte](t, rec).Direccion; d != nil {
+	if d := decode[httpapi.Reporte](t, rec).Direccion; d != nil {
 		t.Errorf("direccion = %q, quería ausente", *d)
 	}
 
@@ -372,9 +373,9 @@ func TestReporteTitulo(t *testing.T) {
 	c.login()
 
 	const lat, lng = 32.4321, -116.9123
-	crear := func(body map[string]any) api.Reporte {
+	crear := func(body map[string]any) httpapi.Reporte {
 		body["incidente_id"], body["latitude"], body["longitude"] = incidenteSocavon, lat, lng
-		return decode[api.Reporte](t, c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body))
+		return decode[httpapi.Reporte](t, c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", body))
 	}
 	conDireccion := crear(map[string]any{"direccion": "Calle Flores Magón 8267 · Zona Centro"})
 	sinDireccion := crear(map[string]any{})
@@ -386,14 +387,14 @@ func TestReporteTitulo(t *testing.T) {
 
 	for id, titulo := range want {
 		rec := c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+id.String(), nil)
-		if got := decode[api.Reporte](t, rec).Titulo; got != titulo {
+		if got := decode[httpapi.Reporte](t, rec).Titulo; got != titulo {
 			t.Errorf("detalle %s: titulo = %q, quería %q", id, got, titulo)
 		}
 	}
 
 	rec := c.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/reportes?min_lat=%v&max_lat=%v&min_lng=%v&max_lng=%v", lat-0.001, lat+0.001, lng-0.001, lng+0.001), nil)
 	encontrados := 0
-	for _, r := range decode[[]api.ReporteResumen](t, rec) {
+	for _, r := range decode[[]httpapi.ReporteResumen](t, rec) {
 		if titulo, ok := want[r.Id]; ok {
 			encontrados++
 			if r.Titulo != titulo {
@@ -407,7 +408,7 @@ func TestReporteTitulo(t *testing.T) {
 
 	rec = c.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/reportes/cercanos?lat=%v&lng=%v&radio=50", lat, lng), nil)
 	encontrados = 0
-	for _, r := range decode[[]api.ReporteCercano](t, rec) {
+	for _, r := range decode[[]httpapi.ReporteCercano](t, rec) {
 		if titulo, ok := want[r.Id]; ok {
 			encontrados++
 			if r.Titulo != titulo {
@@ -429,8 +430,8 @@ func TestCambiarEstadoReporte(t *testing.T) {
 	creado := admin.crearReporte()
 
 	rec := admin.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Verificado"})
-	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Verificado {
-		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Verificado)
+	if cambiado := decode[httpapi.Reporte](t, rec); cambiado.EstadoActual != httpapi.Verificado {
+		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, httpapi.Verificado)
 	}
 
 	admin.expect(http.StatusNotFound, http.MethodPatch, "/v1/reportes/"+uuid.NewString()+"/estado", map[string]any{"estado": "Verificado"})
@@ -443,8 +444,8 @@ func TestCambiarEstadoReporte(t *testing.T) {
 	rescatista := newTestClient(t)
 	rescatista.loginComo("rescatista")
 	rec = rescatista.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+creado.Id.String()+"/estado", map[string]any{"estado": "Resuelto"})
-	if cambiado := decode[api.Reporte](t, rec); cambiado.EstadoActual != api.Resuelto {
-		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, api.Resuelto)
+	if cambiado := decode[httpapi.Reporte](t, rec); cambiado.EstadoActual != httpapi.Resuelto {
+		t.Errorf("estado_actual = %q, quería %q", cambiado.EstadoActual, httpapi.Resuelto)
 	}
 
 	// Resuelto es final: ni un admin lo reabre.
@@ -457,15 +458,15 @@ func TestListarReportes(t *testing.T) {
 	c.login()
 	creado := c.crearReporte()
 
-	contiene := func(rs []api.ReporteResumen) bool {
-		return slices.ContainsFunc(rs, func(r api.ReporteResumen) bool { return r.Id == creado.Id })
+	contiene := func(rs []httpapi.ReporteResumen) bool {
+		return slices.ContainsFunc(rs, func(r httpapi.ReporteResumen) bool { return r.Id == creado.Id })
 	}
 
 	t.Run("sin filtro", func(t *testing.T) {
 		tc := *c
 		tc.t = t
 		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes", nil)
-		if !contiene(decode[[]api.ReporteResumen](t, rec)) {
+		if !contiene(decode[[]httpapi.ReporteResumen](t, rec)) {
 			t.Errorf("el listado no incluye el reporte %v", creado.Id)
 		}
 	})
@@ -474,7 +475,7 @@ func TestListarReportes(t *testing.T) {
 		tc := *c
 		tc.t = t
 		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=32.4&max_lat=32.6&min_lng=-117.2&max_lng=-116.8", nil)
-		if !contiene(decode[[]api.ReporteResumen](t, rec)) {
+		if !contiene(decode[[]httpapi.ReporteResumen](t, rec)) {
 			t.Errorf("el listado del área no incluye el reporte %v", creado.Id)
 		}
 	})
@@ -483,7 +484,7 @@ func TestListarReportes(t *testing.T) {
 		tc := *c
 		tc.t = t
 		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes?min_lat=10&max_lat=11&min_lng=10&max_lng=11", nil)
-		if contiene(decode[[]api.ReporteResumen](t, rec)) {
+		if contiene(decode[[]httpapi.ReporteResumen](t, rec)) {
 			t.Errorf("el listado de otra área incluye el reporte %v", creado.Id)
 		}
 	})
@@ -498,17 +499,17 @@ func TestListarReportesCercanos(t *testing.T) {
 
 	// Otros tests crean reportes en el mismo punto, así que se busca el propio
 	// en vez de asumir que es el único o el primero.
-	buscar := func(rs []api.ReporteCercano) (api.ReporteCercano, bool) {
-		i := slices.IndexFunc(rs, func(r api.ReporteCercano) bool { return r.Id == creado.Id })
+	buscar := func(rs []httpapi.ReporteCercano) (httpapi.ReporteCercano, bool) {
+		i := slices.IndexFunc(rs, func(r httpapi.ReporteCercano) bool { return r.Id == creado.Id })
 		if i < 0 {
-			return api.ReporteCercano{}, false
+			return httpapi.ReporteCercano{}, false
 		}
 		return rs[i], true
 	}
-	listar := func(t *testing.T, query string) []api.ReporteCercano {
+	listar := func(t *testing.T, query string) []httpapi.ReporteCercano {
 		tc := *c
 		tc.t = t
-		return decode[[]api.ReporteCercano](t, tc.expect(http.StatusOK, http.MethodGet, base+query, nil))
+		return decode[[]httpapi.ReporteCercano](t, tc.expect(http.StatusOK, http.MethodGet, base+query, nil))
 	}
 
 	t.Run("dentro del radio", func(t *testing.T) {
@@ -520,7 +521,7 @@ func TestListarReportesCercanos(t *testing.T) {
 		if r.DistanciaM > 1 {
 			t.Errorf("distancia_m = %v, quería ~0 (el reporte está en el centro)", r.DistanciaM)
 		}
-		if !slices.IsSortedFunc(rs, func(a, b api.ReporteCercano) int { return cmp.Compare(a.DistanciaM, b.DistanciaM) }) {
+		if !slices.IsSortedFunc(rs, func(a, b httpapi.ReporteCercano) int { return cmp.Compare(a.DistanciaM, b.DistanciaM) }) {
 			t.Errorf("el listado no está ordenado por distancia")
 		}
 	})
@@ -530,7 +531,7 @@ func TestListarReportesCercanos(t *testing.T) {
 		tc := *c
 		tc.t = t
 		rec := tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/cercanos?lat=31.8667&lng=-116.5964&radio=100", nil)
-		if _, ok := buscar(decode[[]api.ReporteCercano](t, rec)); ok {
+		if _, ok := buscar(decode[[]httpapi.ReporteCercano](t, rec)); ok {
 			t.Errorf("el listado de Ensenada incluye el reporte %v", creado.Id)
 		}
 	})
@@ -581,10 +582,10 @@ func TestListarMisReportes(t *testing.T) {
 	otro.login()
 	ajeno := otro.crearReporte()
 
-	listar := func(t *testing.T, query string) []api.ReporteResumen {
+	listar := func(t *testing.T, query string) []httpapi.ReporteResumen {
 		tc := *c
 		tc.t = t
-		return decode[[]api.ReporteResumen](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/me"+query, nil))
+		return decode[[]httpapi.ReporteResumen](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/reportes/me"+query, nil))
 	}
 
 	t.Run("solo los propios, del más reciente al más antiguo", func(t *testing.T) {
@@ -624,7 +625,7 @@ func TestComentarReporte(t *testing.T) {
 		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
 			"comentario": "Sigue ahí el socavón",
 		})
-		comentario := decode[api.Comentario](t, rec)
+		comentario := decode[httpapi.Comentario](t, rec)
 
 		if comentario.Comentario != "Sigue ahí el socavón" {
 			t.Errorf("comentario = %q", comentario.Comentario)
@@ -653,7 +654,7 @@ func TestComentarReporte(t *testing.T) {
 		rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+reporte.Id.String()+"/comentarios", map[string]any{
 			"comentario": "Ya vamos en camino",
 		})
-		comentario := decode[api.Comentario](t, rec)
+		comentario := decode[httpapi.Comentario](t, rec)
 
 		if *comentario.RolName != "rescatista" {
 			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, "rescatista")
@@ -662,7 +663,7 @@ func TestComentarReporte(t *testing.T) {
 		// El detalle del reporte lista los comentarios con ListComentariosByReporteId,
 		// que también debe traer el autor.
 		rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
-		obtenido := decode[api.Reporte](t, rec)
+		obtenido := decode[httpapi.Reporte](t, rec)
 		if len(obtenido.Comentarios) != 1 {
 			t.Fatalf("comentarios = %d, quería 1", len(obtenido.Comentarios))
 		}
@@ -682,7 +683,7 @@ func TestAgregarAvistamiento(t *testing.T) {
 	reporte := c.crearReporte()
 
 	rec := c.expect(http.StatusOK, http.MethodPatch, "/v1/reportes/"+reporte.Id.String()+"/avistamientos", nil)
-	actualizado := decode[api.Reporte](t, rec)
+	actualizado := decode[httpapi.Reporte](t, rec)
 
 	if actualizado.Avistamientos != reporte.Avistamientos+1 {
 		t.Errorf("avistamientos = %d, quería %d", actualizado.Avistamientos, reporte.Avistamientos+1)
@@ -735,7 +736,7 @@ func TestCrearIncidente(t *testing.T) {
 				{"nombre": "con agua"},
 			},
 		})
-		inc := decode[api.Incidente](t, rec)
+		inc := decode[httpapi.Incidente](t, rec)
 
 		if inc.Id == 0 || inc.Nombre != nombre || inc.Color != "#EF6C33" || inc.EstaActivo {
 			t.Errorf("incidente = %+v, quería nombre=%q color=#EF6C33 esta_activo=false", inc, nombre)
@@ -764,7 +765,7 @@ func TestCrearIncidente(t *testing.T) {
 		tc.t = t
 
 		rec := tc.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", map[string]any{"nombre": nombreIncidente()})
-		inc := decode[api.Incidente](t, rec)
+		inc := decode[httpapi.Incidente](t, rec)
 
 		if inc.Color != "#757575" || !inc.EstaActivo || inc.TiempoLimite != nil || inc.Radio != nil {
 			t.Errorf("incidente = %+v, quería color=#757575 esta_activo=true y tiempo_limite/radio nulos", inc)
@@ -849,15 +850,15 @@ func TestCreateIncidenteConTagsRollback(t *testing.T) {
 
 // crearIncidente crea un incidente con el cliente (que debe ser admin) y lo
 // devuelve.
-func (c *testClient) crearIncidente(body map[string]any) api.Incidente {
+func (c *testClient) crearIncidente(body map[string]any) httpapi.Incidente {
 	c.t.Helper()
 
 	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/incidentes", body)
-	return decode[api.Incidente](c.t, rec)
+	return decode[httpapi.Incidente](c.t, rec)
 }
 
 // nombresDeTags devuelve los nombres de los tags, en orden.
-func nombresDeTags(tags []api.TagCatalogo) []string {
+func nombresDeTags(tags []httpapi.TagCatalogo) []string {
 	nombres := make([]string, 0, len(tags))
 	for _, t := range tags {
 		nombres = append(nombres, t.Nombre)
@@ -878,10 +879,10 @@ func TestListarIncidentes(t *testing.T) {
 	c := newTestClient(t)
 	c.login()
 
-	buscar := func(is []api.Incidente, id int) (api.Incidente, bool) {
-		i := slices.IndexFunc(is, func(i api.Incidente) bool { return i.Id == id })
+	buscar := func(is []httpapi.Incidente, id int) (httpapi.Incidente, bool) {
+		i := slices.IndexFunc(is, func(i httpapi.Incidente) bool { return i.Id == id })
 		if i < 0 {
-			return api.Incidente{}, false
+			return httpapi.Incidente{}, false
 		}
 		return is[i], true
 	}
@@ -889,7 +890,7 @@ func TestListarIncidentes(t *testing.T) {
 	t.Run("solo activos", func(t *testing.T) {
 		tc := *c
 		tc.t = t
-		is := decode[[]api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes", nil))
+		is := decode[[]httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes", nil))
 
 		got, ok := buscar(is, activo.Id)
 		if !ok {
@@ -914,7 +915,7 @@ func TestListarIncidentes(t *testing.T) {
 	t.Run("incluir inactivos", func(t *testing.T) {
 		tc := *c
 		tc.t = t
-		is := decode[[]api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes?incluir_inactivos=true", nil))
+		is := decode[[]httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, "/v1/incidentes?incluir_inactivos=true", nil))
 
 		if _, ok := buscar(is, inactivo.Id); !ok {
 			t.Errorf("el listado no incluye el incidente inactivo %d", inactivo.Id)
@@ -941,7 +942,7 @@ func TestObtenerIncidente(t *testing.T) {
 	t.Run("existente, aunque esté inactivo", func(t *testing.T) {
 		tc := *c
 		tc.t = t
-		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", creado.Id), nil))
+		got := decode[httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", creado.Id), nil))
 
 		if got.Id != creado.Id || got.Nombre != creado.Nombre || got.EstaActivo {
 			t.Errorf("incidente = %+v, quería id=%d nombre=%q inactivo", got, creado.Id, creado.Nombre)
@@ -958,7 +959,7 @@ func TestObtenerIncidente(t *testing.T) {
 	t.Run("del baseline, con su etiqueta", func(t *testing.T) {
 		tc := *c
 		tc.t = t
-		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", incidenteSocavon), nil))
+		got := decode[httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", incidenteSocavon), nil))
 		if got.Nombre != "socavon" || got.Etiqueta != "Socavón" {
 			t.Errorf("incidente = nombre %q etiqueta %q, quería socavon/Socavón", got.Nombre, got.Etiqueta)
 		}
@@ -990,12 +991,12 @@ func TestAgregarTags(t *testing.T) {
 		rec := tc.expect(http.StatusCreated, http.MethodPost, path, []map[string]any{
 			{"nombre": "ancho"}, {"nombre": "con agua", "peso": 3},
 		})
-		tags := decode[[]api.TagCatalogo](t, rec)
+		tags := decode[[]httpapi.TagCatalogo](t, rec)
 		if len(tags) != 2 || tags[0].Id == 0 || tags[0].Nombre != "ancho" || tags[0].Peso != 1 || tags[1].Peso != 3 {
 			t.Errorf("tags = %+v, quería [ancho (peso 1), con agua (peso 3)] con ids", tags)
 		}
 
-		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
+		got := decode[httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
 		if !slices.Equal(nombresDeTags(got.Tags), []string{"profundo", "ancho", "con agua"}) {
 			t.Errorf("tags del incidente = %v, quería [profundo ancho con agua]", nombresDeTags(got.Tags))
 		}
@@ -1010,7 +1011,7 @@ func TestAgregarTags(t *testing.T) {
 		// "nuevo" es válido, pero "PROFUNDO" ya existe: no se crea ninguno.
 		tc.expect(http.StatusConflict, http.MethodPost, path, []map[string]any{{"nombre": "nuevo"}, {"nombre": "PROFUNDO"}})
 
-		got := decode[api.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
+		got := decode[httpapi.Incidente](t, tc.expect(http.StatusOK, http.MethodGet, fmt.Sprintf("/v1/incidentes/%d", inc.Id), nil))
 		if !slices.Equal(nombresDeTags(got.Tags), []string{"profundo"}) {
 			t.Errorf("tags del incidente = %v, quería [profundo]", nombresDeTags(got.Tags))
 		}
