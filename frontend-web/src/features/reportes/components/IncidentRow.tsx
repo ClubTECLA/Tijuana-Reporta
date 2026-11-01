@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { LuChevronRight, LuUsers } from "react-icons/lu";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
-import { categoryIcon, categoryLabel } from "@/features/categorias/categories";
-import { folio } from "@/features/reportes/reportFormat";
+import { categoryIcon } from "@/features/categorias/categories";
+import { folio, formatDateTime, shortDate } from "@/features/reportes/reportFormat";
 import { StatusBadge } from "./Badge";
 
 interface IncidentRowProps {
@@ -12,12 +12,13 @@ interface IncidentRowProps {
     onClick?: () => void
 }
 
-// "Web/Fila de incidente" del Figma. El backend aún no da título, hora ni dirección del reporte:
-// se muestran la categoría, las coordenadas y las confirmaciones (avistamientos).
-// Todo es <span> porque la fila puede ser un <button>, que solo admite contenido en línea.
+// "Web/Fila de incidente" del Figma: título ("Socavón en Calle...") y fecha, dirección o coordenadas y folio,
+// estado y confirmaciones. Todo es <span> porque la fila puede ser un <button>, que solo admite contenido en línea.
+// El Figma muestra solo la hora ("14:36"); aquí va con el día ("hoy 14:36", "28 oct") para que no sea ambigua.
 export default function IncidentRow({ reporte, incidente, onClick }: IncidentRowProps) {
-    const title = incidente ? categoryLabel(incidente.nombre) : "Incidente";
     const confirmations = reporte.avistamientos === 1 ? "1 confirmación" : `${reporte.avistamientos} confirmaciones`;
+    // El título ya incluye la dirección cuando la hay; sin ella se muestran las coordenadas.
+    const place = reporte.direccion ? "" : `${reporte.latitude.toFixed(4)}, ${reporte.longitude.toFixed(4)} · `;
 
     const content = <>
         <span
@@ -31,10 +32,20 @@ export default function IncidentRow({ reporte, incidente, onClick }: IncidentRow
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="truncate text-body font-semibold text-ink">{title}</span>
-            <span className="truncate text-caption text-ink-muted">
-                {reporte.latitude.toFixed(4)}, {reporte.longitude.toFixed(4)} · {folio(reporte.id)}
+            <span className="flex items-center gap-2">
+                <span className="flex-1 truncate text-body font-semibold text-ink">{reporte.titulo}</span>
+                {/* Sin created_at en el listado (aún no lo envía el backend) no se muestra nada. */}
+                {reporte.created_at &&
+                    <time
+                        dateTime={reporte.created_at}
+                        title={formatDateTime(reporte.created_at)}
+                        className="shrink-0 font-mono text-xs font-medium text-ink-muted"
+                    >
+                        {shortDate(reporte.created_at)}
+                    </time>
+                }
             </span>
+            <span className="truncate text-caption text-ink-muted">{place}{folio(reporte.id)}</span>
             <span className="flex items-center gap-2">
                 <StatusBadge estado={reporte.estado_actual} />
                 <span className="flex items-center gap-1 text-xs font-medium text-ink-secondary">

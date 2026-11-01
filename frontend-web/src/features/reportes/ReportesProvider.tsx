@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useAuth } from "@/features/sesion/useAuth";
 import { listarIncidentes } from "@/features/categorias/incidentes.services";
 import { listarReportes } from "./reportes.services";
-import { publicarReporte, type NuevoReporte } from "./publicarReporte";
+import { publicarReporte, subirFoto, type NuevoReporte } from "./publicarReporte";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
-import { filterReportes, type ReportFilters } from "./reportFilters";
+import { DEFAULT_FILTERS, filterReportes, type ReportFilters } from "./reportFilters";
 import { ReportesContext, type ReportesContextType } from "./ReportesContext.ts";
 
 // Datos de incidentes compartidos por el panel "Incidentes", "Nuevo incidente" y la capa del mapa, para que haya
@@ -24,8 +24,9 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
     // null hasta que llegan por primera vez.
     const [categories, setCategories] = useState<Map<number, ApiIncidente> | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [filters, setFilters] = useState<ReportFilters>({ tab: "activos", statusFilters: [], onlyOfficial: false });
+    const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
     const [createdId, setCreatedId] = useState<string | null>(null);
+    const [lastSync, setLastSync] = useState<number | null>(null);
 
     // Firma de la última respuesta de cada lista: si no cambió, no se toca el estado y ni la lista ni el mapa se repintan.
     const reportesSignatureRef = useRef("");
@@ -51,6 +52,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         // Cada lista se aplica por separado: si fallan los reportes, las categorías siguen llegando (Nuevo incidente
         // solo necesita esas), y al revés. Lo que falla conserva lo último que se cargó bien.
         if (reportResult.status === "fulfilled") {
+            setLastSync(Date.now());
             const signature = JSON.stringify(reportResult.value);
             if (signature !== reportesSignatureRef.current) {
                 reportesSignatureRef.current = signature;
@@ -117,6 +119,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
             setReportes(null);
             setCategories(null);
             setError(null);
+            setLastSync(null);
         };
     }, [isAuthenticated, refresh]);
 
@@ -143,10 +146,14 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
                 : [...prev.statusFilters, status],
         })),
         toggleOfficial: () => setFilters((prev) => ({ ...prev, onlyOfficial: !prev.onlyOfficial })),
+        resetFilters: () => setFilters(DEFAULT_FILTERS),
         refresh,
         publicar,
+        // La lista y el mapa no muestran fotos: reintentarla no necesita recargar nada.
+        reintentarFoto: (reporteId, foto) => subirFoto(reporteId, foto),
         createdId,
-    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId]);
+        lastSync,
+    }), [reportes, categories, error, filteredReportes, filters, refresh, publicar, createdId, lastSync]);
 
     return (
         <ReportesContext.Provider value={value}>

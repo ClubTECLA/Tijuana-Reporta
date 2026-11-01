@@ -1,7 +1,7 @@
 import { createContext } from "react";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import type { ReportFilters, ReportTab, StatusFilter } from "./reportFilters";
-import type { NuevoReporte, Publicacion } from "./publicarReporte";
+import type { FalloFoto, NuevoReporte, Publicacion } from "./publicarReporte";
 
 // El contexto solo declara el contrato; ReportesProvider lo conecta con la API, el sondeo y los filtros.
 // Es la única puerta de las vistas a los reportes y a las categorías (en el backend, "incidentes").
@@ -20,11 +20,17 @@ export interface ReportesContextType {
     setTab: (tab: ReportTab) => void
     toggleStatus: (status: StatusFilter) => void
     toggleOfficial: () => void
+    /** Vuelve a DEFAULT_FILTERS (los activos, sin chips). */
+    resetFilters: () => void
     refresh: () => Promise<void>
     /** Publica un reporte (ver publicarReporte), resalta su pin y recarga la lista y el mapa. */
     publicar: (nuevo: NuevoReporte) => Promise<Publicacion>
+    /** Reintenta solo la foto de un reporte recién publicado (ver subirFoto); null si quedó guardada. */
+    reintentarFoto: (reporteId: string, foto: Blob) => Promise<FalloFoto | null>
     /** Id del reporte recién publicado, para animar su pin; se limpia solo. */
     createdId: string | null
+    /** Momento (ms) de la última carga correcta de los reportes; null hasta la primera. Lo muestra el "En vivo" del dock. */
+    lastSync: number | null
 }
 
 export const ReportesContext = createContext<ReportesContextType | undefined>(undefined);

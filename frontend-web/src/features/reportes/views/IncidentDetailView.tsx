@@ -11,18 +11,20 @@ import { useAuth } from "@/features/sesion/useAuth";
 import { useReportes } from "@/features/reportes/useReportes";
 import { useReporteDetalle } from "@/features/reportes/useReporteDetalle";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
-import type { ApiComentario } from "@/types/api-types";
-import { categoryIcon, categoryLabel } from "@/features/categorias/categories";
-import { folio, formatDateTime, pinOfficialFirst } from "@/features/reportes/reportFormat";
+import type { ApiComentario, ApiEstadoReporte } from "@/types/api-types";
+import { categoryIcon } from "@/features/categorias/categories";
+import { folio, formatDateTime, fotoUrl, pinOfficialFirst } from "@/features/reportes/reportFormat";
 import { isOfficialRole, rolLabel } from "@/features/sesion/users";
+import { esEstadoFinal, estadosSiguientes } from "@/features/reportes/estadoTransiciones";
 
 // Mismo límite que el backend para un comentario (crear_comentario_request.yaml).
 const COMMENT_MAX_LENGTH = 500;
 const sectionTitleStyle = "text-xs font-semibold tracking-[0.72px] text-ink-muted";
 const noteStyle = "py-6 text-center text-sm text-ink-muted";
-// Acciones del Figma que aún no tienen endpoint (o lo tienen con error): se muestran deshabilitadas.
+// Acciones del Figma que aún no tienen endpoint: se muestran deshabilitadas.
 const SOON = "Próximamente";
-const STATE_PENDING = "Pendiente de backend: cambiar el estado devuelve error";
+const STATE_FORBIDDEN = "Solo los roles oficiales pueden cambiar el estado";
+const stateFinal = (estado: ApiEstadoReporte) => `${estado} es un estado final: ya no se puede cambiar`;
 
 interface IncidentDetailViewProps {
     reporteId: string
@@ -33,17 +35,47 @@ interface IncidentDetailViewProps {
 export default function IncidentDetailView({ reporteId }: IncidentDetailViewProps) {
     const { user } = useAuth();
     const { reportes, categories } = useReportes();
-    const { reporte, error, address, comentar } = useReporteDetalle(reporteId);
+    const { reporte, error, comentar, cambiarEstado } = useReporteDetalle(reporteId);
     const { showMessage } = useSysMessage();
 
     const [tab, setTab] = useState(0);
     const [comment, setComment] = useState("");
     const [sending, setSending] = useState(false);
+    const [stateMenuOpen, setStateMenuOpen] = useState(false);
+    const [changingState, setChangingState] = useState(false);
+    // Estado final (Resuelto o Descartado) pendiente de confirmar: después ya no se puede cambiar.
+    const [confirming, setConfirming] = useState<ApiEstadoReporte | null>(null);
 
     const base = reporte ?? reportes?.find((item) => item.id === reporteId);
     const category = base ? categories.get(base.incidente_id) : undefined;
     const color = category?.color ?? "var(--color-ink-muted)";
     const icon = createElement(categoryIcon(category?.nombre ?? ""), { "aria-hidden": true });
+    const photo = reporte?.multimedia[0];
+    // Misma regla que el backend (PATCH /reportes/{id}/estado): cualquier rol menos ciudadano.
+    const canChangeState = isOfficialRole(user?.rol_name);
+    // Mismas transiciones que el backend: solo se ofrecen los cambios que va a aceptar.
+    const nextStates = reporte ? estadosSiguientes(reporte.estado_actual) : [];
+    const isFinal = !!reporte && esEstadoFinal(reporte.estado_actual);
+
+    const handleChangeState = async (estado: ApiEstadoReporte) => {
+        if (changingState) return;
+        setChangingState(true);
+        try {
+            await cambiarEstado(estado);
+            setStateMenuOpen(false);
+        } catch (err) {
+            showMessage(err instanceof Error ? err.message : "No se pudo cambiar el estado.", { color: "red", type: "float", title: "Estado" });
+        } finally {
+            setChangingState(false);
+            setConfirming(null);
+        }
+    };
+
+    // Resuelto y Descartado no tienen vuelta atrás: se piden confirmar antes de enviarlos.
+    const requestState = (estado: ApiEstadoReporte) => {
+        if (esEstadoFinal(estado)) setConfirming(estado);
+        else void handleChangeState(estado);
+    };
 
     const handleSendComment = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -64,17 +96,16 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const confirmations = base?.avistamientos ?? 0;
     const commentCount = reporte?.comentarios.length;
 
-    // shortcut: el backend solo devuelve user_id, así que solo se conoce el autor (y su rol) de los comentarios
-    // propios. Cuando el comentario traiga autor y rol, devolverlos aquí: la vista y el orden ya los usan.
+    // El backend devuelve el autor y su rol en cada comentario; sin ellos (respuestas antiguas) se muestra "Usuario".
     const authorOf = (item: ApiComentario): CommentAuthor | undefined =>
-        user && item.user_id === user.id ? { name: user.username, rol: user.rol_name } : undefined;
+        item.username ? { name: item.username, rol: item.rol_name } : undefined;
     const isOfficial = (item: ApiComentario) => isOfficialRole(authorOf(item)?.rol);
     const comments = pinOfficialFirst(reporte?.comentarios ?? [], isOfficial);
 
     return (
         // Ancho fijo del Figma (440 px aprox.): con w-fit, un comentario largo ensancharía el panel.
         <div className="flex h-full min-h-0 w-full flex-col gap-2 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
-            <DetailHero color={color} icon={icon}>
+            <DetailHero color={color} icon={icon} photo={photo && fotoUrl(photo.path)}>
                 {!!reporte?.multimedia.length &&
                     <span className="flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1.25 text-xs font-semibold text-white">
                         <LuImage className="size-3.5" aria-hidden />
@@ -99,11 +130,12 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         {icon}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <h2 className="text-title font-bold text-ink">{category ? categoryLabel(category.nombre) : "Incidente"}</h2>
+                        <h2 className="text-title font-bold text-ink">{category?.etiqueta ?? "Incidente"}</h2>
                         {base &&
                             <span className="flex items-center gap-1 text-caption text-ink-muted">
                                 <LuMapPin className="size-3.5 shrink-0" aria-hidden />
-                                <span className="truncate">{address ?? `${base.latitude.toFixed(5)}, ${base.longitude.toFixed(5)}`}</span>
+                                {/* La dirección la guarda quien crea el reporte; sin ella se muestran las coordenadas. */}
+                                <span className="truncate">{base.direccion ?? `${base.latitude.toFixed(5)}, ${base.longitude.toFixed(5)}`}</span>
                             </span>
                         }
                     </div>
@@ -115,12 +147,59 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                     </div>
                 }
                 <div className="flex justify-between pt-1">
-                    <IncidentAction icon={<LuCheck />} label="Estado" tone="primary" disabled tooltip={STATE_PENDING} />
+                    <IncidentAction
+                        icon={<LuCheck />}
+                        label="Estado"
+                        tone="primary"
+                        expanded={stateMenuOpen}
+                        onClick={() => { setConfirming(null); setStateMenuOpen((open) => !open) }}
+                        disabled={!reporte || !canChangeState || isFinal}
+                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined}
+                    />
                     <IncidentAction icon={<LuPencil />} label="Editar" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuShare />} label="Compartir" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuDownload />} label="Exportar" disabled tooltip={SOON} />
-                    <IncidentAction icon={<LuTrash2 />} label="Descartar" tone="danger" disabled tooltip={STATE_PENDING} />
+                    <IncidentAction
+                        icon={<LuTrash2 />}
+                        label="Descartar"
+                        tone="danger"
+                        onClick={() => requestState("Descartado")}
+                        disabled={!reporte || !canChangeState || changingState || !nextStates.includes("Descartado")}
+                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)"}
+                    />
                 </div>
+                {confirming
+                    ? <div role="group" aria-label="Confirmar cambio de estado" className="flex flex-col gap-2.5 rounded-2xl bg-subtle p-3">
+                        <p className="text-caption text-ink-secondary">
+                            ¿Marcar este incidente como <span className="font-semibold text-ink">{confirming}</span>? Es un estado final: después ya no se podrá cambiar.
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={changingState} />
+                            <Button
+                                size="sm"
+                                variant={confirming === "Descartado" ? "danger" : "primary"}
+                                title={`Marcar como ${confirming}`}
+                                onClick={() => { void handleChangeState(confirming) }}
+                                disabled={changingState}
+                            />
+                        </div>
+                    </div>
+                    : stateMenuOpen && reporte && !isFinal &&
+                    <div role="group" aria-label="Cambiar estado" className="flex flex-wrap gap-2 rounded-2xl bg-subtle p-2.5">
+                        {/* Descartado tiene su propio botón. */}
+                        {nextStates.filter((estado) => estado !== "Descartado").map((estado) =>
+                            <button
+                                key={estado}
+                                type="button"
+                                disabled={changingState}
+                                onClick={() => requestState(estado)}
+                                className="rounded-full border border-line bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-subtle disabled:cursor-wait disabled:opacity-60"
+                            >
+                                {estado}
+                            </button>
+                        )}
+                    </div>
+                }
             </div>
 
             <SegmentedTabs format="row" activeTab={tab} onChange={setTab}>

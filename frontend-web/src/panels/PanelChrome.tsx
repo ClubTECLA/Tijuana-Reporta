@@ -16,7 +16,9 @@ export default function PanelChrome({ entry }: { entry: PanelEntry }) {
     const key = `${entry.view}:${JSON.stringify(entry.props)}`;
 
     return (
+        // data-common-panel: el mapa lo mide para centrar el incidente abierto en el espacio libre a su derecha.
         <section
+            data-common-panel
             className="
                 fixed left-2 right-2 top-20 bottom-2
                 min-w-0 max-w-none

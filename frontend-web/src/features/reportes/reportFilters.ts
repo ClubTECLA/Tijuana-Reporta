@@ -14,6 +14,19 @@ export interface ReportFilters {
 export const STATUS_FILTERS: StatusFilter[] = ["Pendiente", "Verificado"];
 const CLOSED_STATES: ApiEstadoReporte[] = ["Resuelto", "Descartado"];
 
+/** Lo que se ve al entrar: los activos, sin chips. */
+export const DEFAULT_FILTERS: ReportFilters = { tab: "activos", statusFilters: [], onlyOfficial: false };
+const TAB_LABELS: Record<ReportTab, string> = { activos: "Activos", resueltos: "Resueltos", todos: "Todos los estados" };
+
+/** Nombres de lo que difiere de DEFAULT_FILTERS ("Resueltos", "Pendiente", "Oficiales"); vacío si no hay filtro. */
+export function activeFilterLabels({ tab, statusFilters, onlyOfficial }: ReportFilters): string[] {
+    return [
+        ...(tab !== DEFAULT_FILTERS.tab ? [TAB_LABELS[tab]] : []),
+        ...statusFilters,
+        ...(onlyOfficial ? ["Oficiales"] : []),
+    ];
+}
+
 // GET /reportes devuelve todos los reportes no históricos en cualquier estado: las pestañas filtran por estado.
 export const tabFilters: Record<ReportTab, (reporte: ApiReporteResumen) => boolean> = {
     activos: (reporte) => !CLOSED_STATES.includes(reporte.estado_actual),

@@ -13,16 +13,19 @@ interface IncidentActionProps {
     tone?: keyof typeof tones
     onClick?: () => void
     disabled?: boolean
+    /** Abre un menú (p. ej. "Estado"): se anuncia como desplegado o plegado. */
+    expanded?: boolean
     /** Texto al pasar el ratón, p. ej. por qué está deshabilitada. */
     tooltip?: string
 }
 
-export default function IncidentAction({ icon, label, tone = "default", onClick, disabled = false, tooltip }: IncidentActionProps) {
+export default function IncidentAction({ icon, label, tone = "default", onClick, disabled = false, expanded, tooltip }: IncidentActionProps) {
     return (
         <button
             type="button"
             onClick={onClick}
             disabled={disabled}
+            aria-expanded={expanded}
             title={tooltip}
             className="group flex w-18 shrink-0 flex-col items-center gap-1.5 disabled:cursor-not-allowed"
         >

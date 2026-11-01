@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { LuMapPin, LuPlus, LuSend } from "react-icons/lu";
+import { LuMapPin, LuPlus, LuRotateCw, LuSend } from "react-icons/lu";
 import ColSection from "@/components/layout/ColSection";
 import CategoryCard from "@/features/reportes/components/CategoryCard";
 import PhotoDropzone from "@/features/reportes/components/PhotoDropzone";
@@ -10,6 +10,7 @@ import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 import { useReportes } from "@/features/reportes/useReportes";
 import { useLocationPicker } from "@/features/mapa/useLocationPicker";
+import { prepararFoto, type PreparedPhoto } from "@/features/reportes/prepararFoto";
 
 // Tarjetas visibles antes de "Ver las N categorías activas" (Figma: 2 filas de 3).
 const VISIBLE_CATEGORIES = 6;
@@ -19,13 +20,13 @@ const DESCRIPTION_MAX_LENGTH = 500;
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
-// "21. Incidente - NuevoIncidente" del Figma. Publica un reporte con la categoría, la ubicación del marcador y la
-// descripción; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
-// Etiquetas, fotos y borrador esperan soporte del backend.
+// "21. Incidente - NuevoIncidente" del Figma. Publica un reporte oficial con la categoría, la ubicación del marcador,
+// su dirección, la descripción y la foto; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
+// Etiquetas y borrador esperan soporte del backend.
 function NewIncidentForm() {
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
-    const { categories: allCategories, categoriesLoaded, error: loadError, refresh, publicar } = useReportes();
+    const { categories: allCategories, categoriesLoaded, error: loadError, refresh, publicar, reintentarFoto } = useReportes();
 
     // Las categorías salen del contexto (una sola descarga); aquí solo las activas. null hasta que llegan, sin
     // depender de los reportes: si la lista de reportes falla, se puede publicar igual.
@@ -36,7 +37,11 @@ function NewIncidentForm() {
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);
     const [description, setDescription] = useState("");
+    const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
+    const [preparingPhoto, setPreparingPhoto] = useState(false);
     const [publishing, setPublishing] = useState(false);
+    // El reporte ya se publicó pero su foto falló y se puede reintentar: el formulario queda solo para eso.
+    const [photoRetry, setPhotoRetry] = useState<{ reporteId: string; motivo: string; pendientes: string[] } | null>(null);
     // Marcador, posición y dirección: el hook se ocupa de MapLibre y Nominatim; aquí solo se pinta el marcador.
     const { markerElement, position, address, editAddress, search } = useLocationPicker();
 
@@ -59,6 +64,48 @@ function NewIncidentForm() {
         }
     };
 
+    const handlePhotoSelect = async (file: File) => {
+        setPreparingPhoto(true);
+        try {
+            setPhoto(await prepararFoto(file));
+        } catch (error) {
+            showMessage(
+                error instanceof Error ? error.message : "No se pudo usar esa foto.",
+                { color: "red", type: "float", title: "Foto" },
+            );
+        } finally {
+            setPreparingPhoto(false);
+        }
+    };
+
+    // Avisa del resultado y vuelve a la lista. La lista reemplaza el formulario en el historial: "atrás" no debe
+    // reabrir el formulario enviado.
+    const finish = (pendientes: string[]) => {
+        if (pendientes.length) {
+            showMessage(
+                `El incidente se publicó, pero ${pendientes.join(" y ")}.`,
+                { color: "yellow", type: "float", title: "Publicado con avisos" },
+            );
+        } else {
+            showMessage("El incidente ya aparece en la app.", { color: "green", type: "float", title: "Incidente publicado" });
+        }
+        openPanel("Incidentes", undefined, { replace: true });
+    };
+
+    // Solo la foto, con el mismo reporte: volver a publicar lo duplicaría (multimedia/README.md).
+    const handleRetryPhoto = async () => {
+        if (!photoRetry || !photo) return;
+        setPublishing(true);
+        try {
+            const fallo = await reintentarFoto(photoRetry.reporteId, photo.blob);
+            if (!fallo) finish(photoRetry.pendientes);
+            else if (fallo.reintentable) setPhotoRetry({ ...photoRetry, motivo: fallo.motivo });
+            else finish([...photoRetry.pendientes, fallo.motivo]);
+        } finally {
+            setPublishing(false);
+        }
+    };
+
     const handlePublish = async () => {
         if (!categoryId) {
             showMessage("Elige qué está pasando antes de publicar.", { color: "red", type: "float", title: "Falta la categoría" });
@@ -71,23 +118,19 @@ function NewIncidentForm() {
 
         setPublishing(true);
         try {
-            const { pendientes } = await publicar({
+            const { reporte, pendientes, falloFoto } = await publicar({
                 categoriaId: categoryId,
                 latitude: position.latitude,
                 longitude: position.longitude,
+                direccion: address,
                 descripcion: description,
+                foto: photo?.blob,
             });
-            if (pendientes.length) {
-                showMessage(
-                    `El incidente se publicó, pero ${pendientes.join(" y ")}.`,
-                    { color: "yellow", type: "float", title: "Publicado con avisos" },
-                );
+            if (falloFoto?.reintentable) {
+                setPhotoRetry({ reporteId: reporte.id, motivo: falloFoto.motivo, pendientes });
             } else {
-                showMessage("El incidente ya aparece en la app.", { color: "green", type: "float", title: "Incidente publicado" });
+                finish(falloFoto ? [...pendientes, falloFoto.motivo] : pendientes);
             }
-            // Vuelve a la lista sin dejar este formulario en el historial.
-            // Tras publicar, la lista reemplaza el formulario: "atrás" no debe reabrir el formulario enviado.
-            openPanel("Incidentes", undefined, { replace: true });
         } catch (error) {
             showMessage(
                 error instanceof Error ? error.message : "No se pudo publicar el incidente.",
@@ -150,7 +193,13 @@ function NewIncidentForm() {
                     </span>
                 </div>
 
-                <PhotoDropzone disabled />
+                <PhotoDropzone
+                    preview={photo?.preview}
+                    busy={preparingPhoto}
+                    disabled={publishing || !!photoRetry}
+                    onSelect={(file) => { void handlePhotoSelect(file) }}
+                    onRemove={() => setPhoto(null)}
+                />
 
                 <div className="flex flex-col gap-2">
                     <span className={sectionTitleStyle}>Etiquetas</span>
@@ -192,18 +241,44 @@ function NewIncidentForm() {
                 </div>
             </div>
 
-            <div className="flex gap-2.5 border-t border-line pt-3.5">
-                <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1" />
-                <Button
-                    variant="report"
-                    size="lg"
-                    icon={<LuSend />}
-                    title={publishing ? "Publicando…" : "Publicar incidente"}
-                    onClick={handlePublish}
-                    disabled={publishing}
-                    className="flex-1"
-                />
-            </div>
+            {photoRetry
+                ? <div className="flex flex-col gap-3 border-t border-line pt-3.5">
+                    <p role="alert" className="rounded-2xl bg-warning-subtle px-4 py-3 text-caption text-warning">
+                        El incidente se publicó, pero {photoRetry.motivo}. Puedes reintentar solo la foto; el incidente no se duplica.
+                    </p>
+                    <div className="flex gap-2.5">
+                        <Button
+                            variant="subtle"
+                            size="lg"
+                            title="Continuar sin foto"
+                            onClick={() => finish([...photoRetry.pendientes, photoRetry.motivo])}
+                            disabled={publishing}
+                            className="flex-1"
+                        />
+                        <Button
+                            variant="report"
+                            size="lg"
+                            icon={<LuRotateCw />}
+                            title={publishing ? "Subiendo foto…" : "Reintentar foto"}
+                            onClick={handleRetryPhoto}
+                            disabled={publishing}
+                            className="flex-1"
+                        />
+                    </div>
+                </div>
+                : <div className="flex gap-2.5 border-t border-line pt-3.5">
+                    <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1" />
+                    <Button
+                        variant="report"
+                        size="lg"
+                        icon={<LuSend />}
+                        title={publishing ? "Publicando…" : "Publicar incidente"}
+                        onClick={handlePublish}
+                        disabled={publishing || preparingPhoto}
+                        className="flex-1"
+                    />
+                </div>
+            }
 
             {createPortal(
                 <div className="relative flex size-12 cursor-grab items-center justify-center active:cursor-grabbing">

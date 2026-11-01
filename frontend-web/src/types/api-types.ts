@@ -4,7 +4,8 @@ import type { components, operations } from '@tijuana-reporta/shared'
 export type ApiComentario = components['schemas']['comentario']
 export type ApiCrearComentarioRequest = components['schemas']['crear_comentario_request']
 export type ApiReporte = components['schemas']['reporte']
-export type ApiReporteResumen = components['schemas']['reporte_resumen']
+// shortcut: created_at aún no está en reporte_resumen; quitar el añadido cuando el backend lo incluya en el contrato.
+export type ApiReporteResumen = components['schemas']['reporte_resumen'] & { created_at?: string }
 export type ApiEstadoReporte = components['schemas']['estado_reporte']
 export type ApiMultimedia = components['schemas']['multimedia']
 export type ApiTag = components['schemas']['tag']

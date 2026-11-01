@@ -30,6 +30,7 @@ export function CommonPanelProvider({ children }: { children: ReactNode }) {
         <CommonPanelContext.Provider
             value={{
                 currentPanelView: routerState.current?.view ?? null,
+                currentPanel: routerState.current,
                 openPanel,
                 backView,
                 hasPrevView: hasPreviousPanel(routerState),

@@ -54,8 +54,9 @@ export default function IncidentsView() {
             arrangementSubsections="toUp"
             className="min-h-0"
         >
-            {/* Mismo ancho que "Nuevo incidente": ocupa el ancho mínimo del panel común (25vw menos su relleno). */}
-            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:min-w-[max(25rem,calc(25vw-2rem))]">
+            {/* Mismo ancho fijo que "Nuevo incidente" y el detalle: con solo un mínimo, el panel (w-fit) crecía hasta
+                el título más largo en vez de recortarlo con "…". */}
+            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
                 {/* La pestaña vive en ReportesContext (también filtra el mapa), así que las pestañas van controladas. */}
                 <SegmentedTabs
                     format="row"

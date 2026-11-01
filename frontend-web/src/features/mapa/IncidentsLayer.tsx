@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Marker, type GeoJSONSource, type MapSourceDataEvent } from "maplibre-gl";
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, Point, Polygon } from "geojson";
 import IncidentPin from "./IncidentPin";
 import ClusterPin from "./ClusterPin";
+import { circlePolygon } from "./circlePolygon";
 import { useMap } from "./useMap";
 import { useReportes } from "@/features/reportes/useReportes";
 import { useCommonPanel } from "@/panels/useCommonPanel";
@@ -18,8 +19,12 @@ import type { ApiReporteResumen } from "@/types/api-types";
 const SOURCE_ID = "incidentes";
 // Capa invisible: MapLibre solo carga los tiles de una fuente si alguna capa la usa (necesario para querySourceFeatures).
 const LOAD_LAYER_ID = "incidentes-carga";
-// Zoom a partir del cual ya no se agrupa: al centrar un incidente nuevo se usa un zoom mayor para que se vea su pin.
+// Zoom a partir del cual ya no se agrupa: al centrar un incidente nuevo o el abierto se usa un zoom mayor para que se vea su pin.
 const CLUSTER_MAX_ZOOM = 14;
+// Radio de alerta del incidente abierto en el panel (círculo discontinuo de la pantalla 9 del Figma).
+const RADIUS_SOURCE_ID = "incidente-abierto-radio";
+const RADIUS_FILL_ID = "incidente-abierto-radio-relleno";
+const RADIUS_LINE_ID = "incidente-abierto-radio-borde";
 
 type MarkerItem =
     | { key: string; kind: "point"; element: HTMLButtonElement; reporteId: string }
@@ -42,12 +47,16 @@ const stopMapEvent = (event: Event) => event.stopPropagation();
 export default function IncidentsLayer() {
     const { map } = useMap();
     const { filteredReportes, categories, createdId } = useReportes();
-    const { openPanel } = useCommonPanel();
+    const { openPanel, currentPanel } = useCommonPanel();
     const [items, setItems] = useState<MarkerItem[]>([]);
+    // Incidente cuyo detalle está abierto (desde el mapa o desde la lista): el mapa lo lleva a la vista y lo resalta.
+    const activeId = currentPanel?.view === "Detalle Incidente" ? currentPanel.props.reporteId : null;
 
     const markersRef = useRef(new Map<string, { marker: Marker; element: HTMLButtonElement }>());
     const dataRef = useRef<FeatureCollection<Point>>(toFeatureCollection([]));
+    const radiusDataRef = useRef<FeatureCollection<Polygon>>({ type: "FeatureCollection", features: [] });
     const flownToRef = useRef<string | null>(null);
+    const focusedRef = useRef<string | null>(null);
     // Los listeners de los marcadores se crean una vez; la ref les da siempre el openPanel actual
     // para que los clics registren la navegación usando el estado más reciente del router.
     const openDetailRef = useRef((reporteId: string) => openPanel("Detalle Incidente", { reporteId }));
@@ -56,6 +65,8 @@ export default function IncidentsLayer() {
     });
 
     const reportesById = useMemo(() => new Map(filteredReportes.map((reporte) => [reporte.id, reporte])), [filteredReportes]);
+    const active = activeId ? reportesById.get(activeId) : undefined;
+    const activeCategory = active ? categories.get(active.incidente_id) : undefined;
     // La fuente se recrea solo si cambia el conjunto de categorías (sus conteos por grupo forman el anillo).
     const categoryIds = useMemo(() => [...categories.keys()].sort((a, b) => a - b).join(","), [categories]);
 
@@ -86,7 +97,8 @@ export default function IncidentsLayer() {
                     // y se activan con Enter o espacio. El nombre accesible lo pone el texto sr-only del pin.
                     const element = document.createElement("button");
                     element.type = "button";
-                    element.className = "cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+                    // has-[[data-selected]]: el pin del incidente abierto queda por encima de sus vecinos.
+                    element.className = "cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand has-[[data-selected]]:z-1";
                     element.addEventListener("mousedown", stopMapEvent);
                     element.addEventListener("click", stopMapEvent);
                     if (props.cluster) {
@@ -159,6 +171,15 @@ export default function IncidentsLayer() {
                 ])),
             });
             map.addLayer({ id: LOAD_LAYER_ID, type: "circle", source: SOURCE_ID, paint: { "circle-radius": 0, "circle-opacity": 0 } });
+            // Los pines son marcadores HTML: quedan siempre por encima de estas capas.
+            map.addSource(RADIUS_SOURCE_ID, { type: "geojson", data: radiusDataRef.current });
+            map.addLayer({ id: RADIUS_FILL_ID, type: "fill", source: RADIUS_SOURCE_ID, paint: { "fill-color": ["get", "color"], "fill-opacity": 0.12 } });
+            map.addLayer({
+                id: RADIUS_LINE_ID,
+                type: "line",
+                source: RADIUS_SOURCE_ID,
+                paint: { "line-color": ["get", "color"], "line-width": 2, "line-dasharray": [3, 2] },
+            });
             map.on("moveend", scheduleSync);
             // idle: el mapa terminó de cargar o de moverse; se dispara una vez por cada "reposo", no por fotograma.
             map.on("idle", scheduleSync);
@@ -187,8 +208,8 @@ export default function IncidentsLayer() {
             markers.clear();
             // shortcut: si el mapa ya se destruyó, quitar capa y fuente falla; se ignora porque ya no existen.
             try {
-                if (map.getLayer(LOAD_LAYER_ID)) map.removeLayer(LOAD_LAYER_ID);
-                if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+                for (const layer of [LOAD_LAYER_ID, RADIUS_FILL_ID, RADIUS_LINE_ID]) if (map.getLayer(layer)) map.removeLayer(layer);
+                for (const source of [SOURCE_ID, RADIUS_SOURCE_ID]) if (map.getSource(source)) map.removeSource(source);
             } catch { /* mapa ya destruido */ }
         };
     }, [map, categoryIds]);
@@ -208,6 +229,41 @@ export default function IncidentsLayer() {
         map.flyTo({ center: [reporte.longitude, reporte.latitude], zoom: Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1) });
     }, [map, createdId, reportesById]);
 
+    // Incidente abierto en el panel: el mapa lo lleva a la vista una vez por apertura (no en cada sondeo), con zoom
+    // suficiente para que su pin no quede agrupado. Al cerrar el detalle se olvida, así que reabrirlo vuelve a llevar.
+    useEffect(() => {
+        if (!activeId) {
+            focusedRef.current = null;
+            return;
+        }
+        if (!map || !active || focusedRef.current === activeId) return;
+        focusedRef.current = activeId;
+        // Desde sm (40rem, el mismo corte que PanelChrome) el panel tapa la izquierda del mapa: se centra en el espacio
+        // libre a su derecha. Por debajo lo tapa entero y no se desplaza (al cerrarlo el incidente queda en el centro).
+        const panelRight = document.querySelector("[data-common-panel]")?.getBoundingClientRect().right ?? 0;
+        const offsetX = window.matchMedia("(min-width: 40rem)").matches ? panelRight / 2 : 0;
+        // easeTo y no flyTo: en MapLibre 6 flyTo deja el punto en el centro del mapa e ignora el offset.
+        map.easeTo({
+            center: [active.longitude, active.latitude],
+            zoom: Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1),
+            offset: [offsetX, 0],
+        });
+    }, [map, activeId, active]);
+
+    // Radio de alerta de su categoría (en metros reales), si la categoría lo tiene.
+    useEffect(() => {
+        radiusDataRef.current = {
+            type: "FeatureCollection",
+            features: active && activeCategory?.radio
+                ? [{
+                    type: "Feature",
+                    geometry: circlePolygon(active.longitude, active.latitude, activeCategory.radio),
+                    properties: { color: activeCategory.color },
+                }]
+                : [],
+        };
+        (map?.getSource(RADIUS_SOURCE_ID) as GeoJSONSource | undefined)?.setData(radiusDataRef.current);
+    }, [map, active, activeCategory]);
     return (
         <>
             {items.map((item) => {
@@ -224,7 +280,12 @@ export default function IncidentsLayer() {
                 const reporte = reportesById.get(item.reporteId);
                 if (!reporte) return null; // filtrado mientras llega la siguiente sincronización
                 return createPortal(
-                    <IncidentPin reporte={reporte} incidente={categories.get(reporte.incidente_id)} isNew={reporte.id === createdId} />,
+                    <IncidentPin
+                        reporte={reporte}
+                        incidente={categories.get(reporte.incidente_id)}
+                        isNew={reporte.id === createdId}
+                        selected={reporte.id === activeId}
+                    />,
                     item.element,
                     item.key,
                 );
