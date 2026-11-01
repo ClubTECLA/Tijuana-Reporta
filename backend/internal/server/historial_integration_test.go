@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/google/uuid"
 )
 
 // crearActor registra un usuario directo en la store y devuelve su id, para
 // los tests que llaman a la store sin pasar por la API: actor_id del
 // historial es FK a users, así que no sirve un uuid inventado.
-func crearActor(t *testing.T, store *database.Store) uuid.UUID {
+func crearActor(t *testing.T, store *usuario.Store) uuid.UUID {
 	t.Helper()
 
 	rol, err := store.GetDefaultRole(t.Context())
@@ -52,7 +52,7 @@ func contarHistorial(t *testing.T, accion, entidad, entidadID string) int {
 func ultimoHistorial(t *testing.T, entidad, entidadID string) sqlc.Historial {
 	t.Helper()
 
-	eventos, err := database.NewStore(testPool(t)).ListHistorialPorEntidad(t.Context(), sqlc.ListHistorialPorEntidadParams{
+	eventos, err := sqlc.New(testPool(t)).ListHistorialPorEntidad(t.Context(), sqlc.ListHistorialPorEntidadParams{
 		Entidad: entidad, EntidadID: entidadID, Limit: 1,
 	})
 	if err != nil {

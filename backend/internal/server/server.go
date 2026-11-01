@@ -12,6 +12,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,7 +27,8 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 	// cada funcionalidad con paquete propio arma el suyo sobre el mismo pool.
 	store := database.NewStore(pool)
 
-	auth, err := service.NewAuthService(ctx, store, []byte(cfg.JWTSecret), cfg.JWTTTL)
+	usuarios := usuario.NewStore(pool)
+	auth, err := usuario.NewAuth(ctx, usuarios, []byte(cfg.JWTSecret), cfg.JWTTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -35,9 +37,8 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(pool))),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(pool))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(pool))),
+		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
 		Services: httpapi.Services{
-			Auth:     auth,
-			Usuarios: service.NewUsuarioService(store),
 			Multimedia: service.NewMultimediaService(store, multimedia.NewCliente(cfg.MultimediaURL, multimediaTimeout), service.OpcionesFoto{
 				MaxBytes:   cfg.MaxFotoBytes,
 				MaxPixeles: cfg.MaxFotoPixeles,

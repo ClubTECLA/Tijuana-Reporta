@@ -1,4 +1,4 @@
-package service
+package usuario
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -24,8 +23,9 @@ var dummyPasswordHash = func() string {
 	return string(hash)
 }()
 
-// AuthStore es el subconjunto de *database.Store que este servicio usa.
-type AuthStore interface {
+// authStore es lo que Auth necesita de Store; los tests lo cumplen con un
+// falso en memoria.
+type authStore interface {
 	CreateUserWithLocalProvider(ctx context.Context, arg sqlc.CreateUserParams) (sqlc.User, error)
 	GetUserByEmail(ctx context.Context, email *string) (sqlc.User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.User, error)
@@ -33,27 +33,27 @@ type AuthStore interface {
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (sqlc.GetUserWithRolByIDRow, error)
 }
 
-type AuthService struct {
-	store           AuthStore
+type Auth struct {
+	store           authStore
 	secret          []byte
 	ttl             time.Duration
 	defaultRoleID   int
 	defaultRoleName string
 }
 
-// NewAuthService resuelve el id del rol "ciudadano" contra la base una sola
+// NewAuth resuelve el id del rol "ciudadano" contra la base una sola
 // vez, en vez de asumir un id fijo.
-func NewAuthService(ctx context.Context, store AuthStore, secret []byte, ttl time.Duration) (*AuthService, error) {
+func NewAuth(ctx context.Context, store authStore, secret []byte, ttl time.Duration) (*Auth, error) {
 	defaultRole, err := store.GetDefaultRole(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("resolving default role: %w", err)
 	}
-	return &AuthService{store: store, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID, defaultRoleName: defaultRole.Nombre}, nil
+	return &Auth{store: store, secret: secret, ttl: ttl, defaultRoleID: defaultRole.ID, defaultRoleName: defaultRole.Nombre}, nil
 }
 
 // Register crea el usuario con password local y devuelve el token de acceso
 // ya firmado, junto con su tiempo de vida.
-func (s *AuthService) Register(ctx context.Context, email, username, password string) (sqlc.User, string, time.Duration, error) {
+func (s *Auth) Register(ctx context.Context, email, username, password string) (sqlc.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -70,7 +70,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 	})
 	if err != nil {
 		if db.IsUniqueViolation(err) {
-			return sqlc.User{}, "", 0, domain.ErrEmailTaken
+			return sqlc.User{}, "", 0, ErrEmailTaken
 		}
 		return sqlc.User{}, "", 0, err
 	}
@@ -85,7 +85,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 // Login valida el password contra el hash guardado. Si el email no existe o
 // el usuario no tiene password local, compara igual contra un hash dummy
 // para no revelar cuál de los dos casos sucedió.
-func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.User, string, time.Duration, error) {
+func (s *Auth) Login(ctx context.Context, email, password string) (sqlc.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
 	user, err := s.store.GetUserByEmail(ctx, &email)
@@ -100,10 +100,10 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.U
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
-		return sqlc.User{}, "", 0, domain.ErrInvalidCredentials
+		return sqlc.User{}, "", 0, ErrInvalidCredentials
 	}
 	if notFound {
-		return sqlc.User{}, "", 0, domain.ErrInvalidCredentials
+		return sqlc.User{}, "", 0, ErrInvalidCredentials
 	}
 
 	row, err := s.store.GetUserWithRolByID(ctx, user.ID)
@@ -119,16 +119,16 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.U
 }
 
 // GetUser devuelve el usuario con su rol según el id.
-func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error) {
+func (s *Auth) GetUser(ctx context.Context, id uuid.UUID) (ConRol, error) {
 	row, err := s.store.GetUserWithRolByID(ctx, id)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return domain.UserWithRol{}, domain.ErrUserNotFound
+			return ConRol{}, ErrUserNotFound
 		}
-		return domain.UserWithRol{}, err
+		return ConRol{}, err
 	}
 
-	return domain.UserWithRol{
+	return ConRol{
 		ID:       row.ID,
 		Email:    row.Email,
 		Username: row.Username,
@@ -145,7 +145,7 @@ type tokenClaims struct {
 
 // issueToken genera un JWT firmado con el id del usuario, su rol y la fecha
 // de expiración.
-func (s *AuthService) issueToken(user sqlc.User, rol string) (string, error) {
+func (s *Auth) issueToken(user sqlc.User, rol string) (string, error) {
 	now := time.Now()
 	claims := tokenClaims{
 		Rol: rol,

@@ -34,6 +34,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -59,7 +60,8 @@ func newTestClient(t *testing.T) *testClient {
 	t.Helper()
 
 	store := database.NewStore(testPool(t))
-	auth, err := service.NewAuthService(t.Context(), store, []byte(testJWTSecret), time.Hour)
+	usuarios := usuario.NewStore(testPool(t))
+	auth, err := usuario.NewAuth(t.Context(), usuarios, []byte(testJWTSecret), time.Hour)
 	if err != nil {
 		t.Fatalf("creando AuthService: %v", err)
 	}
@@ -71,8 +73,8 @@ func newTestClient(t *testing.T) *testClient {
 		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(testPool(t)))),
+		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
 		Services: httpapi.Services{
-			Auth: auth,
 			Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
 				MaxBytes:   3 << 20,
 				MaxPixeles: 16_000_000,
@@ -832,7 +834,7 @@ func TestCrearIncidente(t *testing.T) {
 // no hay forma de que falle un tag después de insertar el incidente.
 func TestCreateIncidenteConTagsRollback(t *testing.T) {
 	pool := testPool(t)
-	store := database.NewStore(pool)
+	store := usuario.NewStore(pool)
 	incidentes := incidente.NewStore(pool)
 	nombre := nombreIncidente()
 
@@ -1057,7 +1059,7 @@ func TestAgregarTags(t *testing.T) {
 // existen, así que solo llegan a la base en una carrera.
 func TestCreateTags(t *testing.T) {
 	pool := testPool(t)
-	store := database.NewStore(pool)
+	store := usuario.NewStore(pool)
 	incidentes := incidente.NewStore(pool)
 	actorID := crearActor(t, store)
 

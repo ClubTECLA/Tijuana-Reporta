@@ -5,11 +5,12 @@ sql:
     # generan en el mismo paquete internal/db/sqlc. El nombre del .sql da el
     # del archivo generado, así que no se repite entre funcionalidades.
     queries:
-      - "internal/queries"
       - "internal/historial/historial.sql"
       - "internal/reporte/reporte.sql"
       - "internal/incidente/incidente.sql"
       - "internal/comentario/comentario.sql"
+      - "internal/usuario/user.sql"
+      - "internal/usuario/roles.sql"
     schema: "internal/db/migrations"
     gen:
       go:

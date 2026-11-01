@@ -3,21 +3,10 @@ package httpapi
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	uuid "github.com/google/uuid"
 )
-
-// AuthService devuelve, junto con el usuario, el access token ya firmado y
-// su tiempo de vida, para que el handler pueda armar el AuthResponse del
-// contrato sin conocer nada sobre cómo se firma o valida el token.
-type AuthService interface {
-	Register(ctx context.Context, email, username, password string) (sqlc.User, string, time.Duration, error)
-	Login(ctx context.Context, email, password string) (sqlc.User, string, time.Duration, error)
-	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
-}
 
 // MultimediaService es la interfaz que el handler de multimedia necesita del
 // servicio.
@@ -25,14 +14,8 @@ type MultimediaService interface {
 	Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (sqlc.Multimedia, error)
 }
 
-type UsuarioService interface {
-	ListarUsuarios(ctx context.Context) ([]sqlc.ListAllUsersRow, error)
-}
-
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
-	Auth       AuthService
-	Usuarios   UsuarioService
 	Multimedia MultimediaService
 }
 

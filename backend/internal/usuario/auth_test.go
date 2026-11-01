@@ -1,4 +1,4 @@
-package service
+package usuario
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -15,10 +14,10 @@ import (
 )
 
 // errUniqueViolation imita lo que devuelve Postgres al romper el UNIQUE de
-// users.email, para ejercer la traducción a domain.ErrEmailTaken.
+// users.email, para ejercer la traducción a ErrEmailTaken.
 var errUniqueViolation = &pgconn.PgError{Code: "23505", ConstraintName: "users_email_key"}
 
-// fakeAuthStore implementa AuthStore en memoria.
+// fakeAuthStore implementa authStore en memoria.
 // rolName es el rol que devuelve GetUserWithRolByID; vacío = "ciudadano".
 type fakeAuthStore struct {
 	byEmail       map[string]sqlc.User
@@ -86,9 +85,9 @@ func (f *fakeAuthStore) GetDefaultRole(_ context.Context) (sqlc.Role, error) {
 func TestAuthService_RegisterAndLogin(t *testing.T) {
 	store := &fakeAuthStore{byEmail: map[string]sqlc.User{}, defaultRoleID: 1}
 	ctx := context.Background()
-	svc, err := NewAuthService(ctx, store, []byte("test-secret-at-least-32-bytes!!"), time.Hour)
+	svc, err := NewAuth(ctx, store, []byte("test-secret-at-least-32-bytes!!"), time.Hour)
 	if err != nil {
-		t.Fatalf("NewAuthService() error = %v", err)
+		t.Fatalf("NewAuth() error = %v", err)
 	}
 
 	user, token, ttl, err := svc.Register(ctx, "  Test@Example.com  ", "tester", "s3cretpw")
@@ -105,21 +104,21 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 		t.Fatalf("Register() rolID = %d, want 1 (rol por defecto)", user.RolID)
 	}
 
-	if _, _, _, err := svc.Register(ctx, "test@example.com", "otro", "s3cretpw"); !errors.Is(err, domain.ErrEmailTaken) {
+	if _, _, _, err := svc.Register(ctx, "test@example.com", "otro", "s3cretpw"); !errors.Is(err, ErrEmailTaken) {
 		t.Fatalf("Register() with duplicate email error = %v, want ErrEmailTaken", err)
 	}
 
-	if _, _, _, err := svc.Login(ctx, "test@example.com", "wrong-password"); !errors.Is(err, domain.ErrInvalidCredentials) {
+	if _, _, _, err := svc.Login(ctx, "test@example.com", "wrong-password"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("Login() with wrong password error = %v, want ErrInvalidCredentials", err)
 	}
-	if _, _, _, err := svc.Login(ctx, "nobody@example.com", "whatever"); !errors.Is(err, domain.ErrInvalidCredentials) {
+	if _, _, _, err := svc.Login(ctx, "nobody@example.com", "whatever"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("Login() with unknown email error = %v, want ErrInvalidCredentials", err)
 	}
 	if _, token, _, err := svc.Login(ctx, "test@example.com", "s3cretpw"); err != nil || token == "" {
 		t.Fatalf("Login() with correct credentials error = %v, token = %q", err, token)
 	}
 
-	if _, err := svc.GetUser(ctx, uuid.New()); !errors.Is(err, domain.ErrUserNotFound) {
+	if _, err := svc.GetUser(ctx, uuid.New()); !errors.Is(err, ErrUserNotFound) {
 		t.Fatalf("GetUser() with unknown id error = %v, want ErrUserNotFound", err)
 	}
 }
@@ -147,9 +146,9 @@ func TestAuthService_TokenLlevaRol(t *testing.T) {
 	store := &fakeAuthStore{byEmail: map[string]sqlc.User{}, defaultRoleID: 1}
 	secret := []byte("test-secret-at-least-32-bytes!!")
 	ctx := context.Background()
-	svc, err := NewAuthService(ctx, store, secret, time.Hour)
+	svc, err := NewAuth(ctx, store, secret, time.Hour)
 	if err != nil {
-		t.Fatalf("NewAuthService() error = %v", err)
+		t.Fatalf("NewAuth() error = %v", err)
 	}
 
 	_, token, _, err := svc.Register(ctx, "test@example.com", "tester", "s3cretpw")

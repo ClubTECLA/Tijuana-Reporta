@@ -8,9 +8,6 @@ import (
 )
 
 var (
-	ErrEmailTaken          = errors.New("email already registered")
-	ErrInvalidCredentials  = errors.New("invalid credentials")
-	ErrUserNotFound        = errors.New("user not found")
 	ErrReporteNotFound     = errors.New("reporte not found")
 	ErrArchivoInvalido     = errors.New("archivo inválido")
 	ErrArchivoMuyGrande    = errors.New("archivo demasiado grande")
@@ -23,9 +20,6 @@ var (
 // arriba. Al agregar un Err…, agrégale aquí su regla.
 var ReglasHTTP = []httperr.Regla{
 	{Err: ErrReporteNotFound, Status: http.StatusNotFound, Message: "reporte no encontrado"},
-	{Err: ErrEmailTaken, Status: http.StatusConflict, Message: "el email ya está registrado"},
-	{Err: ErrInvalidCredentials, Status: http.StatusUnauthorized, Message: "credenciales invalidas"},
-	{Err: ErrUserNotFound, Status: http.StatusUnauthorized, Message: "no autenticado"},
 	{Err: ErrMultimediaYaExiste, Status: http.StatusConflict, Message: "multimedia ya existe"},
 	{Err: ErrArchivoInvalido, Status: http.StatusBadRequest, Message: "archivo invalido"},
 	{Err: ErrArchivoMuyGrande, Status: http.StatusRequestEntityTooLarge, Message: "archivo muy grande"},

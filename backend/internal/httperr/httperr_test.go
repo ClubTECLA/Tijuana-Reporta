@@ -11,10 +11,11 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, domain.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, domain.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -25,9 +26,9 @@ func TestResolver(t *testing.T) {
 	}{
 		{"reporte no encontrado", domain.ErrReporteNotFound, http.StatusNotFound, "reporte no encontrado"},
 		{"transición inválida", reporte.ErrTransicionInvalida, http.StatusConflict, "transicion no valida"},
-		{"email registrado", domain.ErrEmailTaken, http.StatusConflict, "el email ya está registrado"},
-		{"credenciales inválidas", domain.ErrInvalidCredentials, http.StatusUnauthorized, "credenciales invalidas"},
-		{"usuario no encontrado", domain.ErrUserNotFound, http.StatusUnauthorized, "no autenticado"},
+		{"email registrado", usuario.ErrEmailTaken, http.StatusConflict, "el email ya está registrado"},
+		{"credenciales inválidas", usuario.ErrInvalidCredentials, http.StatusUnauthorized, "credenciales invalidas"},
+		{"usuario no encontrado", usuario.ErrUserNotFound, http.StatusUnauthorized, "no autenticado"},
 		{"multimedia ya existe", domain.ErrMultimediaYaExiste, http.StatusConflict, "multimedia ya existe"},
 		{"archivo inválido", domain.ErrArchivoInvalido, http.StatusBadRequest, "archivo invalido"},
 		{"archivo muy grande", domain.ErrArchivoMuyGrande, http.StatusRequestEntityTooLarge, "archivo muy grande"},
@@ -86,9 +87,9 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		reporte.ErrNotFound,
 		reporte.ErrIncidenteNotFound,
 		comentario.ErrReporteNotFound,
-		domain.ErrEmailTaken,
-		domain.ErrInvalidCredentials,
-		domain.ErrUserNotFound,
+		usuario.ErrEmailTaken,
+		usuario.ErrInvalidCredentials,
+		usuario.ErrUserNotFound,
 		domain.ErrReporteNotFound,
 		incidente.ErrNotFound,
 		incidente.ErrInvalido,
