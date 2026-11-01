@@ -214,6 +214,11 @@ func TestStatus(t *testing.T) {
 		{name: "obtener reporte con id que no es UUID", method: http.MethodGet, path: "/v1/reportes/5", want: http.StatusBadRequest},
 		{name: "listar con área incompleta", method: http.MethodGet, path: "/v1/reportes?min_lat=32.4", want: http.StatusBadRequest},
 		{name: "avistamiento en reporte inexistente", method: http.MethodPatch, path: "/v1/reportes/" + uuid.Nil.String() + "/avistamientos", want: http.StatusNotFound},
+		{
+			name: "comentar reporte inexistente", method: http.MethodPost, path: "/v1/reportes/" + uuid.New().String() + "/comentarios",
+			body: map[string]any{"comentario": "¿Sigue ahí?"},
+			want: http.StatusNotFound,
+		},
 		{name: "cercanos sin radio", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382", want: http.StatusBadRequest},
 		{name: "cercanos con radio mayor al máximo", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=32.5149&lng=-117.0382&radio=50001", want: http.StatusBadRequest},
 		{name: "cercanos con latitud fuera de rango", method: http.MethodGet, path: "/v1/reportes/cercanos?lat=91&lng=-117.0382&radio=2000", want: http.StatusBadRequest},

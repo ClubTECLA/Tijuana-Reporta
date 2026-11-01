@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
 
@@ -24,7 +24,7 @@ func toComentario(c domain.ComentarioConAutor) Comentario {
 func (s *Server) CrearComentario(ctx context.Context, request CrearComentarioRequestObject) (CrearComentarioResponseObject, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
-		return nil, errors.New("userID not found in context")
+		return nil, httperr.ErrNoAutenticado
 	}
 
 	c, err := s.services.Comentarios.Crear(ctx, request.ReporteId, userID, request.Body.Comentario)

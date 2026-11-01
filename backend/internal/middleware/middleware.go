@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -77,8 +78,7 @@ func Auth(secret string, scopesKey string) func(c *gin.Context) {
 
 		// Reads the Authorization: Bearer <token> header
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "missing Authorization header or invalid format"})
-			c.Abort()
+			httperr.Responder(c, httperr.ErrNoAutenticado)
 			return
 		}
 
@@ -91,24 +91,21 @@ func Auth(secret string, scopesKey string) func(c *gin.Context) {
 			return []byte(secret), nil
 		}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
-			c.Abort()
+			httperr.Responder(c, httperr.ErrTokenInvalido)
 			return
 		}
 
 		// Extract user id claim
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
-			c.Abort()
+			httperr.Responder(c, httperr.ErrTokenInvalido)
 			return
 		}
 
 		sub, _ := claims["sub"].(string)
 		userID, err := uuid.Parse(sub)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
-			c.Abort()
+			httperr.Responder(c, httperr.ErrTokenInvalido)
 			return
 		}
 
@@ -136,8 +133,7 @@ func RequireRole(scopesKey string) func(c *gin.Context) {
 
 		rol, _ := RolFromContext(c.Request.Context())
 		if !slices.Contains(required, rol) {
-			c.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-			c.Abort()
+			httperr.Responder(c, httperr.ErrProhibido)
 			return
 		}
 	}
@@ -165,11 +161,10 @@ func BodyLimitFunc(limite func(c *gin.Context) int64) func(c *gin.Context) {
 		if err != nil {
 			var maxErr *http.MaxBytesError
 			if errors.As(err, &maxErr) {
-				c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": "request body too large"})
+				httperr.Responder(c, httperr.ErrBodyMuyGrande)
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+				httperr.Responder(c, httperr.ErrBodyInvalido)
 			}
-			c.Abort()
 			return
 		}
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))

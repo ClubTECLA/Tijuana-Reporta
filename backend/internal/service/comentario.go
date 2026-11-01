@@ -29,6 +29,11 @@ func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UU
 		UserID:     userID,
 		Comentario: texto,
 	})
+
+	if domain.IsForeignKeyViolation(err, "comentarios_reporte_id_fkey") {
+		return domain.ComentarioConAutor{}, domain.ErrReporteNotFound
+	}
+
 	if err != nil {
 		return domain.ComentarioConAutor{}, err
 	}

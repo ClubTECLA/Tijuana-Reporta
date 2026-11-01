@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -87,13 +88,11 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 		nil,
 		StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {
-				responderError(c, err, http.StatusBadRequest)
+				httperr.ResponderConStatus(c, http.StatusBadRequest, err.Error())
 			},
-			HandlerErrorFunc: func(c *gin.Context, err error) {
-				responderError(c, err, http.StatusInternalServerError)
-			},
+			HandlerErrorFunc: httperr.Responder,
 			ResponseErrorHandlerFunc: func(c *gin.Context, err error) {
-				responderError(c, err, http.StatusInternalServerError)
+				httperr.ResponderConStatus(c, http.StatusInternalServerError, err.Error())
 			},
 		})
 
@@ -111,13 +110,15 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
 		},
 		ErrorHandler: func(c *gin.Context, message string, statusCode int) {
-			c.AbortWithStatusJSON(statusCode, ErrorResponse{Message: message})
+			httperr.ResponderConStatus(c, statusCode, message)
 		},
 	})
 
 	RegisterHandlersWithOptions(r, strict, GinServerOptions{
-		BaseURL:      "/v1",
-		ErrorHandler: responderError,
+		BaseURL: "/v1",
+		ErrorHandler: func(c *gin.Context, err error, status int) {
+			httperr.ResponderConStatus(c, status, err.Error())
+		},
 		Middlewares: []MiddlewareFunc{
 			middleware.Auth(jwtSecret, string(BearerAuthScopes)),
 			middleware.RequireRole(string(BearerAuthScopes)),
@@ -137,7 +138,7 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 	r.GET("/v1/openapi.json", func(c *gin.Context) {
 		spec, err := GetSpec()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			httperr.Responder(c, err)
 			return
 		}
 		// Relativo a la URL del contrato (/v1/ o /api/v1/ tras nginx), para
@@ -150,14 +151,4 @@ func NewRouter(services Services, jwtSecret string, opts ...RouterOption) *gin.E
 	r.GET("/v1/docs", serveDocs)
 
 	return r
-}
-
-// responderError escribe el error con la forma de ErrorResponse del contrato.
-func responderError(c *gin.Context, err error, statusCode int) {
-	if statusCode >= http.StatusInternalServerError {
-		slog.ErrorContext(c.Request.Context(), "handle error", "status", statusCode, "route", c.FullPath(), "error", err)
-		c.JSON(statusCode, ErrorResponse{Message: "internal server error"})
-		return
-	}
-	c.JSON(statusCode, ErrorResponse{Message: err.Error()})
 }
