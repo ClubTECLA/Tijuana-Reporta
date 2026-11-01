@@ -2,13 +2,12 @@ package database
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
-	"github.com/google/uuid"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/historial"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,27 +28,6 @@ func (s *Store) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error 
 	return db.ExecTx(ctx, s.pool, fn)
 }
 
-// registrarHistorial agrega un evento al historial con la q de la
-// transacción en curso, para que el evento y el cambio que describe se
-// guarden o se descarten juntos. datos se guarda como JSON; nil deja la
-// columna en NULL.
-func registrarHistorial(ctx context.Context, q *sqlc.Queries, actorID uuid.UUID, accion, entidad, entidadID string, datos any) error {
-	var raw []byte
-	if datos != nil {
-		var err error
-		if raw, err = json.Marshal(datos); err != nil {
-			return err
-		}
-	}
-	return q.CreateHistorialEvento(ctx, sqlc.CreateHistorialEventoParams{
-		ActorID:   &actorID,
-		Accion:    accion,
-		Entidad:   entidad,
-		EntidadID: entidadID,
-		Datos:     raw,
-	})
-}
-
 // CreateUserWithLocalProvider inserta el usuario y su proveedor de
 // autenticación local en la misma transacción, para que nunca quede un
 // usuario sin forma de autenticarse (o un auth_provider huérfano) si una de
@@ -66,7 +44,7 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg sqlc.Create
 			return err
 		}
 		// El actor es el propio usuario: se registra a sí mismo.
-		return registrarHistorial(ctx, q, user.ID, "usuario.registrar", "usuario", user.ID.String(), nil)
+		return historial.Registrar(ctx, q, user.ID, "usuario.registrar", "usuario", user.ID.String(), nil)
 	})
 	if err != nil {
 		return sqlc.User{}, err
@@ -104,7 +82,7 @@ func (s *Store) CreateReporte(ctx context.Context, arg domain.CreateReporteTxPar
 			return err
 		}
 
-		return registrarHistorial(ctx, q, arg.UserID, "reporte.crear", "reporte", reporte.ID.String(), nil)
+		return historial.Registrar(ctx, q, arg.UserID, "reporte.crear", "reporte", reporte.ID.String(), nil)
 	})
 	if err != nil {
 		return sqlc.Reporte{}, err
@@ -134,7 +112,7 @@ func (s *Store) CreateIncidenteConTags(ctx context.Context, arg domain.CreateInc
 			detalle.Tags = append(detalle.Tags, tag)
 		}
 
-		return registrarHistorial(ctx, q, arg.ActorID, "incidente.crear", "incidente", strconv.Itoa(detalle.Incidente.ID),
+		return historial.Registrar(ctx, q, arg.ActorID, "incidente.crear", "incidente", strconv.Itoa(detalle.Incidente.ID),
 			map[string]any{"nombre": detalle.Incidente.Nombre, "tags": nombresDeTags(detalle.Tags)})
 	})
 	if err != nil {
@@ -160,7 +138,7 @@ func (s *Store) CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) (
 			tags = append(tags, tag)
 		}
 
-		return registrarHistorial(ctx, q, arg.ActorID, "incidente.agregar_tags", "incidente", strconv.Itoa(arg.IncidenteID),
+		return historial.Registrar(ctx, q, arg.ActorID, "incidente.agregar_tags", "incidente", strconv.Itoa(arg.IncidenteID),
 			map[string]any{"tags": nombresDeTags(tags)})
 	})
 	if err != nil {
@@ -196,7 +174,7 @@ func (s *Store) CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEsta
 			return err
 		}
 
-		return registrarHistorial(ctx, q, arg.ActorID, "reporte.cambiar_estado", "reporte", arg.ID.String(),
+		return historial.Registrar(ctx, q, arg.ActorID, "reporte.cambiar_estado", "reporte", arg.ID.String(),
 			map[string]string{"de": string(anterior), "a": string(arg.Estado)})
 	})
 	if err != nil {
@@ -218,7 +196,7 @@ func (s *Store) CreateComentario(ctx context.Context, arg sqlc.CreateComentarioP
 			return err
 		}
 
-		return registrarHistorial(ctx, q, arg.UserID, "comentario.crear", "comentario", strconv.Itoa(row.ID),
+		return historial.Registrar(ctx, q, arg.UserID, "comentario.crear", "comentario", strconv.Itoa(row.ID),
 			map[string]string{"reporte_id": arg.ReporteID.String()})
 	})
 	if err != nil {

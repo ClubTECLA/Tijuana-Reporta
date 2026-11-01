@@ -1,7 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "internal/queries"
+    # Cada funcionalidad guarda sus consultas junto a su código; todas se
+    # generan en el mismo paquete internal/db/sqlc. El nombre del .sql da el
+    # del archivo generado, así que no se repite entre funcionalidades.
+    queries:
+      - "internal/queries"
+      - "internal/historial/historial.sql"
     schema: "internal/db/migrations"
     gen:
       go:
