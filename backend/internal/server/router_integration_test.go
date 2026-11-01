@@ -28,8 +28,8 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
@@ -67,10 +67,10 @@ func newTestClient(t *testing.T) *testClient {
 
 	gin.SetMode(gin.TestMode)
 	router := server.NewRouter(server.Handlers{
-		Reportes: reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
+		Reportes:   reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
+		Incidentes: incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
 		Services: httpapi.Services{
 			Comentarios: service.NewComentarioService(store),
-			Incidentes:  service.NewIncidenteService(store),
 			Auth:        auth,
 			Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
 				MaxBytes:   3 << 20,
@@ -832,9 +832,10 @@ func TestCrearIncidente(t *testing.T) {
 func TestCreateIncidenteConTagsRollback(t *testing.T) {
 	pool := testPool(t)
 	store := database.NewStore(pool)
+	incidentes := incidente.NewStore(pool)
 	nombre := nombreIncidente()
 
-	_, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
+	_, err := incidentes.CreateIncidenteConTags(t.Context(), incidente.CreateTxParams{
 		Incidente: sqlc.CreateIncidenteParams{Nombre: nombre, Color: "#757575", EstaActivo: true},
 		Tags:      []sqlc.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
 		ActorID:   crearActor(t, store),
@@ -1056,10 +1057,11 @@ func TestAgregarTags(t *testing.T) {
 func TestCreateTags(t *testing.T) {
 	pool := testPool(t)
 	store := database.NewStore(pool)
+	incidentes := incidente.NewStore(pool)
 	actorID := crearActor(t, store)
 
 	t.Run("rollback si uno falla", func(t *testing.T) {
-		d, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
+		d, err := incidentes.CreateIncidenteConTags(t.Context(), incidente.CreateTxParams{
 			Incidente: sqlc.CreateIncidenteParams{Nombre: nombreIncidente(), Color: "#757575", EstaActivo: true},
 			ActorID:   actorID,
 		})
@@ -1068,7 +1070,7 @@ func TestCreateTags(t *testing.T) {
 		}
 		id := d.Incidente.ID
 
-		_, err = store.CreateTags(t.Context(), domain.CreateTagsTxParams{
+		_, err = incidentes.CreateTags(t.Context(), incidente.CreateTagsTxParams{
 			IncidenteID: id,
 			Tags:        []sqlc.CreateTagParams{{Nombre: "nuevo", Peso: 1}, {Nombre: "nuevo", Peso: 1}},
 			ActorID:     actorID,
@@ -1091,7 +1093,7 @@ func TestCreateTags(t *testing.T) {
 
 	// El servicio traduce este FOREIGN KEY por nombre a ErrIncidenteNotFound.
 	t.Run("incidente inexistente", func(t *testing.T) {
-		_, err := store.CreateTags(t.Context(), domain.CreateTagsTxParams{
+		_, err := incidentes.CreateTags(t.Context(), incidente.CreateTagsTxParams{
 			IncidenteID: 999999,
 			Tags:        []sqlc.CreateTagParams{{Nombre: "a", Peso: 1}},
 			ActorID:     actorID,

@@ -8,11 +8,12 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(reporte.ReglasHTTP, domain.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, domain.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -31,10 +32,10 @@ func TestResolver(t *testing.T) {
 		{"archivo muy grande", domain.ErrArchivoMuyGrande, http.StatusRequestEntityTooLarge, "archivo muy grande"},
 		{"imagen muy grande", domain.ErrImagenMuyGrande, http.StatusUnprocessableEntity, "imagen muy grande"},
 		{"almacén no disponible", domain.ErrAlmacenNoDisponible, http.StatusServiceUnavailable, "almacenamiento no disponible, intenta más tarde"},
-		{"incidente no encontrado", domain.ErrIncidenteNotFound, http.StatusNotFound, "incidente no encontrado"},
-		{"incidente inválido", domain.ErrIncidenteInvalido, http.StatusBadRequest, "invalid incidente"},
-		{"nombre de incidente repetido", domain.ErrIncidenteNameTaken, http.StatusConflict, "ya existe un incidente con ese nombre"},
-		{"nombre de tag repetido", domain.ErrTagNameTaken, http.StatusConflict, "el incidente ya tiene un tag con ese nombre"},
+		{"incidente no encontrado", incidente.ErrNotFound, http.StatusNotFound, "incidente no encontrado"},
+		{"incidente inválido", incidente.ErrInvalido, http.StatusBadRequest, "invalid incidente"},
+		{"nombre de incidente repetido", incidente.ErrNameTaken, http.StatusConflict, "ya existe un incidente con ese nombre"},
+		{"nombre de tag repetido", incidente.ErrTagNameTaken, http.StatusConflict, "el incidente ya tiene un tag con ese nombre"},
 		{"área incompleta", reporte.ErrAreaIncompleta, http.StatusBadRequest, "area incompleta"},
 		{"área inválida", reporte.ErrAreaInvalida, http.StatusBadRequest, "area invalida"},
 		{"estado inválido", reporte.ErrEstadoInvalido, http.StatusBadRequest, "estado invalido"},
@@ -50,7 +51,7 @@ func TestResolver(t *testing.T) {
 		// envuelven los sentinels con contexto.
 		{"envuelto", fmt.Errorf("x: %w", domain.ErrReporteNotFound), http.StatusNotFound, "reporte no encontrado"},
 		// Las reglas sin mensaje fijo pasan el detalle del servicio tal cual.
-		{"incidente inválido con detalle", fmt.Errorf("%w: radio no puede ser negativo", domain.ErrIncidenteInvalido), http.StatusBadRequest, "invalid incidente: radio no puede ser negativo"},
+		{"incidente inválido con detalle", fmt.Errorf("%w: radio no puede ser negativo", incidente.ErrInvalido), http.StatusBadRequest, "invalid incidente: radio no puede ser negativo"},
 	}
 
 	for _, tt := range tests {
@@ -87,15 +88,15 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		domain.ErrInvalidCredentials,
 		domain.ErrUserNotFound,
 		domain.ErrReporteNotFound,
-		domain.ErrIncidenteNotFound,
-		domain.ErrIncidenteInvalido,
+		incidente.ErrNotFound,
+		incidente.ErrInvalido,
 		domain.ErrArchivoInvalido,
 		domain.ErrArchivoMuyGrande,
 		domain.ErrImagenMuyGrande,
 		domain.ErrMultimediaYaExiste,
 		domain.ErrAlmacenNoDisponible,
-		domain.ErrIncidenteNameTaken,
-		domain.ErrTagNameTaken,
+		incidente.ErrNameTaken,
+		incidente.ErrTagNameTaken,
 		reporte.ErrAreaIncompleta,
 		reporte.ErrAreaInvalida,
 		reporte.ErrEstadoInvalido,

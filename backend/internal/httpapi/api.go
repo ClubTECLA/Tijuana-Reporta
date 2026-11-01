@@ -25,15 +25,6 @@ type AuthService interface {
 	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
 }
 
-// IncidenteService es la interfaz que el handler de incidentes necesita del
-// servicio.
-type IncidenteService interface {
-	Crear(ctx context.Context, nuevo domain.NuevoIncidente, userID uuid.UUID) (domain.IncidenteDetalle, error)
-	Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error)
-	Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error)
-	AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]sqlc.Tag, error)
-}
-
 // MultimediaService es la interfaz que el handler de multimedia necesita del
 // servicio.
 type MultimediaService interface {
@@ -47,7 +38,6 @@ type UsuarioService interface {
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
 	Comentarios ComentarioService
-	Incidentes  IncidenteService
 	Auth        AuthService
 	Usuarios    UsuarioService
 	Multimedia  MultimediaService

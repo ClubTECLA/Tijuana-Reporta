@@ -9,6 +9,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -45,17 +46,27 @@ func WithMaxMultimediaBytes(n int64) RouterOption {
 
 // Handlers son los handlers de cada funcionalidad que sirve el router.
 type Handlers struct {
-	Reportes *reporte.Handler
+	Reportes   *reporte.Handler
+	Incidentes *incidente.Handler
 
 	// Services son los de las operaciones que todavía viven en httpapi.
 	Services httpapi.Services
 }
 
+// Cada funcionalidad llama Handler a su handler, y dos campos embebidos no
+// pueden llamarse igual; con un alias por funcionalidad, cada campo toma el
+// nombre del alias y los métodos se siguen promoviendo.
+type (
+	reportes   = reporte.Handler
+	incidentes = incidente.Handler
+)
+
 // api junta los handlers de cada funcionalidad en la interfaz que genera
 // oapi-codegen. Si dos definen la misma operación, el método queda ambiguo
 // y la assertion de abajo no compila.
 type api struct {
-	*reporte.Handler
+	*reportes
+	*incidentes
 	*httpapi.Server
 }
 
@@ -77,7 +88,7 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 
 	// Una sola tabla con las reglas de todos los errores que pueden devolver
 	// los handlers.
-	tabla := httperr.NewTabla(reporte.ReglasHTTP, domain.ReglasHTTP)
+	tabla := httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, domain.ReglasHTTP)
 
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
@@ -112,7 +123,7 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	strict := httpapi.NewStrictHandlerWithOptions(
-		api{Handler: h.Reportes, Server: httpapi.NewServer(h.Services)},
+		api{reportes: h.Reportes, incidentes: h.Incidentes, Server: httpapi.NewServer(h.Services)},
 		nil,
 		httpapi.StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {

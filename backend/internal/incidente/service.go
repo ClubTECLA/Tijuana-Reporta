@@ -1,4 +1,4 @@
-package service
+package incidente
 
 import (
 	"context"
@@ -10,26 +10,26 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
-// IncidenteStore es el subconjunto de *database.Store que este servicio usa.
-type IncidenteStore interface {
-	CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error)
-	CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) ([]sqlc.Tag, error)
+// store es lo que el servicio necesita de Store; los tests lo cumplen con un
+// falso en memoria.
+type store interface {
+	CreateIncidenteConTags(ctx context.Context, arg CreateTxParams) (Detalle, error)
+	CreateTags(ctx context.Context, arg CreateTagsTxParams) ([]sqlc.Tag, error)
 	GetIncidenteById(ctx context.Context, id int) (sqlc.Incidente, error)
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]sqlc.Incidente, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]sqlc.Tag, error)
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]sqlc.Tag, error)
 }
 
-type IncidenteService struct {
-	store IncidenteStore
+type Service struct {
+	store store
 }
 
-func NewIncidenteService(store IncidenteStore) *IncidenteService {
-	return &IncidenteService{store: store}
+func NewService(store store) *Service {
+	return &Service{store: store}
 }
 
 // Valores por defecto de las columnas. Deben coincidir con los DEFAULT de la
@@ -57,23 +57,23 @@ var colorHex = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 // para responder 400 en vez de que la base rechace el INSERT con un 500.
 // Los tags repetidos también se rechazan aquí: así un UNIQUE roto en la base
 // solo puede ser el nombre del incidente.
-func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncidente, userID uuid.UUID) (domain.IncidenteDetalle, error) {
+func (s *Service) Crear(ctx context.Context, nuevo Nuevo, userID uuid.UUID) (Detalle, error) {
 	nombre := strings.TrimSpace(nuevo.Nombre)
 	if nombre == "" || utf8.RuneCountInString(nombre) > maxNombreIncidente {
-		return domain.IncidenteDetalle{}, fmt.Errorf("%w: nombre debe tener entre 1 y %d caracteres", domain.ErrIncidenteInvalido, maxNombreIncidente)
+		return Detalle{}, fmt.Errorf("%w: nombre debe tener entre 1 y %d caracteres", ErrInvalido, maxNombreIncidente)
 	}
 	if t := nuevo.TiempoLimite; t != nil && (*t < 0 || *t > math.MaxInt16) {
-		return domain.IncidenteDetalle{}, fmt.Errorf("%w: tiempo_limite debe estar entre 0 y %d", domain.ErrIncidenteInvalido, math.MaxInt16)
+		return Detalle{}, fmt.Errorf("%w: tiempo_limite debe estar entre 0 y %d", ErrInvalido, math.MaxInt16)
 	}
 	if nuevo.Radio != nil && *nuevo.Radio < 0 {
-		return domain.IncidenteDetalle{}, fmt.Errorf("%w: radio no puede ser negativo", domain.ErrIncidenteInvalido)
+		return Detalle{}, fmt.Errorf("%w: radio no puede ser negativo", ErrInvalido)
 	}
 	// Sin etiqueta se muestra el nombre, para que el título del reporte nunca quede vacío.
 	etiqueta := nombre
 	if nuevo.Etiqueta != nil {
 		etiqueta = strings.TrimSpace(*nuevo.Etiqueta)
 		if etiqueta == "" || utf8.RuneCountInString(etiqueta) > maxNombreIncidente {
-			return domain.IncidenteDetalle{}, fmt.Errorf("%w: etiqueta debe tener entre 1 y %d caracteres", domain.ErrIncidenteInvalido, maxNombreIncidente)
+			return Detalle{}, fmt.Errorf("%w: etiqueta debe tener entre 1 y %d caracteres", ErrInvalido, maxNombreIncidente)
 		}
 	}
 
@@ -87,7 +87,7 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 	}
 	if nuevo.Color != nil {
 		if !colorHex.MatchString(*nuevo.Color) {
-			return domain.IncidenteDetalle{}, fmt.Errorf("%w: color debe tener formato #RRGGBB", domain.ErrIncidenteInvalido)
+			return Detalle{}, fmt.Errorf("%w: color debe tener formato #RRGGBB", ErrInvalido)
 		}
 		params.Color = *nuevo.Color
 	}
@@ -97,19 +97,19 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 
 	tags, err := validarTags(nuevo.Tags)
 	if err != nil {
-		return domain.IncidenteDetalle{}, err
+		return Detalle{}, err
 	}
 
-	detalle, err := s.store.CreateIncidenteConTags(ctx, domain.CreateIncidenteTxParams{
+	detalle, err := s.store.CreateIncidenteConTags(ctx, CreateTxParams{
 		Incidente: params,
 		Tags:      tags,
 		ActorID:   userID,
 	})
 	if err != nil {
 		if db.IsUniqueViolation(err) {
-			return domain.IncidenteDetalle{}, domain.ErrIncidenteNameTaken
+			return Detalle{}, ErrNameTaken
 		}
-		return domain.IncidenteDetalle{}, err
+		return Detalle{}, err
 	}
 	return detalle, nil
 }
@@ -117,9 +117,9 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 // validarTags normaliza los tags y los convierte en parámetros del INSERT.
 // Rechaza nombres vacíos o demasiado largos, pesos menores a 1 y nombres
 // repetidos sin importar mayúsculas ("Luz" y "luz").
-func validarTags(nuevos []domain.NuevoTag) ([]sqlc.CreateTagParams, error) {
+func validarTags(nuevos []NuevoTag) ([]sqlc.CreateTagParams, error) {
 	if len(nuevos) > maxTags {
-		return nil, fmt.Errorf("%w: no se pueden crear más de %d tags a la vez", domain.ErrIncidenteInvalido, maxTags)
+		return nil, fmt.Errorf("%w: no se pueden crear más de %d tags a la vez", ErrInvalido, maxTags)
 	}
 
 	tags := make([]sqlc.CreateTagParams, 0, len(nuevos))
@@ -127,19 +127,19 @@ func validarTags(nuevos []domain.NuevoTag) ([]sqlc.CreateTagParams, error) {
 	for _, t := range nuevos {
 		nombre := strings.TrimSpace(t.Nombre)
 		if nombre == "" || utf8.RuneCountInString(nombre) > maxNombreTag {
-			return nil, fmt.Errorf("%w: cada tag debe tener entre 1 y %d caracteres", domain.ErrIncidenteInvalido, maxNombreTag)
+			return nil, fmt.Errorf("%w: cada tag debe tener entre 1 y %d caracteres", ErrInvalido, maxNombreTag)
 		}
 
 		clave := strings.ToLower(nombre)
 		if vistos[clave] {
-			return nil, fmt.Errorf("%w: tag %q repetido", domain.ErrIncidenteInvalido, nombre)
+			return nil, fmt.Errorf("%w: tag %q repetido", ErrInvalido, nombre)
 		}
 		vistos[clave] = true
 
 		peso := pesoPorDefecto
 		if t.Peso != nil {
 			if *t.Peso < 1 || *t.Peso > math.MaxInt32 {
-				return nil, fmt.Errorf("%w: el peso de %q debe estar entre 1 y %d", domain.ErrIncidenteInvalido, nombre, math.MaxInt32)
+				return nil, fmt.Errorf("%w: el peso de %q debe estar entre 1 y %d", ErrInvalido, nombre, math.MaxInt32)
 			}
 			peso = *t.Peso
 		}
@@ -154,13 +154,13 @@ func validarTags(nuevos []domain.NuevoTag) ([]sqlc.CreateTagParams, error) {
 //
 // Los tags de todos los incidentes se piden en una sola consulta y se
 // reparten aquí, en vez de hacer una consulta por incidente.
-func (s *IncidenteService) Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error) {
+func (s *Service) Listar(ctx context.Context, incluirInactivos bool) ([]Detalle, error) {
 	incidentes, err := s.store.ListIncidentes(ctx, incluirInactivos)
 	if err != nil {
 		return nil, err
 	}
 	if len(incidentes) == 0 {
-		return []domain.IncidenteDetalle{}, nil
+		return []Detalle{}, nil
 	}
 
 	ids := make([]int, 0, len(incidentes))
@@ -177,28 +177,28 @@ func (s *IncidenteService) Listar(ctx context.Context, incluirInactivos bool) ([
 		porIncidente[t.IncidenteID] = append(porIncidente[t.IncidenteID], t)
 	}
 
-	detalles := make([]domain.IncidenteDetalle, 0, len(incidentes))
+	detalles := make([]Detalle, 0, len(incidentes))
 	for _, i := range incidentes {
-		detalles = append(detalles, domain.IncidenteDetalle{Incidente: i, Tags: porIncidente[i.ID]})
+		detalles = append(detalles, Detalle{Incidente: i, Tags: porIncidente[i.ID]})
 	}
 	return detalles, nil
 }
 
 // Obtener devuelve el incidente con sus tags, esté activo o no.
-func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error) {
+func (s *Service) Obtener(ctx context.Context, id int) (Detalle, error) {
 	incidente, err := s.store.GetIncidenteById(ctx, id)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return domain.IncidenteDetalle{}, domain.ErrIncidenteNotFound
+			return Detalle{}, ErrNotFound
 		}
-		return domain.IncidenteDetalle{}, err
+		return Detalle{}, err
 	}
 
 	tags, err := s.store.ListTagsByIncidenteId(ctx, id)
 	if err != nil {
-		return domain.IncidenteDetalle{}, err
+		return Detalle{}, err
 	}
-	return domain.IncidenteDetalle{Incidente: incidente, Tags: tags}, nil
+	return Detalle{Incidente: incidente, Tags: tags}, nil
 }
 
 // AgregarTags agrega tags al catálogo de un incidente existente, todos o
@@ -207,9 +207,9 @@ func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.Incident
 // El UNIQUE (incidente_id, nombre) de la base distingue mayúsculas, así que
 // aquí se compara contra los tags que ya tiene el incidente sin
 // distinguirlas, igual que validarTags dentro de la misma petición.
-func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]sqlc.Tag, error) {
+func (s *Service) AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []NuevoTag) ([]sqlc.Tag, error) {
 	if len(nuevos) == 0 {
-		return nil, fmt.Errorf("%w: hay que mandar al menos un tag", domain.ErrIncidenteInvalido)
+		return nil, fmt.Errorf("%w: hay que mandar al menos un tag", ErrInvalido)
 	}
 	tags, err := validarTags(nuevos)
 	if err != nil {
@@ -218,7 +218,7 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, use
 
 	if _, err := s.store.GetIncidenteById(ctx, incidenteID); err != nil {
 		if db.IsNotFound(err) {
-			return nil, domain.ErrIncidenteNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -233,11 +233,11 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, use
 	}
 	for i := range tags {
 		if usados[strings.ToLower(tags[i].Nombre)] {
-			return nil, fmt.Errorf("%w: %q", domain.ErrTagNameTaken, tags[i].Nombre)
+			return nil, fmt.Errorf("%w: %q", ErrTagNameTaken, tags[i].Nombre)
 		}
 	}
 
-	creados, err := s.store.CreateTags(ctx, domain.CreateTagsTxParams{
+	creados, err := s.store.CreateTags(ctx, CreateTagsTxParams{
 		IncidenteID: incidenteID,
 		Tags:        tags,
 		ActorID:     userID,
@@ -246,10 +246,10 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, use
 		// Las dos comprobaciones de arriba pueden quedar viejas si otra
 		// petición crea el mismo tag o borra el incidente entre medio.
 		if db.IsUniqueViolation(err) {
-			return nil, domain.ErrTagNameTaken
+			return nil, ErrTagNameTaken
 		}
 		if db.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
-			return nil, domain.ErrIncidenteNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}

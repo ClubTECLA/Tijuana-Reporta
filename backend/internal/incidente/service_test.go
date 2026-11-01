@@ -1,4 +1,4 @@
-package service
+package incidente
 
 import (
 	"context"
@@ -8,42 +8,41 @@ import (
 	"testing"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// fakeIncidenteStore implementa IncidenteStore en memoria. Imita a la
+// fakeIncidenteStore implementa store en memoria. Imita a la
 // transacción real: asigna ids y llena el IncidenteID de cada tag.
 // Guarda los últimos parámetros para revisarlos.
 //
 // incidentes y tags son lo que "ya existe en la base" para las lecturas;
 // los tests los llenan con agregarIncidente y agregarTag.
 type fakeIncidenteStore struct {
-	lastArg   domain.CreateIncidenteTxParams
+	lastArg   CreateTxParams
 	called    bool
 	createErr error
 
 	incidentes map[int]sqlc.Incidente
 	tags       []sqlc.Tag
 
-	lastTagsArg    domain.CreateTagsTxParams
+	lastTagsArg    CreateTagsTxParams
 	tagsCalled     bool
 	createTagsErr  error
 	tagsByIdsCalls int
 	tagsByIdCalls  int
 }
 
-func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error) {
+func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg CreateTxParams) (Detalle, error) {
 	f.called = true
 	f.lastArg = arg
 	if f.createErr != nil {
-		return domain.IncidenteDetalle{}, f.createErr
+		return Detalle{}, f.createErr
 	}
 
 	p := arg.Incidente
-	d := domain.IncidenteDetalle{
+	d := Detalle{
 		Incidente: sqlc.Incidente{
 			ID: 8, Nombre: p.Nombre, TiempoLimite: p.TiempoLimite, Radio: p.Radio,
 			EstaActivo: p.EstaActivo, Color: p.Color,
@@ -56,7 +55,7 @@ func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg domai
 	return d, nil
 }
 
-func (f *fakeIncidenteStore) CreateTags(_ context.Context, arg domain.CreateTagsTxParams) ([]sqlc.Tag, error) {
+func (f *fakeIncidenteStore) CreateTags(_ context.Context, arg CreateTagsTxParams) ([]sqlc.Tag, error) {
 	f.tagsCalled = true
 	f.lastTagsArg = arg
 	if f.createTagsErr != nil {
@@ -127,12 +126,12 @@ func (f *fakeIncidenteStore) agregarTag(incidenteID int, nombre string, peso int
 
 func TestIncidenteService_Crear_ValoresPorDefecto(t *testing.T) {
 	store := &fakeIncidenteStore{}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
 	actorID := uuid.New()
-	d, err := svc.Crear(context.Background(), domain.NuevoIncidente{
+	d, err := svc.Crear(context.Background(), Nuevo{
 		Nombre: "  bache  ",
-		Tags:   []domain.NuevoTag{{Nombre: " profundo "}},
+		Tags:   []NuevoTag{{Nombre: " profundo "}},
 	}, actorID)
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
@@ -160,16 +159,16 @@ func TestIncidenteService_Crear_ValoresPorDefecto(t *testing.T) {
 
 func TestIncidenteService_Crear_ValoresExplicitos(t *testing.T) {
 	store := &fakeIncidenteStore{}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
-	_, err := svc.Crear(context.Background(), domain.NuevoIncidente{
+	_, err := svc.Crear(context.Background(), Nuevo{
 		Nombre:       "bache",
 		Etiqueta:     ptr("  Bache  "),
 		Color:        ptr("#EF6C33"),
 		EstaActivo:   ptr(false),
 		TiempoLimite: ptr(7),
 		Radio:        ptr(25.5),
-		Tags:         []domain.NuevoTag{{Nombre: "profundo", Peso: ptr(3)}, {Nombre: "ancho"}},
+		Tags:         []NuevoTag{{Nombre: "profundo", Peso: ptr(3)}, {Nombre: "ancho"}},
 	}, uuid.New())
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
@@ -188,9 +187,9 @@ func TestIncidenteService_Crear_ValoresExplicitos(t *testing.T) {
 
 func TestIncidenteService_Crear_SinTags(t *testing.T) {
 	store := &fakeIncidenteStore{}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
-	d, err := svc.Crear(context.Background(), domain.NuevoIncidente{Nombre: "bache"}, uuid.New())
+	d, err := svc.Crear(context.Background(), Nuevo{Nombre: "bache"}, uuid.New())
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
 	}
@@ -200,42 +199,42 @@ func TestIncidenteService_Crear_SinTags(t *testing.T) {
 }
 
 func TestIncidenteService_Crear_Invalido(t *testing.T) {
-	muchosTags := make([]domain.NuevoTag, maxTags+1)
+	muchosTags := make([]NuevoTag, maxTags+1)
 	for i := range muchosTags {
-		muchosTags[i] = domain.NuevoTag{Nombre: strings.Repeat("t", i+1)}
+		muchosTags[i] = NuevoTag{Nombre: strings.Repeat("t", i+1)}
 	}
 
 	tests := []struct {
 		name  string
-		nuevo domain.NuevoIncidente
+		nuevo Nuevo
 	}{
-		{name: "nombre vacío", nuevo: domain.NuevoIncidente{Nombre: ""}},
-		{name: "nombre solo espacios", nuevo: domain.NuevoIncidente{Nombre: "   "}},
-		{name: "nombre de 101 caracteres", nuevo: domain.NuevoIncidente{Nombre: strings.Repeat("a", 101)}},
-		{name: "etiqueta solo espacios", nuevo: domain.NuevoIncidente{Nombre: "bache", Etiqueta: ptr("   ")}},
-		{name: "etiqueta de 101 caracteres", nuevo: domain.NuevoIncidente{Nombre: "bache", Etiqueta: ptr(strings.Repeat("a", 101))}},
-		{name: "tiempo_limite negativo", nuevo: domain.NuevoIncidente{Nombre: "bache", TiempoLimite: ptr(-1)}},
-		{name: "tiempo_limite fuera de SMALLINT", nuevo: domain.NuevoIncidente{Nombre: "bache", TiempoLimite: ptr(40000)}},
-		{name: "radio negativo", nuevo: domain.NuevoIncidente{Nombre: "bache", Radio: ptr(-0.5)}},
-		{name: "color sin #", nuevo: domain.NuevoIncidente{Nombre: "bache", Color: ptr("EF6C33")}},
-		{name: "color con nombre", nuevo: domain.NuevoIncidente{Nombre: "bache", Color: ptr("red")}},
-		{name: "color corto", nuevo: domain.NuevoIncidente{Nombre: "bache", Color: ptr("#FFF")}},
-		{name: "tag vacío", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: []domain.NuevoTag{{Nombre: " "}}}},
-		{name: "tag de 51 caracteres", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: []domain.NuevoTag{{Nombre: strings.Repeat("t", 51)}}}},
-		{name: "tag repetido", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: []domain.NuevoTag{{Nombre: "luz"}, {Nombre: "luz"}}}},
-		{name: "tag repetido con mayúsculas", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: []domain.NuevoTag{{Nombre: "luz"}, {Nombre: " Luz"}}}},
-		{name: "peso 0", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: []domain.NuevoTag{{Nombre: "luz", Peso: ptr(0)}}}},
-		{name: "demasiados tags", nuevo: domain.NuevoIncidente{Nombre: "bache", Tags: muchosTags}},
+		{name: "nombre vacío", nuevo: Nuevo{Nombre: ""}},
+		{name: "nombre solo espacios", nuevo: Nuevo{Nombre: "   "}},
+		{name: "nombre de 101 caracteres", nuevo: Nuevo{Nombre: strings.Repeat("a", 101)}},
+		{name: "etiqueta solo espacios", nuevo: Nuevo{Nombre: "bache", Etiqueta: ptr("   ")}},
+		{name: "etiqueta de 101 caracteres", nuevo: Nuevo{Nombre: "bache", Etiqueta: ptr(strings.Repeat("a", 101))}},
+		{name: "tiempo_limite negativo", nuevo: Nuevo{Nombre: "bache", TiempoLimite: ptr(-1)}},
+		{name: "tiempo_limite fuera de SMALLINT", nuevo: Nuevo{Nombre: "bache", TiempoLimite: ptr(40000)}},
+		{name: "radio negativo", nuevo: Nuevo{Nombre: "bache", Radio: ptr(-0.5)}},
+		{name: "color sin #", nuevo: Nuevo{Nombre: "bache", Color: ptr("EF6C33")}},
+		{name: "color con nombre", nuevo: Nuevo{Nombre: "bache", Color: ptr("red")}},
+		{name: "color corto", nuevo: Nuevo{Nombre: "bache", Color: ptr("#FFF")}},
+		{name: "tag vacío", nuevo: Nuevo{Nombre: "bache", Tags: []NuevoTag{{Nombre: " "}}}},
+		{name: "tag de 51 caracteres", nuevo: Nuevo{Nombre: "bache", Tags: []NuevoTag{{Nombre: strings.Repeat("t", 51)}}}},
+		{name: "tag repetido", nuevo: Nuevo{Nombre: "bache", Tags: []NuevoTag{{Nombre: "luz"}, {Nombre: "luz"}}}},
+		{name: "tag repetido con mayúsculas", nuevo: Nuevo{Nombre: "bache", Tags: []NuevoTag{{Nombre: "luz"}, {Nombre: " Luz"}}}},
+		{name: "peso 0", nuevo: Nuevo{Nombre: "bache", Tags: []NuevoTag{{Nombre: "luz", Peso: ptr(0)}}}},
+		{name: "demasiados tags", nuevo: Nuevo{Nombre: "bache", Tags: muchosTags}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &fakeIncidenteStore{}
-			svc := NewIncidenteService(store)
+			svc := NewService(store)
 
 			_, err := svc.Crear(context.Background(), tt.nuevo, uuid.New())
-			if !errors.Is(err, domain.ErrIncidenteInvalido) {
-				t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteInvalido)
+			if !errors.Is(err, ErrInvalido) {
+				t.Fatalf("Crear() error = %v, want %v", err, ErrInvalido)
 			}
 			if store.called {
 				t.Fatalf("Crear() llamó al store con datos inválidos: %+v", store.lastArg)
@@ -246,20 +245,20 @@ func TestIncidenteService_Crear_Invalido(t *testing.T) {
 
 func TestIncidenteService_Crear_NombreRepetido(t *testing.T) {
 	store := &fakeIncidenteStore{createErr: &pgconn.PgError{Code: "23505", ConstraintName: "incidentes_nombre_key"}}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
-	_, err := svc.Crear(context.Background(), domain.NuevoIncidente{Nombre: "luz"}, uuid.New())
-	if !errors.Is(err, domain.ErrIncidenteNameTaken) {
-		t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteNameTaken)
+	_, err := svc.Crear(context.Background(), Nuevo{Nombre: "luz"}, uuid.New())
+	if !errors.Is(err, ErrNameTaken) {
+		t.Fatalf("Crear() error = %v, want %v", err, ErrNameTaken)
 	}
 }
 
 func TestIncidenteService_Crear_ErrorDelStore(t *testing.T) {
 	errDB := errors.New("conexión perdida")
 	store := &fakeIncidenteStore{createErr: errDB}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
-	_, err := svc.Crear(context.Background(), domain.NuevoIncidente{Nombre: "bache"}, uuid.New())
+	_, err := svc.Crear(context.Background(), Nuevo{Nombre: "bache"}, uuid.New())
 	if !errors.Is(err, errDB) {
 		t.Fatalf("Crear() error = %v, want %v", err, errDB)
 	}
@@ -274,7 +273,7 @@ func TestIncidenteService_Listar(t *testing.T) {
 	store.agregarTag(2, "caido", 2)
 	store.agregarTag(1, "con agua", 1)
 	store.agregarTag(3, "viejo", 1)
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
 	ds, err := svc.Listar(context.Background(), false)
 	if err != nil {
@@ -304,7 +303,7 @@ func TestIncidenteService_Listar(t *testing.T) {
 
 func TestIncidenteService_Listar_Vacio(t *testing.T) {
 	store := &fakeIncidenteStore{}
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
 	ds, err := svc.Listar(context.Background(), false)
 	if err != nil {
@@ -323,7 +322,7 @@ func TestIncidenteService_Obtener(t *testing.T) {
 	store.agregarIncidente(1, "socavon", false)
 	store.agregarTag(1, "profundo", 1)
 	store.agregarTag(2, "de otro", 1)
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
 	d, err := svc.Obtener(context.Background(), 1)
 	if err != nil {
@@ -333,8 +332,8 @@ func TestIncidenteService_Obtener(t *testing.T) {
 		t.Fatalf("Obtener() = %+v, want socavon (aunque esté inactivo) con [profundo]", d)
 	}
 
-	if _, err := svc.Obtener(context.Background(), 99); !errors.Is(err, domain.ErrIncidenteNotFound) {
-		t.Fatalf("Obtener() de id inexistente error = %v, want %v", err, domain.ErrIncidenteNotFound)
+	if _, err := svc.Obtener(context.Background(), 99); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Obtener() de id inexistente error = %v, want %v", err, ErrNotFound)
 	}
 }
 
@@ -342,10 +341,10 @@ func TestIncidenteService_AgregarTags(t *testing.T) {
 	store := &fakeIncidenteStore{}
 	store.agregarIncidente(1, "socavon", true)
 	store.agregarTag(1, "profundo", 1)
-	svc := NewIncidenteService(store)
+	svc := NewService(store)
 
 	actorID := uuid.New()
-	tags, err := svc.AgregarTags(context.Background(), 1, actorID, []domain.NuevoTag{{Nombre: " ancho "}, {Nombre: "con agua", Peso: ptr(4)}})
+	tags, err := svc.AgregarTags(context.Background(), 1, actorID, []NuevoTag{{Nombre: " ancho "}, {Nombre: "con agua", Peso: ptr(4)}})
 	if err != nil {
 		t.Fatalf("AgregarTags() error = %v", err)
 	}
@@ -366,24 +365,24 @@ func TestIncidenteService_AgregarTags_Errores(t *testing.T) {
 	tests := []struct {
 		name        string
 		incidenteID int
-		nuevos      []domain.NuevoTag
+		nuevos      []NuevoTag
 		createErr   error
 		want        error
 	}{
-		{name: "sin tags", incidenteID: 1, nuevos: nil, want: domain.ErrIncidenteInvalido},
-		{name: "tag inválido", incidenteID: 1, nuevos: []domain.NuevoTag{{Nombre: "ok"}, {Nombre: " "}}, want: domain.ErrIncidenteInvalido},
-		{name: "repetido en la petición", incidenteID: 1, nuevos: []domain.NuevoTag{{Nombre: "a"}, {Nombre: "A"}}, want: domain.ErrIncidenteInvalido},
-		{name: "incidente inexistente", incidenteID: 99, nuevos: []domain.NuevoTag{{Nombre: "ancho"}}, want: domain.ErrIncidenteNotFound},
-		{name: "ya existe con otras mayúsculas", incidenteID: 1, nuevos: []domain.NuevoTag{{Nombre: "PROFUNDO"}}, want: domain.ErrTagNameTaken},
+		{name: "sin tags", incidenteID: 1, nuevos: nil, want: ErrInvalido},
+		{name: "tag inválido", incidenteID: 1, nuevos: []NuevoTag{{Nombre: "ok"}, {Nombre: " "}}, want: ErrInvalido},
+		{name: "repetido en la petición", incidenteID: 1, nuevos: []NuevoTag{{Nombre: "a"}, {Nombre: "A"}}, want: ErrInvalido},
+		{name: "incidente inexistente", incidenteID: 99, nuevos: []NuevoTag{{Nombre: "ancho"}}, want: ErrNotFound},
+		{name: "ya existe con otras mayúsculas", incidenteID: 1, nuevos: []NuevoTag{{Nombre: "PROFUNDO"}}, want: ErrTagNameTaken},
 		{
-			name: "carrera: otro lo creó entre medio", incidenteID: 1, nuevos: []domain.NuevoTag{{Nombre: "ancho"}},
+			name: "carrera: otro lo creó entre medio", incidenteID: 1, nuevos: []NuevoTag{{Nombre: "ancho"}},
 			createErr: &pgconn.PgError{Code: "23505", ConstraintName: "tags_incidente_id_nombre_key"},
-			want:      domain.ErrTagNameTaken,
+			want:      ErrTagNameTaken,
 		},
 		{
-			name: "carrera: borraron el incidente", incidenteID: 1, nuevos: []domain.NuevoTag{{Nombre: "ancho"}},
+			name: "carrera: borraron el incidente", incidenteID: 1, nuevos: []NuevoTag{{Nombre: "ancho"}},
 			createErr: &pgconn.PgError{Code: "23503", ConstraintName: "tags_incidente_id_fkey"},
-			want:      domain.ErrIncidenteNotFound,
+			want:      ErrNotFound,
 		},
 	}
 
@@ -392,7 +391,7 @@ func TestIncidenteService_AgregarTags_Errores(t *testing.T) {
 			store := &fakeIncidenteStore{createTagsErr: tt.createErr}
 			store.agregarIncidente(1, "socavon", true)
 			store.agregarTag(1, "profundo", 1)
-			svc := NewIncidenteService(store)
+			svc := NewService(store)
 
 			_, err := svc.AgregarTags(context.Background(), tt.incidenteID, uuid.New(), tt.nuevos)
 			if !errors.Is(err, tt.want) {
