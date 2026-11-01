@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { folio, formatDateTime, fotoUrl, pinOfficialFirst, timeAgo } from "./reportFormat";
+import { folio, formatDateTime, fotoUrl, pinOfficialFirst, shortDate, timeAgo } from "./reportFormat";
 
 const now = Date.parse("2026-10-26T12:00:00Z");
 
@@ -32,6 +32,18 @@ describe("reportFormat", () => {
         expect(timeAgo("2026-08-26T12:00:00Z", now)).toBe("hace 2 meses");
         // 59 días: "hace 1 mes", no "el mes pasado".
         expect(timeAgo("2026-03-31T12:00:00Z", Date.parse("2026-05-29T12:00:00Z"))).toBe("hace 1 mes");
+    });
+
+    it("fecha corta: hoy y ayer con hora, el resto con día y mes, y el año solo si es otro", () => {
+        // now = 05:00 del 26 oct en Tijuana (UTC-7).
+        expect(shortDate("2026-10-26T08:30:00Z", now)).toBe("hoy 01:30");
+        // 06:30 UTC del 26 son las 23:30 del 25 en Tijuana.
+        expect(shortDate("2026-10-26T06:30:00Z", now)).toBe("ayer 23:30");
+        expect(shortDate("2026-10-20T18:00:00Z", now)).toBe("20 oct");
+        expect(shortDate("2025-12-31T20:00:00Z", now)).toBe("31 dic 2025");
+        expect(shortDate("no-es-fecha", now)).toBe("");
+        // El domingo del cambio de horario dura 23 h: a las 00:30 del lunes sigue siendo "ayer".
+        expect(shortDate("2026-03-08T19:00:00Z", Date.parse("2026-03-09T07:30:00Z"))).toBe("ayer 12:00");
     });
 
     it("fija arriba los oficiales (el más reciente primero) y ordena el resto por instante sin mutar la lista", () => {

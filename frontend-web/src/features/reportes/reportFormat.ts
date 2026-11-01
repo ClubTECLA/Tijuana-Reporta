@@ -37,6 +37,30 @@ const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["minute", 60],
 ];
 
+// "2026-10-31": el día de calendario en Tijuana, comparable como texto.
+const dayKeyFormat = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TIME_ZONE });
+const hourFormat = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: TIME_ZONE });
+const dayMonthFormat = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", timeZone: TIME_ZONE });
+const dayMonthYearFormat = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: TIME_ZONE });
+
+/**
+ * Fecha corta para la fila de un incidente: "hoy 14:36", "ayer 09:10", "28 oct" o, de otro año, "28 oct 2025".
+ * Con una fecha inválida, "".
+ */
+export function shortDate(iso: string, now = Date.now()) {
+    const time = timeOf(iso);
+    if (Number.isNaN(time)) return "";
+    const day = dayKeyFormat.format(time);
+    const today = dayKeyFormat.format(now);
+    // Ayer se calcula sobre el calendario y no restando 24 h, que fallaría el día del cambio de horario.
+    const [y, m, d] = today.split("-").map(Number);
+    const yesterday = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+
+    if (day === today) return `hoy ${hourFormat.format(time)}`;
+    if (day === yesterday) return `ayer ${hourFormat.format(time)}`;
+    return (day.slice(0, 4) === today.slice(0, 4) ? dayMonthFormat : dayMonthYearFormat).format(time).replace(".", "");
+}
+
 /** "hace 3 horas", "hace 2 semanas"; con menos de un minuto, "ahora"; con una fecha inválida, "". */
 export function timeAgo(iso: string, now = Date.now()) {
     const time = timeOf(iso);
