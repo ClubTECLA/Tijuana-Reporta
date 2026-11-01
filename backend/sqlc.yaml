@@ -7,6 +7,7 @@ sql:
     queries:
       - "internal/queries"
       - "internal/historial/historial.sql"
+      - "internal/reporte/reporte.sql"
     schema: "internal/db/migrations"
     gen:
       go:

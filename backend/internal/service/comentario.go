@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -31,7 +32,7 @@ func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UU
 		Comentario: texto,
 	})
 
-	if domain.IsForeignKeyViolation(err, "comentarios_reporte_id_fkey") {
+	if db.IsForeignKeyViolation(err, "comentarios_reporte_id_fkey") {
 		return domain.ComentarioConAutor{}, domain.ErrReporteNotFound
 	}
 

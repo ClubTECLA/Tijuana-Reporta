@@ -1,4 +1,4 @@
-package domain
+package reporte
 
 import (
 	"errors"
@@ -7,13 +7,13 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 )
 
-func TestTituloReporte(t *testing.T) {
+func TestTitulo(t *testing.T) {
 	direccion := "Calle Flores Magón 8267 · Zona Centro"
-	if got, want := TituloReporte("Socavón", &direccion), "Socavón en Calle Flores Magón 8267 · Zona Centro"; got != want {
-		t.Errorf("TituloReporte() = %q, want %q", got, want)
+	if got, want := Titulo("Socavón", &direccion), "Socavón en Calle Flores Magón 8267 · Zona Centro"; got != want {
+		t.Errorf("Titulo() = %q, want %q", got, want)
 	}
-	if got := TituloReporte("Socavón", nil); got != "Socavón" {
-		t.Errorf("TituloReporte() sin dirección = %q, want %q", got, "Socavón")
+	if got := Titulo("Socavón", nil); got != "Socavón" {
+		t.Errorf("Titulo() sin dirección = %q, want %q", got, "Socavón")
 	}
 }
 
@@ -53,5 +53,24 @@ func TestValidarTransicion_EstadoFueraDelEnum(t *testing.T) {
 	}
 	if EstadoValido("Arreglado") || !EstadoValido(sqlc.EstadoDescartado) {
 		t.Error("EstadoValido() no distingue los valores del enum")
+	}
+}
+
+func TestPuedeGestionar(t *testing.T) {
+	tests := []struct {
+		rol  string
+		want bool
+	}{
+		{"", false},
+		{RolCiudadano, false},
+		{"admin", true},
+		{"rescatista", true},
+		// Un rol que no existe en el baseline también puede: solo se excluye ciudadano.
+		{"rol_nuevo", true},
+	}
+	for _, tt := range tests {
+		if got := PuedeGestionar(tt.rol); got != tt.want {
+			t.Errorf("PuedeGestionar(%q) = %v, want %v", tt.rol, got, tt.want)
+		}
 	}
 }

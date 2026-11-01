@@ -31,7 +31,7 @@ type Querier interface {
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
-	// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)

@@ -1,4 +1,4 @@
-package service
+package reporte
 
 import (
 	"context"
@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// fakeReporteStore implementa ReporteStore en memoria.
+// fakeReporteStore implementa store en memoria.
 // CreateReporte imita a la transacción real (reporte + location) y al
 // trigger que mantiene puntos_origen, para que Obtener devuelva un detalle
 // realista. CambiarEstadoReporte valida la transición igual que la real.
@@ -31,14 +30,14 @@ type fakeReporteStore struct {
 	cercanos    []sqlc.ListReportesPorUbicacionRow
 	delUsuario  []sqlc.ListReportesByUserIdRow
 
-	lastArg     domain.CreateReporteTxParams
+	lastArg     CreateTxParams
 	lastListArg sqlc.ListReportesResumenParams
 	listCalled  bool
 
 	lastCercanosArg   sqlc.ListReportesPorUbicacionParams
 	lastDelUsuarioArg sqlc.ListReportesByUserIdParams
 
-	lastCambiarEstadoArg domain.CambiarEstadoReporteTxParams
+	lastCambiarEstadoArg CambiarEstadoTxParams
 	cambiarEstadoCalled  bool
 
 	createErr error
@@ -56,7 +55,7 @@ func newFakeReporteStore() *fakeReporteStore {
 	}
 }
 
-func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateReporteTxParams) (sqlc.Reporte, error) {
+func (f *fakeReporteStore) CreateReporte(_ context.Context, arg CreateTxParams) (sqlc.Reporte, error) {
 	f.lastArg = arg
 	if f.createErr != nil {
 		return sqlc.Reporte{}, f.createErr
@@ -146,14 +145,14 @@ func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) 
 	return sqlc.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
 }
 
-func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.CambiarEstadoReporteTxParams) (sqlc.Reporte, error) {
+func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error) {
 	f.cambiarEstadoCalled = true
 	f.lastCambiarEstadoArg = arg
 	r, ok := f.byID[arg.ID]
 	if !ok {
 		return sqlc.Reporte{}, pgx.ErrNoRows
 	}
-	if err := domain.ValidarTransicion(r.EstadoActual, arg.Estado); err != nil {
+	if err := ValidarTransicion(r.EstadoActual, arg.Estado); err != nil {
 		return sqlc.Reporte{}, err
 	}
 	r.EstadoActual = arg.Estado
@@ -163,12 +162,12 @@ func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.Ca
 
 func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 	userID := uuid.New()
 
-	fakeNuevoReporte := domain.NuevoReporte{
+	fakeNuevoReporte := Nuevo{
 		UserID:      userID,
-		Rol:         domain.RolCiudadano,
+		Rol:         RolCiudadano,
 		IncidenteID: 42,
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
@@ -212,11 +211,11 @@ func TestReporteService_Crear_Direccion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewReporteService(store)
+			svc := NewService(store)
 
-			r, err := svc.Crear(context.Background(), domain.NuevoReporte{
+			r, err := svc.Crear(context.Background(), Nuevo{
 				UserID:      uuid.New(),
-				Rol:         domain.RolCiudadano,
+				Rol:         RolCiudadano,
 				IncidenteID: 42,
 				Latitude:    32.5027,
 				Longitude:   -117.00371,
@@ -241,15 +240,15 @@ func TestReporteService_Crear_EsOficial(t *testing.T) {
 	}{
 		{"admin puede", "admin", nil},
 		{"proteccion_civil puede", "proteccion_civil", nil},
-		{"ciudadano no puede", domain.RolCiudadano, domain.ErrOficialNoPermitido},
-		{"sin rol no puede", "", domain.ErrOficialNoPermitido},
+		{"ciudadano no puede", RolCiudadano, ErrOficialNoPermitido},
+		{"sin rol no puede", "", ErrOficialNoPermitido},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewReporteService(store)
+			svc := NewService(store)
 
-			fakeNuevoReporte := domain.NuevoReporte{
+			fakeNuevoReporte := Nuevo{
 				UserID:      uuid.New(),
 				Rol:         tt.rol,
 				IncidenteID: 42,
@@ -276,11 +275,11 @@ func TestReporteService_Crear_EsOficial(t *testing.T) {
 
 func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
-	fakeNuevoReporte := domain.NuevoReporte{
+	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
-		Rol:         domain.RolCiudadano,
+		Rol:         RolCiudadano,
 		IncidenteID: 42,
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
@@ -299,11 +298,11 @@ func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
 func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 	store := newFakeReporteStore()
 	store.createErr = &pgconn.PgError{Code: "23503", ConstraintName: "reporte_incidente_id_fkey"}
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
-	fakeNuevoReporte := domain.NuevoReporte{
+	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
-		Rol:         domain.RolCiudadano,
+		Rol:         RolCiudadano,
 		IncidenteID: 999,
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
@@ -311,18 +310,18 @@ func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 	}
 
 	_, err := svc.Crear(context.Background(), fakeNuevoReporte)
-	if !errors.Is(err, domain.ErrIncidenteNotFound) {
-		t.Fatalf("Crear() error = %v, want %v", err, domain.ErrIncidenteNotFound)
+	if !errors.Is(err, ErrIncidenteNotFound) {
+		t.Fatalf("Crear() error = %v, want %v", err, ErrIncidenteNotFound)
 	}
 }
 
 func TestReporteService_Obtener(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
-	fakeNuevoReporte := domain.NuevoReporte{
+	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
-		Rol:         domain.RolCiudadano,
+		Rol:         RolCiudadano,
 		IncidenteID: 42,
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
@@ -357,11 +356,11 @@ func TestReporteService_Obtener(t *testing.T) {
 }
 
 func TestReporteService_Obtener_NoEncontrado(t *testing.T) {
-	svc := NewReporteService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore())
 
 	_, err := svc.Obtener(context.Background(), uuid.New())
-	if !errors.Is(err, domain.ErrReporteNotFound) {
-		t.Fatalf("Obtener() error = %v, want %v", err, domain.ErrReporteNotFound)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Obtener() error = %v, want %v", err, ErrNotFound)
 	}
 }
 
@@ -371,7 +370,7 @@ func ptr[T any](v T) *T { return &v }
 func TestReporteService_Listar_SinArea(t *testing.T) {
 	store := newFakeReporteStore()
 	store.resumen = []sqlc.ListReportesResumenRow{{ID: uuid.New(), IncidenteID: 2}}
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	rows, err := svc.Listar(context.Background(), nil, nil, nil, nil)
 	if err != nil {
@@ -387,7 +386,7 @@ func TestReporteService_Listar_SinArea(t *testing.T) {
 
 func TestReporteService_Listar_ConArea(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	if _, err := svc.Listar(context.Background(), ptr(32.4), ptr(32.6), ptr(-117.2), ptr(-116.8)); err != nil {
 		t.Fatalf("Listar() error = %v", err)
@@ -401,11 +400,11 @@ func TestReporteService_Listar_ConArea(t *testing.T) {
 
 func TestReporteService_Listar_AreaIncompleta(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	_, err := svc.Listar(context.Background(), ptr(32.4), nil, nil, nil)
-	if !errors.Is(err, domain.ErrAreaIncompleta) {
-		t.Fatalf("Listar() error = %v, want %v", err, domain.ErrAreaIncompleta)
+	if !errors.Is(err, ErrAreaIncompleta) {
+		t.Fatalf("Listar() error = %v, want %v", err, ErrAreaIncompleta)
 	}
 	if store.listCalled {
 		t.Fatal("Listar() consultó la store con un área incompleta")
@@ -422,11 +421,11 @@ func TestReporteService_Listar_AreaInvalida(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc := NewReporteService(newFakeReporteStore())
+			svc := NewService(newFakeReporteStore())
 
 			_, err := svc.Listar(context.Background(), ptr(tt.minLat), ptr(tt.maxLat), ptr(tt.minLng), ptr(tt.maxLng))
-			if !errors.Is(err, domain.ErrAreaInvalida) {
-				t.Fatalf("Listar() error = %v, want %v", err, domain.ErrAreaInvalida)
+			if !errors.Is(err, ErrAreaInvalida) {
+				t.Fatalf("Listar() error = %v, want %v", err, ErrAreaInvalida)
 			}
 		})
 	}
@@ -435,7 +434,7 @@ func TestReporteService_Listar_AreaInvalida(t *testing.T) {
 func TestReporteService_Listar_ErrorStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	if _, err := svc.Listar(context.Background(), nil, nil, nil, nil); !errors.Is(err, store.listErr) {
 		t.Fatalf("Listar() error = %v, want %v", err, store.listErr)
@@ -444,11 +443,11 @@ func TestReporteService_Listar_ErrorStore(t *testing.T) {
 
 func TestReporteService_AddAvistamientoById(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
-	fakeNuevoReporte := domain.NuevoReporte{
+	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
-		Rol:         domain.RolCiudadano,
+		Rol:         RolCiudadano,
 		IncidenteID: 42,
 		Latitude:    32.5027,
 		Longitude:   -117.00371,
@@ -472,18 +471,18 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 }
 
 func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
-	svc := NewReporteService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore())
 
 	_, err := svc.AgregarAvistamiento(context.Background(), uuid.New())
-	if !errors.Is(err, domain.ErrReporteNotFound) {
-		t.Fatalf("AgregarAvistamiento() error = %v, want %v", err, domain.ErrReporteNotFound)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("AgregarAvistamiento() error = %v, want %v", err, ErrNotFound)
 	}
 }
 
 func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
 	store := newFakeReporteStore()
 	store.cercanos = []sqlc.ListReportesPorUbicacionRow{{ID: uuid.New(), DistanciaM: 12.5}}
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	rows, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200)
 	if err != nil {
@@ -504,7 +503,7 @@ func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
 
 func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 	desde := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	_, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000,
@@ -523,7 +522,7 @@ func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
 func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	if _, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
@@ -533,7 +532,7 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 func TestReporteService_ListarPorUsuario(t *testing.T) {
 	store := newFakeReporteStore()
 	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New()}}
-	svc := NewReporteService(store)
+	svc := NewService(store)
 	userID := uuid.New()
 
 	rows, err := svc.ListarPorUsuario(context.Background(), userID, 10)
@@ -551,7 +550,7 @@ func TestReporteService_ListarPorUsuario(t *testing.T) {
 func TestReporteService_ListarPorUsuario_ErrorDeStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	if _, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarPorUsuario() error = %v, want %v", err, store.listErr)
@@ -563,8 +562,8 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 		rol     string
 		wantErr error
 	}{
-		{"", domain.ErrEstadoNoPermitido},
-		{domain.RolCiudadano, domain.ErrEstadoNoPermitido},
+		{"", ErrEstadoNoPermitido},
+		{RolCiudadano, ErrEstadoNoPermitido},
 		{"admin", nil},
 		{"rescatista", nil},
 		// Un rol que no existe en el baseline también puede: solo se excluye ciudadano.
@@ -573,9 +572,9 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("rol "+tt.rol, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewReporteService(store)
-			creado, err := svc.Crear(context.Background(), domain.NuevoReporte{
-				UserID: uuid.New(), Rol: domain.RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+			svc := NewService(store)
+			creado, err := svc.Crear(context.Background(), Nuevo{
+				UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
 			})
 			if err != nil {
 				t.Fatalf("Crear() error = %v", err)
@@ -591,7 +590,7 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 				t.Fatalf("CambiarEstadoReporte llamado = %v, want %v", store.cambiarEstadoCalled, tt.wantErr == nil)
 			}
 			if tt.wantErr == nil {
-				want := domain.CambiarEstadoReporteTxParams{ID: creado.Reporte.ID, Estado: sqlc.EstadoVerificado, ActorID: actorID}
+				want := CambiarEstadoTxParams{ID: creado.Reporte.ID, Estado: sqlc.EstadoVerificado, ActorID: actorID}
 				if store.lastCambiarEstadoArg != want {
 					t.Fatalf("CambiarEstadoReporte recibió %+v, want %+v", store.lastCambiarEstadoArg, want)
 				}
@@ -609,19 +608,19 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 }
 
 func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
-	svc := NewReporteService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore())
 
 	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.EstadoVerificado)
-	if !errors.Is(err, domain.ErrReporteNotFound) {
-		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrReporteNotFound)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("CambiarEstado() error = %v, want %v", err, ErrNotFound)
 	}
 }
 
 func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
-	creado, err := svc.Crear(context.Background(), domain.NuevoReporte{
-		UserID: uuid.New(), Rol: domain.RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+	svc := NewService(store)
+	creado, err := svc.Crear(context.Background(), Nuevo{
+		UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
 	})
 	if err != nil {
 		t.Fatalf("Crear() error = %v", err)
@@ -634,8 +633,8 @@ func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 
 	// Resuelto es final: no se puede reabrir.
 	_, err = svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, sqlc.EstadoPendiente)
-	if !errors.Is(err, domain.ErrTransicionInvalida) {
-		t.Fatalf("CambiarEstado(Pendiente) error = %v, want %v", err, domain.ErrTransicionInvalida)
+	if !errors.Is(err, ErrTransicionInvalida) {
+		t.Fatalf("CambiarEstado(Pendiente) error = %v, want %v", err, ErrTransicionInvalida)
 	}
 	if got := store.byID[id].EstadoActual; got != sqlc.EstadoResuelto {
 		t.Fatalf("estado = %q, want %q", got, sqlc.EstadoResuelto)
@@ -644,11 +643,11 @@ func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 
 func TestReporteService_CambiarEstado_EstadoInvalido(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.Estado("Arreglado"))
-	if !errors.Is(err, domain.ErrEstadoInvalido) {
-		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrEstadoInvalido)
+	if !errors.Is(err, ErrEstadoInvalido) {
+		t.Fatalf("CambiarEstado() error = %v, want %v", err, ErrEstadoInvalido)
 	}
 	if store.cambiarEstadoCalled {
 		t.Fatal("CambiarEstado() llegó a la store con un estado fuera del enum")
@@ -659,7 +658,7 @@ func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
 	store := newFakeReporteStore()
 	direccion := "Av. Revolución 1234"
 	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New(), IncidenteEtiqueta: "Socavón", Direccion: &direccion}}
-	svc := NewReporteService(store)
+	svc := NewService(store)
 
 	rows, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 10)
 	if err != nil {

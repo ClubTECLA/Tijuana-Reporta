@@ -18,7 +18,7 @@ SELECT *
 FROM location WHERE reporte_id = $1 ORDER BY created_at;
 
 -- name: GetReporteById :one
--- La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+-- La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 SELECT sqlc.embed(r), i.etiqueta AS incidente_etiqueta
 FROM reporte r
 JOIN incidentes i ON i.id = r.incidente_id
@@ -105,3 +105,21 @@ ORDER BY r.created_at DESC
 LIMIT sqlc.arg(limite)::int;
 -- name: GetEstadoReporteForUpdate :one
 SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE;
+
+-- name: ListComentariosByReporteId :many
+SELECT
+    c.id,
+    c.reporte_id,
+    c.user_id,
+    c.comentario,
+    c.created_at,
+    u.username,
+    r.nombre AS rol_name
+FROM
+    comentarios c
+    JOIN users u ON u.id = c.user_id
+    JOIN roles r ON r.id = u.rol_id
+WHERE
+    c.reporte_id = $1
+ORDER BY
+    c.created_at;

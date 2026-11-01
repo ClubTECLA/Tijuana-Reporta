@@ -16,18 +16,6 @@ type ComentarioService interface {
 	Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error)
 }
 
-// ReporteService es la interfaz que el handler de reportes necesita del
-// servicio.
-type ReporteService interface {
-	Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error)
-	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
-	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ReporteResumen, error)
-	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
-	CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado sqlc.Estado) (domain.ReporteDetalle, error)
-	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []sqlc.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error)
-	ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error)
-}
-
 // AuthService devuelve, junto con el usuario, el access token ya firmado y
 // su tiempo de vida, para que el handler pueda armar el AuthResponse del
 // contrato sin conocer nada sobre cómo se firma o valida el token.
@@ -59,15 +47,15 @@ type UsuarioService interface {
 // Services agrupa los servicios que el servidor expone a la API.
 type Services struct {
 	Comentarios ComentarioService
-	Reportes    ReporteService
 	Incidentes  IncidenteService
 	Auth        AuthService
 	Usuarios    UsuarioService
 	Multimedia  MultimediaService
 }
 
-// Server implementa la interfaz que oapi-codegen genera a partir de
-// shared/openapi/openapi.yaml.
+// Server implementa las operaciones del contrato que todavía no tienen
+// paquete propio; internal/server lo embebe junto con los Handler de cada
+// funcionalidad para completar StrictServerInterface.
 //
 // Cada handler recibe la petición ya parseada y validada, y devuelve uno de los
 // tipos de respuesta que el contrato declara para esa operación.
@@ -77,10 +65,6 @@ type Services struct {
 type Server struct {
 	services Services
 }
-
-// Assertion en tiempo de compilación: si el contrato gana un endpoint y aquí no
-// se implementa, el build falla en vez de devolver un 404 en runtime.
-var _ StrictServerInterface = (*Server)(nil)
 
 // NewServer crea un servidor con los servicios dados.
 func NewServer(services Services) *Server {

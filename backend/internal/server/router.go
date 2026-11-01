@@ -10,6 +10,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
@@ -42,12 +43,33 @@ func WithMaxMultimediaBytes(n int64) RouterOption {
 	return func(c *routerConfig) { c.maxMultimediaBytes = n }
 }
 
+// Handlers son los handlers de cada funcionalidad que sirve el router.
+type Handlers struct {
+	Reportes *reporte.Handler
+
+	// Services son los de las operaciones que todavía viven en httpapi.
+	Services httpapi.Services
+}
+
+// api junta los handlers de cada funcionalidad en la interfaz que genera
+// oapi-codegen. Si dos definen la misma operación, el método queda ambiguo
+// y la assertion de abajo no compila.
+type api struct {
+	*reporte.Handler
+	*httpapi.Server
+}
+
+// Assertion en tiempo de compilación: si el contrato gana un endpoint y
+// ninguna funcionalidad lo implementa, el build falla en vez de devolver un
+// 404 en runtime.
+var _ httpapi.StrictServerInterface = api{}
+
 // NewRouter arma el *gin.Engine completo de la API: /health, las rutas del
 // contrato bajo /v1 (con el middleware de auth) /v1/openapi.json y /v1/docs.
 //
 // New lo usa con los servicios de producción y los tests de integración con
 // los suyos, así que ambos levantan exactamente el mismo router.
-func NewRouter(services httpapi.Services, jwtSecret string, opts ...RouterOption) *gin.Engine {
+func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -55,7 +77,7 @@ func NewRouter(services httpapi.Services, jwtSecret string, opts ...RouterOption
 
 	// Una sola tabla con las reglas de todos los errores que pueden devolver
 	// los handlers.
-	tabla := httperr.NewTabla(domain.ReglasHTTP)
+	tabla := httperr.NewTabla(reporte.ReglasHTTP, domain.ReglasHTTP)
 
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
@@ -90,7 +112,7 @@ func NewRouter(services httpapi.Services, jwtSecret string, opts ...RouterOption
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	strict := httpapi.NewStrictHandlerWithOptions(
-		httpapi.NewServer(services),
+		api{Handler: h.Reportes, Server: httpapi.NewServer(h.Services)},
 		nil,
 		httpapi.StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {

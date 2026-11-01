@@ -26,9 +26,11 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -64,15 +66,17 @@ func newTestClient(t *testing.T) *testClient {
 	multimedia := &multimediaFalso{}
 
 	gin.SetMode(gin.TestMode)
-	router := server.NewRouter(httpapi.Services{
-		Comentarios: service.NewComentarioService(store),
-		Reportes:    service.NewReporteService(store),
-		Incidentes:  service.NewIncidenteService(store),
-		Auth:        auth,
-		Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
-			MaxBytes:   3 << 20,
-			MaxPixeles: 16_000_000,
-		}),
+	router := server.NewRouter(server.Handlers{
+		Reportes: reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
+		Services: httpapi.Services{
+			Comentarios: service.NewComentarioService(store),
+			Incidentes:  service.NewIncidenteService(store),
+			Auth:        auth,
+			Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
+				MaxBytes:   3 << 20,
+				MaxPixeles: 16_000_000,
+			}),
+		},
 	}, testJWTSecret)
 
 	return &testClient{t: t, router: router, multimedia: multimedia}
@@ -639,8 +643,8 @@ func TestComentarReporte(t *testing.T) {
 		if *comentario.Username != auth.User.Username {
 			t.Errorf("username = %q, quería %q", *comentario.Username, auth.User.Username)
 		}
-		if *comentario.RolName != domain.RolCiudadano {
-			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, domain.RolCiudadano)
+		if *comentario.RolName != "ciudadano" {
+			t.Errorf("rol_name = %q, quería %q", *comentario.RolName, "ciudadano")
 		}
 	})
 
@@ -835,7 +839,7 @@ func TestCreateIncidenteConTagsRollback(t *testing.T) {
 		Tags:      []sqlc.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
 		ActorID:   crearActor(t, store),
 	})
-	if !domain.IsUniqueViolation(err) {
+	if !db.IsUniqueViolation(err) {
 		t.Fatalf("CreateIncidenteConTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
 	}
 
@@ -1069,7 +1073,7 @@ func TestCreateTags(t *testing.T) {
 			Tags:        []sqlc.CreateTagParams{{Nombre: "nuevo", Peso: 1}, {Nombre: "nuevo", Peso: 1}},
 			ActorID:     actorID,
 		})
-		if !domain.IsUniqueViolation(err) {
+		if !db.IsUniqueViolation(err) {
 			t.Fatalf("CreateTags() error = %v, quería un UNIQUE roto por el tag repetido", err)
 		}
 
@@ -1092,7 +1096,7 @@ func TestCreateTags(t *testing.T) {
 			Tags:        []sqlc.CreateTagParams{{Nombre: "a", Peso: 1}},
 			ActorID:     actorID,
 		})
-		if !domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
+		if !db.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
 			t.Fatalf("CreateTags() error = %v, quería el FOREIGN KEY tags_incidente_id_fkey", err)
 		}
 	})

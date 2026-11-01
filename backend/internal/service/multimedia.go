@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/procesamiento"
@@ -81,7 +82,7 @@ func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UU
 	})
 	if err != nil {
 		s.borrarHuerfano(ctx, path)
-		if domain.IsUniqueViolation(err) {
+		if db.IsUniqueViolation(err) {
 			return sqlc.Multimedia{}, domain.ErrMultimediaYaExiste
 		}
 		return sqlc.Multimedia{}, err

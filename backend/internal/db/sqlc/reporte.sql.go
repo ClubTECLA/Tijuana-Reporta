@@ -192,7 +192,7 @@ type GetReporteByIdRow struct {
 	IncidenteEtiqueta string  `json:"incidente_etiqueta"`
 }
 
-// La etiqueta del incidente se trae para armar el título (domain.TituloReporte).
+// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error) {
 	row := q.db.QueryRow(ctx, getReporteById, id)
 	var i GetReporteByIdRow
@@ -209,6 +209,63 @@ func (q *Queries) GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteB
 		&i.IncidenteEtiqueta,
 	)
 	return i, err
+}
+
+const listComentariosByReporteId = `-- name: ListComentariosByReporteId :many
+SELECT
+    c.id,
+    c.reporte_id,
+    c.user_id,
+    c.comentario,
+    c.created_at,
+    u.username,
+    r.nombre AS rol_name
+FROM
+    comentarios c
+    JOIN users u ON u.id = c.user_id
+    JOIN roles r ON r.id = u.rol_id
+WHERE
+    c.reporte_id = $1
+ORDER BY
+    c.created_at
+`
+
+type ListComentariosByReporteIdRow struct {
+	ID         int       `json:"id"`
+	ReporteID  uuid.UUID `json:"reporte_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Comentario string    `json:"comentario"`
+	CreatedAt  time.Time `json:"created_at"`
+	Username   string    `json:"username"`
+	RolName    string    `json:"rol_name"`
+}
+
+func (q *Queries) ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error) {
+	rows, err := q.db.Query(ctx, listComentariosByReporteId, reporteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListComentariosByReporteIdRow
+	for rows.Next() {
+		var i ListComentariosByReporteIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ReporteID,
+			&i.UserID,
+			&i.Comentario,
+			&i.CreatedAt,
+			&i.Username,
+			&i.RolName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLocationsByReporteId = `-- name: ListLocationsByReporteId :many

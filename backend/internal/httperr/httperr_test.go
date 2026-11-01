@@ -8,10 +8,11 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(domain.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, domain.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -21,7 +22,7 @@ func TestResolver(t *testing.T) {
 		wantMessage string
 	}{
 		{"reporte no encontrado", domain.ErrReporteNotFound, http.StatusNotFound, "reporte no encontrado"},
-		{"transición inválida", domain.ErrTransicionInvalida, http.StatusConflict, "transicion no valida"},
+		{"transición inválida", reporte.ErrTransicionInvalida, http.StatusConflict, "transicion no valida"},
 		{"email registrado", domain.ErrEmailTaken, http.StatusConflict, "el email ya está registrado"},
 		{"credenciales inválidas", domain.ErrInvalidCredentials, http.StatusUnauthorized, "credenciales invalidas"},
 		{"usuario no encontrado", domain.ErrUserNotFound, http.StatusUnauthorized, "no autenticado"},
@@ -34,11 +35,11 @@ func TestResolver(t *testing.T) {
 		{"incidente inválido", domain.ErrIncidenteInvalido, http.StatusBadRequest, "invalid incidente"},
 		{"nombre de incidente repetido", domain.ErrIncidenteNameTaken, http.StatusConflict, "ya existe un incidente con ese nombre"},
 		{"nombre de tag repetido", domain.ErrTagNameTaken, http.StatusConflict, "el incidente ya tiene un tag con ese nombre"},
-		{"área incompleta", domain.ErrAreaIncompleta, http.StatusBadRequest, "area incompleta"},
-		{"área inválida", domain.ErrAreaInvalida, http.StatusBadRequest, "area invalida"},
-		{"estado inválido", domain.ErrEstadoInvalido, http.StatusBadRequest, "estado invalido"},
-		{"oficial no permitido", domain.ErrOficialNoPermitido, http.StatusForbidden, "un ciudadano no puede crear reportes oficiales"},
-		{"estado no permitido", domain.ErrEstadoNoPermitido, http.StatusForbidden, "un ciudadano no puede cambiar el estado de un reporte"},
+		{"área incompleta", reporte.ErrAreaIncompleta, http.StatusBadRequest, "area incompleta"},
+		{"área inválida", reporte.ErrAreaInvalida, http.StatusBadRequest, "area invalida"},
+		{"estado inválido", reporte.ErrEstadoInvalido, http.StatusBadRequest, "estado invalido"},
+		{"oficial no permitido", reporte.ErrOficialNoPermitido, http.StatusForbidden, "un ciudadano no puede crear reportes oficiales"},
+		{"estado no permitido", reporte.ErrEstadoNoPermitido, http.StatusForbidden, "un ciudadano no puede cambiar el estado de un reporte"},
 		{"no autenticado", httperr.ErrNoAutenticado, http.StatusUnauthorized, "no autenticado"},
 		{"token inválido", httperr.ErrTokenInvalido, http.StatusUnauthorized, "token invalido"},
 		{"prohibido", httperr.ErrProhibido, http.StatusForbidden, "prohibido"},
@@ -76,10 +77,12 @@ func TestResolver_ErrorDesconocido(t *testing.T) {
 }
 
 // TestResolver_TodosLosErroresDeDominio falla si a un error de
-// domain/errors.go le falta su regla y acaba como 500. La lista se mantiene a
-// mano: al agregar un Err… a domain/errors.go, agrégalo aquí también.
+// domain/errors.go o de una funcionalidad le falta su regla y acaba como
+// 500. La lista se mantiene a mano: al agregar un Err…, agrégalo aquí también.
 func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 	errs := []error{
+		reporte.ErrNotFound,
+		reporte.ErrIncidenteNotFound,
 		domain.ErrEmailTaken,
 		domain.ErrInvalidCredentials,
 		domain.ErrUserNotFound,
@@ -93,19 +96,19 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		domain.ErrAlmacenNoDisponible,
 		domain.ErrIncidenteNameTaken,
 		domain.ErrTagNameTaken,
-		domain.ErrAreaIncompleta,
-		domain.ErrAreaInvalida,
-		domain.ErrEstadoInvalido,
-		domain.ErrTransicionInvalida,
-		domain.ErrOficialNoPermitido,
-		domain.ErrEstadoNoPermitido,
+		reporte.ErrAreaIncompleta,
+		reporte.ErrAreaInvalida,
+		reporte.ErrEstadoInvalido,
+		reporte.ErrTransicionInvalida,
+		reporte.ErrOficialNoPermitido,
+		reporte.ErrEstadoNoPermitido,
 	}
 
 	for _, err := range errs {
 		status, _ := tabla.Resolver(err)
 		// 503 es un estado buscado (almacén caído), no la caída por defecto.
 		if status == http.StatusInternalServerError {
-			t.Errorf("%q resuelve a 500: falta su regla en domain.ReglasHTTP", err)
+			t.Errorf("%q resuelve a 500: falta su regla en ReglasHTTP", err)
 		}
 	}
 }

@@ -404,3 +404,6 @@ func TestIncidenteService_AgregarTags_Errores(t *testing.T) {
 		})
 	}
 }
+
+// ptr devuelve un puntero al valor, para armar argumentos opcionales.
+func ptr[T any](v T) *T { return &v }

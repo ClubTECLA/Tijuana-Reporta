@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +16,7 @@ func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg sqlc.Creat
 		UserID:     arg.UserID,
 		Comentario: arg.Comentario,
 		Username:   "juan",
-		RolName:    domain.RolCiudadano,
+		RolName:    "ciudadano",
 	}, nil
 }
 
@@ -32,7 +31,7 @@ func TestComentarioService_Crear(t *testing.T) {
 	if c.ReporteID != reporteID || c.UserID != userID || c.Comentario != "todo bien" {
 		t.Fatalf("Crear() = %+v, want reporteID=%v userID=%v comentario=%q", c, reporteID, userID, "todo bien")
 	}
-	if c.Username != "juan" || c.RolName != domain.RolCiudadano {
+	if c.Username != "juan" || c.RolName != "ciudadano" {
 		t.Errorf("autor = %q/%q", c.Username, c.RolName)
 	}
 }

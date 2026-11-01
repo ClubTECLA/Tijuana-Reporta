@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
@@ -105,7 +106,7 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 		ActorID:   userID,
 	})
 	if err != nil {
-		if domain.IsUniqueViolation(err) {
+		if db.IsUniqueViolation(err) {
 			return domain.IncidenteDetalle{}, domain.ErrIncidenteNameTaken
 		}
 		return domain.IncidenteDetalle{}, err
@@ -187,7 +188,7 @@ func (s *IncidenteService) Listar(ctx context.Context, incluirInactivos bool) ([
 func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error) {
 	incidente, err := s.store.GetIncidenteById(ctx, id)
 	if err != nil {
-		if domain.IsNotFound(err) {
+		if db.IsNotFound(err) {
 			return domain.IncidenteDetalle{}, domain.ErrIncidenteNotFound
 		}
 		return domain.IncidenteDetalle{}, err
@@ -216,7 +217,7 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, use
 	}
 
 	if _, err := s.store.GetIncidenteById(ctx, incidenteID); err != nil {
-		if domain.IsNotFound(err) {
+		if db.IsNotFound(err) {
 			return nil, domain.ErrIncidenteNotFound
 		}
 		return nil, err
@@ -244,10 +245,10 @@ func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, use
 	if err != nil {
 		// Las dos comprobaciones de arriba pueden quedar viejas si otra
 		// petición crea el mismo tag o borra el incidente entre medio.
-		if domain.IsUniqueViolation(err) {
+		if db.IsUniqueViolation(err) {
 			return nil, domain.ErrTagNameTaken
 		}
-		if domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
+		if db.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
 			return nil, domain.ErrIncidenteNotFound
 		}
 		return nil, err

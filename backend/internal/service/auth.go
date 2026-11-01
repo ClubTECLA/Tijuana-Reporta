@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
@@ -68,7 +69,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 		PasswordHash: &hashed,
 	})
 	if err != nil {
-		if domain.IsUniqueViolation(err) {
+		if db.IsUniqueViolation(err) {
 			return sqlc.User{}, "", 0, domain.ErrEmailTaken
 		}
 		return sqlc.User{}, "", 0, err
@@ -88,7 +89,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.U
 	email = normalizeEmail(email)
 
 	user, err := s.store.GetUserByEmail(ctx, &email)
-	notFound := domain.IsNotFound(err)
+	notFound := db.IsNotFound(err)
 	if err != nil && !notFound {
 		return sqlc.User{}, "", 0, err
 	}
@@ -121,7 +122,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.U
 func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error) {
 	row, err := s.store.GetUserWithRolByID(ctx, id)
 	if err != nil {
-		if domain.IsNotFound(err) {
+		if db.IsNotFound(err) {
 			return domain.UserWithRol{}, domain.ErrUserNotFound
 		}
 		return domain.UserWithRol{}, err

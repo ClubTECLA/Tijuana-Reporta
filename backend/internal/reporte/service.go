@@ -1,18 +1,19 @@
-package service
+package reporte
 
 import (
 	"context"
 	"strings"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
-// ReporteStore es el subconjunto de *database.Store que este servicio usa.
-type ReporteStore interface {
-	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (sqlc.Reporte, error)
+// store es lo que el servicio necesita de Store; los tests lo cumplen con un
+// falso en memoria.
+type store interface {
+	CreateReporte(ctx context.Context, arg CreateTxParams) (sqlc.Reporte, error)
 	GetReporteById(ctx context.Context, id uuid.UUID) (sqlc.GetReporteByIdRow, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (sqlc.GetPuntoOrigenByReporteIdRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]sqlc.ListComentariosByReporteIdRow, error)
@@ -23,26 +24,26 @@ type ReporteStore interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (sqlc.AddAvistamientoByIdRow, error)
 	ListReportesPorUbicacion(ctx context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error)
 	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
-	CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (sqlc.Reporte, error)
+	CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error)
 }
 
-type ReporteService struct {
-	store ReporteStore
+type Service struct {
+	store store
 }
 
-// NewReporteService crea un servicio de reportes con la store dada.
-func NewReporteService(store ReporteStore) *ReporteService {
-	return &ReporteService{store: store}
+// NewService crea un servicio de reportes con la store dada.
+func NewService(store store) *Service {
+	return &Service{store: store}
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
 // usuario. La foto o el video se suben después con MultimediaService.Subir.
 //
 // EsOficial solo lo puede pedir un rol que gestiona reportes
-// (domain.PuedeGestionar).
-func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (domain.ReporteDetalle, error) {
-	if nuevo.EsOficial && !domain.PuedeGestionar(nuevo.Rol) {
-		return domain.ReporteDetalle{}, domain.ErrOficialNoPermitido
+// (PuedeGestionar).
+func (s *Service) Crear(ctx context.Context, nuevo Nuevo) (Detalle, error) {
+	if nuevo.EsOficial && !PuedeGestionar(nuevo.Rol) {
+		return Detalle{}, ErrOficialNoPermitido
 	}
 
 	// Una dirección vacía o solo con espacios se guarda como NULL, para que el
@@ -54,7 +55,7 @@ func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (
 		}
 	}
 
-	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
+	r, err := s.store.CreateReporte(ctx, CreateTxParams{
 		Reporte: sqlc.CreateReporteParams{
 			IncidenteID: nuevo.IncidenteID,
 			EsOficial:   nuevo.EsOficial,
@@ -64,37 +65,37 @@ func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (
 		Latitude:  nuevo.Latitude,
 		Longitude: nuevo.Longitude,
 	})
-	if domain.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
-		return domain.ReporteDetalle{}, domain.ErrIncidenteNotFound
+	if db.IsForeignKeyViolation(err, "reporte_incidente_id_fkey") {
+		return Detalle{}, ErrIncidenteNotFound
 	}
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 	return s.Obtener(ctx, r.ID)
 }
 
 // Obtener devuelve el reporte con el id dado
-func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error) {
+func (s *Service) Obtener(ctx context.Context, id uuid.UUID) (Detalle, error) {
 	r, err := s.store.GetReporteById(ctx, id)
-	if domain.IsNotFound(err) {
-		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
 	}
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 
 	punto, err := s.store.GetPuntoOrigenByReporteId(ctx, id)
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 
 	rows, err := s.store.ListComentariosByReporteId(ctx, id)
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
-	comentarios := make([]domain.ComentarioConAutor, 0, len(rows))
+	comentarios := make([]Comentario, 0, len(rows))
 	for _, c := range rows {
-		comentarios = append(comentarios, domain.ComentarioConAutor{
+		comentarios = append(comentarios, Comentario{
 			ID:         c.ID,
 			ReporteID:  c.ReporteID,
 			UserID:     c.UserID,
@@ -107,26 +108,26 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 
 	multimedia, err := s.store.ListMultimediaByReporteId(ctx, id)
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 
 	tagRows, err := s.store.ListTagsByReporteId(ctx, id)
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
-	tags := make([]domain.TagConteo, 0, len(tagRows))
+	tags := make([]TagConteo, 0, len(tagRows))
 	for _, t := range tagRows {
-		tags = append(tags, domain.TagConteo{ID: t.ID, Nombre: t.Nombre, Count: t.Count})
+		tags = append(tags, TagConteo{ID: t.ID, Nombre: t.Nombre, Count: t.Count})
 	}
 
 	locations, err := s.store.ListLocationsByReporteId(ctx, id)
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 
-	return domain.ReporteDetalle{
+	return Detalle{
 		Reporte:     r.Reporte,
-		Titulo:      domain.TituloReporte(r.IncidenteEtiqueta, r.Reporte.Direccion),
+		Titulo:      Titulo(r.IncidenteEtiqueta, r.Reporte.Direccion),
 		Latitude:    punto.Latitude,
 		Longitude:   punto.Longitude,
 		Comentarios: comentarios,
@@ -138,11 +139,11 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 // toResumen convierte una fila de resumen en el modelo que devuelve el
 // servicio. Las consultas de resumen devuelven las mismas columnas, así que
 // sqlc genera structs idénticos y cualquiera se convierte a este.
-func toResumen(r sqlc.ListReportesResumenRow) domain.ReporteResumen {
-	return domain.ReporteResumen{
+func toResumen(r sqlc.ListReportesResumenRow) Resumen {
+	return Resumen{
 		ID:            r.ID,
 		IncidenteID:   r.IncidenteID,
-		Titulo:        domain.TituloReporte(r.IncidenteEtiqueta, r.Direccion),
+		Titulo:        Titulo(r.IncidenteEtiqueta, r.Direccion),
 		Direccion:     r.Direccion,
 		EstadoActual:  r.EstadoActual,
 		Avistamientos: r.Avistamientos,
@@ -152,7 +153,7 @@ func toResumen(r sqlc.ListReportesResumenRow) domain.ReporteResumen {
 	}
 }
 
-func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ReporteResumen, error) {
+func (s *Service) Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]Resumen, error) {
 	n := 0
 	for _, v := range []*float64{minLat, maxLat, minLng, maxLng} {
 		if v != nil {
@@ -161,10 +162,10 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 	}
 
 	if n != 0 && n != 4 {
-		return nil, domain.ErrAreaIncompleta
+		return nil, ErrAreaIncompleta
 	}
 	if n == 4 && (*minLat > *maxLat || *minLng > *maxLng) {
-		return nil, domain.ErrAreaInvalida
+		return nil, ErrAreaInvalida
 	}
 
 	rows, err := s.store.ListReportesResumen(ctx, sqlc.ListReportesResumenParams{
@@ -176,14 +177,14 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 	if err != nil {
 		return nil, err
 	}
-	out := make([]domain.ReporteResumen, 0, len(rows))
+	out := make([]Resumen, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, toResumen(r))
 	}
 	return out, nil
 }
 
-func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []sqlc.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error) {
+func (s *Service) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []sqlc.Estado, desde *time.Time, limite int) ([]Cercano, error) {
 	// La consulta recibe los estados como text[] (ver reporte.sql). Se deja
 	// nil si no hay estados, porque nil es "sin filtro".
 	var estadosTexto []string
@@ -202,10 +203,10 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 	if err != nil {
 		return nil, err
 	}
-	out := make([]domain.ReporteCercano, 0, len(rows))
+	out := make([]Cercano, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, domain.ReporteCercano{
-			ReporteResumen: toResumen(sqlc.ListReportesResumenRow{
+		out = append(out, Cercano{
+			Resumen: toResumen(sqlc.ListReportesResumenRow{
 				ID:                r.ID,
 				IncidenteID:       r.IncidenteID,
 				EstadoActual:      r.EstadoActual,
@@ -224,7 +225,7 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 
 // ListarPorUsuario devuelve los reportes que creó el usuario, del más reciente
 // al más antiguo, incluidos los históricos.
-func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error) {
+func (s *Service) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]Resumen, error) {
 	rows, err := s.store.ListReportesByUserId(ctx, sqlc.ListReportesByUserIdParams{
 		UserID: userID,
 		Limite: limite,
@@ -232,7 +233,7 @@ func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
-	out := make([]domain.ReporteResumen, 0, len(rows))
+	out := make([]Resumen, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, toResumen(sqlc.ListReportesResumenRow(r)))
 	}
@@ -241,39 +242,39 @@ func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID,
 
 // AgregarAvistamiento suma un avistamiento al reporte y lo devuelve ya
 // actualizado.
-func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error) {
+func (s *Service) AgregarAvistamiento(ctx context.Context, id uuid.UUID) (Detalle, error) {
 	_, err := s.store.AddAvistamientoById(ctx, id)
-	if domain.IsNotFound(err) {
-		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
 	}
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 	return s.Obtener(ctx, id)
 }
 
 // CambiarEstado cambia el estado del reporte y lo registra en el historial a
 // nombre de userID. Solo lo puede hacer un rol que gestiona reportes
-// (domain.PuedeGestionar), y solo hacia un estado al que el reporte puede
-// pasar desde el actual (domain.ValidarTransicion, que la store aplica con
+// (PuedeGestionar), y solo hacia un estado al que el reporte puede
+// pasar desde el actual (ValidarTransicion, que la store aplica con
 // la fila bloqueada).
-func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado sqlc.Estado) (domain.ReporteDetalle, error) {
-	if !domain.PuedeGestionar(rol) {
-		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
+func (s *Service) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado sqlc.Estado) (Detalle, error) {
+	if !PuedeGestionar(rol) {
+		return Detalle{}, ErrEstadoNoPermitido
 	}
-	if !domain.EstadoValido(estado) {
-		return domain.ReporteDetalle{}, domain.ErrEstadoInvalido
+	if !EstadoValido(estado) {
+		return Detalle{}, ErrEstadoInvalido
 	}
 
-	_, err := s.store.CambiarEstadoReporte(ctx, domain.CambiarEstadoReporteTxParams{
+	_, err := s.store.CambiarEstadoReporte(ctx, CambiarEstadoTxParams{
 		ID: id, Estado: estado, ActorID: userID,
 	})
 
-	if domain.IsNotFound(err) {
-		return domain.ReporteDetalle{}, domain.ErrReporteNotFound
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
 	}
 	if err != nil {
-		return domain.ReporteDetalle{}, err
+		return Detalle{}, err
 	}
 	return s.Obtener(ctx, id)
 }
