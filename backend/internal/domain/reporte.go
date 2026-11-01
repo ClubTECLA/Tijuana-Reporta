@@ -3,17 +3,15 @@ package domain
 import (
 	"slices"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/google/uuid"
 )
-
-// Archivo escrito a mano: convive con el código generado por sqlc, que solo
-// reescribe models.go, querier.go, db.go y los *.sql.go.
 
 // CreateReporteTxParams agrupa todo lo que se inserta al crear un reporte:
 // el reporte en sí y la ubicación inicial. No se llama CreateReporteParams
 // porque ese nombre ya lo usa sqlc para el INSERT simple.
 type CreateReporteTxParams struct {
-	Reporte   CreateReporteParams
+	Reporte   sqlc.CreateReporteParams
 	UserID    uuid.UUID
 	Latitude  float64
 	Longitude float64
@@ -32,23 +30,23 @@ func TituloReporte(etiquetaIncidente string, direccion *string) string {
 // Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto) y
 // se pueden saltar pasos; Descartado se alcanza desde cualquier estado no
 // final. Resuelto y Descartado son finales: no tienen salida.
-var transiciones = map[Estado][]Estado{
-	EstadoPendiente:  {EstadoProbable, EstadoVerificado, EstadoResuelto, EstadoDescartado},
-	EstadoProbable:   {EstadoVerificado, EstadoResuelto, EstadoDescartado},
-	EstadoVerificado: {EstadoResuelto, EstadoDescartado},
-	EstadoResuelto:   {},
-	EstadoDescartado: {},
+var transiciones = map[sqlc.Estado][]sqlc.Estado{
+	sqlc.EstadoPendiente:  {sqlc.EstadoProbable, sqlc.EstadoVerificado, sqlc.EstadoResuelto, sqlc.EstadoDescartado},
+	sqlc.EstadoProbable:   {sqlc.EstadoVerificado, sqlc.EstadoResuelto, sqlc.EstadoDescartado},
+	sqlc.EstadoVerificado: {sqlc.EstadoResuelto, sqlc.EstadoDescartado},
+	sqlc.EstadoResuelto:   {},
+	sqlc.EstadoDescartado: {},
 }
 
 // EstadoValido reporta si e es uno de los valores del enum estado.
-func EstadoValido(e Estado) bool {
+func EstadoValido(e sqlc.Estado) bool {
 	_, ok := transiciones[e]
 	return ok
 }
 
 // ValidarTransicion devuelve ErrTransicionInvalida si un reporte no puede
 // pasar del estado de al estado a, incluido quedarse en el mismo estado.
-func ValidarTransicion(de, a Estado) error {
+func ValidarTransicion(de, a sqlc.Estado) error {
 	if !slices.Contains(transiciones[de], a) {
 		return ErrTransicionInvalida
 	}
@@ -57,14 +55,14 @@ func ValidarTransicion(de, a Estado) error {
 
 // ReporteDetalle agrupa el reporte con todo lo que depende de este.
 type ReporteDetalle struct {
-	Reporte     Reporte
+	Reporte     sqlc.Reporte
 	Titulo      string
 	Latitude    float64
 	Longitude   float64
 	Comentarios []ComentarioConAutor
-	Multimedia  []Multimedia
+	Multimedia  []sqlc.Multimedia
 	Tags        []TagConteo
-	Locations   []Location
+	Locations   []sqlc.Location
 }
 
 // TagConteo es un tag del reporte junto con cuántas veces se ha confirmado.
@@ -81,7 +79,7 @@ type ReporteResumen struct {
 	IncidenteID   int
 	Titulo        string
 	Direccion     *string
-	EstadoActual  Estado
+	EstadoActual  sqlc.Estado
 	Avistamientos int
 	EsOficial     bool
 	Latitude      float64
@@ -109,6 +107,6 @@ type NuevoReporte struct {
 // reporte: el reporte, su nuevo estado y quién lo cambia, para el historial.
 type CambiarEstadoReporteTxParams struct {
 	ID      uuid.UUID
-	Estado  Estado
+	Estado  sqlc.Estado
 	ActorID uuid.UUID
 }

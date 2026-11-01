@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/procesamiento"
 	"github.com/google/uuid"
@@ -19,8 +20,8 @@ const tiempoLimpieza = 10 * time.Second
 
 // MultimediaStore es el subconjunto de *database.Store que este servicio usa.
 type MultimediaStore interface {
-	EsCreadorDeReporte(ctx context.Context, arg domain.EsCreadorDeReporteParams) (bool, error)
-	CreateMultimedia(ctx context.Context, arg domain.CreateMultimediaParams) (domain.Multimedia, error)
+	EsCreadorDeReporte(ctx context.Context, arg sqlc.EsCreadorDeReporteParams) (bool, error)
+	CreateMultimedia(ctx context.Context, arg sqlc.CreateMultimediaParams) (sqlc.Multimedia, error)
 }
 
 // MultimediaCliente es lo que este servicio necesita del servicio multimedia, que solo
@@ -51,29 +52,29 @@ func NewMultimediaService(store MultimediaStore, multimedia MultimediaCliente, f
 // creador de un reporte. Si el reporte no existe o el usuario no es su creador
 // devuelve ErrReporteNotFound, y si el usuario ya subió un archivo,
 // ErrMultimediaYaExiste.
-func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (domain.Multimedia, error) {
-	esCreador, err := s.store.EsCreadorDeReporte(ctx, domain.EsCreadorDeReporteParams{
+func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (sqlc.Multimedia, error) {
+	esCreador, err := s.store.EsCreadorDeReporte(ctx, sqlc.EsCreadorDeReporteParams{
 		UserID:    userID,
 		ReporteID: reporteID,
 	})
 	if err != nil {
-		return domain.Multimedia{}, err
+		return sqlc.Multimedia{}, err
 	}
 	if !esCreador {
-		return domain.Multimedia{}, domain.ErrReporteNotFound
+		return sqlc.Multimedia{}, domain.ErrReporteNotFound
 	}
 
 	jpeg, err := s.procesar(archivo)
 	if err != nil {
-		return domain.Multimedia{}, err
+		return sqlc.Multimedia{}, err
 	}
 
 	path, err := s.multimedia.Subir(ctx, "reportes/"+reporteID.String(), bytes.NewReader(jpeg))
 	if err != nil {
-		return domain.Multimedia{}, err
+		return sqlc.Multimedia{}, err
 	}
 
-	m, err := s.store.CreateMultimedia(ctx, domain.CreateMultimediaParams{
+	m, err := s.store.CreateMultimedia(ctx, sqlc.CreateMultimediaParams{
 		ReporteID: reporteID,
 		Path:      path,
 		UserID:    userID,
@@ -81,9 +82,9 @@ func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UU
 	if err != nil {
 		s.borrarHuerfano(ctx, path)
 		if domain.IsUniqueViolation(err) {
-			return domain.Multimedia{}, domain.ErrMultimediaYaExiste
+			return sqlc.Multimedia{}, domain.ErrMultimediaYaExiste
 		}
-		return domain.Multimedia{}, err
+		return sqlc.Multimedia{}, err
 	}
 	return m, nil
 }

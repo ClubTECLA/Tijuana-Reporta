@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,22 +21,22 @@ import (
 // Guarda los últimos parámetros de CreateReporte, ListReportesResumen,
 // ListReportesPorUbicacion y ListReportesByUserId para revisarlos.
 type fakeReporteStore struct {
-	byID        map[uuid.UUID]domain.Reporte
-	puntos      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow
-	comentarios map[uuid.UUID][]domain.ListComentariosByReporteIdRow
-	multimedia  map[uuid.UUID][]domain.Multimedia
-	tags        map[uuid.UUID][]domain.ListTagsByReporteIdRow
-	locations   map[uuid.UUID][]domain.Location
-	resumen     []domain.ListReportesResumenRow
-	cercanos    []domain.ListReportesPorUbicacionRow
-	delUsuario  []domain.ListReportesByUserIdRow
+	byID        map[uuid.UUID]sqlc.Reporte
+	puntos      map[uuid.UUID]sqlc.GetPuntoOrigenByReporteIdRow
+	comentarios map[uuid.UUID][]sqlc.ListComentariosByReporteIdRow
+	multimedia  map[uuid.UUID][]sqlc.Multimedia
+	tags        map[uuid.UUID][]sqlc.ListTagsByReporteIdRow
+	locations   map[uuid.UUID][]sqlc.Location
+	resumen     []sqlc.ListReportesResumenRow
+	cercanos    []sqlc.ListReportesPorUbicacionRow
+	delUsuario  []sqlc.ListReportesByUserIdRow
 
 	lastArg     domain.CreateReporteTxParams
-	lastListArg domain.ListReportesResumenParams
+	lastListArg sqlc.ListReportesResumenParams
 	listCalled  bool
 
-	lastCercanosArg   domain.ListReportesPorUbicacionParams
-	lastDelUsuarioArg domain.ListReportesByUserIdParams
+	lastCercanosArg   sqlc.ListReportesPorUbicacionParams
+	lastDelUsuarioArg sqlc.ListReportesByUserIdParams
 
 	lastCambiarEstadoArg domain.CambiarEstadoReporteTxParams
 	cambiarEstadoCalled  bool
@@ -46,71 +47,71 @@ type fakeReporteStore struct {
 
 func newFakeReporteStore() *fakeReporteStore {
 	return &fakeReporteStore{
-		byID:        map[uuid.UUID]domain.Reporte{},
-		puntos:      map[uuid.UUID]domain.GetPuntoOrigenByReporteIdRow{},
-		comentarios: map[uuid.UUID][]domain.ListComentariosByReporteIdRow{},
-		multimedia:  map[uuid.UUID][]domain.Multimedia{},
-		tags:        map[uuid.UUID][]domain.ListTagsByReporteIdRow{},
-		locations:   map[uuid.UUID][]domain.Location{},
+		byID:        map[uuid.UUID]sqlc.Reporte{},
+		puntos:      map[uuid.UUID]sqlc.GetPuntoOrigenByReporteIdRow{},
+		comentarios: map[uuid.UUID][]sqlc.ListComentariosByReporteIdRow{},
+		multimedia:  map[uuid.UUID][]sqlc.Multimedia{},
+		tags:        map[uuid.UUID][]sqlc.ListTagsByReporteIdRow{},
+		locations:   map[uuid.UUID][]sqlc.Location{},
 	}
 }
 
-func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error) {
+func (f *fakeReporteStore) CreateReporte(_ context.Context, arg domain.CreateReporteTxParams) (sqlc.Reporte, error) {
 	f.lastArg = arg
 	if f.createErr != nil {
-		return domain.Reporte{}, f.createErr
+		return sqlc.Reporte{}, f.createErr
 	}
-	r := domain.Reporte{
+	r := sqlc.Reporte{
 		ID:          uuid.New(),
 		IncidenteID: arg.Reporte.IncidenteID,
 		EsOficial:   arg.Reporte.EsOficial,
 		Direccion:   arg.Reporte.Direccion,
 		// El DEFAULT de la columna estado_actual.
-		EstadoActual: domain.EstadoPendiente,
+		EstadoActual: sqlc.EstadoPendiente,
 	}
 	f.byID[r.ID] = r
-	f.locations[r.ID] = []domain.Location{
+	f.locations[r.ID] = []sqlc.Location{
 		{ID: 1, ReporteID: r.ID, Latitude: arg.Latitude, Longitude: arg.Longitude, UserID: arg.UserID},
 	}
 	// Con una sola location, el centroide es esa misma location.
-	f.puntos[r.ID] = domain.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
+	f.puntos[r.ID] = sqlc.GetPuntoOrigenByReporteIdRow{Latitude: arg.Latitude, Longitude: arg.Longitude}
 	return r, nil
 }
 
 // GetReporteById imita el JOIN con incidentes con una etiqueta fija.
-func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error) {
+func (f *fakeReporteStore) GetReporteById(_ context.Context, id uuid.UUID) (sqlc.GetReporteByIdRow, error) {
 	r, ok := f.byID[id]
 	if !ok {
-		return domain.GetReporteByIdRow{}, pgx.ErrNoRows
+		return sqlc.GetReporteByIdRow{}, pgx.ErrNoRows
 	}
-	return domain.GetReporteByIdRow{Reporte: r, IncidenteEtiqueta: "Socavón"}, nil
+	return sqlc.GetReporteByIdRow{Reporte: r, IncidenteEtiqueta: "Socavón"}, nil
 }
 
-func (f *fakeReporteStore) GetPuntoOrigenByReporteId(_ context.Context, id uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error) {
+func (f *fakeReporteStore) GetPuntoOrigenByReporteId(_ context.Context, id uuid.UUID) (sqlc.GetPuntoOrigenByReporteIdRow, error) {
 	p, ok := f.puntos[id]
 	if !ok {
-		return domain.GetPuntoOrigenByReporteIdRow{}, pgx.ErrNoRows
+		return sqlc.GetPuntoOrigenByReporteIdRow{}, pgx.ErrNoRows
 	}
 	return p, nil
 }
 
-func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListComentariosByReporteIdRow, error) {
+func (f *fakeReporteStore) ListComentariosByReporteId(_ context.Context, id uuid.UUID) ([]sqlc.ListComentariosByReporteIdRow, error) {
 	return f.comentarios[id], nil
 }
 
-func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]domain.Multimedia, error) {
+func (f *fakeReporteStore) ListMultimediaByReporteId(_ context.Context, id uuid.UUID) ([]sqlc.Multimedia, error) {
 	return f.multimedia[id], nil
 }
 
-func (f *fakeReporteStore) ListTagsByReporteId(_ context.Context, id uuid.UUID) ([]domain.ListTagsByReporteIdRow, error) {
+func (f *fakeReporteStore) ListTagsByReporteId(_ context.Context, id uuid.UUID) ([]sqlc.ListTagsByReporteIdRow, error) {
 	return f.tags[id], nil
 }
 
-func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]domain.Location, error) {
+func (f *fakeReporteStore) ListLocationsByReporteId(_ context.Context, id uuid.UUID) ([]sqlc.Location, error) {
 	return f.locations[id], nil
 }
 
-func (f *fakeReporteStore) ListReportesResumen(_ context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error) {
+func (f *fakeReporteStore) ListReportesResumen(_ context.Context, arg sqlc.ListReportesResumenParams) ([]sqlc.ListReportesResumenRow, error) {
 	f.listCalled = true
 	f.lastListArg = arg
 	if f.listErr != nil {
@@ -119,7 +120,7 @@ func (f *fakeReporteStore) ListReportesResumen(_ context.Context, arg domain.Lis
 	return f.resumen, nil
 }
 
-func (f *fakeReporteStore) ListReportesPorUbicacion(_ context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error) {
+func (f *fakeReporteStore) ListReportesPorUbicacion(_ context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error) {
 	f.lastCercanosArg = arg
 	if f.listErr != nil {
 		return nil, f.listErr
@@ -127,7 +128,7 @@ func (f *fakeReporteStore) ListReportesPorUbicacion(_ context.Context, arg domai
 	return f.cercanos, nil
 }
 
-func (f *fakeReporteStore) ListReportesByUserId(_ context.Context, arg domain.ListReportesByUserIdParams) ([]domain.ListReportesByUserIdRow, error) {
+func (f *fakeReporteStore) ListReportesByUserId(_ context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error) {
 	f.lastDelUsuarioArg = arg
 	if f.listErr != nil {
 		return nil, f.listErr
@@ -135,25 +136,25 @@ func (f *fakeReporteStore) ListReportesByUserId(_ context.Context, arg domain.Li
 	return f.delUsuario, nil
 }
 
-func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error) {
+func (f *fakeReporteStore) AddAvistamientoById(_ context.Context, id uuid.UUID) (sqlc.AddAvistamientoByIdRow, error) {
 	r, ok := f.byID[id]
 	if !ok {
-		return domain.AddAvistamientoByIdRow{}, pgx.ErrNoRows
+		return sqlc.AddAvistamientoByIdRow{}, pgx.ErrNoRows
 	}
 	r.Avistamientos++
 	f.byID[id] = r
-	return domain.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
+	return sqlc.AddAvistamientoByIdRow{ID: id, Avistamientos: r.Avistamientos}, nil
 }
 
-func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error) {
+func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg domain.CambiarEstadoReporteTxParams) (sqlc.Reporte, error) {
 	f.cambiarEstadoCalled = true
 	f.lastCambiarEstadoArg = arg
 	r, ok := f.byID[arg.ID]
 	if !ok {
-		return domain.Reporte{}, pgx.ErrNoRows
+		return sqlc.Reporte{}, pgx.ErrNoRows
 	}
 	if err := domain.ValidarTransicion(r.EstadoActual, arg.Estado); err != nil {
-		return domain.Reporte{}, err
+		return sqlc.Reporte{}, err
 	}
 	r.EstadoActual = arg.Estado
 	f.byID[arg.ID] = r
@@ -333,8 +334,8 @@ func TestReporteService_Obtener(t *testing.T) {
 		t.Fatalf("Crear() error = %v", err)
 	}
 	id := creado.Reporte.ID
-	store.comentarios[id] = []domain.ListComentariosByReporteIdRow{{ID: 1, ReporteID: id, Comentario: "sigue ahí", Username: "ana", RolName: "rescatista"}}
-	store.tags[id] = []domain.ListTagsByReporteIdRow{{ID: 3, Nombre: "profundo", Count: 2}}
+	store.comentarios[id] = []sqlc.ListComentariosByReporteIdRow{{ID: 1, ReporteID: id, Comentario: "sigue ahí", Username: "ana", RolName: "rescatista"}}
+	store.tags[id] = []sqlc.ListTagsByReporteIdRow{{ID: 3, Nombre: "profundo", Count: 2}}
 
 	r, err := svc.Obtener(context.Background(), id)
 	if err != nil {
@@ -369,7 +370,7 @@ func ptr[T any](v T) *T { return &v }
 
 func TestReporteService_Listar_SinArea(t *testing.T) {
 	store := newFakeReporteStore()
-	store.resumen = []domain.ListReportesResumenRow{{ID: uuid.New(), IncidenteID: 2}}
+	store.resumen = []sqlc.ListReportesResumenRow{{ID: uuid.New(), IncidenteID: 2}}
 	svc := NewReporteService(store)
 
 	rows, err := svc.Listar(context.Background(), nil, nil, nil, nil)
@@ -481,7 +482,7 @@ func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
 
 func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
 	store := newFakeReporteStore()
-	store.cercanos = []domain.ListReportesPorUbicacionRow{{ID: uuid.New(), DistanciaM: 12.5}}
+	store.cercanos = []sqlc.ListReportesPorUbicacionRow{{ID: uuid.New(), DistanciaM: 12.5}}
 	svc := NewReporteService(store)
 
 	rows, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200)
@@ -507,7 +508,7 @@ func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
 	desde := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	_, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000,
-		[]int{2, 4}, []domain.Estado{domain.EstadoPendiente, domain.EstadoProbable}, &desde, 10)
+		[]int{2, 4}, []sqlc.Estado{sqlc.EstadoPendiente, sqlc.EstadoProbable}, &desde, 10)
 	if err != nil {
 		t.Fatalf("ListarCercanos() error = %v", err)
 	}
@@ -531,7 +532,7 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 
 func TestReporteService_ListarPorUsuario(t *testing.T) {
 	store := newFakeReporteStore()
-	store.delUsuario = []domain.ListReportesByUserIdRow{{ID: uuid.New()}}
+	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New()}}
 	svc := NewReporteService(store)
 	userID := uuid.New()
 
@@ -581,7 +582,7 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 			}
 
 			actorID := uuid.New()
-			r, err := svc.CambiarEstado(context.Background(), tt.rol, actorID, creado.Reporte.ID, domain.EstadoVerificado)
+			r, err := svc.CambiarEstado(context.Background(), tt.rol, actorID, creado.Reporte.ID, sqlc.EstadoVerificado)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("CambiarEstado() error = %v, want %v", err, tt.wantErr)
 			}
@@ -590,12 +591,12 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 				t.Fatalf("CambiarEstadoReporte llamado = %v, want %v", store.cambiarEstadoCalled, tt.wantErr == nil)
 			}
 			if tt.wantErr == nil {
-				want := domain.CambiarEstadoReporteTxParams{ID: creado.Reporte.ID, Estado: domain.EstadoVerificado, ActorID: actorID}
+				want := domain.CambiarEstadoReporteTxParams{ID: creado.Reporte.ID, Estado: sqlc.EstadoVerificado, ActorID: actorID}
 				if store.lastCambiarEstadoArg != want {
 					t.Fatalf("CambiarEstadoReporte recibió %+v, want %+v", store.lastCambiarEstadoArg, want)
 				}
 			}
-			want := domain.EstadoVerificado
+			want := sqlc.EstadoVerificado
 			if tt.wantErr != nil {
 				r.Reporte = store.byID[creado.Reporte.ID]
 				want = creado.Reporte.EstadoActual
@@ -610,7 +611,7 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
 	svc := NewReporteService(newFakeReporteStore())
 
-	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), domain.EstadoVerificado)
+	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.EstadoVerificado)
 	if !errors.Is(err, domain.ErrReporteNotFound) {
 		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrReporteNotFound)
 	}
@@ -627,17 +628,17 @@ func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 	}
 	id := creado.Reporte.ID
 
-	if _, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, domain.EstadoResuelto); err != nil {
+	if _, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, sqlc.EstadoResuelto); err != nil {
 		t.Fatalf("CambiarEstado(Resuelto) error = %v", err)
 	}
 
 	// Resuelto es final: no se puede reabrir.
-	_, err = svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, domain.EstadoPendiente)
+	_, err = svc.CambiarEstado(context.Background(), "admin", uuid.New(), id, sqlc.EstadoPendiente)
 	if !errors.Is(err, domain.ErrTransicionInvalida) {
 		t.Fatalf("CambiarEstado(Pendiente) error = %v, want %v", err, domain.ErrTransicionInvalida)
 	}
-	if got := store.byID[id].EstadoActual; got != domain.EstadoResuelto {
-		t.Fatalf("estado = %q, want %q", got, domain.EstadoResuelto)
+	if got := store.byID[id].EstadoActual; got != sqlc.EstadoResuelto {
+		t.Fatalf("estado = %q, want %q", got, sqlc.EstadoResuelto)
 	}
 }
 
@@ -645,7 +646,7 @@ func TestReporteService_CambiarEstado_EstadoInvalido(t *testing.T) {
 	store := newFakeReporteStore()
 	svc := NewReporteService(store)
 
-	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), domain.Estado("Arreglado"))
+	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.Estado("Arreglado"))
 	if !errors.Is(err, domain.ErrEstadoInvalido) {
 		t.Fatalf("CambiarEstado() error = %v, want %v", err, domain.ErrEstadoInvalido)
 	}
@@ -657,7 +658,7 @@ func TestReporteService_CambiarEstado_EstadoInvalido(t *testing.T) {
 func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
 	store := newFakeReporteStore()
 	direccion := "Av. Revolución 1234"
-	store.delUsuario = []domain.ListReportesByUserIdRow{{ID: uuid.New(), IncidenteEtiqueta: "Socavón", Direccion: &direccion}}
+	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New(), IncidenteEtiqueta: "Socavón", Direccion: &direccion}}
 	svc := NewReporteService(store)
 
 	rows, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 10)

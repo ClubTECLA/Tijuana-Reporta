@@ -4,14 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
 type fakeComentarioStore struct{}
 
-func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg domain.CreateComentarioParams) (domain.CreateComentarioRow, error) {
-	return domain.CreateComentarioRow{
+func (f *fakeComentarioStore) CreateComentario(_ context.Context, arg sqlc.CreateComentarioParams) (sqlc.CreateComentarioRow, error) {
+	return sqlc.CreateComentarioRow{
 		ReporteID:  arg.ReporteID,
 		UserID:     arg.UserID,
 		Comentario: arg.Comentario,

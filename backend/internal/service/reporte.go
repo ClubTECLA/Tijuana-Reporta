@@ -5,24 +5,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
 // ReporteStore es el subconjunto de *database.Store que este servicio usa.
 type ReporteStore interface {
-	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (domain.Reporte, error)
-	GetReporteById(ctx context.Context, id uuid.UUID) (domain.GetReporteByIdRow, error)
-	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (domain.GetPuntoOrigenByReporteIdRow, error)
-	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListComentariosByReporteIdRow, error)
-	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Multimedia, error)
-	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.Location, error)
-	ListReportesResumen(ctx context.Context, arg domain.ListReportesResumenParams) ([]domain.ListReportesResumenRow, error)
-	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]domain.ListTagsByReporteIdRow, error)
-	AddAvistamientoById(ctx context.Context, id uuid.UUID) (domain.AddAvistamientoByIdRow, error)
-	ListReportesPorUbicacion(ctx context.Context, arg domain.ListReportesPorUbicacionParams) ([]domain.ListReportesPorUbicacionRow, error)
-	ListReportesByUserId(ctx context.Context, arg domain.ListReportesByUserIdParams) ([]domain.ListReportesByUserIdRow, error)
-	CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (domain.Reporte, error)
+	CreateReporte(ctx context.Context, arg domain.CreateReporteTxParams) (sqlc.Reporte, error)
+	GetReporteById(ctx context.Context, id uuid.UUID) (sqlc.GetReporteByIdRow, error)
+	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (sqlc.GetPuntoOrigenByReporteIdRow, error)
+	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]sqlc.ListComentariosByReporteIdRow, error)
+	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]sqlc.Multimedia, error)
+	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]sqlc.Location, error)
+	ListReportesResumen(ctx context.Context, arg sqlc.ListReportesResumenParams) ([]sqlc.ListReportesResumenRow, error)
+	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]sqlc.ListTagsByReporteIdRow, error)
+	AddAvistamientoById(ctx context.Context, id uuid.UUID) (sqlc.AddAvistamientoByIdRow, error)
+	ListReportesPorUbicacion(ctx context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error)
+	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
+	CambiarEstadoReporte(ctx context.Context, arg domain.CambiarEstadoReporteTxParams) (sqlc.Reporte, error)
 }
 
 type ReporteService struct {
@@ -54,7 +55,7 @@ func (s *ReporteService) Crear(ctx context.Context, nuevo domain.NuevoReporte) (
 	}
 
 	r, err := s.store.CreateReporte(ctx, domain.CreateReporteTxParams{
-		Reporte: domain.CreateReporteParams{
+		Reporte: sqlc.CreateReporteParams{
 			IncidenteID: nuevo.IncidenteID,
 			EsOficial:   nuevo.EsOficial,
 			Direccion:   direccion,
@@ -137,7 +138,7 @@ func (s *ReporteService) Obtener(ctx context.Context, id uuid.UUID) (domain.Repo
 // toResumen convierte una fila de resumen en el modelo que devuelve el
 // servicio. Las consultas de resumen devuelven las mismas columnas, así que
 // sqlc genera structs idénticos y cualquiera se convierte a este.
-func toResumen(r domain.ListReportesResumenRow) domain.ReporteResumen {
+func toResumen(r sqlc.ListReportesResumenRow) domain.ReporteResumen {
 	return domain.ReporteResumen{
 		ID:            r.ID,
 		IncidenteID:   r.IncidenteID,
@@ -166,7 +167,7 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 		return nil, domain.ErrAreaInvalida
 	}
 
-	rows, err := s.store.ListReportesResumen(ctx, domain.ListReportesResumenParams{
+	rows, err := s.store.ListReportesResumen(ctx, sqlc.ListReportesResumenParams{
 		MinLat: minLat,
 		MaxLat: maxLat,
 		MinLng: minLng,
@@ -182,14 +183,14 @@ func (s *ReporteService) Listar(ctx context.Context, minLat, maxLat, minLng, max
 	return out, nil
 }
 
-func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error) {
+func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []sqlc.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error) {
 	// La consulta recibe los estados como text[] (ver reporte.sql). Se deja
 	// nil si no hay estados, porque nil es "sin filtro".
 	var estadosTexto []string
 	for _, e := range estados {
 		estadosTexto = append(estadosTexto, string(e))
 	}
-	rows, err := s.store.ListReportesPorUbicacion(ctx, domain.ListReportesPorUbicacionParams{
+	rows, err := s.store.ListReportesPorUbicacion(ctx, sqlc.ListReportesPorUbicacionParams{
 		Lng:          lng,
 		Lat:          lat,
 		Radio:        radio,
@@ -204,7 +205,7 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 	out := make([]domain.ReporteCercano, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, domain.ReporteCercano{
-			ReporteResumen: toResumen(domain.ListReportesResumenRow{
+			ReporteResumen: toResumen(sqlc.ListReportesResumenRow{
 				ID:                r.ID,
 				IncidenteID:       r.IncidenteID,
 				EstadoActual:      r.EstadoActual,
@@ -224,7 +225,7 @@ func (s *ReporteService) ListarCercanos(ctx context.Context, lng, lat, radio flo
 // ListarPorUsuario devuelve los reportes que creó el usuario, del más reciente
 // al más antiguo, incluidos los históricos.
 func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error) {
-	rows, err := s.store.ListReportesByUserId(ctx, domain.ListReportesByUserIdParams{
+	rows, err := s.store.ListReportesByUserId(ctx, sqlc.ListReportesByUserIdParams{
 		UserID: userID,
 		Limite: limite,
 	})
@@ -233,7 +234,7 @@ func (s *ReporteService) ListarPorUsuario(ctx context.Context, userID uuid.UUID,
 	}
 	out := make([]domain.ReporteResumen, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, toResumen(domain.ListReportesResumenRow(r)))
+		out = append(out, toResumen(sqlc.ListReportesResumenRow(r)))
 	}
 	return out, nil
 }
@@ -256,7 +257,7 @@ func (s *ReporteService) AgregarAvistamiento(ctx context.Context, id uuid.UUID) 
 // (domain.PuedeGestionar), y solo hacia un estado al que el reporte puede
 // pasar desde el actual (domain.ValidarTransicion, que la store aplica con
 // la fila bloqueada).
-func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error) {
+func (s *ReporteService) CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado sqlc.Estado) (domain.ReporteDetalle, error) {
 	if !domain.PuedeGestionar(rol) {
 		return domain.ReporteDetalle{}, domain.ErrEstadoNoPermitido
 	}

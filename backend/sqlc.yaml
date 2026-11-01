@@ -2,11 +2,11 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries: "internal/queries"
-    schema: "internal/database/migrations"
+    schema: "internal/db/migrations"
     gen:
       go:
-        package: "domain"
-        out: "internal/domain"
+        package: "sqlc"
+        out: "internal/db/sqlc"
         emit_json_tags: true
         emit_interface: true
         # El proyecto usa pgx/v5, no database/sql.

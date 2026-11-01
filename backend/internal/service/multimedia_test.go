@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -20,26 +21,26 @@ import (
 // fakeMultimediaStore implementa MultimediaStore en memoria. creadores guarda
 // los pares (usuario, reporte) que cuentan como creador.
 type fakeMultimediaStore struct {
-	creadores map[domain.EsCreadorDeReporteParams]bool
-	creados   []domain.CreateMultimediaParams
+	creadores map[sqlc.EsCreadorDeReporteParams]bool
+	creados   []sqlc.CreateMultimediaParams
 
 	esCreadorErr error
 	createErr    error
 }
 
-func (f *fakeMultimediaStore) EsCreadorDeReporte(_ context.Context, arg domain.EsCreadorDeReporteParams) (bool, error) {
+func (f *fakeMultimediaStore) EsCreadorDeReporte(_ context.Context, arg sqlc.EsCreadorDeReporteParams) (bool, error) {
 	if f.esCreadorErr != nil {
 		return false, f.esCreadorErr
 	}
 	return f.creadores[arg], nil
 }
 
-func (f *fakeMultimediaStore) CreateMultimedia(_ context.Context, arg domain.CreateMultimediaParams) (domain.Multimedia, error) {
+func (f *fakeMultimediaStore) CreateMultimedia(_ context.Context, arg sqlc.CreateMultimediaParams) (sqlc.Multimedia, error) {
 	if f.createErr != nil {
-		return domain.Multimedia{}, f.createErr
+		return sqlc.Multimedia{}, f.createErr
 	}
 	f.creados = append(f.creados, arg)
-	return domain.Multimedia{ID: len(f.creados), ReporteID: arg.ReporteID, Path: arg.Path, UserID: arg.UserID, CreatedAt: time.Now()}, nil
+	return sqlc.Multimedia{ID: len(f.creados), ReporteID: arg.ReporteID, Path: arg.Path, UserID: arg.UserID, CreatedAt: time.Now()}, nil
 }
 
 // fakeMultimedia implementa MultimediaCliente: guarda lo que recibe y lo que se borra.
@@ -93,7 +94,7 @@ func fotoPNG(t *testing.T, ancho, alto int) []byte {
 }
 
 func nuevoMultimediaService(reporteID, userID uuid.UUID) (*MultimediaService, *fakeMultimediaStore, *fakeMultimedia) {
-	store := &fakeMultimediaStore{creadores: map[domain.EsCreadorDeReporteParams]bool{
+	store := &fakeMultimediaStore{creadores: map[sqlc.EsCreadorDeReporteParams]bool{
 		{UserID: userID, ReporteID: reporteID}: true,
 	}}
 	multimedia := &fakeMultimedia{}

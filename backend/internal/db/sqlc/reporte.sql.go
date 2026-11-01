@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: reporte.sql
 
-package domain
+package sqlc
 
 import (
 	"context"

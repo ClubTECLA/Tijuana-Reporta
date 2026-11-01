@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: comentario.sql
 
-package domain
+package sqlc
 
 import (
 	"context"

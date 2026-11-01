@@ -10,6 +10,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
@@ -30,7 +31,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode) // Remueve el banner de debug de gin
 
 	ctx := context.Background()
-	pool, err := database.Connect(cfg.DatabaseURL)
+	pool, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("failed to connect to postgress", "error", err)
 		os.Exit(1)

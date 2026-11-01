@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -87,13 +87,13 @@ func startTestDB(ctx context.Context) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("aplicando migraciones: %w", err)
 	}
 
-	return database.Connect(dbURL)
+	return db.Connect(dbURL)
 }
 
 // migrateUp aplica las migraciones embebidas con golang-migrate, la misma
 // herramienta que usa el servicio migrate de docker-compose.yml.
 func migrateUp(dbURL string) error {
-	src, err := iofs.New(database.Migrations, "migrations")
+	src, err := iofs.New(db.Migrations, "migrations")
 	if err != nil {
 		return err
 	}

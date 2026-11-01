@@ -5,6 +5,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
@@ -69,7 +70,7 @@ func (s *Server) Logout(ctx context.Context, request LogoutRequestObject) (Logou
 }
 
 // toAuthResponse convierte un domain.User y un token en la respuesta de login/register.
-func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthResponse {
+func toAuthResponse(user sqlc.User, token string, ttl time.Duration) AuthResponse {
 	return AuthResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
@@ -79,7 +80,7 @@ func toAuthResponse(user domain.User, token string, ttl time.Duration) AuthRespo
 }
 
 // toUsuario convierte un domain.User en el Usuario que anida AuthResponse.
-func toUsuario(user domain.User) Usuario {
+func toUsuario(user sqlc.User) Usuario {
 	var email openapi_types.Email
 	if user.Email != nil {
 		email = openapi_types.Email(*user.Email)

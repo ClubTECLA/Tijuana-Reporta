@@ -7,9 +7,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// Archivo escrito a mano: convive con el código generado por sqlc, que solo
-// reescribe models.go, querier.go, db.go y los *.sql.go.
-
 var (
 	ErrEmailTaken          = errors.New("email already registered")
 	ErrInvalidCredentials  = errors.New("invalid credentials")

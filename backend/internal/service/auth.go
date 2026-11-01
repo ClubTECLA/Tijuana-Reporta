@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -24,11 +25,11 @@ var dummyPasswordHash = func() string {
 
 // AuthStore es el subconjunto de *database.Store que este servicio usa.
 type AuthStore interface {
-	CreateUserWithLocalProvider(ctx context.Context, arg domain.CreateUserParams) (domain.User, error)
-	GetUserByEmail(ctx context.Context, email *string) (domain.User, error)
-	GetUserByID(ctx context.Context, id uuid.UUID) (domain.User, error)
-	GetDefaultRole(ctx context.Context) (domain.Role, error)
-	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (domain.GetUserWithRolByIDRow, error)
+	CreateUserWithLocalProvider(ctx context.Context, arg sqlc.CreateUserParams) (sqlc.User, error)
+	GetUserByEmail(ctx context.Context, email *string) (sqlc.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.User, error)
+	GetDefaultRole(ctx context.Context) (sqlc.Role, error)
+	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (sqlc.GetUserWithRolByIDRow, error)
 }
 
 type AuthService struct {
@@ -51,16 +52,16 @@ func NewAuthService(ctx context.Context, store AuthStore, secret []byte, ttl tim
 
 // Register crea el usuario con password local y devuelve el token de acceso
 // ya firmado, junto con su tiempo de vida.
-func (s *AuthService) Register(ctx context.Context, email, username, password string) (domain.User, string, time.Duration, error) {
+func (s *AuthService) Register(ctx context.Context, email, username, password string) (sqlc.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 	hashed := string(hash)
 
-	user, err := s.store.CreateUserWithLocalProvider(ctx, domain.CreateUserParams{
+	user, err := s.store.CreateUserWithLocalProvider(ctx, sqlc.CreateUserParams{
 		Email:        &email,
 		Username:     username,
 		RolID:        s.defaultRoleID,
@@ -68,14 +69,14 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 	})
 	if err != nil {
 		if domain.IsUniqueViolation(err) {
-			return domain.User{}, "", 0, domain.ErrEmailTaken
+			return sqlc.User{}, "", 0, domain.ErrEmailTaken
 		}
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 
 	token, err := s.issueToken(user, s.defaultRoleName)
 	if err != nil {
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 	return user, token, s.ttl, nil
 }
@@ -83,13 +84,13 @@ func (s *AuthService) Register(ctx context.Context, email, username, password st
 // Login valida el password contra el hash guardado. Si el email no existe o
 // el usuario no tiene password local, compara igual contra un hash dummy
 // para no revelar cuál de los dos casos sucedió.
-func (s *AuthService) Login(ctx context.Context, email, password string) (domain.User, string, time.Duration, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (sqlc.User, string, time.Duration, error) {
 	email = normalizeEmail(email)
 
 	user, err := s.store.GetUserByEmail(ctx, &email)
 	notFound := domain.IsNotFound(err)
 	if err != nil && !notFound {
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 
 	hash := dummyPasswordHash
@@ -98,20 +99,20 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (domain
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
-		return domain.User{}, "", 0, domain.ErrInvalidCredentials
+		return sqlc.User{}, "", 0, domain.ErrInvalidCredentials
 	}
 	if notFound {
-		return domain.User{}, "", 0, domain.ErrInvalidCredentials
+		return sqlc.User{}, "", 0, domain.ErrInvalidCredentials
 	}
 
 	row, err := s.store.GetUserWithRolByID(ctx, user.ID)
 	if err != nil {
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 
 	token, err := s.issueToken(user, row.RolName)
 	if err != nil {
-		return domain.User{}, "", 0, err
+		return sqlc.User{}, "", 0, err
 	}
 	return user, token, s.ttl, nil
 }
@@ -143,7 +144,7 @@ type tokenClaims struct {
 
 // issueToken genera un JWT firmado con el id del usuario, su rol y la fecha
 // de expiración.
-func (s *AuthService) issueToken(user domain.User, rol string) (string, error) {
+func (s *AuthService) issueToken(user sqlc.User, rol string) (string, error) {
 	now := time.Now()
 	claims := tokenClaims{
 		Rol: rol,

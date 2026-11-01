@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
@@ -122,8 +123,8 @@ func (s *Server) ListarReportes(ctx context.Context, request ListarReportesReque
 	return res, nil
 }
 
-func toEstado(e EstadoReporte) domain.Estado {
-	return domain.Estado(e)
+func toEstado(e EstadoReporte) sqlc.Estado {
+	return sqlc.Estado(e)
 }
 
 func toReporteCercano(r domain.ReporteCercano) ReporteCercano {
@@ -148,7 +149,7 @@ func (s *Server) ListarReportesCercanos(ctx context.Context, request ListarRepor
 		limite = *p.Limite
 	}
 
-	var estados []domain.Estado
+	var estados []sqlc.Estado
 	if p.Estado != nil {
 		for _, estado := range *p.Estado {
 			estados = append(estados, toEstado(estado))
@@ -213,7 +214,7 @@ func (s *Server) CambiarEstadoReporte(ctx context.Context, request CambiarEstado
 	}
 
 	rol, _ := middleware.RolFromContext(ctx)
-	r, err := s.services.Reportes.CambiarEstado(ctx, rol, userID, request.ReporteId, domain.Estado(request.Body.Estado))
+	r, err := s.services.Reportes.CambiarEstado(ctx, rol, userID, request.ReporteId, sqlc.Estado(request.Body.Estado))
 	if err != nil {
 		return nil, err
 	}

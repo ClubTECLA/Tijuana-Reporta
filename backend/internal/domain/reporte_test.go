@@ -3,6 +3,8 @@ package domain
 import (
 	"errors"
 	"testing"
+
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 )
 
 func TestTituloReporte(t *testing.T) {
@@ -16,25 +18,25 @@ func TestTituloReporte(t *testing.T) {
 }
 
 func TestValidarTransicion(t *testing.T) {
-	estados := []Estado{EstadoPendiente, EstadoProbable, EstadoVerificado, EstadoResuelto, EstadoDescartado}
+	estados := []sqlc.Estado{sqlc.EstadoPendiente, sqlc.EstadoProbable, sqlc.EstadoVerificado, sqlc.EstadoResuelto, sqlc.EstadoDescartado}
 	// permitidas es la tabla completa: cualquier par que no esté aquí,
 	// incluido quedarse en el mismo estado, es inválido.
-	permitidas := map[[2]Estado]bool{
-		{EstadoPendiente, EstadoProbable}:    true,
-		{EstadoPendiente, EstadoVerificado}:  true,
-		{EstadoPendiente, EstadoResuelto}:    true,
-		{EstadoPendiente, EstadoDescartado}:  true,
-		{EstadoProbable, EstadoVerificado}:   true,
-		{EstadoProbable, EstadoResuelto}:     true,
-		{EstadoProbable, EstadoDescartado}:   true,
-		{EstadoVerificado, EstadoResuelto}:   true,
-		{EstadoVerificado, EstadoDescartado}: true,
+	permitidas := map[[2]sqlc.Estado]bool{
+		{sqlc.EstadoPendiente, sqlc.EstadoProbable}:    true,
+		{sqlc.EstadoPendiente, sqlc.EstadoVerificado}:  true,
+		{sqlc.EstadoPendiente, sqlc.EstadoResuelto}:    true,
+		{sqlc.EstadoPendiente, sqlc.EstadoDescartado}:  true,
+		{sqlc.EstadoProbable, sqlc.EstadoVerificado}:   true,
+		{sqlc.EstadoProbable, sqlc.EstadoResuelto}:     true,
+		{sqlc.EstadoProbable, sqlc.EstadoDescartado}:   true,
+		{sqlc.EstadoVerificado, sqlc.EstadoResuelto}:   true,
+		{sqlc.EstadoVerificado, sqlc.EstadoDescartado}: true,
 	}
 	for _, de := range estados {
 		for _, a := range estados {
 			t.Run(string(de)+"→"+string(a), func(t *testing.T) {
 				var want error
-				if !permitidas[[2]Estado{de, a}] {
+				if !permitidas[[2]sqlc.Estado{de, a}] {
 					want = ErrTransicionInvalida
 				}
 				if err := ValidarTransicion(de, a); !errors.Is(err, want) {
@@ -46,10 +48,10 @@ func TestValidarTransicion(t *testing.T) {
 }
 
 func TestValidarTransicion_EstadoFueraDelEnum(t *testing.T) {
-	if err := ValidarTransicion(EstadoPendiente, "Arreglado"); !errors.Is(err, ErrTransicionInvalida) {
+	if err := ValidarTransicion(sqlc.EstadoPendiente, "Arreglado"); !errors.Is(err, ErrTransicionInvalida) {
 		t.Errorf("ValidarTransicion(Pendiente, Arreglado) = %v, want %v", err, ErrTransicionInvalida)
 	}
-	if EstadoValido("Arreglado") || !EstadoValido(EstadoDescartado) {
+	if EstadoValido("Arreglado") || !EstadoValido(sqlc.EstadoDescartado) {
 		t.Error("EstadoValido() no distingue los valores del enum")
 	}
 }

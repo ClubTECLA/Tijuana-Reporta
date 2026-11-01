@@ -3,13 +3,13 @@ package api
 import (
 	"context"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // toUsuarioResumen converts a stored user summary to the API representation,
 // leaving the email nil (serialized as null) when the user has none.
-func toUsuarioResumen(u domain.ListAllUsersRow) UsuarioResumen {
+func toUsuarioResumen(u sqlc.ListAllUsersRow) UsuarioResumen {
 	var email *openapi_types.Email
 	if u.Email != nil {
 		e := openapi_types.Email(*u.Email)

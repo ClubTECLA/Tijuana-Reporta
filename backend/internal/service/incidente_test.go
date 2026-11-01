@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,8 +25,8 @@ type fakeIncidenteStore struct {
 	called    bool
 	createErr error
 
-	incidentes map[int]domain.Incidente
-	tags       []domain.Tag
+	incidentes map[int]sqlc.Incidente
+	tags       []sqlc.Tag
 
 	lastTagsArg    domain.CreateTagsTxParams
 	tagsCalled     bool
@@ -43,55 +44,55 @@ func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg domai
 
 	p := arg.Incidente
 	d := domain.IncidenteDetalle{
-		Incidente: domain.Incidente{
+		Incidente: sqlc.Incidente{
 			ID: 8, Nombre: p.Nombre, TiempoLimite: p.TiempoLimite, Radio: p.Radio,
 			EstaActivo: p.EstaActivo, Color: p.Color,
 		},
-		Tags: make([]domain.Tag, 0, len(arg.Tags)),
+		Tags: make([]sqlc.Tag, 0, len(arg.Tags)),
 	}
 	for i, t := range arg.Tags {
-		d.Tags = append(d.Tags, domain.Tag{ID: i + 1, IncidenteID: d.Incidente.ID, Nombre: t.Nombre, Peso: t.Peso})
+		d.Tags = append(d.Tags, sqlc.Tag{ID: i + 1, IncidenteID: d.Incidente.ID, Nombre: t.Nombre, Peso: t.Peso})
 	}
 	return d, nil
 }
 
-func (f *fakeIncidenteStore) CreateTags(_ context.Context, arg domain.CreateTagsTxParams) ([]domain.Tag, error) {
+func (f *fakeIncidenteStore) CreateTags(_ context.Context, arg domain.CreateTagsTxParams) ([]sqlc.Tag, error) {
 	f.tagsCalled = true
 	f.lastTagsArg = arg
 	if f.createTagsErr != nil {
 		return nil, f.createTagsErr
 	}
 
-	creados := make([]domain.Tag, 0, len(arg.Tags))
+	creados := make([]sqlc.Tag, 0, len(arg.Tags))
 	for _, t := range arg.Tags {
 		creados = append(creados, f.agregarTag(arg.IncidenteID, t.Nombre, t.Peso))
 	}
 	return creados, nil
 }
 
-func (f *fakeIncidenteStore) GetIncidenteById(_ context.Context, id int) (domain.Incidente, error) {
+func (f *fakeIncidenteStore) GetIncidenteById(_ context.Context, id int) (sqlc.Incidente, error) {
 	i, ok := f.incidentes[id]
 	if !ok {
-		return domain.Incidente{}, pgx.ErrNoRows
+		return sqlc.Incidente{}, pgx.ErrNoRows
 	}
 	return i, nil
 }
 
 // ListIncidentes imita a la consulta: filtra los inactivos y ordena por nombre.
-func (f *fakeIncidenteStore) ListIncidentes(_ context.Context, incluirInactivos bool) ([]domain.Incidente, error) {
-	var out []domain.Incidente
+func (f *fakeIncidenteStore) ListIncidentes(_ context.Context, incluirInactivos bool) ([]sqlc.Incidente, error) {
+	var out []sqlc.Incidente
 	for _, i := range f.incidentes {
 		if i.EstaActivo || incluirInactivos {
 			out = append(out, i)
 		}
 	}
-	slices.SortFunc(out, func(a, b domain.Incidente) int { return strings.Compare(a.Nombre, b.Nombre) })
+	slices.SortFunc(out, func(a, b sqlc.Incidente) int { return strings.Compare(a.Nombre, b.Nombre) })
 	return out, nil
 }
 
-func (f *fakeIncidenteStore) ListTagsByIncidenteId(_ context.Context, incidenteID int) ([]domain.Tag, error) {
+func (f *fakeIncidenteStore) ListTagsByIncidenteId(_ context.Context, incidenteID int) ([]sqlc.Tag, error) {
 	f.tagsByIdCalls++
-	var out []domain.Tag
+	var out []sqlc.Tag
 	for _, t := range f.tags {
 		if t.IncidenteID == incidenteID {
 			out = append(out, t)
@@ -100,9 +101,9 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteId(_ context.Context, incidenteI
 	return out, nil
 }
 
-func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int) ([]domain.Tag, error) {
+func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int) ([]sqlc.Tag, error) {
 	f.tagsByIdsCalls++
-	var out []domain.Tag
+	var out []sqlc.Tag
 	for _, t := range f.tags {
 		if slices.Contains(ids, t.IncidenteID) {
 			out = append(out, t)
@@ -113,13 +114,13 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int
 
 func (f *fakeIncidenteStore) agregarIncidente(id int, nombre string, activo bool) {
 	if f.incidentes == nil {
-		f.incidentes = map[int]domain.Incidente{}
+		f.incidentes = map[int]sqlc.Incidente{}
 	}
-	f.incidentes[id] = domain.Incidente{ID: id, Nombre: nombre, EstaActivo: activo, Color: colorPorDefecto}
+	f.incidentes[id] = sqlc.Incidente{ID: id, Nombre: nombre, EstaActivo: activo, Color: colorPorDefecto}
 }
 
-func (f *fakeIncidenteStore) agregarTag(incidenteID int, nombre string, peso int) domain.Tag {
-	t := domain.Tag{ID: len(f.tags) + 1, IncidenteID: incidenteID, Nombre: nombre, Peso: peso}
+func (f *fakeIncidenteStore) agregarTag(incidenteID int, nombre string, peso int) sqlc.Tag {
+	t := sqlc.Tag{ID: len(f.tags) + 1, IncidenteID: incidenteID, Nombre: nombre, Peso: peso}
 	f.tags = append(f.tags, t)
 	return t
 }

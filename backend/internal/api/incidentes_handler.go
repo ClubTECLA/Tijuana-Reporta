@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
@@ -11,7 +12,7 @@ import (
 // toTagsCatalogo convierte tags del dominio en los TagCatalogo del contrato.
 // Siempre devuelve un slice (nunca nil) para que el JSON lleve [] y no null,
 // como pide el contrato.
-func toTagsCatalogo(tags []domain.Tag) []TagCatalogo {
+func toTagsCatalogo(tags []sqlc.Tag) []TagCatalogo {
 	out := make([]TagCatalogo, 0, len(tags))
 	for _, t := range tags {
 		out = append(out, TagCatalogo{Id: t.ID, Nombre: t.Nombre, Peso: t.Peso})

@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	uuid "github.com/google/uuid"
 )
@@ -22,8 +23,8 @@ type ReporteService interface {
 	Obtener(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
 	Listar(ctx context.Context, minLat, maxLat, minLng, maxLng *float64) ([]domain.ReporteResumen, error)
 	AgregarAvistamiento(ctx context.Context, id uuid.UUID) (domain.ReporteDetalle, error)
-	CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado domain.Estado) (domain.ReporteDetalle, error)
-	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []domain.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error)
+	CambiarEstado(ctx context.Context, rol string, userID, id uuid.UUID, estado sqlc.Estado) (domain.ReporteDetalle, error)
+	ListarCercanos(ctx context.Context, lng, lat, radio float64, incidenteIds []int, estados []sqlc.Estado, desde *time.Time, limite int) ([]domain.ReporteCercano, error)
 	ListarPorUsuario(ctx context.Context, userID uuid.UUID, limite int) ([]domain.ReporteResumen, error)
 }
 
@@ -31,8 +32,8 @@ type ReporteService interface {
 // su tiempo de vida, para que el handler pueda armar el AuthResponse del
 // contrato sin conocer nada sobre cómo se firma o valida el token.
 type AuthService interface {
-	Register(ctx context.Context, email, username, password string) (domain.User, string, time.Duration, error)
-	Login(ctx context.Context, email, password string) (domain.User, string, time.Duration, error)
+	Register(ctx context.Context, email, username, password string) (sqlc.User, string, time.Duration, error)
+	Login(ctx context.Context, email, password string) (sqlc.User, string, time.Duration, error)
 	GetUser(ctx context.Context, id uuid.UUID) (domain.UserWithRol, error)
 }
 
@@ -42,17 +43,17 @@ type IncidenteService interface {
 	Crear(ctx context.Context, nuevo domain.NuevoIncidente, userID uuid.UUID) (domain.IncidenteDetalle, error)
 	Listar(ctx context.Context, incluirInactivos bool) ([]domain.IncidenteDetalle, error)
 	Obtener(ctx context.Context, id int) (domain.IncidenteDetalle, error)
-	AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]domain.Tag, error)
+	AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]sqlc.Tag, error)
 }
 
 // MultimediaService es la interfaz que el handler de multimedia necesita del
 // servicio.
 type MultimediaService interface {
-	Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (domain.Multimedia, error)
+	Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (sqlc.Multimedia, error)
 }
 
 type UsuarioService interface {
-	ListarUsuarios(ctx context.Context) ([]domain.ListAllUsersRow, error)
+	ListarUsuarios(ctx context.Context) ([]sqlc.ListAllUsersRow, error)
 }
 
 // Services agrupa los servicios que el servidor expone a la API.

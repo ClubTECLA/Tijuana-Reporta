@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
 
 // ComentarioStore es el subconjunto de *database.Store que este servicio usa.
 type ComentarioStore interface {
-	CreateComentario(ctx context.Context, arg domain.CreateComentarioParams) (domain.CreateComentarioRow, error)
+	CreateComentario(ctx context.Context, arg sqlc.CreateComentarioParams) (sqlc.CreateComentarioRow, error)
 }
 
 type ComentarioService struct {
@@ -24,7 +25,7 @@ func NewComentarioService(store ComentarioStore) *ComentarioService {
 // Crear crea un comentario para el reporte y usuario dados y lo devuelve con
 // el username y el rol de su autor.
 func (s *ComentarioService) Crear(ctx context.Context, reporteID, userID uuid.UUID, texto string) (domain.ComentarioConAutor, error) {
-	row, err := s.store.CreateComentario(ctx, domain.CreateComentarioParams{
+	row, err := s.store.CreateComentario(ctx, sqlc.CreateComentarioParams{
 		ReporteID:  reporteID,
 		UserID:     userID,
 		Comentario: texto,

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -20,20 +21,20 @@ var errUniqueViolation = &pgconn.PgError{Code: "23505", ConstraintName: "users_e
 // fakeAuthStore implementa AuthStore en memoria.
 // rolName es el rol que devuelve GetUserWithRolByID; vacío = "ciudadano".
 type fakeAuthStore struct {
-	byEmail       map[string]domain.User
+	byEmail       map[string]sqlc.User
 	defaultRoleID int
 	rolName       string
 }
 
-func (f *fakeAuthStore) CreateUserWithLocalProvider(_ context.Context, arg domain.CreateUserParams) (domain.User, error) {
+func (f *fakeAuthStore) CreateUserWithLocalProvider(_ context.Context, arg sqlc.CreateUserParams) (sqlc.User, error) {
 	email := ""
 	if arg.Email != nil {
 		email = *arg.Email
 	}
 	if _, exists := f.byEmail[email]; exists {
-		return domain.User{}, errUniqueViolation
+		return sqlc.User{}, errUniqueViolation
 	}
-	u := domain.User{
+	u := sqlc.User{
 		ID:           uuid.New(),
 		Email:        arg.Email,
 		Username:     arg.Username,
@@ -45,28 +46,28 @@ func (f *fakeAuthStore) CreateUserWithLocalProvider(_ context.Context, arg domai
 	return u, nil
 }
 
-func (f *fakeAuthStore) GetUserByEmail(_ context.Context, email *string) (domain.User, error) {
+func (f *fakeAuthStore) GetUserByEmail(_ context.Context, email *string) (sqlc.User, error) {
 	if email != nil {
 		if u, ok := f.byEmail[*email]; ok {
 			return u, nil
 		}
 	}
-	return domain.User{}, pgx.ErrNoRows
+	return sqlc.User{}, pgx.ErrNoRows
 }
 
-func (f *fakeAuthStore) GetUserByID(_ context.Context, id uuid.UUID) (domain.User, error) {
+func (f *fakeAuthStore) GetUserByID(_ context.Context, id uuid.UUID) (sqlc.User, error) {
 	for _, u := range f.byEmail {
 		if u.ID == id {
 			return u, nil
 		}
 	}
-	return domain.User{}, pgx.ErrNoRows
+	return sqlc.User{}, pgx.ErrNoRows
 }
 
-func (f *fakeAuthStore) GetUserWithRolByID(_ context.Context, id uuid.UUID) (domain.GetUserWithRolByIDRow, error) {
+func (f *fakeAuthStore) GetUserWithRolByID(_ context.Context, id uuid.UUID) (sqlc.GetUserWithRolByIDRow, error) {
 	for _, u := range f.byEmail {
 		if u.ID == id {
-			return domain.GetUserWithRolByIDRow{
+			return sqlc.GetUserWithRolByIDRow{
 				ID:       u.ID,
 				Email:    u.Email,
 				Username: u.Username,
@@ -75,15 +76,15 @@ func (f *fakeAuthStore) GetUserWithRolByID(_ context.Context, id uuid.UUID) (dom
 			}, nil
 		}
 	}
-	return domain.GetUserWithRolByIDRow{}, pgx.ErrNoRows
+	return sqlc.GetUserWithRolByIDRow{}, pgx.ErrNoRows
 }
 
-func (f *fakeAuthStore) GetDefaultRole(_ context.Context) (domain.Role, error) {
-	return domain.Role{ID: f.defaultRoleID, Nombre: "ciudadano"}, nil
+func (f *fakeAuthStore) GetDefaultRole(_ context.Context) (sqlc.Role, error) {
+	return sqlc.Role{ID: f.defaultRoleID, Nombre: "ciudadano"}, nil
 }
 
 func TestAuthService_RegisterAndLogin(t *testing.T) {
-	store := &fakeAuthStore{byEmail: map[string]domain.User{}, defaultRoleID: 1}
+	store := &fakeAuthStore{byEmail: map[string]sqlc.User{}, defaultRoleID: 1}
 	ctx := context.Background()
 	svc, err := NewAuthService(ctx, store, []byte("test-secret-at-least-32-bytes!!"), time.Hour)
 	if err != nil {
@@ -143,7 +144,7 @@ func rolDelToken(t *testing.T, token string, secret []byte) string {
 }
 
 func TestAuthService_TokenLlevaRol(t *testing.T) {
-	store := &fakeAuthStore{byEmail: map[string]domain.User{}, defaultRoleID: 1}
+	store := &fakeAuthStore{byEmail: map[string]sqlc.User{}, defaultRoleID: 1}
 	secret := []byte("test-secret-at-least-32-bytes!!")
 	ctx := context.Background()
 	svc, err := NewAuthService(ctx, store, secret, time.Hour)

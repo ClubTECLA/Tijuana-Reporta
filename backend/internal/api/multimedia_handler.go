@@ -6,7 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 )
@@ -16,7 +16,7 @@ const campoArchivo = "file"
 
 var errFaltaArchivo = errors.New("falta el campo file")
 
-func toMultimedia(m domain.Multimedia) Multimedia {
+func toMultimedia(m sqlc.Multimedia) Multimedia {
 	return Multimedia{CreatedAt: m.CreatedAt, Id: m.ID, Path: m.Path, UserId: m.UserID}
 }
 

@@ -27,6 +27,7 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -829,8 +830,8 @@ func TestCreateIncidenteConTagsRollback(t *testing.T) {
 	nombre := nombreIncidente()
 
 	_, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
-		Incidente: domain.CreateIncidenteParams{Nombre: nombre, Color: "#757575", EstaActivo: true},
-		Tags:      []domain.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
+		Incidente: sqlc.CreateIncidenteParams{Nombre: nombre, Color: "#757575", EstaActivo: true},
+		Tags:      []sqlc.CreateTagParams{{Nombre: "luz", Peso: 1}, {Nombre: "luz", Peso: 1}},
 		ActorID:   crearActor(t, store),
 	})
 	if !domain.IsUniqueViolation(err) {
@@ -1054,7 +1055,7 @@ func TestCreateTags(t *testing.T) {
 
 	t.Run("rollback si uno falla", func(t *testing.T) {
 		d, err := store.CreateIncidenteConTags(t.Context(), domain.CreateIncidenteTxParams{
-			Incidente: domain.CreateIncidenteParams{Nombre: nombreIncidente(), Color: "#757575", EstaActivo: true},
+			Incidente: sqlc.CreateIncidenteParams{Nombre: nombreIncidente(), Color: "#757575", EstaActivo: true},
 			ActorID:   actorID,
 		})
 		if err != nil {
@@ -1064,7 +1065,7 @@ func TestCreateTags(t *testing.T) {
 
 		_, err = store.CreateTags(t.Context(), domain.CreateTagsTxParams{
 			IncidenteID: id,
-			Tags:        []domain.CreateTagParams{{Nombre: "nuevo", Peso: 1}, {Nombre: "nuevo", Peso: 1}},
+			Tags:        []sqlc.CreateTagParams{{Nombre: "nuevo", Peso: 1}, {Nombre: "nuevo", Peso: 1}},
 			ActorID:     actorID,
 		})
 		if !domain.IsUniqueViolation(err) {
@@ -1087,7 +1088,7 @@ func TestCreateTags(t *testing.T) {
 	t.Run("incidente inexistente", func(t *testing.T) {
 		_, err := store.CreateTags(t.Context(), domain.CreateTagsTxParams{
 			IncidenteID: 999999,
-			Tags:        []domain.CreateTagParams{{Nombre: "a", Peso: 1}},
+			Tags:        []sqlc.CreateTagParams{{Nombre: "a", Peso: 1}},
 			ActorID:     actorID,
 		})
 		if !domain.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {

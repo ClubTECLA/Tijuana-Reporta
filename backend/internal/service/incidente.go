@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 )
@@ -15,11 +16,11 @@ import (
 // IncidenteStore es el subconjunto de *database.Store que este servicio usa.
 type IncidenteStore interface {
 	CreateIncidenteConTags(ctx context.Context, arg domain.CreateIncidenteTxParams) (domain.IncidenteDetalle, error)
-	CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) ([]domain.Tag, error)
-	GetIncidenteById(ctx context.Context, id int) (domain.Incidente, error)
-	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]domain.Incidente, error)
-	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]domain.Tag, error)
-	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]domain.Tag, error)
+	CreateTags(ctx context.Context, arg domain.CreateTagsTxParams) ([]sqlc.Tag, error)
+	GetIncidenteById(ctx context.Context, id int) (sqlc.Incidente, error)
+	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]sqlc.Incidente, error)
+	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]sqlc.Tag, error)
+	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]sqlc.Tag, error)
 }
 
 type IncidenteService struct {
@@ -75,7 +76,7 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 		}
 	}
 
-	params := domain.CreateIncidenteParams{
+	params := sqlc.CreateIncidenteParams{
 		Nombre:       nombre,
 		Etiqueta:     etiqueta,
 		TiempoLimite: nuevo.TiempoLimite,
@@ -115,12 +116,12 @@ func (s *IncidenteService) Crear(ctx context.Context, nuevo domain.NuevoIncident
 // validarTags normaliza los tags y los convierte en parámetros del INSERT.
 // Rechaza nombres vacíos o demasiado largos, pesos menores a 1 y nombres
 // repetidos sin importar mayúsculas ("Luz" y "luz").
-func validarTags(nuevos []domain.NuevoTag) ([]domain.CreateTagParams, error) {
+func validarTags(nuevos []domain.NuevoTag) ([]sqlc.CreateTagParams, error) {
 	if len(nuevos) > maxTags {
 		return nil, fmt.Errorf("%w: no se pueden crear más de %d tags a la vez", domain.ErrIncidenteInvalido, maxTags)
 	}
 
-	tags := make([]domain.CreateTagParams, 0, len(nuevos))
+	tags := make([]sqlc.CreateTagParams, 0, len(nuevos))
 	vistos := make(map[string]bool, len(nuevos))
 	for _, t := range nuevos {
 		nombre := strings.TrimSpace(t.Nombre)
@@ -142,7 +143,7 @@ func validarTags(nuevos []domain.NuevoTag) ([]domain.CreateTagParams, error) {
 			peso = *t.Peso
 		}
 
-		tags = append(tags, domain.CreateTagParams{Nombre: nombre, Peso: peso})
+		tags = append(tags, sqlc.CreateTagParams{Nombre: nombre, Peso: peso})
 	}
 	return tags, nil
 }
@@ -170,7 +171,7 @@ func (s *IncidenteService) Listar(ctx context.Context, incluirInactivos bool) ([
 		return nil, err
 	}
 
-	porIncidente := make(map[int][]domain.Tag, len(incidentes))
+	porIncidente := make(map[int][]sqlc.Tag, len(incidentes))
 	for _, t := range tags {
 		porIncidente[t.IncidenteID] = append(porIncidente[t.IncidenteID], t)
 	}
@@ -205,7 +206,7 @@ func (s *IncidenteService) Obtener(ctx context.Context, id int) (domain.Incident
 // El UNIQUE (incidente_id, nombre) de la base distingue mayúsculas, así que
 // aquí se compara contra los tags que ya tiene el incidente sin
 // distinguirlas, igual que validarTags dentro de la misma petición.
-func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]domain.Tag, error) {
+func (s *IncidenteService) AgregarTags(ctx context.Context, incidenteID int, userID uuid.UUID, nuevos []domain.NuevoTag) ([]sqlc.Tag, error) {
 	if len(nuevos) == 0 {
 		return nil, fmt.Errorf("%w: hay que mandar al menos un tag", domain.ErrIncidenteInvalido)
 	}

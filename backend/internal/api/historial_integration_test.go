@@ -9,7 +9,7 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/api"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/google/uuid"
 )
 
@@ -24,7 +24,7 @@ func crearActor(t *testing.T, store *database.Store) uuid.UUID {
 		t.Fatalf("obteniendo rol por defecto: %v", err)
 	}
 	email, _ := credenciales()
-	u, err := store.CreateUserWithLocalProvider(t.Context(), domain.CreateUserParams{
+	u, err := store.CreateUserWithLocalProvider(t.Context(), sqlc.CreateUserParams{
 		Email: &email, Username: "actor", RolID: rol.ID,
 	})
 	if err != nil {
@@ -49,10 +49,10 @@ func contarHistorial(t *testing.T, accion, entidad, entidadID string) int {
 }
 
 // ultimoHistorial devuelve el evento más reciente de esa entidad.
-func ultimoHistorial(t *testing.T, entidad, entidadID string) domain.Historial {
+func ultimoHistorial(t *testing.T, entidad, entidadID string) sqlc.Historial {
 	t.Helper()
 
-	eventos, err := database.NewStore(testPool(t)).ListHistorialPorEntidad(t.Context(), domain.ListHistorialPorEntidadParams{
+	eventos, err := database.NewStore(testPool(t)).ListHistorialPorEntidad(t.Context(), sqlc.ListHistorialPorEntidadParams{
 		Entidad: entidad, EntidadID: entidadID, Limit: 1,
 	})
 	if err != nil {
