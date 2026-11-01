@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuChevronRight } from "react-icons/lu";
 import ColSection from "@/components/layout/ColSection";
 import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
@@ -31,6 +31,13 @@ export default function SummaryView() {
     const { openPanel } = useCommonPanel();
     const { reportes, categories, error, resetFilters } = useReportes();
     const [tab, setTab] = useState(0);
+    // Con el panel abierto se cruzan la medianoche y los cambios de saludo: cada minuto se vuelve a calcular la cabecera.
+    const [now, setNow] = useState(Date.now);
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60_000);
+        return () => clearInterval(id);
+    }, []);
 
     const activos = (reportes ?? []).filter(tabFilters.activos);
     const oficiales = activos.filter((reporte) => reporte.es_oficial);
@@ -44,7 +51,7 @@ export default function SummaryView() {
     };
 
     return (
-        <ColSection title={saludo(user?.username)} subtitle={fechaDeHoy()} arrangementSubsections="toUp" className="min-h-0">
+        <ColSection title={saludo(user?.username, now)} subtitle={fechaDeHoy(now)} arrangementSubsections="toUp" className="min-h-0">
             {/* Mismo ancho fijo que los demás paneles de incidentes. */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-4 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
                 <div className="flex gap-2.5 p-0.5">
