@@ -40,8 +40,7 @@ export default function NavBar() {
             {
                 icon: <LuMap/>,
                 title: "Resumen",
-                cantNoti: 12,
-                onClick: () => {}
+                panelView: 'Resumen'
             },
             {
                 icon: <LuTriangleAlert />,

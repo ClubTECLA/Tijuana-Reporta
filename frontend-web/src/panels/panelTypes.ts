@@ -7,6 +7,7 @@ export type PanelViewPropsMap = {
     "Ayudas y guias": object;
     "Notificaciones": object;
     "Ajustes": object;
+    "Resumen": object;
     "Nuevo Incidente": object;
     "Incidentes": object;
     "Detalle Incidente": { reporteId: string };
