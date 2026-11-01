@@ -229,7 +229,10 @@ con la anotación de **sqlc**:
 
 ```sql
 -- name: GetReporteById :one
-SELECT * FROM reporte WHERE id = $1;
+SELECT sqlc.embed(r), i.etiqueta AS incidente_etiqueta
+FROM reporte r
+JOIN incidentes i ON i.id = r.incidente_id
+WHERE r.id = $1;
 ```
 
 | Anotación | Devuelve | Uso |
@@ -238,7 +241,7 @@ SELECT * FROM reporte WHERE id = $1;
 | `:many` | `([]T, error)` | listados |
 | `:exec` | `error` | `UPDATE`/`DELETE` sin retorno |
 
-- Nombra las consultas en inglés y en `PascalCase`: `CreateX`, `GetXByID`, `ListXByY`,
+- Nombra las consultas en inglés y en `PascalCase`: `CreateX`, `GetXById`, `ListXByY`,
   `UpdateX`, `DeleteX`.
 - Para parámetros con nombre o casts, usa `sqlc.arg(nombre)`
   (ver `CreateLocation` en `reporte.sql`).
@@ -280,7 +283,8 @@ más de una tabla y todo debe quedar o nada, agrega un método al `Store` que us
 (ver `CreateReporte` o `CambiarEstadoReporte`). Si necesita un struct de parámetros
 propio, defínelo en `model.go` con un nombre que no choque con los de **sqlc**
 (`CreateTxParams`). Para una consulta simple, como la del ejemplo, omite este paso: el
-método generado ya está disponible en el `Store`.
+método generado está disponible en el `Store` solo si la funcionalidad define uno. Si no
+lo tiene, inyecta `*sqlc.Queries` directamente en el `Service`.
 
 **5b. `service.go`.** Agrega el método del store a la interfaz `store` del servicio, con la
 firma exacta de **sqlc**; así el `Store` la cumple sin adaptadores y los tests pueden usar
@@ -367,8 +371,9 @@ registra sola con `httpapi.RegisterHandlersWithOptions`.
 
 Si creas una **funcionalidad nueva** (p. ej. `internal/notificacion/`):
 
-1. Crea la carpeta con los archivos del paso 5, más `NewStore`, `NewService` y
-   `NewHandler`.
+1. Crea la carpeta con los archivos del paso 5, más `NewService` y `NewHandler`. Agrega
+   `NewStore` solo si la funcionalidad tiene `store.go`; si no lo tiene, el servicio recibe
+   `*sqlc.Queries` directamente.
 2. Agrega su `.sql` a la lista `queries` de `sqlc.yaml`.
 3. En `internal/server/router.go`, agrega el campo a `Handlers`, un alias a la lista de
    alias y el campo embebido en `api` (cada funcionalidad llama `Handler` a su handler, y
