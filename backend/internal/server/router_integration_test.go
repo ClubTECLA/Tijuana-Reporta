@@ -26,14 +26,13 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/database"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/service"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -59,14 +58,13 @@ type testClient struct {
 func newTestClient(t *testing.T) *testClient {
 	t.Helper()
 
-	store := database.NewStore(testPool(t))
 	usuarios := usuario.NewStore(testPool(t))
 	auth, err := usuario.NewAuth(t.Context(), usuarios, []byte(testJWTSecret), time.Hour)
 	if err != nil {
 		t.Fatalf("creando AuthService: %v", err)
 	}
 
-	multimedia := &multimediaFalso{}
+	almacen := &multimediaFalso{}
 
 	gin.SetMode(gin.TestMode)
 	router := server.NewRouter(server.Handlers{
@@ -74,15 +72,13 @@ func newTestClient(t *testing.T) *testClient {
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(testPool(t)))),
 		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
-		Services: httpapi.Services{
-			Multimedia: service.NewMultimediaService(store, multimedia, service.OpcionesFoto{
-				MaxBytes:   3 << 20,
-				MaxPixeles: 16_000_000,
-			}),
-		},
+		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(testPool(t)), almacen, multimedia.OpcionesFoto{
+			MaxBytes:   3 << 20,
+			MaxPixeles: 16_000_000,
+		})),
 	}, testJWTSecret)
 
-	return &testClient{t: t, router: router, multimedia: multimedia}
+	return &testClient{t: t, router: router, multimedia: almacen}
 }
 
 // do manda la petición y devuelve la respuesta grabada. body se serializa a

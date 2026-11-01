@@ -37,7 +37,7 @@ func NewService(store store) *Service {
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
-// usuario. La foto o el video se suben después con MultimediaService.Subir.
+// usuario. La foto o el video se suben después con multimedia.Service.Subir.
 //
 // EsOficial solo lo puede pedir un rol que gestiona reportes
 // (PuedeGestionar).

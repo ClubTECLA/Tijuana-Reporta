@@ -6,16 +6,17 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, domain.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -24,16 +25,16 @@ func TestResolver(t *testing.T) {
 		wantStatus  int
 		wantMessage string
 	}{
-		{"reporte no encontrado", domain.ErrReporteNotFound, http.StatusNotFound, "reporte no encontrado"},
+		{"reporte no encontrado", reporte.ErrNotFound, http.StatusNotFound, "reporte no encontrado"},
 		{"transición inválida", reporte.ErrTransicionInvalida, http.StatusConflict, "transicion no valida"},
 		{"email registrado", usuario.ErrEmailTaken, http.StatusConflict, "el email ya está registrado"},
 		{"credenciales inválidas", usuario.ErrInvalidCredentials, http.StatusUnauthorized, "credenciales invalidas"},
 		{"usuario no encontrado", usuario.ErrUserNotFound, http.StatusUnauthorized, "no autenticado"},
-		{"multimedia ya existe", domain.ErrMultimediaYaExiste, http.StatusConflict, "multimedia ya existe"},
-		{"archivo inválido", domain.ErrArchivoInvalido, http.StatusBadRequest, "archivo invalido"},
-		{"archivo muy grande", domain.ErrArchivoMuyGrande, http.StatusRequestEntityTooLarge, "archivo muy grande"},
-		{"imagen muy grande", domain.ErrImagenMuyGrande, http.StatusUnprocessableEntity, "imagen muy grande"},
-		{"almacén no disponible", domain.ErrAlmacenNoDisponible, http.StatusServiceUnavailable, "almacenamiento no disponible, intenta más tarde"},
+		{"multimedia ya existe", multimedia.ErrYaExiste, http.StatusConflict, "multimedia ya existe"},
+		{"archivo inválido", multimedia.ErrArchivoInvalido, http.StatusBadRequest, "archivo invalido"},
+		{"archivo muy grande", multimedia.ErrArchivoMuyGrande, http.StatusRequestEntityTooLarge, "archivo muy grande"},
+		{"imagen muy grande", multimedia.ErrImagenMuyGrande, http.StatusUnprocessableEntity, "imagen muy grande"},
+		{"almacén no disponible", almacen.ErrNoDisponible, http.StatusServiceUnavailable, "almacenamiento no disponible, intenta más tarde"},
 		{"incidente no encontrado", incidente.ErrNotFound, http.StatusNotFound, "incidente no encontrado"},
 		{"incidente inválido", incidente.ErrInvalido, http.StatusBadRequest, "invalid incidente"},
 		{"nombre de incidente repetido", incidente.ErrNameTaken, http.StatusConflict, "ya existe un incidente con ese nombre"},
@@ -51,7 +52,7 @@ func TestResolver(t *testing.T) {
 
 		// El orden de la tabla y errors.Is existen para esto: los servicios
 		// envuelven los sentinels con contexto.
-		{"envuelto", fmt.Errorf("x: %w", domain.ErrReporteNotFound), http.StatusNotFound, "reporte no encontrado"},
+		{"envuelto", fmt.Errorf("x: %w", reporte.ErrNotFound), http.StatusNotFound, "reporte no encontrado"},
 		// Las reglas sin mensaje fijo pasan el detalle del servicio tal cual.
 		{"incidente inválido con detalle", fmt.Errorf("%w: radio no puede ser negativo", incidente.ErrInvalido), http.StatusBadRequest, "invalid incidente: radio no puede ser negativo"},
 	}
@@ -80,7 +81,7 @@ func TestResolver_ErrorDesconocido(t *testing.T) {
 }
 
 // TestResolver_TodosLosErroresDeDominio falla si a un error de
-// domain/errors.go o de una funcionalidad le falta su regla y acaba como
+// una funcionalidad (o del almacén) le falta su regla y acaba como
 // 500. La lista se mantiene a mano: al agregar un Err…, agrégalo aquí también.
 func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 	errs := []error{
@@ -90,14 +91,14 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		usuario.ErrEmailTaken,
 		usuario.ErrInvalidCredentials,
 		usuario.ErrUserNotFound,
-		domain.ErrReporteNotFound,
+		multimedia.ErrReporteNotFound,
 		incidente.ErrNotFound,
 		incidente.ErrInvalido,
-		domain.ErrArchivoInvalido,
-		domain.ErrArchivoMuyGrande,
-		domain.ErrImagenMuyGrande,
-		domain.ErrMultimediaYaExiste,
-		domain.ErrAlmacenNoDisponible,
+		multimedia.ErrArchivoInvalido,
+		multimedia.ErrArchivoMuyGrande,
+		multimedia.ErrImagenMuyGrande,
+		multimedia.ErrYaExiste,
+		almacen.ErrNoDisponible,
 		incidente.ErrNameTaken,
 		incidente.ErrTagNameTaken,
 		reporte.ErrAreaIncompleta,

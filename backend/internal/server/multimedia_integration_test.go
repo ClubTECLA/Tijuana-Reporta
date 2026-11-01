@@ -19,7 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 )
 
@@ -328,7 +328,7 @@ func TestSubirMultimedia_ErroresDeMultimedia(t *testing.T) {
 		errMultimedia error
 		want          int
 	}{
-		{name: "almacenamiento caído", errMultimedia: fmt.Errorf("%w: connection refused", domain.ErrAlmacenNoDisponible), want: http.StatusServiceUnavailable},
+		{name: "almacenamiento caído", errMultimedia: fmt.Errorf("%w: connection refused", almacen.ErrNoDisponible), want: http.StatusServiceUnavailable},
 		{name: "error inesperado", errMultimedia: errors.New("multimedia respondió 400 en 10.0.0.5"), want: http.StatusInternalServerError},
 	}
 

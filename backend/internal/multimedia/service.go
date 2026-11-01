@@ -1,4 +1,4 @@
-package service
+package multimedia
 
 import (
 	"bytes"
@@ -11,23 +11,23 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/procesamiento"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia/procesamiento"
 	"github.com/google/uuid"
 )
 
 // tiempoLimpieza es lo que se espera a borrar un archivo huérfano de multimedia.
 const tiempoLimpieza = 10 * time.Second
 
-// MultimediaStore es el subconjunto de *database.Store que este servicio usa.
-type MultimediaStore interface {
+// store es lo que el servicio necesita de la base; *sqlc.Queries lo cumple
+// y los tests lo cumplen con un falso en memoria.
+type store interface {
 	EsCreadorDeReporte(ctx context.Context, arg sqlc.EsCreadorDeReporteParams) (bool, error)
 	CreateMultimedia(ctx context.Context, arg sqlc.CreateMultimediaParams) (sqlc.Multimedia, error)
 }
 
-// MultimediaCliente es lo que este servicio necesita del servicio multimedia, que solo
+// Cliente es lo que este servicio necesita del servicio multimedia, que solo
 // guarda y borra archivos.
-type MultimediaCliente interface {
+type Cliente interface {
 	Subir(ctx context.Context, carpeta string, archivo io.Reader) (string, error)
 	Borrar(ctx context.Context, path string) error
 }
@@ -38,22 +38,22 @@ type OpcionesFoto struct {
 	MaxPixeles int64 // máximo de píxeles (ancho por alto)
 }
 
-type MultimediaService struct {
-	store      MultimediaStore
-	multimedia MultimediaCliente
+type Service struct {
+	store      store
+	multimedia Cliente
 	foto       OpcionesFoto
 }
 
-// NewMultimediaService crea un servicio de multimedia con la store, el cliente de multimedia y los límites de foto dados.
-func NewMultimediaService(store MultimediaStore, multimedia MultimediaCliente, foto OpcionesFoto) *MultimediaService {
-	return &MultimediaService{store: store, multimedia: multimedia, foto: foto}
+// NewService crea un servicio de multimedia con la store, el cliente de multimedia y los límites de foto dados.
+func NewService(store store, multimedia Cliente, foto OpcionesFoto) *Service {
+	return &Service{store: store, multimedia: multimedia, foto: foto}
 }
 
 // Subir valida la foto, le quita los metadatos y la guarda en multimedia a nombre del
 // creador de un reporte. Si el reporte no existe o el usuario no es su creador
 // devuelve ErrReporteNotFound, y si el usuario ya subió un archivo,
 // ErrMultimediaYaExiste.
-func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (sqlc.Multimedia, error) {
+func (s *Service) Subir(ctx context.Context, reporteID, userID uuid.UUID, archivo io.Reader) (sqlc.Multimedia, error) {
 	esCreador, err := s.store.EsCreadorDeReporte(ctx, sqlc.EsCreadorDeReporteParams{
 		UserID:    userID,
 		ReporteID: reporteID,
@@ -62,7 +62,7 @@ func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UU
 		return sqlc.Multimedia{}, err
 	}
 	if !esCreador {
-		return sqlc.Multimedia{}, domain.ErrReporteNotFound
+		return sqlc.Multimedia{}, ErrReporteNotFound
 	}
 
 	jpeg, err := s.procesar(archivo)
@@ -83,7 +83,7 @@ func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UU
 	if err != nil {
 		s.borrarHuerfano(ctx, path)
 		if db.IsUniqueViolation(err) {
-			return sqlc.Multimedia{}, domain.ErrMultimediaYaExiste
+			return sqlc.Multimedia{}, ErrYaExiste
 		}
 		return sqlc.Multimedia{}, err
 	}
@@ -92,13 +92,13 @@ func (s *MultimediaService) Subir(ctx context.Context, reporteID, userID uuid.UU
 
 // procesar lee la foto, comprueba que sea un JPEG permitido y devuelve su
 // versión sin metadatos.
-func (s *MultimediaService) procesar(archivo io.Reader) ([]byte, error) {
+func (s *Service) procesar(archivo io.Reader) ([]byte, error) {
 	original, err := io.ReadAll(io.LimitReader(archivo, s.foto.MaxBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("leer archivo: %w", err)
 	}
 	if int64(len(original)) > s.foto.MaxBytes {
-		return nil, domain.ErrArchivoMuyGrande
+		return nil, ErrArchivoMuyGrande
 	}
 
 	if err := procesamiento.ValidarImagen(bytes.NewReader(original), s.foto.MaxPixeles); err != nil {
@@ -117,9 +117,9 @@ func (s *MultimediaService) procesar(archivo io.Reader) ([]byte, error) {
 func errorDeProcesamiento(err error) error {
 	switch {
 	case errors.Is(err, procesamiento.ErrFormatoNoSoportado):
-		return fmt.Errorf("%w: formato de imagen no soportado", domain.ErrArchivoInvalido)
+		return fmt.Errorf("%w: formato de imagen no soportado", ErrArchivoInvalido)
 	case errors.Is(err, procesamiento.ErrImagenMuyGrande):
-		return domain.ErrImagenMuyGrande
+		return ErrImagenMuyGrande
 	default:
 		return err
 	}
@@ -128,7 +128,7 @@ func errorDeProcesamiento(err error) error {
 // borrarHuerfano borra de multimedia un archivo que no llegó a registrarse en la
 // base. Usa un contexto propio para que se borre aunque el cliente haya
 // cancelado la petición; si falla solo lo registra.
-func (s *MultimediaService) borrarHuerfano(ctx context.Context, path string) {
+func (s *Service) borrarHuerfano(ctx context.Context, path string) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), tiempoLimpieza)
 	defer cancel()
 

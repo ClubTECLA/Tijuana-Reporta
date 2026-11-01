@@ -1,4 +1,4 @@
-package multimedia
+package almacen
 
 import (
 	"bytes"
@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 )
 
 // servidorMultimedia levanta un servidor que se comporta como multimedia con el manejador dado.
@@ -105,7 +103,7 @@ func TestCliente_Subir_TraduceLosErroresDeMultimedia(t *testing.T) {
 			if err == nil {
 				t.Fatal("Subir() error = nil, want error")
 			}
-			if got := errors.Is(err, domain.ErrAlmacenNoDisponible); got != tt.wantNoDisponible {
+			if got := errors.Is(err, ErrNoDisponible); got != tt.wantNoDisponible {
 				t.Errorf("Subir() error = %v, ErrAlmacenNoDisponible = %v, want %v", err, got, tt.wantNoDisponible)
 			}
 		})
@@ -191,8 +189,8 @@ func TestCliente_Subir_MultimediaCaido(t *testing.T) {
 
 	_, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto"))
 
-	if !errors.Is(err, domain.ErrAlmacenNoDisponible) {
-		t.Errorf("Subir() con multimedia caído error = %v, want %v", err, domain.ErrAlmacenNoDisponible)
+	if !errors.Is(err, ErrNoDisponible) {
+		t.Errorf("Subir() con multimedia caído error = %v, want %v", err, ErrNoDisponible)
 	}
 }
 

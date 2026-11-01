@@ -8,11 +8,6 @@ INSERT INTO location (reporte_id, latitude, longitude, user_id)
 VALUES ($1, sqlc.arg(latitude), sqlc.arg(longitude), $2)
 RETURNING *;
 
--- name: CreateMultimedia :one
-INSERT INTO multimedia (reporte_id, path, user_id)
-VALUES ($1, $2, $3)
-RETURNING *;
-
 -- name: ListLocationsByReporteId :many
 SELECT *
 FROM location WHERE reporte_id = $1 ORDER BY created_at;
@@ -23,12 +18,6 @@ SELECT sqlc.embed(r), i.etiqueta AS incidente_etiqueta
 FROM reporte r
 JOIN incidentes i ON i.id = r.incidente_id
 WHERE r.id = $1;
-
--- name: EsCreadorDeReporte :one
--- users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
-SELECT EXISTS (
-    SELECT 1 FROM users_reports WHERE user_id = $1 AND reporte_id = $2
-);
 
 -- name: ListMultimediaByReporteId :many
 SELECT * FROM multimedia WHERE reporte_id = $1 ORDER BY created_at;

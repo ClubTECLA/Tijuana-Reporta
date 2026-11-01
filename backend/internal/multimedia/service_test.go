@@ -1,4 +1,4 @@
-package service
+package multimedia
 
 import (
 	"bytes"
@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// fakeMultimediaStore implementa MultimediaStore en memoria. creadores guarda
+// fakeMultimediaStore implementa store en memoria. creadores guarda
 // los pares (usuario, reporte) que cuentan como creador.
 type fakeMultimediaStore struct {
 	creadores map[sqlc.EsCreadorDeReporteParams]bool
@@ -43,7 +43,7 @@ func (f *fakeMultimediaStore) CreateMultimedia(_ context.Context, arg sqlc.Creat
 	return sqlc.Multimedia{ID: len(f.creados), ReporteID: arg.ReporteID, Path: arg.Path, UserID: arg.UserID, CreatedAt: time.Now()}, nil
 }
 
-// fakeMultimedia implementa MultimediaCliente: guarda lo que recibe y lo que se borra.
+// fakeMultimedia implementa Cliente: guarda lo que recibe y lo que se borra.
 type fakeMultimedia struct {
 	subidas  []string // carpetas
 	leido    string   // contenido que recibió
@@ -93,12 +93,12 @@ func fotoPNG(t *testing.T, ancho, alto int) []byte {
 	return buf.Bytes()
 }
 
-func nuevoMultimediaService(reporteID, userID uuid.UUID) (*MultimediaService, *fakeMultimediaStore, *fakeMultimedia) {
+func nuevoMultimediaService(reporteID, userID uuid.UUID) (*Service, *fakeMultimediaStore, *fakeMultimedia) {
 	store := &fakeMultimediaStore{creadores: map[sqlc.EsCreadorDeReporteParams]bool{
 		{UserID: userID, ReporteID: reporteID}: true,
 	}}
 	multimedia := &fakeMultimedia{}
-	return NewMultimediaService(store, multimedia, opcionesFotoTest), store, multimedia
+	return NewService(store, multimedia, opcionesFotoTest), store, multimedia
 }
 
 func TestMultimediaService_Subir(t *testing.T) {
@@ -142,8 +142,8 @@ func TestMultimediaService_Subir_SoloElCreador(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := svc.Subir(context.Background(), tt.reporteID, tt.userID, bytes.NewReader(fotoJPEG(t, 10, 10)))
 
-			if !errors.Is(err, domain.ErrReporteNotFound) {
-				t.Errorf("Subir() error = %v, want %v", err, domain.ErrReporteNotFound)
+			if !errors.Is(err, ErrReporteNotFound) {
+				t.Errorf("Subir() error = %v, want %v", err, ErrReporteNotFound)
 			}
 			if len(multimedia.subidas) != 0 || len(store.creados) != 0 {
 				t.Errorf("se subió %v y se registró %v, want nada si no es el creador", multimedia.subidas, store.creados)
@@ -159,7 +159,7 @@ func TestMultimediaService_Subir_ErrorAlConsultarElCreador(t *testing.T) {
 
 	_, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(fotoJPEG(t, 10, 10)))
 
-	if err == nil || errors.Is(err, domain.ErrReporteNotFound) {
+	if err == nil || errors.Is(err, ErrReporteNotFound) {
 		t.Errorf("Subir() error = %v, want un error que no sea ErrReporteNotFound", err)
 	}
 	if len(multimedia.subidas) != 0 {
@@ -194,11 +194,11 @@ func TestMultimediaService_Subir_FotoRechazada(t *testing.T) {
 		archivo []byte
 		want    error
 	}{
-		{name: "texto plano", archivo: []byte("esto no es una imagen"), want: domain.ErrArchivoInvalido},
-		{name: "archivo vacío", archivo: []byte{}, want: domain.ErrArchivoInvalido},
-		{name: "pesa más del máximo", archivo: bytes.Repeat([]byte("x"), int(opcionesFotoTest.MaxBytes)+1), want: domain.ErrArchivoMuyGrande},
-		{name: "más píxeles del máximo", archivo: fotoJPEG(t, 200, 200), want: domain.ErrImagenMuyGrande},
-		{name: "png", archivo: fotoPNG(t, 10, 10), want: domain.ErrArchivoInvalido},
+		{name: "texto plano", archivo: []byte("esto no es una imagen"), want: ErrArchivoInvalido},
+		{name: "archivo vacío", archivo: []byte{}, want: ErrArchivoInvalido},
+		{name: "pesa más del máximo", archivo: bytes.Repeat([]byte("x"), int(opcionesFotoTest.MaxBytes)+1), want: ErrArchivoMuyGrande},
+		{name: "más píxeles del máximo", archivo: fotoJPEG(t, 200, 200), want: ErrImagenMuyGrande},
+		{name: "png", archivo: fotoPNG(t, 10, 10), want: ErrArchivoInvalido},
 	}
 
 	for _, tt := range tests {
@@ -220,7 +220,7 @@ func TestMultimediaService_Subir_FotoRechazada(t *testing.T) {
 
 func TestMultimediaService_Subir_ErroresDeMultimedia(t *testing.T) {
 	for _, errMultimedia := range []error{
-		domain.ErrAlmacenNoDisponible,
+		almacen.ErrNoDisponible,
 		errors.New("multimedia respondió 400"),
 	} {
 		t.Run(errMultimedia.Error(), func(t *testing.T) {
@@ -250,8 +250,8 @@ func TestMultimediaService_Subir_YaSubioUnArchivo(t *testing.T) {
 
 	_, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(fotoJPEG(t, 10, 10)))
 
-	if !errors.Is(err, domain.ErrMultimediaYaExiste) {
-		t.Errorf("Subir() error = %v, want %v", err, domain.ErrMultimediaYaExiste)
+	if !errors.Is(err, ErrYaExiste) {
+		t.Errorf("Subir() error = %v, want %v", err, ErrYaExiste)
 	}
 	wantBorrado := "reportes/" + reporteID.String() + "/abc.jpg"
 	if len(multimedia.borrados) != 1 || multimedia.borrados[0] != wantBorrado {
@@ -285,8 +285,8 @@ func TestMultimediaService_Subir_FalloDeLimpiezaNoCambiaElError(t *testing.T) {
 
 	_, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(fotoJPEG(t, 10, 10)))
 
-	if !errors.Is(err, domain.ErrMultimediaYaExiste) {
-		t.Errorf("Subir() error = %v, want %v", err, domain.ErrMultimediaYaExiste)
+	if !errors.Is(err, ErrYaExiste) {
+		t.Errorf("Subir() error = %v, want %v", err, ErrYaExiste)
 	}
 }
 

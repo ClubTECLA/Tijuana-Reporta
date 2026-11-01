@@ -1,19 +1,22 @@
-// Package multimedia es el cliente del servicio multimedia, que solo guarda y borra
+// Package almacen es el cliente del servicio multimedia, que solo guarda y borra
 // archivos (ver multimedia/README.md).
-package multimedia
+package almacen
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/domain"
 )
+
+// ErrNoDisponible indica que el servicio multimedia no respondió o falló al
+// guardar o borrar un archivo.
+var ErrNoDisponible = errors.New("el almacenamiento de archivos no está disponible")
 
 // Cliente llama al servicio multimedia por HTTP.
 type Cliente struct {
@@ -110,7 +113,7 @@ func (c *Cliente) Borrar(ctx context.Context, path string) error {
 
 // errorDeConexion convierte un fallo al llegar a multimedia en ErrAlmacenNoDisponible.
 func errorDeConexion(err error) error {
-	return fmt.Errorf("%w: llamar a multimedia: %v", domain.ErrAlmacenNoDisponible, err)
+	return fmt.Errorf("%w: llamar a multimedia: %v", ErrNoDisponible, err)
 }
 
 // errorDeRespuesta traduce un código de error de multimedia a un error. El backend ya
@@ -121,7 +124,7 @@ func errorDeRespuesta(resp *http.Response) error {
 	json.NewDecoder(io.LimitReader(resp.Body, 4<<10)).Decode(&e)
 
 	if resp.StatusCode >= http.StatusInternalServerError {
-		return fmt.Errorf("%w: multimedia respondió %d: %s", domain.ErrAlmacenNoDisponible, resp.StatusCode, e.Message)
+		return fmt.Errorf("%w: multimedia respondió %d: %s", ErrNoDisponible, resp.StatusCode, e.Message)
 	}
 	return fmt.Errorf("multimedia respondió %d: %s", resp.StatusCode, e.Message)
 }

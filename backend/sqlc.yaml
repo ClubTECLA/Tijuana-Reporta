@@ -11,6 +11,7 @@ sql:
       - "internal/comentario/comentario.sql"
       - "internal/usuario/user.sql"
       - "internal/usuario/roles.sql"
+      - "internal/multimedia/multimedia.sql"
     schema: "internal/db/migrations"
     gen:
       go:
