@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { folio } from "@/features/reportes/reportFormat";
+import { confirmaciones, folio } from "@/features/reportes/reportFormat";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
 
@@ -18,7 +18,7 @@ interface IncidentPinProps {
 export default function IncidentPin({ reporte, incidente, isNew = false, selected = false }: IncidentPinProps) {
     const color = incidente?.color ?? "#757575";
     const pending = reporte.estado_actual === "Pendiente" && !selected;
-    const label = `${reporte.titulo}, ${reporte.estado_actual}, ${reporte.avistamientos} confirmaciones`;
+    const label = `${reporte.titulo}, ${reporte.estado_actual}, ${confirmaciones(reporte.avistamientos)}`;
 
     return (
         <span title={label} data-selected={selected || undefined} className={`relative flex items-center justify-center ${selected ? "size-16" : "size-12"}`}>

@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from "react";
 import { LuImage, LuLoaderCircle, LuX } from "react-icons/lu";
 import { ACCEPT_ATTRIBUTE } from "@/features/reportes/prepararFoto";
+import { useSysMessage } from "@/components/ui/SysMessageContext";
 
 interface PhotoDropzoneProps {
     /** Vista previa de la foto ya preparada (data URL); sin ella se muestra la zona para elegir. */
@@ -16,6 +17,7 @@ interface PhotoDropzoneProps {
 // Los límites reales (formato y peso) los valida prepararFoto al elegirla; aquí solo se recoge el archivo.
 export default function PhotoDropzone({ preview, busy = false, disabled = false, onSelect, onRemove }: PhotoDropzoneProps) {
     const [dragging, setDragging] = useState(false);
+    const { showMessage } = useSysMessage();
 
     if (preview) {
         return (
@@ -40,8 +42,13 @@ export default function PhotoDropzone({ preview, busy = false, disabled = false,
     const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
         event.preventDefault();
         setDragging(false);
-        const file = event.dataTransfer.files[0];
-        if (file && !inactive) onSelect(file);
+        const { files } = event.dataTransfer;
+        if (!files[0] || inactive) return;
+        // Al hacer clic el selector solo deja elegir una; al arrastrar pueden llegar varias.
+        if (files.length > 1) {
+            showMessage("Solo se puede subir una foto: se usa la primera y las demás se ignoran.", { color: "yellow", type: "float", title: "Foto" });
+        }
+        onSelect(files[0]);
     };
 
     return (

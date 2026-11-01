@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { LuChevronRight, LuUsers } from "react-icons/lu";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
-import { folio, formatDateTime, shortDate } from "@/features/reportes/reportFormat";
+import { confirmaciones, folio, formatDateTime, shortDate } from "@/features/reportes/reportFormat";
 import { StatusBadge } from "./Badge";
 
 interface IncidentRowProps {
@@ -16,7 +16,6 @@ interface IncidentRowProps {
 // estado y confirmaciones. Todo es <span> porque la fila puede ser un <button>, que solo admite contenido en línea.
 // El Figma muestra solo la hora ("14:36"); aquí va con el día ("hoy 14:36", "28 oct") para que no sea ambigua.
 export default function IncidentRow({ reporte, incidente, onClick }: IncidentRowProps) {
-    const confirmations = reporte.avistamientos === 1 ? "1 confirmación" : `${reporte.avistamientos} confirmaciones`;
     // El título ya incluye la dirección cuando la hay; sin ella se muestran las coordenadas.
     const place = reporte.direccion ? "" : `${reporte.latitude.toFixed(4)}, ${reporte.longitude.toFixed(4)} · `;
 
@@ -50,7 +49,7 @@ export default function IncidentRow({ reporte, incidente, onClick }: IncidentRow
                 <StatusBadge estado={reporte.estado_actual} />
                 <span className="flex items-center gap-1 text-xs font-medium text-ink-secondary">
                     <LuUsers className="size-3.5" aria-hidden="true" />
-                    {reporte.es_oficial ? "Aviso oficial" : confirmations}
+                    {reporte.es_oficial ? "Aviso oficial" : confirmaciones(reporte.avistamientos)}
                 </span>
             </span>
         </span>
