@@ -103,8 +103,6 @@ obtenerIncidente:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
-
-actualizarIncidente:
   put:
     operationId: actualizarIncidente
     description: Actualiza un tipo de incidente existente. Solo administradores.
