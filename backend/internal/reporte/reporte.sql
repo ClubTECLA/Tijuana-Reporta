@@ -36,7 +36,7 @@ FROM puntos_origen WHERE reporte_id = $1;
 
 -- name: ListReportesResumen :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
-       r.direccion, i.etiqueta AS incidente_etiqueta
+       r.direccion, i.etiqueta AS incidente_etiqueta, r.created_at
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
 JOIN incidentes i ON i.id = r.incidente_id
@@ -44,7 +44,8 @@ WHERE NOT r.es_historico
 AND (sqlc.narg(min_lat)::float8 IS NULL OR p.latitude >= sqlc.narg(min_lat))
 AND (sqlc.narg(max_lat)::float8 IS NULL OR p.latitude <= sqlc.narg(max_lat))
 AND (sqlc.narg(min_lng)::float8 IS NULL OR p.longitude >= sqlc.narg(min_lng))
-AND (sqlc.narg(max_lng)::float8 IS NULL OR p.longitude <= sqlc.narg(max_lng));
+AND (sqlc.narg(max_lng)::float8 IS NULL OR p.longitude <= sqlc.narg(max_lng))
+ORDER BY r.created_at;
 
 -- name: AddAvistamientoById :one
 UPDATE reporte
@@ -68,6 +69,7 @@ RETURNING *;
 -- ST_DWithin usa el índice GiST de puntos_origen.geom.
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
        p.latitude, p.longitude, r.direccion, i.etiqueta AS incidente_etiqueta,
+       r.created_at,
        ST_Distance(p.geom, ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
@@ -84,7 +86,7 @@ LIMIT sqlc.arg(limite)::int;
 -- name: ListReportesByUserId :many
 -- Incluye los históricos: es el historial del usuario, no el mapa.
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
-       r.direccion, i.etiqueta AS incidente_etiqueta
+       r.direccion, i.etiqueta AS incidente_etiqueta, r.created_at
 FROM users_reports ur
 JOIN reporte r ON r.id = ur.reporte_id
 JOIN puntos_origen p ON p.reporte_id = r.id

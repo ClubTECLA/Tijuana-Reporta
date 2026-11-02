@@ -288,7 +288,7 @@ func (q *Queries) ListMultimediaByReporteId(ctx context.Context, reporteID uuid.
 
 const listReportesByUserId = `-- name: ListReportesByUserId :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
-       r.direccion, i.etiqueta AS incidente_etiqueta
+       r.direccion, i.etiqueta AS incidente_etiqueta, r.created_at
 FROM users_reports ur
 JOIN reporte r ON r.id = ur.reporte_id
 JOIN puntos_origen p ON p.reporte_id = r.id
@@ -313,6 +313,7 @@ type ListReportesByUserIdRow struct {
 	Longitude         float64   `json:"longitude"`
 	Direccion         *string   `json:"direccion"`
 	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // Incluye los históricos: es el historial del usuario, no el mapa.
@@ -335,6 +336,7 @@ func (q *Queries) ListReportesByUserId(ctx context.Context, arg ListReportesByUs
 			&i.Longitude,
 			&i.Direccion,
 			&i.IncidenteEtiqueta,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -349,6 +351,7 @@ func (q *Queries) ListReportesByUserId(ctx context.Context, arg ListReportesByUs
 const listReportesPorUbicacion = `-- name: ListReportesPorUbicacion :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial,
        p.latitude, p.longitude, r.direccion, i.etiqueta AS incidente_etiqueta,
+       r.created_at,
        ST_Distance(p.geom, ST_MakePoint($1::float8, $2::float8)::geography)::float8 AS distancia_m
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
@@ -382,6 +385,7 @@ type ListReportesPorUbicacionRow struct {
 	Longitude         float64   `json:"longitude"`
 	Direccion         *string   `json:"direccion"`
 	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
+	CreatedAt         time.Time `json:"created_at"`
 	DistanciaM        float64   `json:"distancia_m"`
 }
 
@@ -416,6 +420,7 @@ func (q *Queries) ListReportesPorUbicacion(ctx context.Context, arg ListReportes
 			&i.Longitude,
 			&i.Direccion,
 			&i.IncidenteEtiqueta,
+			&i.CreatedAt,
 			&i.DistanciaM,
 		); err != nil {
 			return nil, err
@@ -430,7 +435,7 @@ func (q *Queries) ListReportesPorUbicacion(ctx context.Context, arg ListReportes
 
 const listReportesResumen = `-- name: ListReportesResumen :many
 SELECT r.id, r.incidente_id, r.estado_actual, r.avistamientos, r.es_oficial, p.latitude, p.longitude,
-       r.direccion, i.etiqueta AS incidente_etiqueta
+       r.direccion, i.etiqueta AS incidente_etiqueta, r.created_at
 FROM reporte r
 JOIN puntos_origen p ON p.reporte_id = r.id
 JOIN incidentes i ON i.id = r.incidente_id
@@ -439,6 +444,7 @@ AND ($1::float8 IS NULL OR p.latitude >= $1)
 AND ($2::float8 IS NULL OR p.latitude <= $2)
 AND ($3::float8 IS NULL OR p.longitude >= $3)
 AND ($4::float8 IS NULL OR p.longitude <= $4)
+ORDER BY r.created_at
 `
 
 type ListReportesResumenParams struct {
@@ -458,6 +464,7 @@ type ListReportesResumenRow struct {
 	Longitude         float64   `json:"longitude"`
 	Direccion         *string   `json:"direccion"`
 	IncidenteEtiqueta string    `json:"incidente_etiqueta"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 func (q *Queries) ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error) {
@@ -484,6 +491,7 @@ func (q *Queries) ListReportesResumen(ctx context.Context, arg ListReportesResum
 			&i.Longitude,
 			&i.Direccion,
 			&i.IncidenteEtiqueta,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
