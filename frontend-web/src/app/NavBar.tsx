@@ -61,7 +61,7 @@ export default function NavBar() {
             {
                 icon: <LuUsers />,
                 title: "Usuarios",
-                onClick: () => {}
+                panelView: 'Usuarios',
             },
             {
                 icon: <LuSun/>,

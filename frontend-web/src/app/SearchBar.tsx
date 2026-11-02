@@ -1,7 +1,12 @@
-import { useRef, useState, type FocusEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FocusEvent } from 'react';
 import { LuSearch, LuX } from 'react-icons/lu';
 
-export default function SearchBar() {
+interface SearchBarProps {
+    onChangeQuery?: (query: string) => void;
+    onSubmit?: (query: string) => void;
+}
+
+export default function SearchBar({onChangeQuery, onSubmit}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [query, setQuery] = useState('');
     const [focused, setFocused] = useState(false);
@@ -12,6 +17,17 @@ export default function SearchBar() {
         // Pasar el foco del input a los botones de la barra no la saca del estado Enfoque.
         if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
     };
+
+    const handleChangeQuery = (e: ChangeEvent<HTMLInputElement>) => {
+        const newQuery = e.target.value;
+        setQuery(newQuery);
+        onChangeQuery?.(newQuery);
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        onSubmit?.(query);
+    }
 
     const exit = () => {
         setQuery('');
@@ -37,6 +53,7 @@ export default function SearchBar() {
                 transition-colors duration-200
                 ${isActive ? 'border-brand px-2' : 'border-transparent px-7.5'}
             `}
+            onSubmit={handleSubmit}
         >
             <input
                 ref={inputRef}
@@ -46,7 +63,7 @@ export default function SearchBar() {
                 aria-label="Buscar folio, dirección o colonia"
                 placeholder="Buscar folio, dirección o colonia"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleChangeQuery}
                 className="
                     min-w-0 flex-1 bg-transparent
                     text-[17px] text-ink placeholder:text-ink-muted
