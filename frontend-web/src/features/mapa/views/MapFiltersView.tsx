@@ -20,7 +20,8 @@ const sectionTitleStyle = "text-xs font-semibold tracking-[0.72px] text-ink-mute
 
 // "7. Mapa - Filtros" del Figma. Edita el filtro que comparten el mapa y la lista de "Incidentes"; los cambios se
 // aplican con "Mostrar N resultados", y regresar o cerrar los descarta. Sin la sección "Capas" del Figma: sus filas
-// repetían los estados y confundían, y "Avisos oficiales" es el chip "Oficiales", igual que en la lista.
+// repetían los estados y confundían, y "Avisos oficiales" es el chip "Solo oficiales", igual que en la lista: va en su
+// propia sección porque, a diferencia de los estados, restringe lo que se ve al marcarlo.
 export default function MapFiltersView() {
     const { closePanel } = useCommonPanel();
     const { reportes, categories, filters, setFilters } = useReportes();
@@ -73,8 +74,12 @@ export default function MapFiltersView() {
                                 onPress={() => update({ statuses: toggled(draft.statuses, status) })}
                             />
                         )}
+                    </div>
+
+                    <span className={sectionTitleStyle}>ORIGEN</span>
+                    <div className="flex flex-wrap gap-2">
                         <CategoryChip
-                            label="Oficiales"
+                            label="Solo oficiales"
                             color="var(--color-brand)"
                             isSelected={draft.onlyOfficial}
                             onPress={() => update({ onlyOfficial: !draft.onlyOfficial })}

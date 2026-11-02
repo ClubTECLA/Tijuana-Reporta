@@ -9,14 +9,13 @@ import { useAuth } from "@/features/sesion/useAuth";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import {
-    filterReportes, TAB_STATUSES, tabOf, toggled, type ReportFilters, type ReportTab as Tab,
+    filterReportes, OPEN_STATUSES, TAB_STATUSES, tabOf, toggled, type ReportFilters, type ReportTab as Tab,
 } from "@/features/reportes/reportFilters";
 import { canPublishIncidents } from "@/features/sesion/users";
 import type { ApiEstadoReporte } from "@/types/api-types";
 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
 const PAGE_SIZE = 7;
-const STATUS_CHIPS: ApiEstadoReporte[] = ["Pendiente", "Verificado"];
 
 const noteStyle = "py-6 text-center text-sm text-ink-muted";
 
@@ -29,7 +28,7 @@ export default function IncidentsView() {
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
     const all = reportes ?? [];
-    // Los contadores respetan el resto del filtro (capas, categorías y periodo), igual que la lista.
+    // Los contadores respetan el resto del filtro (categorías, oficiales y periodo), igual que la lista.
     const countWith = (statuses: ApiEstadoReporte[]) => filterReportes(all, { ...filters, statuses }).length;
     const activeCount = countWith(TAB_STATUSES.activos);
     const resolvedCount = countWith(TAB_STATUSES.resueltos);
@@ -73,7 +72,8 @@ export default function IncidentsView() {
                 </SegmentedTabs>
 
                 <div className="flex flex-wrap gap-2">
-                    {STATUS_CHIPS.map((status) =>
+                    {/* Probable no está en el Figma, pero sin su chip ese estado no se podría ocultar desde aquí. */}
+                    {OPEN_STATUSES.map((status) =>
                         <CategoryChip
                             key={status}
                             label={status}
@@ -81,7 +81,7 @@ export default function IncidentsView() {
                             onPress={() => toggleStatus(status)}
                         />
                     )}
-                    <CategoryChip label="Oficiales" isSelected={filters.onlyOfficial} onPress={toggleOfficial} />
+                    <CategoryChip label="Solo oficiales" isSelected={filters.onlyOfficial} onPress={toggleOfficial} />
                 </div>
 
                 {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. */}

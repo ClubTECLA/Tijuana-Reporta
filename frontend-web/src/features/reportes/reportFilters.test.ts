@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, tabOf } from "./reportFilters";
+import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OPEN_STATUSES, tabOf } from "./reportFilters";
 import type { ApiEstadoReporte, ApiReporteResumen } from "@/types/api-types";
 
 const reporte = (id: string, estado_actual: ApiEstadoReporte, es_oficial = false) =>
@@ -23,8 +23,16 @@ describe("filterReportes", () => {
         expect(ids(filterReportes(reportes, { ...DEFAULT_FILTERS, statuses: ["Resuelto", "Probable"] }))).toEqual(["probable", "resuelto"]);
     });
 
-    it("solo oficiales, en cualquier estado", () => {
-        expect(ids(filterReportes(reportes, { ...DEFAULT_FILTERS, statuses: ALL_STATUSES, onlyOfficial: true }))).toEqual(["verificado"]);
+    it("sin ningún estado marcado no se ve nada", () => {
+        expect(filterReportes(reportes, { ...DEFAULT_FILTERS, statuses: [] })).toEqual([]);
+    });
+
+    it("solo oficiales se combina con los estados marcados", () => {
+        const conOficialCerrado = [...reportes, reporte("oficial-resuelto", "Resuelto", true)];
+        const oficiales = (statuses: ApiEstadoReporte[]) => ids(filterReportes(conOficialCerrado, { ...DEFAULT_FILTERS, statuses, onlyOfficial: true }));
+        expect(oficiales(OPEN_STATUSES)).toEqual(["verificado"]);
+        expect(oficiales(ALL_STATUSES)).toEqual(["verificado", "oficial-resuelto"]);
+        expect(oficiales(["Pendiente"])).toEqual([]);
     });
 
     it("oculta las categorías apagadas", () => {
@@ -56,11 +64,16 @@ describe("activeFilterLabels", () => {
         expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: ["Pendiente"], hiddenCategories: [3] }))
             .toEqual(["Pendiente", "1 categoría oculta"]);
     });
+
+    it("avisa si no hay ningún estado marcado, y no si están los de entrada en otro orden", () => {
+        expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: [] })).toEqual(["Ningún estado"]);
+        expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: ["Verificado", "Pendiente", "Probable"] })).toEqual([]);
+    });
 });
 
 describe("tabOf", () => {
-    it("los estados abiertos, con o sin chips, son la pestaña Activos", () => {
-        expect(tabOf([])).toBe("activos");
+    it("los estados abiertos, todos o algunos, son la pestaña Activos", () => {
+        expect(tabOf(OPEN_STATUSES)).toBe("activos");
         expect(tabOf(["Pendiente", "Verificado"])).toBe("activos");
     });
 
@@ -69,8 +82,9 @@ describe("tabOf", () => {
         expect(tabOf(["Pendiente", "Probable", "Verificado", "Resuelto", "Descartado"])).toBe("todos");
     });
 
-    it("una mezcla que ninguna pestaña representa no marca ninguna", () => {
+    it("una mezcla que ninguna pestaña representa, o ningún estado, no marca ninguna", () => {
         expect(tabOf(["Resuelto", "Pendiente"])).toBeNull();
         expect(tabOf(["Descartado"])).toBeNull();
+        expect(tabOf([])).toBeNull();
     });
 });
