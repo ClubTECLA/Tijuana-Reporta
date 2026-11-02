@@ -236,7 +236,8 @@ export interface paths {
         };
         /** @description Un tipo de incidente con los tags de su catálogo, esté activo o no. */
         get: operations["obtenerIncidente"];
-        put?: never;
+        /** @description Actualiza un tipo de incidente existente. Solo administradores. */
+        put: operations["actualizarIncidente"];
         post?: never;
         delete?: never;
         options?: never;
@@ -305,6 +306,7 @@ export interface components {
         UsuarioMeResponse: components["schemas"]["usuario_me_response"];
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
+        ActualizarIncidenteRequest: components["schemas"]["actualizar_incidente_request"];
         UsuarioResumen: components["schemas"]["usuario_resumen"];
         /**
          * @description Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
@@ -513,6 +515,17 @@ export interface components {
             color?: string;
             /** @description Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas). */
             tags?: components["schemas"]["crear_tag_request"][];
+        };
+        actualizar_incidente_request: {
+            nombre: string;
+            /** @description Texto legible del incidente (p. ej. "Socavón"); es el que se muestra y arma el título del reporte. */
+            etiqueta: string;
+            tiempo_limite: number | null;
+            /** Format: double */
+            radio: number | null;
+            /** @example #EF6C33 */
+            color: string;
+            esta_activo: boolean;
         };
         /** @description Un usuario del sistema. */
         usuario_resumen: {
@@ -1275,6 +1288,77 @@ export interface operations {
             };
             /** @description Incidente no encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    actualizarIncidente: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidenteId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["actualizar_incidente_request"];
+            };
+        };
+        responses: {
+            /** @description Incidente actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["incidente"];
+                };
+            };
+            /** @description Datos inválidos (p. ej. color mal formado) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Incidente no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Ya existe otro incidente con ese nombre */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
