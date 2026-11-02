@@ -32,6 +32,10 @@ type fakeIncidenteStore struct {
 	createTagsErr  error
 	tagsByIdsCalls int
 	tagsByIdCalls  int
+
+	lastUpdateArg  sqlc.UpdateIncidenteParams
+	updateCalled   bool
+	updateErr      error
 }
 
 func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg CreateTxParams) (Detalle, error) {
@@ -109,6 +113,26 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int
 		}
 	}
 	return out, nil
+}
+
+func (f *fakeIncidenteStore) UpdateIncidente(_ context.Context, arg sqlc.UpdateIncidenteParams) (sqlc.Incidente, error) {
+	f.updateCalled = true
+	f.lastUpdateArg = arg
+	if f.updateErr != nil {
+		return sqlc.Incidente{}, f.updateErr
+	}
+	i, ok := f.incidentes[arg.ID]
+	if !ok {
+		return sqlc.Incidente{}, pgx.ErrNoRows
+	}
+	i.Nombre = arg.Nombre
+	i.Etiqueta = arg.Etiqueta
+	i.TiempoLimite = arg.TiempoLimite
+	i.Radio = arg.Radio
+	i.EstaActivo = arg.EstaActivo
+	i.Color = arg.Color
+	f.incidentes[arg.ID] = i
+	return i, nil
 }
 
 func (f *fakeIncidenteStore) agregarIncidente(id int, nombre string, activo bool) {

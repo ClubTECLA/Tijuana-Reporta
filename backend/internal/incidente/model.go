@@ -18,6 +18,15 @@ type Nuevo struct {
 	Tags         []NuevoTag
 }
 
+type Actualizar struct {
+	Nombre       string
+	Etiqueta     string
+	Color        string
+	EstaActivo   bool
+	TiempoLimite *int
+	Radio        *float64
+}
+
 // NuevoTag es un tag del catálogo que se crea junto con su incidente.
 type NuevoTag struct {
 	Nombre string
