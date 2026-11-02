@@ -124,33 +124,18 @@ export function TdButton({color = 'transparent', content, onClick} : TdButtonPro
 const allowedCellTypes = [SimpleText, SimpleStatistics, Checkbox, TdButton];
 
 
-interface TdItemsWrappedProps {
+interface TCellProps {
     className?: string
     children: ReactNode
 }
 
-export function TdItemsWrapped({className, children} : TdItemsWrappedProps) {
-    const cells = Children.toArray(children);
-
-    const tableCells = cells.map((cell, index) => {
-        if (
-            !isValidElement(cell)
-            || !allowedCellTypes.some((allowedType) => cell.type === allowedType)
-        ) {
-            throw new Error(
-                `Invalid cell at position ${index + 1}.`,
-            );
-        }
-
-        return cell
-    });
-
+export function TCell({className, children} : TCellProps) {
 
     return(
         <div
             className={className}
         >
-            {tableCells}
+            {children}
         </div>
     )
 }
@@ -166,7 +151,7 @@ export function TRow({ children }: TRowProps) {
     const tableCells = cells.map((cell, index) => {
         if (
             !isValidElement(cell)
-            || ![...allowedCellTypes, TdItemsWrapped].some((allowedType) => cell.type === allowedType)
+            || ![...allowedCellTypes, TCell].some((allowedType) => cell.type === allowedType)
         ) {
             throw new Error(
                 `Invalid cell at position ${index + 1}.`,

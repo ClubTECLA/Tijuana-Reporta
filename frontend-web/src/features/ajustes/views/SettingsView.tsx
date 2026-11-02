@@ -7,7 +7,7 @@ import { LuShieldCheck } from "react-icons/lu";
 import SubsectionTitle from "@/components/ui/SubsectionTitle";
 import Button from "@/components/ui/Button";
 import { BiPlus } from "react-icons/bi";
-import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "@/components/ui/Tables";
+import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TCell, TRow } from "@/components/ui/Tables";
 import { GoPencil } from "react-icons/go";
 import type { ApiIncidente } from "@/types/api-types";
 import CategoryForm from "@/features/categorias/components/CategoryForm";
@@ -103,7 +103,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                 <SimpleStatistics
                                     statistics="N/A"
                                 />
-                                <TdItemsWrapped
+                                <TCell
                                     className="flex flex-row items-center justify-end p-2"
                                 >
                                     <Checkbox
@@ -121,7 +121,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                             setOpenForm(true);
                                         }}
                                     />
-                                </TdItemsWrapped>
+                                </TCell>
                             </TRow>
                             )
                         }

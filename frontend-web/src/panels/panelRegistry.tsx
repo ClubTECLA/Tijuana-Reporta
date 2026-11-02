@@ -7,7 +7,7 @@ import NewIncidentView from "@/features/reportes/views/NewIncidentView";
 import IncidentsView from "@/features/reportes/views/IncidentsView";
 import IncidentDetailView from "@/features/reportes/views/IncidentDetailView";
 import SummaryView from "@/features/resumen/views/SummaryView";
-import UsersView from "@/features/usuarios/views/usersView";
+import UsersView from "@/features/usuarios/views/UsersView";
 import type { PanelViewKey, PanelViewPropsMap } from "./panelTypes";
 
 // Punto de composición visual: los tipos y el router no importan este registro.
