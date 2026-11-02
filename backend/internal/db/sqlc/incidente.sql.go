@@ -188,3 +188,49 @@ func (q *Queries) ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int
 	}
 	return items, nil
 }
+
+const updateIncidente = `-- name: UpdateIncidente :one
+UPDATE incidentes
+SET
+    nombre = $2,
+    etiqueta = $3,
+    tiempo_limite = $4,
+    radio = $5,
+    esta_activo = $6,
+    color = $7
+WHERE id = $1
+RETURNING id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color
+`
+
+type UpdateIncidenteParams struct {
+	ID           int      `json:"id"`
+	Nombre       string   `json:"nombre"`
+	Etiqueta     string   `json:"etiqueta"`
+	TiempoLimite *int     `json:"tiempo_limite"`
+	Radio        *float64 `json:"radio"`
+	EstaActivo   bool     `json:"esta_activo"`
+	Color        string   `json:"color"`
+}
+
+func (q *Queries) UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error) {
+	row := q.db.QueryRow(ctx, updateIncidente,
+		arg.ID,
+		arg.Nombre,
+		arg.Etiqueta,
+		arg.TiempoLimite,
+		arg.Radio,
+		arg.EstaActivo,
+		arg.Color,
+	)
+	var i Incidente
+	err := row.Scan(
+		&i.ID,
+		&i.Nombre,
+		&i.Etiqueta,
+		&i.TiempoLimite,
+		&i.Radio,
+		&i.EstaActivo,
+		&i.Color,
+	)
+	return i, err
+}
