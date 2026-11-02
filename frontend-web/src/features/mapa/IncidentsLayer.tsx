@@ -13,16 +13,23 @@ import { useCommonPanel } from "@/panels/useCommonPanel";
 // incidente recién publicado.
 export default function IncidentsLayer() {
     const { map } = useMap();
-    const { filteredReportes, categories, createdId } = useReportes();
+    const { reportes, filteredReportes, categories, createdId } = useReportes();
     const { openPanel, currentPanel } = useCommonPanel();
     const flownToRef = useRef<string | null>(null);
 
-    const reportesById = useMemo(() => new Map(filteredReportes.map((reporte) => [reporte.id, reporte])), [filteredReportes]);
     // Incidente cuyo detalle está abierto (desde el mapa o desde la lista): el mapa lo lleva a la vista y lo resalta.
     const activeId = currentPanel?.view === "Detalle Incidente" ? currentPanel.props.reporteId : null;
+    // Se pinta aunque el filtro lo oculte (p. ej. abierto desde el Resumen): si no, el mapa se centraría en un punto vacío.
+    const visibleReportes = useMemo(() => {
+        if (!activeId || filteredReportes.some((reporte) => reporte.id === activeId)) return filteredReportes;
+        const open = reportes?.find((reporte) => reporte.id === activeId);
+        return open ? [...filteredReportes, open] : filteredReportes;
+    }, [activeId, filteredReportes, reportes]);
+
+    const reportesById = useMemo(() => new Map(visibleReportes.map((reporte) => [reporte.id, reporte])), [visibleReportes]);
     const active = activeId ? reportesById.get(activeId) : undefined;
 
-    const items = useIncidentMarkers(filteredReportes, categories, (reporteId) => openPanel("Detalle Incidente", { reporteId }));
+    const items = useIncidentMarkers(visibleReportes, categories, (reporteId) => openPanel("Detalle Incidente", { reporteId }));
     useOpenIncident(activeId, active, active ? categories.get(active.incidente_id) : undefined);
 
     // Incidente recién publicado: centra el mapa en él una sola vez, con zoom suficiente para ver su pin.
