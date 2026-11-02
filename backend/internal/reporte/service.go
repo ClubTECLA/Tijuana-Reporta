@@ -145,6 +145,7 @@ func toResumen(r sqlc.ListReportesResumenRow) Resumen {
 		IncidenteID:   r.IncidenteID,
 		Titulo:        Titulo(r.IncidenteEtiqueta, r.Direccion),
 		Direccion:     r.Direccion,
+		CreatedAt:     r.CreatedAt,
 		EstadoActual:  r.EstadoActual,
 		Avistamientos: r.Avistamientos,
 		EsOficial:     r.EsOficial,
@@ -216,6 +217,7 @@ func (s *Service) ListarCercanos(ctx context.Context, lng, lat, radio float64, i
 				Longitude:         r.Longitude,
 				Direccion:         r.Direccion,
 				IncidenteEtiqueta: r.IncidenteEtiqueta,
+				CreatedAt:         r.CreatedAt,
 			}),
 			DistanciaM: r.DistanciaM,
 		})

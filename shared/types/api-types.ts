@@ -321,6 +321,8 @@ export interface components {
             titulo: components["schemas"]["titulo_reporte"];
             /** @description Dirección enviada por el cliente al crear el reporte. */
             direccion?: string;
+            /** Format: date-time */
+            created_at: string;
             estado_actual: components["schemas"]["estado_reporte"];
             avistamientos: number;
             es_oficial: boolean;
