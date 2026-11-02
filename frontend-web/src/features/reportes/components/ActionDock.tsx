@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { LuPlus } from "react-icons/lu";
 import { useAuth } from "@/features/sesion/useAuth";
 import { useCommonPanel } from "@/panels/useCommonPanel";
+import { usePanelRight } from "@/panels/usePanelRight";
 import { useReportes } from "@/features/reportes/useReportes";
 import { timeAgo } from "@/features/reportes/reportFormat";
 import Button from "@/components/ui/Button";
@@ -20,24 +21,15 @@ function sinceLabel(lastSync: number, now: number) {
 // Se centra en el mapa que queda libre a la derecha del panel, como en el Figma.
 export default function ActionDock() {
     const { isAuthenticated, user } = useAuth();
-    const { currentPanel, currentPanelView, openPanel } = useCommonPanel();
+    const { currentPanelView, openPanel } = useCommonPanel();
     const { lastSync, error } = useReportes();
     const [now, setNow] = useState(() => Date.now());
-    const [panelRight, setPanelRight] = useState(0);
+    const panelRight = usePanelRight();
 
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(id);
     }, []);
-
-    // El ancho del panel cambia con la vista y con la ventana (25vw): se sigue con un ResizeObserver.
-    useEffect(() => {
-        const panel = document.querySelector("[data-common-panel]");
-        if (!panel) return;
-        const observer = new ResizeObserver(() => setPanelRight(panel.getBoundingClientRect().right));
-        observer.observe(panel);
-        return () => observer.disconnect();
-    }, [currentPanel]);
 
     if (!isAuthenticated) return null;
 
@@ -52,7 +44,7 @@ export default function ActionDock() {
     return (
         <div
             // En móvil el panel ocupa toda la pantalla y el dock queda centrado.
-            style={{ "--panel-right": `${currentPanel ? panelRight : 0}px` } as CSSProperties}
+            style={{ "--panel-right": `${panelRight}px` } as CSSProperties}
             className={`
                 absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 py-2 font-ui
                 sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)]

@@ -3,16 +3,18 @@ import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import { activeFilterLabels } from "@/features/reportes/reportFilters";
 
-// Aviso sobre el mapa de que los pines están filtrados: los filtros del panel "Incidentes" siguen aplicándose al
-// cerrarlo. Con el estilo de "Capas activas" del Figma, pero arriba al centro: abajo a la izquierda lo taparía el panel
-// y chocaría con "Nuevo incidente" en pantallas de 1280 a 1440 px.
-// No se muestra sin filtros ni con el panel "Incidentes" abierto, que ya enseña sus chips.
+// Aviso sobre el mapa de que los pines están filtrados: el filtro sigue aplicándose al cerrar los paneles. Con el estilo
+// de "Capas activas" del Figma, pero arriba al centro: abajo a la izquierda lo taparía el panel y chocaría con
+// "Nuevo incidente" en pantallas de 1280 a 1440 px.
+// No se muestra sin filtros ni con los paneles que ya enseñan el filtro ("Incidentes" y "Capas y filtros").
+const PANELS_SHOWING_FILTERS = ["Incidentes", "Capas y filtros"];
+
 export default function ActiveFiltersBadge() {
     const { currentPanelView, openPanel } = useCommonPanel();
     const { reportes, filteredReportes, filters, resetFilters } = useReportes();
     const labels = activeFilterLabels(filters);
 
-    if (!reportes || !labels.length || currentPanelView === "Incidentes") return null;
+    if (!reportes || !labels.length || PANELS_SHOWING_FILTERS.includes(currentPanelView ?? "")) return null;
 
     return (
         <div
@@ -23,7 +25,7 @@ export default function ActiveFiltersBadge() {
         >
             <button
                 type="button"
-                onClick={() => openPanel("Incidentes")}
+                onClick={() => openPanel("Capas y filtros")}
                 title="Ver o cambiar los filtros"
                 className="flex min-w-0 items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-2 text-left transition-colors hover:bg-subtle"
             >
