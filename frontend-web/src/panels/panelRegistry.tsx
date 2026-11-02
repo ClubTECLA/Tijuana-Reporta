@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import MapFiltersView from "@/features/mapa/views/MapFiltersView";
 import UserProfileView from "@/features/perfil/views/UserProfileView";
 import HelpAndGuidesView from "@/features/ayuda/views/HelpAndGuidesView";
 import NotificationsView from "@/features/notificaciones/views/NotificationsView";
@@ -23,4 +24,5 @@ export const panelRegistry = {
     "Nuevo Incidente": NewIncidentView,
     "Incidentes": IncidentsView,
     "Detalle Incidente": IncidentDetailView,
+    "Capas y filtros": MapFiltersView,
 } satisfies PanelRegistry;

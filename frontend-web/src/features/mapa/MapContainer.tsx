@@ -10,7 +10,9 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useMap } from './useMap';
 import ActionDock from '@/features/reportes/components/ActionDock';
 import ActiveFiltersBadge from '@/features/reportes/components/ActiveFiltersBadge';
+import { useCommonPanel } from '@/panels/useCommonPanel';
 import IncidentsLayer from './IncidentsLayer';
+import LayersPill from './LayersPill';
 
 setWorkerUrl(workerUrl);
 
@@ -48,6 +50,7 @@ export default function MapContainer() {
   const [atMaxZoom, setAtMaxZoom] = useState(false);
 
   const { setMap } = useMap();
+  const { openPanel } = useCommonPanel();
 
   useEffect(() => {
     // Create the map once the container is available.
@@ -97,8 +100,7 @@ export default function MapContainer() {
           drop-shadow-floating
         "
       >
-        {/* No map layers to toggle yet (reports, risk zones, shelters). */}
-        <button type="button" className={controlButtonStyle} aria-label="Capas" title="Capas (próximamente)" disabled>
+        <button type="button" className={controlButtonStyle} aria-label="Capas y filtros" title="Capas y filtros" onClick={() => openPanel('Capas y filtros')}>
           <LuLayers />
         </button>
         <div className="h-px w-6 bg-line-soft" />
@@ -116,6 +118,7 @@ export default function MapContainer() {
 
       <ActionDock />
       <ActiveFiltersBadge />
+      <LayersPill />
       <IncidentsLayer />
     </div>
   );

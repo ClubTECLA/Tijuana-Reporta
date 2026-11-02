@@ -8,33 +8,39 @@ import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import { useAuth } from "@/features/sesion/useAuth";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
-import { STATUS_FILTERS, tabFilters, type ReportTab as Tab, type StatusFilter } from "@/features/reportes/reportFilters";
+import {
+    filterReportes, TAB_STATUSES, tabOf, toggled, type ReportFilters, type ReportTab as Tab,
+} from "@/features/reportes/reportFilters";
 import { canPublishIncidents } from "@/features/sesion/users";
+import type { ApiEstadoReporte } from "@/types/api-types";
 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
 const PAGE_SIZE = 7;
+const STATUS_CHIPS: ApiEstadoReporte[] = ["Pendiente", "Verificado"];
 
 const noteStyle = "py-6 text-center text-sm text-ink-muted";
 
-// "19. Incidente - ListaCompleta" del Figma. Los datos y los filtros vienen de ReportesContext,
-// que comparte con la capa del mapa: los chips y pestañas filtran también los pines.
+// "19. Incidente - ListaCompleta" del Figma. Lista los mismos reportes que pinta el mapa (el filtro de ReportesContext);
+// las pestañas y chips son atajos sobre ese filtro, así que también cambian el mapa y "Capas y filtros".
 export default function IncidentsView() {
     const { user } = useAuth();
     const { openPanel } = useCommonPanel();
-    const { reportes, categories, error, filteredReportes: filtered, filters, setTab, toggleStatus: toggleStatusFilter, toggleOfficial: toggleOfficialFilter } = useReportes();
-    const { tab, statusFilters, onlyOfficial } = filters;
+    const { reportes, categories, error, filteredReportes: filtered, filters, setFilters } = useReportes();
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
     const all = reportes ?? [];
-    const activeCount = all.filter(tabFilters.activos).length;
-    const resolvedCount = all.filter(tabFilters.resueltos).length;
+    // Los contadores respetan el resto del filtro (capas, categorías y periodo), igual que la lista.
+    const countWith = (statuses: ApiEstadoReporte[]) => filterReportes(all, { ...filters, statuses }).length;
+    const activeCount = countWith(TAB_STATUSES.activos);
+    const resolvedCount = countWith(TAB_STATUSES.resueltos);
     const shown = filtered.slice(0, visibleCount);
     const remaining = filtered.length - shown.length;
 
-    // Cambiar de pestaña o de filtro vuelve a la primera tanda.
-    const selectTab = (next: Tab) => { setTab(next); setVisibleCount(PAGE_SIZE) };
-    const toggleStatus = (status: StatusFilter) => { toggleStatusFilter(status); setVisibleCount(PAGE_SIZE) };
-    const toggleOfficial = () => { toggleOfficialFilter(); setVisibleCount(PAGE_SIZE) };
+    // Cambiar el filtro vuelve a la primera tanda.
+    const update = (changes: Partial<ReportFilters>) => { setFilters({ ...filters, ...changes }); setVisibleCount(PAGE_SIZE) };
+    const selectTab = (next: Tab) => update({ statuses: TAB_STATUSES[next] });
+    const toggleStatus = (status: ApiEstadoReporte) => update({ statuses: toggled(filters.statuses, status) });
+    const toggleOfficial = () => update({ onlyOfficial: !filters.onlyOfficial });
 
     const tabs: { key: Tab; label: string }[] = [
         { key: "activos", label: reportes ? `Activos · ${activeCount}` : "Activos" },
@@ -57,25 +63,25 @@ export default function IncidentsView() {
             {/* Mismo ancho fijo que "Nuevo incidente" y el detalle: con solo un mínimo, el panel (w-fit) crecía hasta
                 el título más largo en vez de recortarlo con "…". */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
-                {/* La pestaña vive en ReportesContext (también filtra el mapa), así que las pestañas van controladas. */}
+                {/* La pestaña sale de los estados del filtro; con una mezcla que ninguna representa no se marca ninguna. */}
                 <SegmentedTabs
                     format="row"
-                    activeTab={tabs.findIndex(({ key }) => key === tab)}
+                    activeTab={tabs.findIndex(({ key }) => key === tabOf(filters.statuses))}
                     onChange={(index) => selectTab(tabs[index].key)}
                 >
                     {tabs.map(({ key, label }) => <TabItem key={key} tabTitle={label} />)}
                 </SegmentedTabs>
 
                 <div className="flex flex-wrap gap-2">
-                    {STATUS_FILTERS.map((status) =>
+                    {STATUS_CHIPS.map((status) =>
                         <CategoryChip
                             key={status}
                             label={status}
-                            isSelected={statusFilters.includes(status)}
+                            isSelected={filters.statuses.includes(status)}
                             onPress={() => toggleStatus(status)}
                         />
                     )}
-                    <CategoryChip label="Oficiales" isSelected={onlyOfficial} onPress={toggleOfficial} />
+                    <CategoryChip label="Oficiales" isSelected={filters.onlyOfficial} onPress={toggleOfficial} />
                 </div>
 
                 {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. */}

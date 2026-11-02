@@ -1,6 +1,6 @@
 import { createContext } from "react";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
-import type { ReportFilters, ReportTab, StatusFilter } from "./reportFilters";
+import type { ReportFilters } from "./reportFilters";
 import type { FalloFoto, NuevoReporte, Publicacion } from "./publicarReporte";
 
 // El contexto solo declara el contrato; ReportesProvider lo conecta con la API, el sondeo y los filtros.
@@ -14,13 +14,12 @@ export interface ReportesContextType {
     categoriesLoaded: boolean
     /** Último fallo al cargar reportes o categorías; null si la última carga fue bien. */
     error: string | null
-    /** Reportes que pasan los filtros del panel (pestaña y chips); los usan la lista y el mapa. */
+    /** Reportes que pasan el filtro: los pinta el mapa y los lista el panel "Incidentes", así siempre coinciden. */
     filteredReportes: ApiReporteResumen[]
     filters: ReportFilters
-    setTab: (tab: ReportTab) => void
-    toggleStatus: (status: StatusFilter) => void
-    toggleOfficial: () => void
-    /** Vuelve a DEFAULT_FILTERS (los activos, sin chips). */
+    /** Sustituye el filtro: lo usan "Mostrar N resultados" de "Capas y filtros" y los atajos de la lista. */
+    setFilters: (filters: ReportFilters) => void
+    /** Vuelve a DEFAULT_FILTERS (los abiertos de todas las capas y categorías). */
     resetFilters: () => void
     refresh: () => Promise<void>
     /** Publica un reporte (ver publicarReporte), resalta su pin y recarga la lista y el mapa. */
