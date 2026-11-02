@@ -1,25 +1,30 @@
+import type { CSSProperties } from "react";
 import { LuFilter, LuX } from "react-icons/lu";
 import { useCommonPanel } from "@/panels/useCommonPanel";
+import { usePanelRight } from "@/panels/usePanelRight";
 import { useReportes } from "@/features/reportes/useReportes";
 import { activeFilterLabels } from "@/features/reportes/reportFilters";
 
 // Aviso sobre el mapa de que los pines están filtrados: el filtro sigue aplicándose al cerrar los paneles. Con el estilo
-// de "Capas activas" del Figma, pero arriba al centro: abajo a la izquierda lo taparía el panel y chocaría con
-// "Nuevo incidente" en pantallas de 1280 a 1440 px.
+// de "Capas activas" del Figma, centrado encima del dock y en su mismo eje (el mapa libre a la derecha del panel). Por
+// debajo de 1680 px la píldora de capas ocupa la fila de encima del dock, así que el aviso sube una más.
 // No se muestra sin filtros ni con los paneles que ya enseñan el filtro ("Incidentes" y "Capas y filtros").
 const PANELS_SHOWING_FILTERS = ["Incidentes", "Capas y filtros"];
 
 export default function ActiveFiltersBadge() {
     const { currentPanelView, openPanel } = useCommonPanel();
     const { reportes, filteredReportes, filters, resetFilters } = useReportes();
+    const panelRight = usePanelRight();
     const labels = activeFilterLabels(filters);
 
     if (!reportes || !labels.length || PANELS_SHOWING_FILTERS.includes(currentPanelView ?? "")) return null;
 
     return (
         <div
+            style={{ "--panel-right": `${panelRight}px` } as CSSProperties}
             className="
-                absolute left-1/2 top-20 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1
+                absolute bottom-40 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1
+                sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)] min-[1680px]:bottom-24
                 rounded-full border border-glass-line bg-glass p-1.5 font-ui backdrop-blur-glass drop-shadow-floating
             "
         >
