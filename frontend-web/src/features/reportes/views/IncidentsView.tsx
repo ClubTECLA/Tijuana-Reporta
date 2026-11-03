@@ -9,13 +9,13 @@ import { useAuth } from "@/features/sesion/useAuth";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import {
-    filterReportes, OPEN_STATUSES, TAB_STATUSES, tabOf, toggled, type ReportFilters, type ReportTab as Tab,
+    filterReportes, TAB_STATUSES, tabOf, toggled, toggledOfficial, type ReportFilters, type ReportTab as Tab,
 } from "@/features/reportes/reportFilters";
 import { canPublishIncidents } from "@/features/sesion/users";
 import type { ApiEstadoReporte } from "@/types/api-types";
 
 // Filas por tanda de "Cargar N más" (Figma: 7 filas visibles). El backend no pagina: se pagina aquí.
-const PAGE_SIZE = 7;
+const PAGE_SIZE = 5;
 
 const noteStyle = "py-6 text-center text-sm text-ink-muted";
 
@@ -31,7 +31,7 @@ export default function IncidentsView() {
     // Los contadores respetan el resto del filtro (categorías, oficiales y periodo), igual que la lista.
     const countWith = (statuses: ApiEstadoReporte[]) => filterReportes(all, { ...filters, statuses }).length;
     const activeCount = countWith(TAB_STATUSES.activos);
-    const resolvedCount = countWith(TAB_STATUSES.resueltos);
+    const resolvedCount = countWith(["Resuelto"]);
     const shown = filtered.slice(0, visibleCount);
     const remaining = filtered.length - shown.length;
 
@@ -39,11 +39,11 @@ export default function IncidentsView() {
     const update = (changes: Partial<ReportFilters>) => { setFilters({ ...filters, ...changes }); setVisibleCount(PAGE_SIZE) };
     const selectTab = (next: Tab) => update({ statuses: TAB_STATUSES[next] });
     const toggleStatus = (status: ApiEstadoReporte) => update({ statuses: toggled(filters.statuses, status) });
-    const toggleOfficial = () => update({ onlyOfficial: !filters.onlyOfficial });
+    const toggleOfficial = () => update(toggledOfficial(filters));
+    const activeTab = tabOf(filters.statuses);
 
     const tabs: { key: Tab; label: string }[] = [
         { key: "activos", label: reportes ? `Activos · ${activeCount}` : "Activos" },
-        { key: "resueltos", label: "Resueltos" },
         { key: "todos", label: "Todos" },
     ];
 
@@ -62,18 +62,18 @@ export default function IncidentsView() {
             {/* Mismo ancho fijo que "Nuevo incidente" y el detalle: con solo un mínimo, el panel (w-fit) crecía hasta
                 el título más largo en vez de recortarlo con "…". */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
-                {/* La pestaña sale de los estados del filtro; con una mezcla que ninguna representa no se marca ninguna. */}
+                {/* La pestaña sale de los estados del filtro (ver tabOf). */}
                 <SegmentedTabs
                     format="row"
-                    activeTab={tabs.findIndex(({ key }) => key === tabOf(filters.statuses))}
+                    activeTab={tabs.findIndex(({ key }) => key === activeTab)}
                     onChange={(index) => selectTab(tabs[index].key)}
                 >
                     {tabs.map(({ key, label }) => <TabItem key={key} tabTitle={label} />)}
                 </SegmentedTabs>
 
                 <div className="flex flex-wrap gap-2">
-                    {/* Probable no está en el Figma, pero sin su chip ese estado no se podría ocultar desde aquí. */}
-                    {OPEN_STATUSES.map((status) =>
+                    {/* Cada estado cerrado que se ve tiene su chip marcado: al marcar uno, la pestaña pasa a Todos. */}
+                    {TAB_STATUSES[activeTab].map((status) =>
                         <CategoryChip
                             key={status}
                             label={status}

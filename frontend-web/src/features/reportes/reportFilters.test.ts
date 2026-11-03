@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OPEN_STATUSES, tabOf } from "./reportFilters";
+import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OPEN_STATUSES, tabOf, toggledOfficial } from "./reportFilters";
 import type { ApiEstadoReporte, ApiReporteResumen } from "@/types/api-types";
 
 const reporte = (id: string, estado_actual: ApiEstadoReporte, es_oficial = false) =>
@@ -57,12 +57,16 @@ describe("activeFilterLabels", () => {
         expect(activeFilterLabels(DEFAULT_FILTERS)).toEqual([]);
     });
 
-    it("nombra la pestaña o los estados, las categorías ocultas, Oficiales y el periodo, en ese orden", () => {
+    it("nombra los estados, las categorías ocultas, Oficiales y el periodo, en ese orden", () => {
         expect(activeFilterLabels({ hiddenCategories: [1, 2], statuses: ["Resuelto"], onlyOfficial: true, period: "24h" }))
-            .toEqual(["Resueltos", "2 categorías ocultas", "Oficiales", "Últimas 24 horas"]);
+            .toEqual(["Resuelto", "2 categorías ocultas", "Oficiales", "Últimas 24 horas"]);
         expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: ALL_STATUSES })).toEqual(["Todos los estados"]);
         expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: ["Pendiente"], hiddenCategories: [3] }))
             .toEqual(["Pendiente", "1 categoría oculta"]);
+    });
+
+    it("con algún cerrado y solo algunos estados los nombra, en vez de decir que son todos", () => {
+        expect(activeFilterLabels({ ...DEFAULT_FILTERS, statuses: ["Pendiente", "Resuelto"] })).toEqual(["Pendiente", "Resuelto"]);
     });
 
     it("avisa si no hay ningún estado marcado, y no si están los de entrada en otro orden", () => {
@@ -71,20 +75,30 @@ describe("activeFilterLabels", () => {
     });
 });
 
+describe("toggledOfficial", () => {
+    it("en Activos deja solo Verificado, y al quitarlo vuelven los abiertos", () => {
+        const marcado = toggledOfficial(DEFAULT_FILTERS);
+        expect(marcado).toEqual({ statuses: ["Verificado"], onlyOfficial: true });
+        expect(toggledOfficial({ ...DEFAULT_FILTERS, ...marcado })).toEqual({ statuses: OPEN_STATUSES, onlyOfficial: false });
+    });
+
+    it("en Todos no toca los estados", () => {
+        expect(toggledOfficial({ ...DEFAULT_FILTERS, statuses: ["Resuelto"] })).toEqual({ statuses: ["Resuelto"], onlyOfficial: true });
+        expect(toggledOfficial({ ...DEFAULT_FILTERS, statuses: ALL_STATUSES })).toEqual({ statuses: ALL_STATUSES, onlyOfficial: true });
+    });
+});
+
 describe("tabOf", () => {
-    it("los estados abiertos, todos o algunos, son la pestaña Activos", () => {
+    it("los estados abiertos, todos, algunos o ninguno, son la pestaña Activos", () => {
         expect(tabOf(OPEN_STATUSES)).toBe("activos");
         expect(tabOf(["Pendiente", "Verificado"])).toBe("activos");
+        expect(tabOf([])).toBe("activos");
     });
 
-    it("solo Resuelto es Resueltos y los cinco estados son Todos", () => {
-        expect(tabOf(["Resuelto"])).toBe("resueltos");
-        expect(tabOf(["Pendiente", "Probable", "Verificado", "Resuelto", "Descartado"])).toBe("todos");
-    });
-
-    it("una mezcla que ninguna pestaña representa, o ningún estado, no marca ninguna", () => {
-        expect(tabOf(["Resuelto", "Pendiente"])).toBeNull();
-        expect(tabOf(["Descartado"])).toBeNull();
-        expect(tabOf([])).toBeNull();
+    it("con algún estado cerrado es la pestaña Todos, para que tenga su chip", () => {
+        expect(tabOf(ALL_STATUSES)).toBe("todos");
+        expect(tabOf(["Resuelto"])).toBe("todos");
+        expect(tabOf(["Descartado"])).toBe("todos");
+        expect(tabOf(["Resuelto", "Pendiente"])).toBe("todos");
     });
 });
