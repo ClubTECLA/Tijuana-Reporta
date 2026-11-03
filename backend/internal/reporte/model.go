@@ -104,6 +104,7 @@ type Resumen struct {
 	IncidenteID   int
 	Titulo        string
 	Direccion     *string
+	CreatedAt     time.Time
 	EstadoActual  sqlc.Estado
 	Avistamientos int
 	EsOficial     bool

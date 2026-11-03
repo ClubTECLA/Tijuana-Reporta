@@ -1,6 +1,6 @@
 type: object
 description: Versión ligera de un reporte para pintar pines en el mapa.
-required: [id, incidente_id, titulo, estado_actual, avistamientos, es_oficial, latitude, longitude]
+required: [id, incidente_id, titulo, estado_actual, avistamientos, es_oficial, latitude, longitude, created_at]
 properties:
   id:
     type: string
@@ -12,6 +12,9 @@ properties:
   direccion:
     type: string
     description: Dirección enviada por el cliente al crear el reporte.
+  created_at:
+    type: string
+    format: date-time
   estado_actual:
     $ref: '../../openapi.yaml#/components/schemas/EstadoReporte'
   avistamientos:

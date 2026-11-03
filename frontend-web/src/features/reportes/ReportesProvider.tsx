@@ -75,7 +75,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
 
     const publicar = useCallback(async (nuevo: NuevoReporte) => {
         const publicacion = await publicarReporte(nuevo);
-        // La lista y el mapa muestran el reporte nuevo, y su pin se anima.
+        // Sin filtros, para que la lista y el mapa muestren el reporte nuevo y su pin se anime.
+        setFilters(DEFAULT_FILTERS);
         setCreatedId(publicacion.reporte.id);
         void refresh();
         return publicacion;
@@ -129,6 +130,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         return () => clearTimeout(timeoutId);
     }, [createdId]);
 
+    // shortcut: con un periodo de 24 h o 7 días, "ahora" se toma al cambiar los datos o el filtro; recalcularlo con un
+    // reloj cuando el backend envíe created_at y el periodo se active.
     const filteredReportes = useMemo(() => filterReportes(reportes ?? [], filters), [reportes, filters]);
 
     const value = useMemo<ReportesContextType>(() => ({
@@ -138,14 +141,7 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
         error,
         filteredReportes,
         filters,
-        setTab: (tab) => setFilters((prev) => ({ ...prev, tab })),
-        toggleStatus: (status) => setFilters((prev) => ({
-            ...prev,
-            statusFilters: prev.statusFilters.includes(status)
-                ? prev.statusFilters.filter((s) => s !== status)
-                : [...prev.statusFilters, status],
-        })),
-        toggleOfficial: () => setFilters((prev) => ({ ...prev, onlyOfficial: !prev.onlyOfficial })),
+        setFilters,
         resetFilters: () => setFilters(DEFAULT_FILTERS),
         refresh,
         publicar,
