@@ -9,7 +9,7 @@ import { useAuth } from "@/features/sesion/useAuth";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import {
-    filterReportes, TAB_STATUSES, tabOf, toggled, toggledOfficial, type ReportFilters, type ReportTab as Tab,
+    filterReportes, TAB_STATUSES, tabOf, tabStatuses, toggledOfficial, toggledStatus, type ReportFilters, type ReportTab as Tab,
 } from "@/features/reportes/reportFilters";
 import { canPublishIncidents } from "@/features/sesion/users";
 import type { ApiEstadoReporte } from "@/types/api-types";
@@ -37,8 +37,8 @@ export default function IncidentsView() {
 
     // Cambiar el filtro vuelve a la primera tanda.
     const update = (changes: Partial<ReportFilters>) => { setFilters({ ...filters, ...changes }); setVisibleCount(PAGE_SIZE) };
-    const selectTab = (next: Tab) => update({ statuses: TAB_STATUSES[next] });
-    const toggleStatus = (status: ApiEstadoReporte) => update({ statuses: toggled(filters.statuses, status) });
+    const selectTab = (next: Tab) => update({ statuses: tabStatuses(next, filters.onlyOfficial) });
+    const toggleStatus = (status: ApiEstadoReporte) => update(toggledStatus(filters, status));
     const toggleOfficial = () => update(toggledOfficial(filters));
     const activeTab = tabOf(filters.statuses);
 

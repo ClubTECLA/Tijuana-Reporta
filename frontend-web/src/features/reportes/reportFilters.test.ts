@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OPEN_STATUSES, tabOf, toggledOfficial } from "./reportFilters";
+import { activeFilterLabels, ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OFFICIAL_STATUSES, OPEN_STATUSES, tabOf, tabStatuses, toggledOfficial, toggledStatus } from "./reportFilters";
 import type { ApiEstadoReporte, ApiReporteResumen } from "@/types/api-types";
 
 const reporte = (id: string, estado_actual: ApiEstadoReporte, es_oficial = false) =>
@@ -82,9 +82,46 @@ describe("toggledOfficial", () => {
         expect(toggledOfficial({ ...DEFAULT_FILTERS, ...marcado })).toEqual({ statuses: OPEN_STATUSES, onlyOfficial: false });
     });
 
-    it("en Todos no toca los estados", () => {
-        expect(toggledOfficial({ ...DEFAULT_FILTERS, statuses: ["Resuelto"] })).toEqual({ statuses: ["Resuelto"], onlyOfficial: true });
-        expect(toggledOfficial({ ...DEFAULT_FILTERS, statuses: ALL_STATUSES })).toEqual({ statuses: ALL_STATUSES, onlyOfficial: true });
+    it("en Todos marca Verificado, Resuelto y Descartado, y al quitarlo vuelven todos, sin cambiar de pestaña", () => {
+        const marcado = toggledOfficial({ ...DEFAULT_FILTERS, statuses: ALL_STATUSES });
+        expect(marcado).toEqual({ statuses: ["Verificado", "Resuelto", "Descartado"], onlyOfficial: true });
+        expect(tabOf(marcado.statuses)).toBe("todos");
+        expect(toggledOfficial({ ...DEFAULT_FILTERS, ...marcado })).toEqual({ statuses: ALL_STATUSES, onlyOfficial: false });
+    });
+});
+
+describe("toggledStatus", () => {
+    const oficiales = (statuses: ApiEstadoReporte[]) => ({ ...DEFAULT_FILTERS, statuses, onlyOfficial: true });
+
+    it("en Activos, marcar Pendiente o Probable quita Solo oficiales", () => {
+        expect(toggledStatus(oficiales(["Verificado"]), "Pendiente")).toEqual({ statuses: ["Verificado", "Pendiente"], onlyOfficial: false });
+        expect(toggledStatus(oficiales(["Verificado"]), "Probable")).toEqual({ statuses: ["Verificado", "Probable"], onlyOfficial: false });
+    });
+
+    it("en Activos, Verificado o desmarcar un estado no quitan Solo oficiales", () => {
+        expect(toggledStatus(oficiales(["Verificado"]), "Verificado")).toEqual({ statuses: [], onlyOfficial: true });
+        expect(toggledStatus(oficiales([]), "Verificado")).toEqual({ statuses: ["Verificado"], onlyOfficial: true });
+        expect(toggledStatus(oficiales(["Verificado", "Pendiente"]), "Pendiente")).toEqual({ statuses: ["Verificado"], onlyOfficial: true });
+    });
+
+    it("en Todos no quita Solo oficiales", () => {
+        expect(toggledStatus(oficiales(OFFICIAL_STATUSES), "Pendiente").onlyOfficial).toBe(true);
+    });
+
+    it("sin Solo oficiales no lo activa", () => {
+        expect(toggledStatus(DEFAULT_FILTERS, "Pendiente")).toEqual({ statuses: ["Probable", "Verificado"], onlyOfficial: false });
+    });
+});
+
+describe("tabStatuses", () => {
+    it("sin Solo oficiales cada pestaña marca todos sus estados", () => {
+        expect(tabStatuses("activos", false)).toEqual(OPEN_STATUSES);
+        expect(tabStatuses("todos", false)).toEqual(ALL_STATUSES);
+    });
+
+    it("con Solo oficiales marca Verificado en Activos, y los de los oficiales en Todos", () => {
+        expect(tabStatuses("activos", true)).toEqual(["Verificado"]);
+        expect(tabStatuses("todos", true)).toEqual(OFFICIAL_STATUSES);
     });
 });
 

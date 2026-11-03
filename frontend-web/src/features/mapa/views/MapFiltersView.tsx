@@ -6,7 +6,7 @@ import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import {
-    ALL_STATUSES, DEFAULT_FILTERS, filterReportes, toggled, type MapPeriod, type ReportFilters,
+    ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OFFICIAL_STATUSES, OPEN_STATUSES, toggled, type MapPeriod, type ReportFilters,
 } from "@/features/reportes/reportFilters";
 
 // shortcut: falta "Rango" del Figma, que necesita un selector de fechas; añadirlo cuando el periodo se active.
@@ -78,11 +78,12 @@ export default function MapFiltersView() {
 
                     <span className={sectionTitleStyle}>ORIGEN</span>
                     <div className="flex flex-wrap gap-2">
+                        {/* Sin pestañas que decidan, como en la lista (ver toggledOfficial): al quitarlo vuelven los de entrada. */}
                         <CategoryChip
                             label="Solo oficiales"
                             color="var(--color-brand)"
                             isSelected={draft.onlyOfficial}
-                            onPress={() => update({ onlyOfficial: !draft.onlyOfficial })}
+                            onPress={() => update({ statuses: draft.onlyOfficial ? OPEN_STATUSES : OFFICIAL_STATUSES, onlyOfficial: !draft.onlyOfficial })}
                         />
                     </div>
 
