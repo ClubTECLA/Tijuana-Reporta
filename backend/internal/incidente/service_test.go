@@ -33,7 +33,7 @@ type fakeIncidenteStore struct {
 	tagsByIdsCalls int
 	tagsByIdCalls  int
 
-	lastUpdateArg  sqlc.UpdateIncidenteParams
+	lastUpdateArg  UpdateTxParams
 	updateCalled   bool
 	updateErr      error
 }
@@ -115,24 +115,33 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int
 	return out, nil
 }
 
-func (f *fakeIncidenteStore) UpdateIncidente(_ context.Context, arg sqlc.UpdateIncidenteParams) (sqlc.Incidente, error) {
+func (f *fakeIncidenteStore) UpdateIncidenteConHistorial(_ context.Context, arg UpdateTxParams) (Detalle, error) {
 	f.updateCalled = true
 	f.lastUpdateArg = arg
 	if f.updateErr != nil {
-		return sqlc.Incidente{}, f.updateErr
+		return Detalle{}, f.updateErr
 	}
-	i, ok := f.incidentes[arg.ID]
+
+	p := arg.Incidente
+	i, ok := f.incidentes[p.ID]
 	if !ok {
-		return sqlc.Incidente{}, pgx.ErrNoRows
+		return Detalle{}, pgx.ErrNoRows
 	}
-	i.Nombre = arg.Nombre
-	i.Etiqueta = arg.Etiqueta
-	i.TiempoLimite = arg.TiempoLimite
-	i.Radio = arg.Radio
-	i.EstaActivo = arg.EstaActivo
-	i.Color = arg.Color
-	f.incidentes[arg.ID] = i
-	return i, nil
+	i.Nombre = p.Nombre
+	i.Etiqueta = p.Etiqueta
+	i.TiempoLimite = p.TiempoLimite
+	i.Radio = p.Radio
+	i.EstaActivo = p.EstaActivo
+	i.Color = p.Color
+	f.incidentes[p.ID] = i
+
+	tags := []sqlc.Tag{}
+	for _, t := range f.tags {
+		if t.IncidenteID == p.ID {
+			tags = append(tags, t)
+		}
+	}
+	return Detalle{Incidente: i, Tags: tags}, nil
 }
 
 func (f *fakeIncidenteStore) agregarIncidente(id int, nombre string, activo bool) {
@@ -446,17 +455,21 @@ func TestIncidenteService_Actualizar_Exito(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Actualizar() error = %v", err)
 	}
-	if !store.updateCalled {
-		t.Fatal("Actualizar() no llamó a UpdateIncidente")
+		if !store.updateCalled {
+		t.Fatal("Actualizar() no llamó a UpdateIncidenteConHistorial")
 	}
-	if store.lastUpdateArg.ID != 1 || store.lastUpdateArg.Nombre != "bache" || store.lastUpdateArg.Etiqueta != "Bache" {
-		t.Fatalf("UpdateIncidente() arg = %+v, want id=1 nombre=bache etiqueta=Bache", store.lastUpdateArg)
+	if store.lastUpdateArg.ActorID != actorID {
+		t.Fatalf("UpdateIncidenteConHistorial() actor = %v, want %v", store.lastUpdateArg.ActorID, actorID)
 	}
-	if store.lastUpdateArg.Color != "#EF6C33" || store.lastUpdateArg.EstaActivo {
-		t.Fatalf("UpdateIncidente() arg = %+v, want color=#EF6C33 esta_activo=false", store.lastUpdateArg)
+	p := store.lastUpdateArg.Incidente
+	if p.ID != 1 || p.Nombre != "bache" || p.Etiqueta != "Bache" {
+		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want id=1 nombre=bache etiqueta=Bache", p)
 	}
-	if *store.lastUpdateArg.TiempoLimite != 7 || *store.lastUpdateArg.Radio != 25.5 {
-		t.Fatalf("UpdateIncidente() arg = %+v, want tiempo_limite=7 radio=25.5", store.lastUpdateArg)
+	if p.Color != "#EF6C33" || p.EstaActivo {
+		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want color=#EF6C33 esta_activo=false", p)
+	}
+	if *p.TiempoLimite != 7 || *p.Radio != 25.5 {
+		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want tiempo_limite=7 radio=25.5", p)
 	}
 	if d.Incidente.Nombre != "bache" || len(d.Tags) != 1 || d.Tags[0].Nombre != "profundo" {
 		t.Fatalf("Actualizar() = %+v, want incidente bache con [profundo]", d)
