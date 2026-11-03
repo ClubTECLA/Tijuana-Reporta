@@ -6,7 +6,7 @@ import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useReportes } from "@/features/reportes/useReportes";
 import {
-    ALL_STATUSES, DEFAULT_FILTERS, filterReportes, toggled, type MapPeriod, type ReportFilters,
+    ALL_STATUSES, DEFAULT_FILTERS, filterReportes, OFFICIAL_STATUSES, OPEN_STATUSES, toggled, type MapPeriod, type ReportFilters,
 } from "@/features/reportes/reportFilters";
 
 // shortcut: falta "Rango" del Figma, que necesita un selector de fechas; añadirlo cuando el periodo se active.
@@ -20,7 +20,8 @@ const sectionTitleStyle = "text-xs font-semibold tracking-[0.72px] text-ink-mute
 
 // "7. Mapa - Filtros" del Figma. Edita el filtro que comparten el mapa y la lista de "Incidentes"; los cambios se
 // aplican con "Mostrar N resultados", y regresar o cerrar los descarta. Sin la sección "Capas" del Figma: sus filas
-// repetían los estados y confundían, y "Avisos oficiales" es el chip "Oficiales", igual que en la lista.
+// repetían los estados y confundían, y "Avisos oficiales" es el chip "Solo oficiales", igual que en la lista: va en su
+// propia sección porque, a diferencia de los estados, restringe lo que se ve al marcarlo.
 export default function MapFiltersView() {
     const { closePanel } = useCommonPanel();
     const { reportes, categories, filters, setFilters } = useReportes();
@@ -73,11 +74,16 @@ export default function MapFiltersView() {
                                 onPress={() => update({ statuses: toggled(draft.statuses, status) })}
                             />
                         )}
+                    </div>
+
+                    <span className={sectionTitleStyle}>ORIGEN</span>
+                    <div className="flex flex-wrap gap-2">
+                        {/* Sin pestañas que decidan, como en la lista (ver toggledOfficial): al quitarlo vuelven los de entrada. */}
                         <CategoryChip
-                            label="Oficiales"
+                            label="Solo oficiales"
                             color="var(--color-brand)"
                             isSelected={draft.onlyOfficial}
-                            onPress={() => update({ onlyOfficial: !draft.onlyOfficial })}
+                            onPress={() => update({ statuses: draft.onlyOfficial ? OPEN_STATUSES : OFFICIAL_STATUSES, onlyOfficial: !draft.onlyOfficial })}
                         />
                     </div>
 
