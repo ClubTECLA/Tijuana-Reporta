@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { listarUsuarios } from "../usuarios.services";
 import type { ApiListarUsuariosResponse } from "@/types/api-types";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
-import { Table, TRow, TdButton, TCell } from "@/components/ui/Tables"; 
+import { Table, TRow, TdButton, TCell, SimpleStatistics } from "@/components/ui/Tables"; 
 import UserCard from "@/features/perfil/components/UserCard";
 import ColorBadge, {type ColorBadgeColor} from "@/components/ui/ColorBadge";
 import { IoIosMore } from "react-icons/io";
@@ -25,7 +25,7 @@ const roleColors: Record<string, ColorBadgeColor> = {
 export default function UserView() {
     const [ users, setUsers ] = useState<ApiListarUsuariosResponse>([]);
     const [ usersFilter, setUsersFilter ] = useState<ApiListarUsuariosResponse>([]);
-    const [ rolesOptions, setRolesOptions ] = useState<OptionTileProps[]>([{'id': 'all', 'title': 'Todos', 'isSelected': true}]);
+    const [ rolesOptions, setRolesOptions ] = useState<OptionTileProps[]>([{'id': 'all', 'title': 'todos', 'isSelected': true}]);
     const { showMessage } = useSysMessage();
 
     useEffect(() => {
@@ -51,7 +51,7 @@ export default function UserView() {
                 title: user.rol_name,
                 isSelected: false
             })).filter((u, idx, arr) => arr.findIndex(v => v.id === u.id) === idx) //remove duplicates
-        , {'id': 'all', 'title': 'Todos', 'isSelected': true}]);
+        , {'id': 'all', 'title': 'todos', 'isSelected': true}]);
     }, [users]);
 
     const handleRoleChange = (roleId: string) => {
@@ -77,8 +77,9 @@ export default function UserView() {
                     onChangeOption={handleRoleChange}
                 />
             </RowSection>
-            <SubSection className="w-full max-h-1/2 h-full overflow-y-auto overflow-x-hidden">
+            <SubSection className="">
                 <Table
+                    maxh="30rem"
                     headers={[
                     {
                         'title': "Usuario"
@@ -109,7 +110,9 @@ export default function UserView() {
                                 />
                             </TCell>
                             <TCell>
-                                <span>{user.reportes_count}</span>
+                                <SimpleStatistics
+                                    statistics={String(user.reportes_count)}
+                                />
                             </TCell>
                             <TdButton
                                 content={{

@@ -15,6 +15,7 @@ import SubSection from "@/components/layout/SubSection";
 import type { subsectionProps } from "@/types/utils-types";
 import { listarIncidentes } from "@/features/categorias/incidentes.services";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
+import { MdDeleteForever } from "react-icons/md";
 
 function CategoriesSection({debug} : subsectionProps) {
     const { showMessage } = useSysMessage();
@@ -72,10 +73,11 @@ function CategoriesSection({debug} : subsectionProps) {
             <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
                 <SubSection
                     format={'nothing'}
-                    className="max-h-120 min-w-0 w-full overflow-y-auto overflow-x-hidden min-w-150"
+                    className="min-w-0 w-fit overflow-x-hidden"
                 >
                     <Table
                         format='col'
+                        maxh="30rem"
                         headers={[
                             {
                                 title: 'Categoria',
@@ -118,6 +120,14 @@ function CategoriesSection({debug} : subsectionProps) {
                                         }}
                                         onClick={() => {
                                             setSelectedCategory(c)
+                                            setOpenForm(true);
+                                        }}
+                                    />
+                                    <TdButton
+                                        content={{
+                                            icon: <MdDeleteForever/>,
+                                        }}
+                                        onClick={() => {
                                             setOpenForm(true);
                                         }}
                                     />

@@ -78,11 +78,11 @@ export default function FilterSelected({
                 <SubSection
                     as="span"
                     debug={debug}
-                    className="text-md font-medium tracking-[0.12em] text-ink-muted"
+                    className="text-2sm font-medium tracking-[0.12em] text-ink-muted"
                 >
                     {label}
                 </SubSection>
-                <SubSection as="span" debug={debug} className="text-md font-bold text-ink">
+                <SubSection as="span" debug={debug} className="text-2sm font-bold text-ink">
                     {selectedOption?.title ?? "Seleccionar"}
                 </SubSection>
                 <IoChevronDown

@@ -180,9 +180,11 @@ interface HeadCell {
 interface TableProps extends subsectionProps {
     headers?: HeadCell[];
     children?: ReactNode;
+    maxh?: number | string;
+    maxw?: number | string;
 }
 
-export function Table({ format, debug, headers, children }: TableProps) {
+export function Table({ format, debug, headers, children, maxh, maxw }: TableProps) {
     const rows = Children.toArray(children);
 
     rows.forEach((row, index) => {
@@ -205,35 +207,43 @@ export function Table({ format, debug, headers, children }: TableProps) {
         <SubSection debug={debug} format={format}
             className="rounded-xl border border-line-strong"
         >
-            <table className="w-full border-separate border-spacing-0">
-                {headers && (
-                    <thead>
-                        <tr>
-                            {headers.map((header, index) => (
-                                <th
-                                    key={`${header.title}-${index}`}
-                                    scope="col"
-                                    className={`
-                                        bg-subtle px-2 py-1 text-left whitespace-nowrap
-                                        ${index === 0 ? "rounded-tl-xl" : ""}
-                                        ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
-                                    `}
-                                >
-                                    <span className={`text-sm font-medium ${header.badge ? "text-ink" : "text-ink-muted"}`}>
-                                        {header.title.toUpperCase()}
-                                    </span>
-                                    {header.badge && (
-                                        <span className="block text-xs font-medium text-ink-muted">
-                                            {header.badge}
+            <div
+                className={`${maxh != null ? "overflow-y-auto" : "overflow-y-hidden"} ${maxw != null ? "overflow-x-auto" : "overflow-x-hidden"}`}
+                style={{
+                    ...(maxh != null ? { maxHeight: maxh } : {}),
+                    ...(maxw != null ? { maxWidth: maxw } : {}),
+                }}
+            >
+                <table className="w-full border-separate border-spacing-0">
+                    {headers && (
+                        <thead>
+                            <tr>
+                                {headers.map((header, index) => (
+                                    <th
+                                        key={`${header.title}-${index}`}
+                                        scope="col"
+                                        className={`
+                                            sticky top-0 z-10 bg-subtle px-2 py-1 text-left whitespace-nowrap
+                                            ${index === 0 ? "rounded-tl-xl" : ""}
+                                            ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
+                                        `}
+                                    >
+                                        <span className={`text-sm font-medium ${header.badge ? "text-ink" : "text-ink-muted"}`}>
+                                            {header.title.toUpperCase()}
                                         </span>
-                                    )}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                )}
-                <tbody>{rows}</tbody>
-            </table>
+                                        {header.badge && (
+                                            <span className="block text-xs font-medium text-ink-muted">
+                                                {header.badge}
+                                            </span>
+                                        )}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                    )}
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>
         </SubSection>
     );
 }

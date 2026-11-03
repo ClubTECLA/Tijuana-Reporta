@@ -23,7 +23,7 @@ export function OptionsTile({
     const tone = variant === "danger"
         ? "text-danger"
         : isSelected
-            ? "bg-brand-subtle text-brand-text"
+            ? "bg-brand-subtle text-brand-text font-semibold"
             : "text-ink";
     const iconTone = variant === "danger" ? "text-danger" : "text-icon";
 
@@ -37,7 +37,7 @@ export function OptionsTile({
             aria-checked={isSelected}
             onClick={onClick}
             className={`
-                flex min-h-[68px] w-full items-center gap-4 rounded-2xl px-3 py-3
+                flex items-center gap-4 rounded-xl px-3 py-2
                 text-left font-ui text-xl font-medium transition-colors
                 ${isSelected ? "" : "hover:bg-subtle"}
                 focus-visible:outline-2 focus-visible:outline-brand
@@ -54,7 +54,7 @@ export function OptionsTile({
                     {icon}
                 </SubSection>
             )}
-            <SubSection as="span" debug={debug}>
+            <SubSection as="span" debug={debug} className="text-md">
                 {title}
             </SubSection>
         </SubSection>
@@ -83,8 +83,8 @@ export function OptionsMenu({
             role="menu"
             aria-label={ariaLabel}
             className="
-                flex w-[min(24rem,calc(100vw-2rem))] flex-col
-                rounded-[2rem] bg-white p-2 shadow-float
+                flex min-w-50 flex-col
+                rounded-2xl bg-white p-2 shadow-float
             "
         >
             {Children.map(children, (child) => {
