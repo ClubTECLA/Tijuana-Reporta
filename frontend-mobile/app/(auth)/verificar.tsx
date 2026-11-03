@@ -19,7 +19,7 @@ function formatTime(totalSeconds: number) {
 
 export default function VerificarScreen() {
   const router = useRouter();
-  const { mode, phone } = useLocalSearchParams<{ mode?: string; phone?: string }>();
+  const { mode, email } = useLocalSearchParams<{ mode?: string; email?: string }>();
   const isRecuperar = mode === 'recuperar';
 
   const [code, setCode] = useState<string[]>(['', '', '', '']);
@@ -36,7 +36,7 @@ export default function VerificarScreen() {
 
   const handleVerify = () => {
     if (isRecuperar) {
-      router.push({ pathname: '/(auth)/nueva-contrasena', params: { phone } });
+      router.push({ pathname: '/(auth)/nueva-contrasena', params: { email } });
     } else {
       // Registro terminado. Sin backend de auth todavía, queda una sesión simulada.
       iniciarSesionYEntrar();
@@ -51,7 +51,7 @@ export default function VerificarScreen() {
 
       <Text style={styles.sentTo}>
         <Text style={styles.sentToMuted}>Código enviado a </Text>
-        {phone ? `+52 ${phone}` : '+52 664-XXX-XXXX'}
+        {email || 'tu correo'}
       </Text>
 
       <OtpInput value={code} onChange={setCode} />
@@ -61,7 +61,7 @@ export default function VerificarScreen() {
           <Text style={styles.sentToMuted}>Vence en: </Text>
           {formatTime(secondsLeft)}
         </Text>
-        <Text style={styles.resendLabel}>Reenviar SMS</Text>
+        <Text style={styles.resendLabel}>Reenviar código</Text>
       </View>
 
       <Text style={styles.attemptsLabel}>

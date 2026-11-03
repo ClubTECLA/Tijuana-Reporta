@@ -1,6 +1,7 @@
 register:
   post:
     operationId: register
+    description: "Crea una cuenta con email y contraseña (8 a 72 bytes) y devuelve un token de acceso. 409 si el email ya está registrado."
     security: []
     requestBody:
       required: true
@@ -31,6 +32,7 @@ register:
 login:
   post:
     operationId: login
+    description: "Valida email y contraseña y devuelve un token de acceso. Usa ese token como `Authorization: Bearer <token>` en el resto de rutas."
     security: []
     requestBody:
       required: true
@@ -61,6 +63,7 @@ login:
 me:
   get:
     operationId: me
+    description: "Devuelve el usuario dueño del token, con el nombre de su rol."
     responses:
       '200':
         description: Usuario autenticado
@@ -78,6 +81,7 @@ me:
 logout:
   post:
     operationId: logout
+    description: "Cierra la sesión. El token no se guarda en el servidor, así que solo responde 204; el cliente debe descartarlo."
     security: []
     responses:
       '204':

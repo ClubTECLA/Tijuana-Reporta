@@ -9,6 +9,7 @@ import {
   type IncidenteApi,
   type ReporteApi,
   type ReporteCercanoApi,
+  zonasActivas,
 } from './mappers';
 import { rutaCercanos } from './cercanos';
 import { detalleApiKey } from './claves';
@@ -48,6 +49,8 @@ export const reportesHttp: ReportesApi = {
     const ahora = new Date();
     return items.flatMap((r) => mapearResumen(r, incidentes, ahora) ?? []);
   },
+  // Las zonas de peligro salen de la misma lista acotada al punto: así llevan el nombre real del incidente.
+  cercanos: async (lat, lng, radioM) => zonasActivas(await reportesHttp.listar({ centro: { lat, lng }, radioM })),
   detalle: async (id) => {
     const [reporte, incidentes] = await Promise.all([detalleApi(id), catalogoParaLeer()]);
     return mapearDetalle(reporte, incidentes, env.apiUrl);

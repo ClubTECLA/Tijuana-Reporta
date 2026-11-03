@@ -65,6 +65,18 @@
   --drop-shadow-pin: 0 4px 10px rgb(11 18 32 / 0.25);    /* Grupos de pines (SVG) */
 
   --blur-glass: 14px;                                     /* Pulso/Vidrio: desenfoque de fondo (backdrop-blur-glass) */
+
+  /*
+    Tipografía del Figma (las fuentes se cargan en index.html). Solo los tamaños que se repiten;
+    los de un solo uso siguen como valor arbitrario. Sin --line-height: cada token solo fija el tamaño.
+  */
+  --font-ui: "Inter", sans-serif;              /* font-ui: paneles y controles del web */
+  --font-mono: "JetBrains Mono", monospace;    /* font-mono: contadores y folios */
+
+  --text-2xs: 11px;      /* text-2xs: contadores sobre pines e iconos */
+  --text-caption: 13px;  /* text-caption: subtítulos, metadatos y ayudas */
+  --text-body: 15px;     /* text-body: títulos de fila y pestañas */
+  --text-title: 22px;    /* text-title: título de panel */
 }
 
 html,

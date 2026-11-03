@@ -66,6 +66,13 @@ crearIncidente:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+      
+      '500':
+        description: Usuario no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 obtenerIncidente:
   get:
@@ -154,6 +161,12 @@ agregarTags:
               $ref: '#/components/schemas/ErrorResponse'
       '409':
         description: El incidente ya tiene un tag con ese nombre (sin importar mayúsculas)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Usuario no encontrado
         content:
           application/json:
             schema:

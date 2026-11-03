@@ -21,17 +21,17 @@ tasks:
     desc: Falla si el código generado no está al día con el contrato
     cmds:
       - task: generate
-      - git diff --exit-code -- internal/api/generated.go internal/domain
+      - git diff --exit-code -- internal/httpapi/generated.go internal/db/sqlc
 
   migrate-up:
     desc: Aplica migraciones pendientes
     cmds:
-      - migrate -path internal/database/migrations -database "{{.DATABASE_URL}}" up
+      - migrate -path internal/db/migrations -database "{{.DATABASE_URL}}" up
 
   migrate-down:
     desc: Revierte la última migración
     cmds:
-      - migrate -path internal/database/migrations -database "{{.DATABASE_URL}}" down 1
+      - migrate -path internal/db/migrations -database "{{.DATABASE_URL}}" down 1
 
   test:
     desc: Corre los tests

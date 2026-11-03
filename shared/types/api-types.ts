@@ -14,6 +14,7 @@ export interface paths {
         /** @description Reportes activos para el mapa. Si se manda el área visible, filtra por ella. */
         get: operations["listarReportes"];
         put?: never;
+        /** @description Crea un reporte en la ubicación indicada. La foto se sube después con `subirMultimedia`. Solo los roles distintos de ciudadano pueden mandar `es_oficial: true` (403 si no). */
         post: operations["crearReporte"];
         delete?: never;
         options?: never;
@@ -38,6 +39,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reportes creados por el usuario autenticado (todos los estados), del más reciente al más antiguo. */
+        get: operations["listarMisReportes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reportes/{reporteId}": {
         parameters: {
             query?: never;
@@ -45,6 +63,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Devuelve un reporte por su id. 404 si no existe. */
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
@@ -67,6 +86,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** @description Suma un avistamiento (alguien más vio el mismo problema) al reporte y devuelve el reporte actualizado. */
         patch: operations["agregarAvistamiento"];
         trace?: never;
     };
@@ -79,6 +99,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Agrega un comentario del usuario autenticado a un reporte. */
         post: operations["crearComentario"];
         delete?: never;
         options?: never;
@@ -116,7 +137,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. */
+        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto, pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no final. Resuelto y Descartado son finales; cualquier otro cambio es 409. */
         patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
@@ -129,6 +150,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Crea una cuenta con email y contraseña (8 a 72 bytes) y devuelve un token de acceso. 409 si el email ya está registrado. */
         post: operations["register"];
         delete?: never;
         options?: never;
@@ -145,6 +167,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Valida email y contraseña y devuelve un token de acceso. Usa ese token como `Authorization: Bearer <token>` en el resto de rutas. */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -159,6 +182,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Devuelve el usuario dueño del token, con el nombre de su rol. */
         get: operations["me"];
         put?: never;
         post?: never;
@@ -177,6 +201,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Cierra la sesión. El token no se guarda en el servidor, así que solo responde 204; el cliente debe descartarlo. */
         post: operations["logout"];
         delete?: never;
         options?: never;
@@ -296,6 +321,8 @@ export interface components {
             titulo: components["schemas"]["titulo_reporte"];
             /** @description Dirección enviada por el cliente al crear el reporte. */
             direccion?: string;
+            /** Format: date-time */
+            created_at: string;
             estado_actual: components["schemas"]["estado_reporte"];
             avistamientos: number;
             es_oficial: boolean;
@@ -644,6 +671,46 @@ export interface operations {
             };
         };
     };
+    listarMisReportes: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de mis reportes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte_resumen"][];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
     obtenerReporte: {
         parameters: {
             query?: never;
@@ -926,6 +993,24 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
+            /** @description El reporte no puede pasar de su estado actual al pedido */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Usuario no encontrado */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
         };
     };
     register: {
@@ -1148,6 +1233,15 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
+            /** @description Usuario no encontrado */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
         };
     };
     obtenerIncidente: {
@@ -1252,6 +1346,15 @@ export interface operations {
             };
             /** @description El incidente ya tiene un tag con ese nombre (sin importar mayúsculas) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Usuario no encontrado */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

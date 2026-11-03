@@ -1,4 +1,5 @@
 import { onlineManager } from '@tanstack/react-query';
+import { distanciaMetros } from '@/lib/geo';
 import { ErrorRed } from '@/lib/http';
 import type { ComentarioConAutor, Reporte } from '@/types/api';
 import type { IncidenteApi } from './mappers';
@@ -262,6 +263,16 @@ export const reportesMock: ReportesApi = {
   async listar() {
     await delay(300);
     return [...reportes];
+  },
+
+  async cercanos(lat, lng, radioM) {
+    await delay(300);
+    return reportes
+      .filter((r) => r.status !== 'resuelto')
+      .map((r) => ({ r, d: distanciaMetros({ lat, lng }, r) }))
+      .filter(({ d }) => d <= radioM)
+      .sort((a, b) => a.d - b.d)
+      .map(({ r }) => ({ id: r.id, titulo: r.titulo, lat: r.lat, lng: r.lng }));
   },
 
   /** Crea un reporte pendiente en memoria y lo agrega al inicio de la lista de la sesión. */

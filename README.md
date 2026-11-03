@@ -172,8 +172,8 @@ Para evitar pisarse el trabajo entre compañeros y minimizar conflictos al fusio
 ## Migraciones de base de datos
 
 ```bash
-migrate -path backend/internal/database/migrations -database "$DATABASE_URL" up
-migrate -path backend/internal/database/migrations -database "$DATABASE_URL" down 1
+migrate -path backend/internal/db/migrations -database "$DATABASE_URL" up
+migrate -path backend/internal/db/migrations -database "$DATABASE_URL" down 1
 ```
 
 `001_baseline` es todo el esquema con sus datos semilla en un solo `up`/`down`. Reemplaza a las migraciones 001–006 anteriores, que siguen en el historial de git.
@@ -188,7 +188,7 @@ migrate -path backend/internal/database/migrations -database "$DATABASE_URL" dow
 
 Si está vacía o en una versión menor pasa, y `migrate` la crea o la actualiza. Para recrearla: `docker compose down -v && docker compose up -d --build` (borra los datos).
 
-**Agregar un cambio.** Crea `002_nombre.up.sql` y `002_nombre.down.sql` en `backend/internal/database/migrations/` y levanta el stack; no hay que tocar nada más. No edites `001_baseline` una vez desplegada.
+**Agregar un cambio.** Crea `002_nombre.up.sql` y `002_nombre.down.sql` en `backend/internal/db/migrations/` y levanta el stack; no hay que tocar nada más. No edites `001_baseline` una vez desplegada.
 
 **Verificar la base.**
 
@@ -304,6 +304,15 @@ go test ./... -v
 ## Notas sobre rutas de la API
 
 Las rutas del backend se registran **sin** el prefijo `/api` (por ejemplo `/v1/reportes`), porque nginx quita ese prefijo antes de reenviar la petición. El frontend sí debe usar el prefijo completo (`/api/v1/reportes`) para que nginx sepa a dónde enrutarlo.
+
+## Documentación de la API
+
+El backend sirve la documentación interactiva (Swagger UI) de todas las rutas en `/v1/docs`, generada a partir de `shared/openapi`:
+
+- Con Docker: [http://localhost/api/v1/docs](http://localhost/api/v1/docs)
+- Backend directo: `http://localhost:<puerto>/v1/docs`
+
+Para autenticarte en la página, haz `POST /auth/login`, copia el `access_token` y pégalo en **Authorize**. Para documentar o cambiar una ruta, edita su `description` en `shared/openapi/paths/` y corre `task generate` en `backend/`. La página necesita internet (carga Swagger UI desde un CDN).
 
 ## Variables de entorno
 

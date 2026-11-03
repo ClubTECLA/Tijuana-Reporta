@@ -6,6 +6,7 @@ import { EscudoIcon } from '@/components/icons/EscudoIcon';
 import { AlertaEjemplo } from '@/features/bienvenida/IlustracionMapa';
 import { PantallaPermiso } from '@/features/bienvenida/PantallaPermiso';
 import { marcarPermisosVistos } from '@/features/bienvenida/permisosVistos';
+import { pedirUbicacionEnSegundoPlano } from '@/lib/alertasCercanas';
 import { pedirPermisoNotificaciones } from '@/lib/notificaciones';
 import { colors } from '@/theme/colors';
 
@@ -17,7 +18,8 @@ export default function PermisoNotificaciones() {
     setPidiendo(true);
     try {
       // Igual que con la ubicación: si lo niega se sigue, se puede activar después.
-      await pedirPermisoNotificaciones();
+      // Las alertas por zona necesitan además la ubicación "todo el tiempo".
+      if (await pedirPermisoNotificaciones()) await pedirUbicacionEnSegundoPlano();
     } catch (err) {
       console.warn('[permisos] no se pudo pedir el permiso de notificaciones:', err);
     } finally {

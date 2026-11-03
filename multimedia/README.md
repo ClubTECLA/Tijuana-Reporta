@@ -26,7 +26,7 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
 1. La app crea el reporte: `POST /api/v1/reportes` → devuelve el `id`.
 2. La app sube la foto: `POST /api/v1/reportes/{id}/multimedia` (ver [Cómo consumirlo](#cómo-consumirlo)).
 3. **nginx** deja pasar hasta 12 MiB solo en esa ruta (el resto de `/api/` queda en 1 MB) y quita el prefijo `/api`.
-4. **backend** (`internal/service/multimedia.go`), en este orden:
+4. **backend** (`internal/multimedia/service.go`), en este orden:
    1. Valida el JWT y que el usuario sea el **creador** del reporte (si no, `404`).
    2. Lee el archivo (máx. `MAX_FOTO_BYTES`).
    3. Comprueba por **contenido** que sea JPEG (PNG, HEIC y demás se rechazan) y que no pase de `MAX_FOTO_PIXELES`.
@@ -79,9 +79,9 @@ y sus tipos TypeScript en `shared/types/api-types.ts` (`operations["subirMultime
 
 ### Desde el backend (cliente de `multimedia`)
 
-`backend/internal/multimedia/cliente.go` envuelve las dos llamadas de abajo y traduce
+`backend/internal/almacen/cliente.go` envuelve las dos llamadas de abajo y traduce
 los fallos: un error de conexión o un `5xx` de `multimedia` se convierte en
-`domain.ErrAlmacenNoDisponible`, que la API responde como `503`. Se configura con
+`almacen.ErrNoDisponible`, que la API responde como `503`. Se configura con
 `MULTIMEDIA_URL` (en compose: `http://multimedia:8081`).
 
 ## Probar rápido
@@ -226,8 +226,8 @@ Estructura:
 | `internal/config` | Lectura de variables de entorno. |
 
 La validación de imágenes y la limpieza de metadatos **no** están aquí: vive en el backend
-(`backend/internal/procesamiento`), y la regla de negocio en
-`backend/internal/service/multimedia.go`.
+(`backend/internal/multimedia/procesamiento`), y la regla de negocio en
+`backend/internal/multimedia/service.go`.
 
 ## Pendiente
 

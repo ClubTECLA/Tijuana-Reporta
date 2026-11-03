@@ -7,6 +7,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import { useSesionCargada, useSessionStore } from '@/lib/session';
 import { iniciarSesionDev } from '@/lib/devAuth';
+// Define la tarea de zonas de peligro en el ámbito global (debe existir aunque no haya vistas).
+import '@/lib/alertasCercanas';
 import {
   useFonts,
   Inter_400Regular,

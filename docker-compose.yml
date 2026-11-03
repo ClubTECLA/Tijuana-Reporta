@@ -27,7 +27,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
     volumes:
-      - ./backend/internal/database/migrations:/migrations:ro
+      - ./backend/internal/db/migrations:/migrations:ro
       - ./backend/scripts/dbcheck.sh:/dbcheck.sh:ro
     command: ["sh", "/dbcheck.sh"]
     depends_on:
@@ -38,7 +38,7 @@ services:
   migrate:
     image: migrate/migrate:v4.18.1
     volumes:
-      - ./backend/internal/database/migrations:/migrations:ro
+      - ./backend/internal/db/migrations:/migrations:ro
     command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
     depends_on:
       dbcheck:

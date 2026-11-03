@@ -33,7 +33,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Tijuana Reporta usa tu ubicación para ubicar el incidente que reportas."
+          "locationWhenInUsePermission": "Tijuana Reporta usa tu ubicación para ubicar el incidente que reportas.",
+          "locationAlwaysAndWhenInUsePermission": "Tijuana Reporta usa tu ubicación en segundo plano para avisarte cuando pases cerca de un incidente reportado.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],

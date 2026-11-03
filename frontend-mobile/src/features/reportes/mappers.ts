@@ -1,4 +1,5 @@
 import type { CategoriaReporte, ComentarioConAutor, Reporte, StatusReporte } from '@/types/api';
+import type { ZonaPeligro } from './port';
 
 // Forma de las respuestas del backend (shared/openapi). Solo lo que mobile lee.
 export interface IncidenteApi {
@@ -136,4 +137,9 @@ export function mapearDetalle(r: ReporteApi, catalogo: IncidenteApi[], apiUrl: s
     status: mapearEstado(r.estado_actual) ?? 'pendiente',
     created_at: r.created_at,
   };
+}
+
+/** Zonas de peligro a partir de la lista del mapa: los resueltos se muestran en el mapa, pero ya no se avisa de ellos. */
+export function zonasActivas(reportes: Reporte[]): ZonaPeligro[] {
+  return reportes.filter((r) => r.status !== 'resuelto').map(({ id, titulo, lat, lng }) => ({ id, titulo, lat, lng }));
 }

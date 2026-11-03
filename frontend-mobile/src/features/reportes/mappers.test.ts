@@ -6,6 +6,7 @@ import {
   mapearDetalle,
   mapearEstado,
   mapearResumen,
+  zonasActivas,
   origenDeApi,
   urlMultimedia,
   type IncidenteApi,
@@ -192,5 +193,21 @@ describe('mapearDetalle', () => {
   it('un detalle Descartado se muestra como pendiente (solo se llega por id directo)', () => {
     const r = mapearDetalle(detalle({ estado_actual: 'Descartado' }), catalogo, 'http://10.0.2.2/api/v1');
     expect(r.status).toBe('pendiente');
+  });
+});
+
+describe('zonasActivas', () => {
+  const base = { titulo: 'X', categorias: [], tags: [], lat: 32.5, lng: -117, upvotes: 0, user_id: 'u1', created_at: '' };
+
+  it('descarta los resueltos y deja solo id, título y coordenadas', () => {
+    const zonas = zonasActivas([
+      { ...base, id: 'a', status: 'pendiente' },
+      { ...base, id: 'b', status: 'resuelto' },
+      { ...base, id: 'c', status: 'en_proceso' },
+    ]);
+    expect(zonas).toEqual([
+      { id: 'a', titulo: 'X', lat: 32.5, lng: -117 },
+      { id: 'c', titulo: 'X', lat: 32.5, lng: -117 },
+    ]);
   });
 });

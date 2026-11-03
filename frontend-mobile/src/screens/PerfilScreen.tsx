@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { leerRadioAlertaKm, RADIO_ALERTA_KM_DEFECTO } from '../lib/alertasCercanas';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { MenuRow } from '../components/MenuRow';
@@ -7,15 +9,14 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { EstadoVista } from '../components/estado/EstadoVista';
 import { perfilColors } from '../theme/perfilTokens';
 
-// TODO: no existe endpoint de "reportes del usuario", notificaciones ni preferencias de alertas.
-// Estos contadores siguen siendo datos de ejemplo hasta que el backend los ofrezca.
+// TODO: el contrato OpenAPI (revisado el 27/10/2026) no tiene operaciones para "reportes del usuario"
+// ni notificaciones. Estos contadores son datos de ejemplo hasta que existan.
 const MOCK_CONTADORES = {
   totalReportes: 12,
   reportesActivos: 2,
   reportesHistorial: 10,
   notificacionesNuevas: 3,
   notificacionesHistorial: 10,
-  radioAlertasKm: 1.5,
 };
 
 interface PerfilScreenProps {
@@ -47,6 +48,14 @@ export const PerfilScreen = ({
 }: PerfilScreenProps) => {
   const u = MOCK_CONTADORES;
   const [modoOscuro, setModoOscuro] = useState(false);
+
+  // Perfil sigue montado debajo de "Alertas y lugares": se relee al volver para mostrar lo que se guardó.
+  const [radioAlertasKm, setRadioAlertasKm] = useState(RADIO_ALERTA_KM_DEFECTO);
+  useFocusEffect(
+    useCallback(() => {
+      leerRadioAlertaKm().then(setRadioAlertasKm).catch(() => {});
+    }, []),
+  );
 
   return (
     <View style={styles.screen}>
@@ -105,7 +114,7 @@ export const PerfilScreen = ({
             icon="map-pin"
             title="Alertas y lugares"
             subtitle="Radio, categorías y horario"
-            value={`${u.radioAlertasKm} km`}
+            value={`${radioAlertasKm.toFixed(1)} km`}
             onPress={onAlertas}
           />
           <View style={styles.divider} />
