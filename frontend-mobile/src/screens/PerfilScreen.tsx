@@ -22,6 +22,7 @@ interface PerfilScreenProps {
   nombre: string;
   correo?: string;
   cargando?: boolean;
+  sinConexion?: boolean;
   error?: boolean;
   onReintentar?: () => void;
   onBack?: () => void;
@@ -35,6 +36,7 @@ export const PerfilScreen = ({
   nombre,
   correo,
   cargando,
+  sinConexion,
   error,
   onReintentar,
   onBack,
@@ -53,6 +55,8 @@ export const PerfilScreen = ({
           <ScreenHeader onBack={onBack} />
           {cargando ? (
             <ActivityIndicator color={perfilColors.primary} style={styles.cargando} />
+          ) : sinConexion ? (
+            <EstadoVista estado="sin-conexion" mensaje="Sin conexión: tu perfil se cargará al reconectar." compacto />
           ) : error ? (
             <EstadoVista estado="error" mensaje="No se pudo cargar tu perfil." onReintentar={onReintentar} compacto />
           ) : (

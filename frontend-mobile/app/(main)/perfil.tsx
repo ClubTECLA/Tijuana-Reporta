@@ -22,7 +22,8 @@ export default function Perfil() {
     <PerfilScreen
       nombre={esInvitado ? 'Invitado' : perfil.data ? nombreVisible(perfil.data.username) : ''}
       correo={esInvitado ? undefined : perfil.data?.email}
-      cargando={!esInvitado && perfil.isPending}
+      cargando={!esInvitado && perfil.isPending && !perfil.isPaused}
+      sinConexion={!esInvitado && perfil.isPending && perfil.isPaused}
       error={!esInvitado && perfil.isError}
       onReintentar={() => void perfil.refetch()}
       onBack={() => router.back()}
