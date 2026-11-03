@@ -24,7 +24,8 @@ export default function ActiveFiltersBadge() {
             style={{ "--panel-right": `${panelRight}px` } as CSSProperties}
             className="
                 absolute bottom-40 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1
-                sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)] min-[1680px]:bottom-24
+                sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)] sm:max-w-[calc(100%-var(--panel-right)-2rem)]
+                min-[1680px]:bottom-24
                 rounded-full border border-glass-line bg-glass p-1.5 font-ui backdrop-blur-glass drop-shadow-floating
             "
         >
