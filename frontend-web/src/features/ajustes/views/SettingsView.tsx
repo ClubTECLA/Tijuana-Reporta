@@ -49,10 +49,9 @@ function CategoriesSection({debug} : subsectionProps) {
 
     return(
         <ColSection className="min-w-0 w-full gap-2"
-            debug={debug}
         >
-            <RowSection
-                className="h-fit items-center justify-between gap-3 p-2"
+            <SubSection
+                className="gap-3 p-2 border-2 flex-row justify-between w-full"
             >
                 <SubsectionTitle
                     title="Categorias de incidentes"
@@ -69,7 +68,7 @@ function CategoriesSection({debug} : subsectionProps) {
                         setOpenForm(true);
                     }}
                 />
-            </RowSection>
+            </SubSection>
             <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
                 <SubSection
                     format={'nothing'}
