@@ -49,9 +49,10 @@ function CategoriesSection({debug} : subsectionProps) {
 
     return(
         <ColSection className="min-w-0 w-full gap-2"
+            debug={debug}
         >
             <SubSection
-                className="gap-3 p-2 border-2 flex-row justify-between w-full"
+                className="gap-3 p-2 flex-row justify-between w-full"
             >
                 <SubsectionTitle
                     title="Categorias de incidentes"
