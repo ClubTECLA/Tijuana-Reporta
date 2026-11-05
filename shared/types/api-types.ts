@@ -278,6 +278,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Obtiene el catálogo de roles del sistema. */
+        get: operations["listarRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -306,6 +323,7 @@ export interface components {
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
         UsuarioResumen: components["schemas"]["usuario_resumen"];
+        Rol: components["schemas"]["rol"];
         /**
          * @description Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
          * @example Socavón en Calle Flores Magón 8267 · Zona Centro
@@ -521,6 +539,10 @@ export interface components {
             email: string | null;
             rol_name: string;
             reportes_count: number;
+        };
+        rol: {
+            id: number;
+            nombre: string;
         };
     };
     responses: never;
@@ -1380,6 +1402,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["usuario_resumen"][];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no tiene rol de administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    listarRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catálogo de roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["rol"][];
                 };
             };
             /** @description No autenticado */
