@@ -8,6 +8,16 @@ export interface UsuarioMeApi {
   rol_name: string;
 }
 
+/** Solo lo que "Mis reportes" lee de ReporteResumen. */
+export interface ReporteMioApi {
+  id: string;
+  titulo: string;
+  direccion?: string;
+  estado_actual: string;
+}
+
 export const perfilApi = {
   me: () => http<UsuarioMeApi>('/auth/me'),
+  /** GET /reportes/me: reportes creados por el usuario autenticado, todos los estados. */
+  misReportes: () => http<ReporteMioApi[]>('/reportes/me'),
 };
