@@ -19,8 +19,8 @@ const MOCK_NOTIFICACIONES = {
 interface PerfilScreenProps {
   nombre: string;
   correo?: string;
-  reportesActivos: number;
-  reportesCerrados: number;
+  reportesActivos?: number;
+  reportesCerrados?: number;
   cargando?: boolean;
   sinConexion?: boolean;
   error?: boolean;
@@ -48,7 +48,8 @@ export const PerfilScreen = ({
   onCerrarSesion,
 }: PerfilScreenProps) => {
   const [modoOscuro, setModoOscuro] = useState(false);
-  const totalReportes = reportesActivos + reportesCerrados;
+  const total =
+    reportesActivos !== undefined && reportesCerrados !== undefined ? reportesActivos + reportesCerrados : undefined;  
   const n = MOCK_NOTIFICACIONES;
 
   // Perfil sigue montado debajo de "Alertas y lugares": se relee al volver para mostrar lo que se guardó.
@@ -78,7 +79,7 @@ export const PerfilScreen = ({
             </>
           )}
           <Card style={styles.statCard}>
-            <Text style={styles.statNumber}>{totalReportes}</Text>
+            <Text style={styles.statNumber}>{total ?? '-'}</Text>
             <Text style={styles.statLabel}>Reportes</Text>
           </Card>
         </View>
@@ -88,8 +89,8 @@ export const PerfilScreen = ({
           <MenuRow
             icon="file-text"
             title="Mis reportes"
-            subtitle={`${reportesActivos} activos · ${reportesActivos + reportesCerrados} en historial`}
-            value={String(reportesActivos)}
+            subtitle={total !== undefined ? `${reportesActivos} activos · ${total} en historial` : 'Toca para ver tus reportes'}
+            value={reportesActivos !== undefined ? String(reportesActivos) : undefined}
             onPress={onMisReportes}
           />
           <View style={styles.divider} />

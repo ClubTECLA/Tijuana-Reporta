@@ -25,8 +25,8 @@ export default function Perfil() {
     <PerfilScreen
       nombre={esInvitado ? 'Invitado' : perfil.data ? nombreVisible(perfil.data.username) : ''}
       correo={esInvitado ? undefined : perfil.data?.email}
-      reportesActivos={misReportes.activos.length}
-      reportesCerrados={misReportes.cerrados.length}
+      reportesActivos={!esInvitado && misReportes.isSuccess ? misReportes.activos.length : undefined}
+      reportesCerrados={!esInvitado && misReportes.isSuccess ? misReportes.cerrados.length : undefined}
       cargando={!esInvitado && perfil.isPending && !perfil.isPaused}
       sinConexion={!esInvitado && perfil.isPending && perfil.isPaused}
       error={!esInvitado && perfil.isError}

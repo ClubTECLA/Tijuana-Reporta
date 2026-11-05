@@ -28,6 +28,6 @@ export interface ReporteDetalleMioApi extends ReporteMioApi {
 export const perfilApi = {
   me: () => http<UsuarioMeApi>('/auth/me'),
   /** GET /reportes/me: reportes creados por el usuario autenticado, todos los estados. */
-  misReportes: () => http<ReporteMioApi[]>('/reportes/me'),
+  misReportes: () => http<ReporteMioApi[]>('/reportes/me?limite=500'),
   detalle: (id: string) => http<ReporteDetalleMioApi>(`/reportes/${id}`),
 };
