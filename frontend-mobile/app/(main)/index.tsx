@@ -22,7 +22,7 @@ import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { HojaCrearCuenta, type MotivoCuenta } from '@/features/sesion/HojaCrearCuenta';
 import { distanciaMetros } from '@/lib/geo';
-import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
+import { obtenerPosicionActual, seguirPosicion, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import { esErrorDeRed } from '@/lib/estados';
 import { useEnLinea } from '@/lib/red';
 import { useEsInvitado } from '@/lib/session';
@@ -64,6 +64,8 @@ export default function MainMap() {
   const [expandido, setExpandido] = useState(true);
   // Posición del usuario para el punto azul: la última conocida, afinada por el fix del GPS.
   const [miPosicion, setMiPosicion] = useState<Coordenadas | null>(null);
+  // Con permiso de ubicación concedido, el punto azul sigue al dispositivo mientras el mapa está abierto.
+  const [siguiendoUbicacion, setSiguiendoUbicacion] = useState(false);
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -129,20 +131,38 @@ export default function MainMap() {
     const solicitud = ++ultimaSolicitud.current;
     const vigente = () => solicitud === ultimaSolicitud.current;
     void tienePermisoUbicacion()
-      .then((concedido) =>
-        concedido
-          ? obtenerPosicionActual({
-              alRefinar: (fresca) => {
-                if (vigente()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
-              },
-            })
-          : null,
-      )
+      .then((concedido) => {
+        if (!concedido) return null;
+        setSiguiendoUbicacion(true);
+        return obtenerPosicionActual({
+          alRefinar: (fresca) => {
+            if (vigente()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
+          },
+        });
+      })
       .then((posicion) => {
         if (posicion && vigente()) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
       })
       .catch(() => undefined);
   }, []);
+
+  // Cada fix nuevo del GPS mueve el punto azul. El seguimiento se cancela al desmontar; si el efecto se
+  // limpia antes de que la suscripción esté lista, se cancela en cuanto llega.
+  useEffect(() => {
+    if (!siguiendoUbicacion) return;
+    let cancelar: (() => void) | null = null;
+    let limpiado = false;
+    seguirPosicion((posicion) => setMiPosicion({ lat: posicion.lat, lng: posicion.lng }))
+      .then((quitar) => {
+        if (limpiado) quitar();
+        else cancelar = quitar;
+      })
+      .catch((err) => console.warn('[MainMap] no se pudo seguir la ubicación:', err));
+    return () => {
+      limpiado = true;
+      cancelar?.();
+    };
+  }, [siguiendoUbicacion]);
 
   useEffect(() => {
     if (!aviso) return;
@@ -212,6 +232,8 @@ export default function MainMap() {
       }
       posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
       setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+      // Si el permiso se acaba de conceder aquí, desde ahora el punto también sigue al dispositivo.
+      setSiguiendoUbicacion(true);
       setExpandido(true);
       cameraRef.current?.flyTo({
         center: [posicion.lng, posicion.lat],

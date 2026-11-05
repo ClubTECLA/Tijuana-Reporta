@@ -1,4 +1,3 @@
-import { File } from 'expo-file-system';
 import { env } from '@/lib/env';
 import { http } from '@/lib/http';
 import { queryClient } from '@/lib/query-client';
@@ -16,6 +15,7 @@ import {
 import { rutaCercanos } from './cercanos';
 import { detalleApiKey } from './claves';
 import { cuerpoCrearReporte } from './crear/cuerpoApi';
+import { archivoDeFoto } from './foto/archivo';
 import { formularioFoto } from './foto/multipart';
 import type { ReportesApi } from './port';
 
@@ -78,7 +78,7 @@ export const reportesHttp: ReportesApi = {
   subirFoto: async (id, uri) => {
     const archivo = await http<{ path: string }>(
       `/reportes/${id}/multimedia`,
-      { method: 'POST', body: formularioFoto(new File(uri)) },
+      { method: 'POST', body: formularioFoto(await archivoDeFoto(uri)) },
       { tiempoLimiteMs: TIEMPO_SUBIDA_FOTO_MS },
     );
     return urlMultimedia(archivo.path, env.apiUrl);

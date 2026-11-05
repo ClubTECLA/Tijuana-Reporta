@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { archivoDeFoto } from './archivo';
 import { comprimirHastaCaber } from './comprimir';
 import { redimensionarA } from './dimensiones';
 import { mensajePrepararFoto } from './errores';
@@ -17,11 +18,9 @@ export type ResultadoSeleccionFoto =
   | { tipo: 'sin_permiso' }
   | { tipo: 'error'; mensaje: string };
 
-/** Peso del archivo en bytes. En nativo se lee del sistema de archivos sin cargar la foto en memoria; en
- * web no existe la API de archivos de Expo, así que se mide el blob de la uri. */
+/** Peso del archivo en bytes: el mismo `Blob` que luego se sube (ver `archivoDeFoto`). */
 async function pesoDeArchivo(uri: string): Promise<number> {
-  if (Platform.OS === 'web') return (await (await fetch(uri)).blob()).size;
-  return new File(uri).size;
+  return (await archivoDeFoto(uri)).size;
 }
 
 /** Borra un intento de compresión que no cupo. En web la uri es un blob en memoria: no hay archivo que borrar. */
