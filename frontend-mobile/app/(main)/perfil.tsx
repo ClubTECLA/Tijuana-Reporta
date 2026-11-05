@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { PerfilScreen } from '@/screens/PerfilScreen';
 import { queryClient } from '@/lib/query-client';
 import { useEsInvitado, useSessionStore } from '@/lib/session';
-import { perfilKeys, useMiPerfil } from '@/features/perfil/hooks';
+import { perfilKeys, useMiPerfil, useMisReportes } from '@/features/perfil/hooks';
 import { nombreVisible } from '@/features/perfil/nombre';
 
 export default function Perfil() {
@@ -11,10 +11,13 @@ export default function Perfil() {
   const limpiarSesion = useSessionStore((s) => s.clear);
   const esInvitado = useEsInvitado();
   const perfil = useMiPerfil();
+  // Misma consulta que "Mis reportes": comparten caché, así que no se pide dos veces.
+  const misReportes = useMisReportes();
 
   const cerrarSesion = () => {
     // Sin esto, el siguiente usuario vería un instante el perfil del anterior.
     queryClient.removeQueries({ queryKey: perfilKeys.me });
+    queryClient.removeQueries({ queryKey: perfilKeys.misReportes });
     limpiarSesion();
   };
 
@@ -22,6 +25,8 @@ export default function Perfil() {
     <PerfilScreen
       nombre={esInvitado ? 'Invitado' : perfil.data ? nombreVisible(perfil.data.username) : ''}
       correo={esInvitado ? undefined : perfil.data?.email}
+      reportesActivos={misReportes.activos.length}
+      reportesCerrados={misReportes.cerrados.length}
       cargando={!esInvitado && perfil.isPending && !perfil.isPaused}
       sinConexion={!esInvitado && perfil.isPending && perfil.isPaused}
       error={!esInvitado && perfil.isError}
