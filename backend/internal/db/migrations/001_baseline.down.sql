@@ -3,6 +3,7 @@
 DROP TABLE
     acciones,
     auth_providers,
+    centros,
     comentarios,
     multimedia,
     historial,
@@ -19,6 +20,7 @@ DROP TABLE
     reportes_scores,
     roles,
     tags,
+    tipos_centro,
     users,
     users_reports;
 

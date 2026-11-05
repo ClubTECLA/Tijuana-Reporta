@@ -1,7 +1,8 @@
 -- =============================================================================
 -- Verifica que el seed (dev.sql) quedó cargado completo. Solo lee, no modifica.
--- Cuenta únicamente filas del seed (por el prefijo de sus UUID), salvo `tags`,
--- que no tiene marcador: si agregas tags por otro lado, saldrá DIFERENTE.
+-- Cuenta únicamente filas del seed (por el prefijo de sus UUID), salvo `tags` y
+-- `tipos_centro`, que no tienen marcador (se cuentan por nombre): si agregas
+-- tags por otro lado, saldrá DIFERENTE.
 -- =============================================================================
 
 \echo
@@ -46,6 +47,11 @@ FROM (
            (SELECT count(*) FROM comentarios WHERE reporte_id::text LIKE 'd0000000-%')
     UNION ALL SELECT 9, 'users_reports', 28,
            (SELECT count(*) FROM users_reports WHERE reporte_id::text LIKE 'd0000000-%')
+    UNION ALL SELECT 10, 'tipos_centro (baseline)', 4,
+           (SELECT count(*) FROM tipos_centro
+             WHERE nombre IN ('Refugios', 'Rescate', 'Salud', 'Seguridad'))
+    UNION ALL SELECT 11, 'centros', 14,
+           (SELECT count(*) FROM centros WHERE id::text LIKE 'f0000000-%')
 ) t
 ORDER BY ord;
 
@@ -76,3 +82,38 @@ FROM users u
 JOIN roles ro ON ro.id = u.rol_id
 WHERE u.id::text LIKE 'c1000000-%'
 ORDER BY u.username;
+
+\echo
+\echo '== 4) Centros del seed por tipo =='
+SELECT e.tipo,
+       e.esperado,
+       count(c.id)                            AS actual,
+       e.esperado_activos,
+       count(*) FILTER (WHERE c.activo)       AS activos,
+       CASE WHEN e.esperado = count(c.id)
+             AND e.esperado_activos = count(*) FILTER (WHERE c.activo)
+            THEN 'OK' ELSE 'DIFERENTE' END    AS estado
+FROM (VALUES (1, 'Refugios', 4, 3), (2, 'Rescate', 4, 4),
+             (3, 'Salud', 4, 4),    (4, 'Seguridad', 2, 2)) AS e(ord, tipo, esperado, esperado_activos)
+LEFT JOIN tipos_centro t ON t.nombre = e.tipo
+LEFT JOIN centros c      ON c.tipo_centro = t.id AND c.id::text LIKE 'f0000000-%'
+GROUP BY e.ord, e.tipo, e.esperado, e.esperado_activos
+ORDER BY e.ord;
+
+\echo
+\echo '== 5) Centros del seed =='
+-- pct = ocupación; NULL cuando el centro no maneja capacidad (bomberos, policía, farmacia).
+SELECT right(c.id::text, 2)   AS cen,
+       t.nombre               AS tipo,
+       c.nombre,
+       c.activo,
+       c.capacidad,
+       c.cantidad,
+       CASE WHEN c.capacidad > 0
+            THEN round(100.0 * c.cantidad / c.capacidad) END AS pct,
+       round(c.latitude::numeric, 5)  AS lat,
+       round(c.longitude::numeric, 5) AS lng
+FROM centros c
+JOIN tipos_centro t ON t.id = c.tipo_centro
+WHERE c.id::text LIKE 'f0000000-%'
+ORDER BY c.id;

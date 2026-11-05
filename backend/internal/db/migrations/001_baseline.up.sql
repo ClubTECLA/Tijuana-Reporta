@@ -93,6 +93,46 @@ CREATE TABLE public.acciones (
     nombre character varying(50) NOT NULL
 );
 
+-- Name: tipos_centro; Type: TABLE; Schema: public; Owner: -
+-- Catálogo de tipos de centros (refugios, policias, bomberos, protección civil)
+CREATE TABLE public.tipos_centro (
+    id integer NOT NULL,
+    nombre character varying(50) NOT NULL
+);
+
+-- Name: tipos_centro_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+CREATE SEQUENCE public.tipos_centro_id_seq
+    As integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+-- Name: tipos_centro_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+ALTER SEQUENCE public.tipos_centro_id_seq OWNED BY public.tipos_centro.id;
+
+-- Name: centros; Type: TABLE; Schema: public; Owner: -
+-- Guarda la información de cada centro en la ciudad, dependiendo el tipo
+-- de centro, se guarda la capacidad máxima y la cantidad de personas en 
+-- el recinto.
+CREATE TABLE public.centros (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tipo_centro integer NOT NULL,
+    nombre character varying(50) NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    capacidad integer,
+    cantidad integer,
+    activo boolean DEFAULT true NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    geom geography(Point, 4326) GENERATED ALWAYS AS (
+        ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+    ) STORED,
+    CONSTRAINT centros_capacidad_check CHECK (capacidad IS NULL OR capacidad >= 0),
+    CONSTRAINT centros_cantidad_check  CHECK (cantidad IS NULL OR (cantidad >= 0 AND (capacidad IS NULL OR cantidad <= capacidad)))
+);
+
 -- Name: acciones_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 CREATE SEQUENCE public.acciones_id_seq
     AS integer
@@ -442,6 +482,9 @@ ALTER TABLE ONLY public.tags ALTER COLUMN id SET DEFAULT nextval('public.tags_id
 -- Name: users_reports id; Type: DEFAULT; Schema: public; Owner: -
 ALTER TABLE ONLY public.users_reports ALTER COLUMN id SET DEFAULT nextval('public.users_reports_id_seq'::regclass);
 
+-- Name: tipos_centro id; Type: DEFAULT; Schema: public; Owner: -
+ALTER TABLE ONLY public.tipos_centro ALTER COLUMN id SET DEFAULT nextval('public.tipos_centro_id_seq'::regClass);
+
 -- Name: acciones acciones_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.acciones
     ADD CONSTRAINT acciones_nombre_key UNIQUE (nombre);
@@ -562,6 +605,18 @@ ALTER TABLE ONLY public.users_reports
 ALTER TABLE ONLY public.users_reports
     ADD CONSTRAINT users_reports_user_id_reporte_id_key UNIQUE (user_id, reporte_id);
 
+-- Name: tipos_centro tipos_centro_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.tipos_centro
+    ADD CONSTRAINT tipos_centro_pkey PRIMARY KEY (id);
+
+-- Name: tipos_centro tipos_centro_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.tipos_centro
+    ADD CONSTRAINT tipos_centro_nombre_key UNIQUE (nombre);
+
+-- Name: centros centros_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.centros
+    ADD CONSTRAINT centros_pkey PRIMARY KEY (id);
+
 -- Name: idx_comentarios_reporte_id; Type: INDEX; Schema: public; Owner: -
 CREATE INDEX idx_comentarios_reporte_id ON public.comentarios USING btree (reporte_id);
 
@@ -596,6 +651,11 @@ CREATE INDEX historial_actor_idx ON public.historial (actor_id, creado_en DESC);
 
 -- Name: incidente_tags trg_update_tag_counts; Type: TRIGGER; Schema: public; Owner: -
 CREATE TRIGGER trg_update_tag_counts AFTER INSERT OR DELETE ON public.incidente_tags FOR EACH ROW EXECUTE FUNCTION public.update_tag_counts();
+
+-- Name: idx_centros_tipo_centro; Type: INDEX; Schema: public; Owner: -
+CREATE INDEX idx_centros_tipo_centro ON public.centros USING btree (tipo_centro);
+
+CREATE INDEX idx_centros_geom ON public.centros USING gist (geom);
 
 -- Name: auth_providers auth_providers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.auth_providers
@@ -693,6 +753,10 @@ ALTER TABLE ONLY public.users_reports
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_rol_id_fkey FOREIGN KEY (rol_id) REFERENCES public.roles(id);
 
+-- Name: centros centros_tipo_centros_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.centros
+    ADD CONSTRAINT centros_tipo_centros_id_fkey FOREIGN KEY (tipo_centro) REFERENCES public.tipos_centro(id);
+
 -- Roles por defecto. users.rol_id es NOT NULL, así que hacen falta antes de
 -- registrar a cualquier usuario.
 INSERT INTO roles (nombre) VALUES
@@ -713,3 +777,10 @@ INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, col
     ('deslave', 'Deslave', 5, 100, true, '#E65100'),
     ('inundacion', 'Inundación', 5, 100, true, '#1E88E5'),
     ('incendio', 'Incendio', 5, 100, true, '#D32F2F');
+
+-- Tipos de centros por defecto
+INSERT INTO tipos_centro (nombre) VALUES
+    ('Refugios'),
+    ('Rescate'),
+    ('Salud'),
+    ('Seguridad');

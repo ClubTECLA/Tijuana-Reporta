@@ -2,7 +2,8 @@
 -- Datos de prueba SOLO PARA DESARROLLO. No va en internal/database/migrations/
 -- porque `migrate up` corre en todos los entornos, incluido producción.
 --
--- Requisitos: migraciones ya aplicadas (el baseline trae roles e incidentes).
+-- Requisitos: migraciones ya aplicadas (el baseline trae roles, incidentes y
+-- tipos_centro).
 -- Es re-ejecutable: usa UUIDs fijos y ON CONFLICT / WHERE NOT EXISTS.
 -- Si antes aplicaste una versión anterior de este seed, haz `docker compose
 -- down -v` y vuelve a levantar para no mezclar datos viejos con estos.
@@ -40,6 +41,18 @@
 --
 -- Los reportes 01 y 12 son del mismo tipo (socavon) pero están a varios km, y
 -- los puntos de cada reporte quedan a menos de ~50 m entre sí (radio = 100 m).
+--
+-- CENTROS (f0000000-0000-0000-0000-0000000000NN)   14 en total, 13 activos
+--   Refugios (4)   01 Otay (parcial)   02 Playas (lleno)   03 La Mesa (vacío)
+--                  04 Lomas del sur (INACTIVO)
+--   Rescate (4)    05 Zona Río   06 Otay   07 Playas   08 Protección Civil Centro
+--   Salud (4)      09 Hospital Zona Río   10 Hospital La Mesa   11 Clínica Otay
+--                  12 Farmacia 24 h Centro (sin capacidad ni conteo)
+--   Seguridad (2)  13 Comandancia Centro   14 Módulo Playas
+-- Bomberos, policía y farmacia llevan capacidad y cantidad en NULL a propósito
+-- (no cuentan personas). Los nombres y las coordenadas son de prueba: quedan
+-- cerca de las zonas de los reportes para probar búsquedas por cercanía, pero
+-- no son direcciones reales.
 -- =============================================================================
 
 -- Ayudantes para armar los UUID fijos (existen solo durante esta sesión).
@@ -48,6 +61,9 @@ $$ SELECT ('c1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.rid(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS
 $$ SELECT ('d0000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid $$;
+
+CREATE OR REPLACE FUNCTION pg_temp.cid(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS
+$$ SELECT ('f0000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid $$;
 
 BEGIN;
 
@@ -288,5 +304,35 @@ WHERE NOT EXISTS (
       AND c.user_id    = pg_temp.uid(v.usr)
       AND c.comentario = v.texto
 );
+
+-- Centros ---------------------------------------------------------------------
+-- tipos_centro viene en el baseline (Refugios, Rescate, Salud, Seguridad).
+-- capacidad/cantidad en NULL = el centro no cuenta personas (bomberos, policía,
+-- farmacia). El 02 está lleno, el 03 vacío y el 04 inactivo, para probar esos
+-- casos en el mapa y en los filtros.
+INSERT INTO centros (id, tipo_centro, nombre, latitude, longitude, capacidad, cantidad, activo)
+SELECT pg_temp.cid(v.n), t.id, v.nombre, v.lat, v.lng, v.capacidad, v.cantidad, v.activo
+FROM (VALUES
+    -- Refugios temporales
+    ( 1, 'Refugios',  'Refugio Temporal Gimnasio Otay',      32.54050, -116.96800, 200,  45, true),
+    ( 2, 'Refugios',  'Refugio Temporal Escuela Playas',     32.53000, -117.11800, 120, 120, true),
+    ( 3, 'Refugios',  'Refugio Temporal La Mesa',            32.51650, -116.99700,  80,   0, true),
+    ( 4, 'Refugios',  'Refugio Temporal Lomas del Sur',      32.49600, -117.01850, 150,   0, false),
+    -- Rescate (bomberos y protección civil)
+    ( 5, 'Rescate',   'Bomberos Estación Zona Río',          32.52550, -117.02250, NULL, NULL, true),
+    ( 6, 'Rescate',   'Bomberos Estación Otay',              32.53400, -116.97300, NULL, NULL, true),
+    ( 7, 'Rescate',   'Bomberos Estación Playas',            32.52800, -117.11300, NULL, NULL, true),
+    ( 8, 'Rescate',   'Protección Civil Municipal Centro',   32.53200, -117.03700, NULL, NULL, true),
+    -- Salud
+    ( 9, 'Salud',     'Hospital General Zona Río',           32.52350, -117.01600, 250, 180, true),
+    (10, 'Salud',     'Hospital de Zona La Mesa',            32.51200, -117.00100, 180, 120, true),
+    (11, 'Salud',     'Clínica Otay',                        32.54200, -116.97000,  60,  35, true),
+    (12, 'Salud',     'Farmacia 24 horas Centro',            32.53450, -117.03950, NULL, NULL, true),
+    -- Seguridad
+    (13, 'Seguridad', 'Comandancia Policía Municipal Centro', 32.53400, -117.03500, NULL, NULL, true),
+    (14, 'Seguridad', 'Módulo de Seguridad Playas',          32.53250, -117.11600, NULL, NULL, true)
+) AS v(n, tipo, nombre, lat, lng, capacidad, cantidad, activo)
+JOIN tipos_centro t ON t.nombre = v.tipo
+ON CONFLICT (id) DO NOTHING;
 
 COMMIT;
