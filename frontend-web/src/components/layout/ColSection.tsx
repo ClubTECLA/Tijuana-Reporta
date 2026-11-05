@@ -29,10 +29,14 @@ export default function ColSection(
     }: ColSectionProps
 ) {
     const brd = `${border?.map((b) => borders[b]).join(' ') ?? ''} border-line`;
+    const sizingClasses = className?.split(/\s+/).filter((className) => {
+        const utility = className.split(':').pop() ?? className;
+        return /^(?:w-|h-|min-w-|min-h-|max-w-|max-h-|size-|basis-|grow(?:-|$)|shrink(?:-|$)|flex-(?:1|auto|initial|none)$)/.test(utility);
+    }).join(' ') ?? '';
 
     if(!title){
         return(
-            <section className={`flex flex-col justify-between ${debug ? "border-2" : ""} ${border ? brd : ''}`}>
+            <section className={`flex flex-col justify-between ${sizingClasses} ${debug ? "border-2" : ""}`}>
                 <div 
                     className={`
                         flex flex-col max-w-full max-h-full

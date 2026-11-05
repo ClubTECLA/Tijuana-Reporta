@@ -38,7 +38,7 @@ export function OptionsTile({
             onClick={onClick}
             className={`
                 flex items-center gap-4 rounded-xl px-3 py-2
-                text-left font-ui text-xl font-medium transition-colors
+                text-left font-ui text-body font-medium transition-colors
                 ${isSelected ? "" : "hover:bg-subtle"}
                 focus-visible:outline-2 focus-visible:outline-brand
                 focus-visible:outline-offset-[-2px]
@@ -54,7 +54,7 @@ export function OptionsTile({
                     {icon}
                 </SubSection>
             )}
-            <SubSection as="span" debug={debug} className="text-md">
+            <SubSection as="span" debug={debug} className="text-body">
                 {title}
             </SubSection>
         </SubSection>
@@ -84,7 +84,7 @@ export function OptionsMenu({
             aria-label={ariaLabel}
             className="
                 flex min-w-50 flex-col
-                rounded-2xl bg-white p-2 shadow-float
+                rounded-2xl bg-surface p-2 shadow-float
             "
         >
             {Children.map(children, (child) => {

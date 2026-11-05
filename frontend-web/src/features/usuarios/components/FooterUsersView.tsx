@@ -15,7 +15,7 @@ export default function FooterUsersView({ userLenght, onChangePage, currentPage,
     
     return(
         <section className="flex flex-row justify-between items-center w-full px-3">
-            <span className="text-gray-700 text-sm">
+            <span className="text-ink-secondary text-caption">
                 {`Mostrando ${firstUser}-${lastUser} de ${userLenght}`}
             </span>
 

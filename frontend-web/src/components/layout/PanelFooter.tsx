@@ -13,7 +13,7 @@ export default function PanelFooter({ element }: PanelFooterProps) {
     if(typeof element === 'string') {
         return(
             <div className={`flex flex-col items-start justify-center p-4 w-full`}>
-                <span className="text-xs text-ink-muted">{element}</span>
+                <span className="text-caption text-ink-muted">{element}</span>
             </div>
         )
     }

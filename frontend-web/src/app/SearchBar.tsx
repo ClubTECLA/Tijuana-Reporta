@@ -4,9 +4,10 @@ import { LuSearch, LuX } from 'react-icons/lu';
 interface SearchBarProps {
     onChangeQuery?: (query: string) => void;
     onSubmit?: (query: string) => void;
+    placeholder?: string;
 }
 
-export default function SearchBar({onChangeQuery, onSubmit}: SearchBarProps) {
+export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia"}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [query, setQuery] = useState('');
     const [focused, setFocused] = useState(false);
@@ -31,6 +32,7 @@ export default function SearchBar({onChangeQuery, onSubmit}: SearchBarProps) {
 
     const exit = () => {
         setQuery('');
+        onChangeQuery?.('');
         inputRef.current?.blur();
         setFocused(false);
     };
@@ -47,7 +49,7 @@ export default function SearchBar({onChangeQuery, onSubmit}: SearchBarProps) {
             onBlur={handleBlur}
             className={`
                 flex h-14 w-full max-w-110 min-w-0 items-center gap-3
-                rounded-full border-2 bg-white
+                rounded-full border-2 bg-surface
                 font-ui
                 shadow-float
                 transition-colors duration-200
@@ -60,13 +62,13 @@ export default function SearchBar({onChangeQuery, onSubmit}: SearchBarProps) {
                 id="searchInput"
                 name="search"
                 type="search"
-                aria-label="Buscar folio, dirección o colonia"
-                placeholder="Buscar folio, dirección o colonia"
+                aria-label={placeholder}
+                placeholder={placeholder}
                 value={query}
                 onChange={handleChangeQuery}
                 className="
                     min-w-0 flex-1 bg-transparent
-                    text-[17px] text-ink placeholder:text-ink-muted
+                    text-body text-ink placeholder:text-ink-muted
                     outline-none
                     [&::-webkit-search-cancel-button]:appearance-none
                 "

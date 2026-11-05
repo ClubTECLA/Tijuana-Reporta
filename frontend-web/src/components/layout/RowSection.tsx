@@ -29,10 +29,14 @@ export default function RowSection(
     }: RowSectionProps
 ) {
     const borderClasses = `${border?.map((side) => borders[side]).join(' ') ?? ''} ${border ? 'border-line' : ''}`;
+    const sizingClasses = className?.split(/\s+/).filter((className) => {
+        const utility = className.split(':').pop() ?? className;
+        return /^(?:w-|h-|min-w-|min-h-|max-w-|max-h-|size-|basis-|grow(?:-|$)|shrink(?:-|$)|flex-(?:1|auto|initial|none)$)/.test(utility);
+    }).join(' ') ?? '';
 
     if(!title){
         return(
-            <section className={`flex flex-col justify-between ${debug ? 'border-2 border-green-500' : ''} ${borderClasses}`}>
+            <section className={`flex flex-col justify-between ${sizingClasses} ${debug ? 'border-2 border-green-500' : ''} ${borderClasses}`}>
                 <div className={`h-full flex flex-row max-h-full max-w-full ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
                     {Children.map(children, (child) => {
                         if(isValidElement<subsectionProps | SectionProps>(child)){

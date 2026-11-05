@@ -43,7 +43,7 @@ export default function ColorBadge({ color, text }: ColorBadgeProps) {
             as="span"
             format="row"
             aria-label={text}
-            className={`items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap ${colors.background} ${colors.text}`}
+            className={`items-center gap-2 rounded-full px-4 py-2 text-caption font-semibold whitespace-nowrap ${colors.background} ${colors.text}`}
         >
             <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} />
             {text}

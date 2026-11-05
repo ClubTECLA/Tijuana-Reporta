@@ -5,11 +5,23 @@ import SearchBar from './SearchBar';
 import UserProfileWidget from "@/features/perfil/components/UserProfileWidget";
 import useModals from '@/panels/useModals';
 import { useLocationPicker } from '@/features/mapa/useLocationPicker';
+import { useSysMessage } from "@/components/ui/SysMessageContext";
 
 export default function NavigationWrapper() {
     const { openModal, closeModal, currentModal} = useModals()
     const { pathname } = useRouter();
     const { search, editAddress } = useLocationPicker();
+    const { showMessage } = useSysMessage();
+
+    const handleSearchAddress = async (query: string) => {
+        try {
+            if (await search(query) === "not-found") {
+                showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
+            }
+        } catch {
+            showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
+        }
+    };
 
     if(pathname === '/auth'){
         return null
@@ -20,7 +32,7 @@ export default function NavigationWrapper() {
                 <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
                     <div className="min-w-0 flex-1 sm:flex-1/3">
                         <SearchBar
-                            onSubmit={search}
+                            onSubmit={handleSearchAddress}
                             onChangeQuery={editAddress}
                         />
                     </div> 

@@ -62,7 +62,7 @@ export function Checkbox({ name, checked, onChange, id }: CheckboxProps) {
                         transition-colors
                         after:absolute after:left-1 after:top-1
                         after:h-5 after:w-5 after:rounded-full
-                        after:bg-white after:shadow after:transition-transform
+                        after:bg-surface after:shadow after:transition-transform
                         after:content-['']
                         ${checked
                             ? "bg-brand after:translate-x-7"
@@ -76,10 +76,10 @@ export function Checkbox({ name, checked, onChange, id }: CheckboxProps) {
 
 
 const buttonWrapped: Record<string, string> = {
-    'red' : 'bg-danger text-white',
-    'green': 'bg-success text-white',
-    'yellow': 'bg-warning text-white',
-    'blue': 'bg-brand text-white',
+    'red' : 'bg-danger text-surface',
+    'green': 'bg-success text-surface',
+    'yellow': 'bg-warning text-surface',
+    'blue': 'bg-brand text-surface',
     'gray': 'bg-canvas text-ink',
     'transparent': 'text-ink-muted'
 };
@@ -115,7 +115,7 @@ export function TdButton({color = 'transparent', content, onClick} : TdButtonPro
                 <span className="text-2xl">{content.icon}</span>
             }
             {content.title && 
-                <span className="text-md font-bold whitespace-nowrap">{content.title}</span>
+                <span className="text-body font-bold whitespace-nowrap">{content.title}</span>
             }
         </button>
     )
@@ -159,7 +159,7 @@ export function TRow({ children }: TRowProps) {
         }
 
         return (
-            <td className="bg-white" key={cell.key ?? index}>
+            <td className="bg-surface" key={cell.key ?? index}>
                 {cell}
             </td>
         );
@@ -228,11 +228,11 @@ export function Table({ format, debug, headers, children, maxh, maxw }: TablePro
                                             ${index === headers.length - 1 ? "rounded-tr-xl" : ""}
                                         `}
                                     >
-                                        <span className={`text-sm font-medium ${header.badge ? "text-ink" : "text-ink-muted"}`}>
+                                        <span className={`text-caption font-medium ${header.badge ? "text-ink" : "text-ink-muted"}`}>
                                             {header.title.toUpperCase()}
                                         </span>
                                         {header.badge && (
-                                            <span className="block text-xs font-medium text-ink-muted">
+                                            <span className="block text-caption font-medium text-ink-muted">
                                                 {header.badge}
                                             </span>
                                         )}

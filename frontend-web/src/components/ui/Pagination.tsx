@@ -16,7 +16,7 @@ export interface PaginationProps{
 const pageButtonStyle = `
     flex size-11 shrink-0 items-center justify-center rounded-xl
     border border-line-strong bg-surface text-ink
-    text-sm font-semibold transition-colors hover:bg-subtle
+    text-caption font-semibold transition-colors hover:bg-subtle
     disabled:cursor-not-allowed disabled:opacity-50
 `;
 
@@ -53,7 +53,7 @@ export default function Pagination({
                     debug={debug}
                     key={`ellipsis-${index}`}
                     aria-hidden="true"
-                    className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-surface text-sm font-semibold text-ink-secondary"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-surface text-caption font-semibold text-ink-secondary"
                 >
                 ...
                 </SubSection>
@@ -67,7 +67,7 @@ export default function Pagination({
                 aria-label={`Página ${item}`}
                 aria-current={page === item ? "page" : undefined}
                 className={page === item
-                    ? "flex size-11 shrink-0 items-center justify-center rounded-xl border border-brand bg-brand text-sm font-semibold text-white"
+                    ? "flex size-11 shrink-0 items-center justify-center rounded-xl border border-brand bg-brand text-caption font-semibold text-surface"
                     : pageButtonStyle}
                 >
                 {item}

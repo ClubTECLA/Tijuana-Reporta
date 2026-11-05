@@ -28,7 +28,15 @@ const roleColors: Record<string, ColorBadgeColor> = {
 
 export default function UserView() {
     const [ users, setUsers ] = useState<ApiListarUsuariosResponse>([]);
-    const [ usersFilter, setUsersFilter ] = useState<ApiListarUsuariosResponse>([]);
+    const [ searchQuery, setSearchQuery ] = useState("");
+    const [ roleFilter, setRoleFilter ] = useState("all");
+    const usersFilter = users.filter(user =>
+        (roleFilter === "all" || user.rol_name === roleFilter) &&
+        (searchQuery === "" ||
+            user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
     const [ rolesOptions, setRolesOptions ] = useState<OptionTileProps[]>([{'id': 'all', 'title': 'todos', 'isSelected': true}]);
     const { showMessage } = useSysMessage();
     const [ currentPage, setCurrentPage ] = useState(1);
@@ -38,7 +46,6 @@ export default function UserView() {
         listarUsuarios()
         .then(res => {
             setUsers(res);
-            setUsersFilter(res);
         })
         .catch(err => {
             console.error("Error al listar usuarios: ", err);
@@ -48,8 +55,7 @@ export default function UserView() {
 
     const handleChangeSearch = (query: string) => {
         setCurrentPage(1);
-        if(query === "") return setUsersFilter(users);
-        setUsersFilter(users.filter(user => user.username.toLowerCase().includes(query.toLowerCase()) || user.email?.toLowerCase().includes(query.toLowerCase())));
+        setSearchQuery(query);
     }
 
     const handleChangePage = (page: number ) => {
@@ -71,8 +77,7 @@ export default function UserView() {
 
     const handleRoleChange = (roleId: string) => {
         setCurrentPage(1);
-        if(roleId === 'all') return setUsersFilter(users);
-        setUsersFilter(users.filter(user => user.rol_name === roleId)); 
+        setRoleFilter(roleId);
     }  
 
     return(
@@ -111,50 +116,54 @@ export default function UserView() {
             <ColSection
                 arrangementSubsections='between'
             >
-                <Table
-                    maxh="35rem"
-                    headers={[
-                    {
-                        'title': "Usuario"
-                    },
-                    {
-                        'title': "Rol"
-                    },
-                    {
-                        'title': "Reportes"
-                    },
-                    {
-                        'title': ""
-                    }
-                    ]}
-                >
-                    {usersFilter.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((user) => 
-                        <TRow key={user.email}>
-                            <TCell>
-                                <UserCard
-                                    username={user.username}
-                                    email={user.email}
+                {usersFilter.length !== 0 ? 
+                    <Table
+                        maxh="35rem"
+                        headers={[
+                        {
+                            'title': "Usuario"
+                        },
+                        {
+                            'title': "Rol"
+                        },
+                        {
+                            'title': "Reportes"
+                        },
+                        {
+                            'title': ""
+                        }
+                        ]}
+                    >
+                        {usersFilter.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((user) => 
+                            <TRow key={user.email}>
+                                <TCell>
+                                    <UserCard
+                                        username={user.username}
+                                        email={user.email}
+                                    />
+                                </TCell>
+                                <TCell>
+                                    <ColorBadge
+                                        color={roleColors[user.rol_name] || "gray"}
+                                        text={user.rol_name}
+                                    />
+                                </TCell>
+                                <TCell>
+                                    <SimpleStatistics
+                                        statistics={String(user.reportes_count)}
+                                    />
+                                </TCell>
+                                <TdButton
+                                    content={{
+                                        icon: <IoIosMore/>
+                                    }}
                                 />
-                            </TCell>
-                            <TCell>
-                                <ColorBadge
-                                    color={roleColors[user.rol_name] || "gray"}
-                                    text={user.rol_name}
-                                />
-                            </TCell>
-                            <TCell>
-                                <SimpleStatistics
-                                    statistics={String(user.reportes_count)}
-                                />
-                            </TCell>
-                            <TdButton
-                                content={{
-                                    icon: <IoIosMore/>
-                                }}
-                            />
-                        </TRow>
-                    )}   
-                </Table>
+                            </TRow>
+                        )}   
+                    </Table>
+                :
+                    <span className="text-body font-normal text-ink-muted">Sin resultados</span>
+                }
             </ColSection>
         </ColSection>
     );

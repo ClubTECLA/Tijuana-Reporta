@@ -30,14 +30,14 @@ export default function UserCard({username, email, rolName, debug, format, bg_co
 
     return(
         <SubSection format={format} className={`flex-row w-full rounded-2xl items-center p-2 ${bgColor[bg_color]}`} debug={debug}>
-            <div className="rounded-full flex items-center justify-center bg-brand text-white w-10 h-10 font-bold">
+            <div className="rounded-full flex items-center justify-center bg-brand text-surface w-10 h-10 font-bold">
                 {iconName}
             </div>
             <div className="ml-4 flex flex-col justify-center">
-                <span className="font-bold text-md text-ink">{username || 'Usuario'}</span>
-                <span className="text-xs text-ink-secondary">{email}</span>
+                <span className="font-bold text-body text-ink">{username || 'Usuario'}</span>
+                <span className="text-caption text-ink-secondary">{email}</span>
                 {role && (
-                    <span className="text-xs text-brand-text font-semibold">{rolLabel(role)}</span>
+                    <span className="text-caption text-brand-text font-semibold">{rolLabel(role)}</span>
                 )}
             </div>
         </SubSection>    

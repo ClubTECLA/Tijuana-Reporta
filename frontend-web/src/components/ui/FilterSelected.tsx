@@ -71,18 +71,18 @@ export default function FilterSelected({
                 onClick={() => setDropdownOpen((open) => !open)}
                 className="
                     flex h-[50px] items-center gap-2 rounded-full border-2 border-line
-                    bg-white px-5 font-ui transition-colors hover:border-line-strong
+                    bg-surface px-5 font-ui transition-colors hover:border-line-strong
                     focus-visible:outline-2 focus-visible:outline-brand
                 "
             >
                 <SubSection
                     as="span"
                     debug={debug}
-                    className="text-2sm font-medium tracking-[0.12em] text-ink-muted"
+                    className="text-caption font-medium tracking-[0.12em] text-ink-muted"
                 >
                     {label}
                 </SubSection>
-                <SubSection as="span" debug={debug} className="text-2sm font-bold text-ink">
+                <SubSection as="span" debug={debug} className="text-caption font-bold text-ink">
                     {selectedOption?.title ?? "Seleccionar"}
                 </SubSection>
                 <IoChevronDown
