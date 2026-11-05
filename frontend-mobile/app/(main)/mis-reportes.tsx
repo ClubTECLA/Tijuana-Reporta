@@ -17,7 +17,7 @@ export default function MisReportes() {
       error={!esInvitado && misReportes.isError}
       onReintentar={() => void misReportes.refetch()}
       onBack={() => router.back()}
-      onSelectReporte={() => router.push('/(main)/detalle-reporte')}
+            onSelectReporte={(r) => router.push({ pathname: '/(main)/detalle-reporte', params: { id: r.id } })}
     />
   );
 }
