@@ -2,7 +2,6 @@ import { EstadoReporte } from '../theme/perfilTokens';
 
 export interface Reporte {
   id: string;
-  codigo?: string;        // "REP-8814" (todavia no esta en el backend)
   titulo: string;
   estado: EstadoReporte;
   meta: string;           // "se unió a INC-2471" | "hoy 14:33" | "28 ago"

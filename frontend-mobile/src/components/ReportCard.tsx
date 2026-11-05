@@ -15,7 +15,7 @@ export const ReportCard = ({ reporte, onPress }: ReportCardProps) => (
     <View style={styles.info}>
       <StatusBadge estado={reporte.estado} />
       <Text style={styles.titulo} numberOfLines={2}>{reporte.titulo}</Text>
-      <Text style={styles.meta}>{reporte.codigo ? `${reporte.codigo} · ${reporte.meta}` : reporte.meta}</Text>
+      <Text style={styles.meta}>{reporte.meta}</Text>
     </View>
     <Text style={styles.chevron}>›</Text>
   </TouchableOpacity>
