@@ -1,8 +1,10 @@
-import { ActivityIndicator, Alert, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraIcon } from '@/components/icons/CameraIcon';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
 import type { OrigenFoto } from '../foto/seleccionar';
+import { MenuFotoModal } from './MenuFotoModal';
 
 interface FotoReporteProps {
   /** Foto ya reducida y lista para subir; `null` si todavía no se eligió. */
@@ -31,13 +33,14 @@ export function FotoReporte({
   onQuitar,
 }: FotoReporteProps) {
   const bloqueado = deshabilitado || preparando;
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
-  const abrirMenu = () =>
-    Alert.alert('Agregar foto', undefined, [
-      { text: 'Tomar foto', onPress: () => onElegir('camara') },
-      { text: 'Elegir de la galería', onPress: () => onElegir('galeria') },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+  const abrirMenu = () => setMenuAbierto(true);
+  // Cierra la hoja antes de abrir la cámara o la galería: si no, el selector nativo nace sobre el modal.
+  const elegirDesdeMenu = (origen: OrigenFoto) => {
+    setMenuAbierto(false);
+    onElegir(origen);
+  };
 
   return (
     <View>
@@ -91,6 +94,11 @@ export function FotoReporte({
           {error}
         </Text>
       )}
+      <MenuFotoModal
+        visible={menuAbierto}
+        onElegir={elegirDesdeMenu}
+        onCancelar={() => setMenuAbierto(false)}
+      />
     </View>
   );
 }
