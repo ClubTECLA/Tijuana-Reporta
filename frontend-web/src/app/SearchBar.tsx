@@ -1,18 +1,23 @@
-import { useRef, useState, type ChangeEvent, type FocusEvent } from 'react';
+import { useRef, useState, useEffect, type ChangeEvent, type FocusEvent } from 'react';
 import { LuSearch, LuX } from 'react-icons/lu';
 
 interface SearchBarProps {
     onChangeQuery?: (query: string) => void;
     onSubmit?: (query: string) => void;
     placeholder?: string;
+    value?: string
 }
 
-export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia"}: SearchBarProps) {
+export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = ''}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(value);
     const [focused, setFocused] = useState(false);
 
     const isActive = focused;
+
+    useEffect(() => {
+        setQuery(value);
+    }, [value]);
 
     const handleBlur = (e: FocusEvent<HTMLFormElement>) => {
         // Pasar el foco del input a los botones de la barra no la saca del estado Enfoque.
@@ -25,7 +30,7 @@ export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Busca
         onChangeQuery?.(newQuery);
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         onSubmit?.(query);
     }

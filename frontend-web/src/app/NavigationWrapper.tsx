@@ -10,7 +10,7 @@ import { useSysMessage } from "@/components/ui/SysMessageContext";
 export default function NavigationWrapper() {
     const { openModal, closeModal, currentModal} = useModals()
     const { pathname } = useRouter();
-    const { search, editAddress } = useLocationPicker();
+    const { search, editAddress, address } = useLocationPicker();
     const { showMessage } = useSysMessage();
 
     const handleSearchAddress = async (query: string) => {
@@ -34,6 +34,7 @@ export default function NavigationWrapper() {
                         <SearchBar
                             onSubmit={handleSearchAddress}
                             onChangeQuery={editAddress}
+                            value={address}
                         />
                     </div> 
                     <div className="hidden min-w-0 sm:flex sm:flex-2/3">
