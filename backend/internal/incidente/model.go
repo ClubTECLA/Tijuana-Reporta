@@ -18,6 +18,29 @@ type Nuevo struct {
 	Tags         []NuevoTag
 }
 
+// Actualizar es lo que pide el servicio para modificar un incidente
+// existente. A diferencia de Nuevo, es un reemplazo completo: Nombre,
+// Etiqueta, Color y EstaActivo se escriben siempre tal como llegan, así que
+// el cliente debe mandarlos todos aunque no hayan cambiado. TiempoLimite y
+// Radio son opcionales: nil los deja sin valor (NULL) en la base de datos.
+type Actualizar struct {
+	Nombre       string
+	Etiqueta     string
+	Color        string
+	EstaActivo   bool
+	TiempoLimite *int
+	Radio        *float64
+}
+
+// UpdateTxParams agrupa el UPDATE del incidente y quién lo hace, para
+// ejecutarlo junto con la lectura de tags y el historial en una transacción.
+// Cambios es opcional: lo que se quiera dejar en los datos del historial.
+type UpdateTxParams struct {
+	Incidente sqlc.UpdateIncidenteParams
+	ActorID   uuid.UUID
+	Cambios   map[string]any
+}
+
 // NuevoTag es un tag del catálogo que se crea junto con su incidente.
 type NuevoTag struct {
 	Nombre string

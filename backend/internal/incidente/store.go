@@ -86,3 +86,36 @@ func nombresDeTags(tags []sqlc.Tag) []string {
 	}
 	return nombres
 }
+
+func (s *Store) UpdateIncidenteConHistorial(ctx context.Context, arg UpdateTxParams) (Detalle, error) {
+	var detalle Detalle
+
+	err := db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		var err error
+		if detalle.Incidente, err = q.UpdateIncidente(ctx, arg.Incidente); err != nil {
+			return err
+		}
+
+		if detalle.Tags, err = q.ListTagsByIncidenteId(ctx, detalle.Incidente.ID); err != nil {
+			return err
+		}
+		if detalle.Tags == nil {
+			detalle.Tags = []sqlc.Tag{}
+		}
+
+		datos := map[string]any{
+			"nombre":        detalle.Incidente.Nombre,
+			"etiqueta":      detalle.Incidente.Etiqueta,
+			"color":         detalle.Incidente.Color,
+			"esta_activo":   detalle.Incidente.EstaActivo,
+			"tiempo_limite": detalle.Incidente.TiempoLimite,
+			"radio":         detalle.Incidente.Radio,
+		}
+		return historial.Registrar(ctx, q, arg.ActorID, "incidente.actualizar", "incidente", strconv.Itoa(detalle.Incidente.ID), datos)
+	})
+
+	if err != nil {
+		return Detalle{}, err
+	}
+	return detalle, nil
+}

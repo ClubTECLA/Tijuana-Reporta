@@ -1,0 +1,29 @@
+type: object
+additionalProperties: false
+required: [nombre, etiqueta, tiempo_limite, radio, color, esta_activo]
+properties:
+  nombre:
+    type: string
+    minLength: 1
+    maxLength: 100
+  etiqueta:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Texto legible del incidente (p. ej. "Socavón"); es el que se muestra y arma el título del reporte.
+  tiempo_limite:
+    type: integer
+    nullable: true
+    minimum: 0
+    maximum: 32767
+  radio:
+    type: number
+    format: double
+    nullable: true
+    minimum: 0
+  color:
+    type: string
+    pattern: '^#[0-9A-Fa-f]{6}$'
+    example: '#EF6C33'
+  esta_activo:
+    type: boolean

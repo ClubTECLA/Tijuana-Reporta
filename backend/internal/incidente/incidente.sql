@@ -3,6 +3,17 @@ INSERT INTO incidentes (nombre, etiqueta, tiempo_limite, radio, esta_activo, col
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
+-- name: UpdateIncidente :one
+UPDATE incidentes
+SET
+    nombre = $2,
+    etiqueta = $3,
+    tiempo_limite = $4,
+    radio = $5,
+    esta_activo = $6,
+    color = $7
+WHERE id = $1
+RETURNING *;
 -- name: CreateTag :one
 INSERT INTO tags (incidente_id, nombre, peso)
 VALUES ($1, $2, $3)

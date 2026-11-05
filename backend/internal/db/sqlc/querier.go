@@ -58,6 +58,7 @@ type Querier interface {
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
+	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }
 
 var _ Querier = (*Queries)(nil)
