@@ -16,8 +16,18 @@ export interface ReporteMioApi {
   estado_actual: string;
 }
 
+/** GET /reportes/{id}: lo que el detalle de "Mis reportes" lee. */
+export interface ReporteDetalleMioApi extends ReporteMioApi {
+  created_at: string;
+  updated_at: string;
+  avistamientos: number;
+  tags: Array<{ id: number; nombre: string }>;
+  multimedia: Array<{ id: number; path: string }>;
+}
+
 export const perfilApi = {
   me: () => http<UsuarioMeApi>('/auth/me'),
   /** GET /reportes/me: reportes creados por el usuario autenticado, todos los estados. */
   misReportes: () => http<ReporteMioApi[]>('/reportes/me'),
+  detalle: (id: string) => http<ReporteDetalleMioApi>(`/reportes/${id}`),
 };

@@ -2,12 +2,13 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { env } from '@/lib/env';
 import { useEsInvitado } from '@/lib/session';
-import { perfilApi, type ReporteMioApi, type UsuarioMeApi } from './api';
+import { perfilApi, type ReporteDetalleMioApi, type ReporteMioApi, type UsuarioMeApi } from './api';
 import { separarMisReportes } from './misReportes';
 
 export const perfilKeys = {
   me: ['auth', 'me'] as const,
   misReportes: ['reportes', 'me'] as const,
+  detalle: (id: string) => ['reportes', 'me', 'detalle', id] as const,
 };
 
 const MOCK_ME: UsuarioMeApi = {
@@ -45,4 +46,26 @@ export function useMisReportes() {
   });
   const separados = useMemo(() => separarMisReportes(consulta.data ?? []), [consulta.data]);
   return { ...consulta, activos: separados.activos, cerrados: separados.cerrados };
+}
+
+const MOCK_DETALLE: ReporteDetalleMioApi = {
+  id: '1',
+  titulo: 'Inundación en 3ra y Constitución',
+  direccion: '3ra y Constitución, Tijuana',
+  estado_actual: 'Verificado',
+  created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  avistamientos: 3,
+  tags: [],
+  multimedia: [],
+};
+
+/** Detalle de uno de mis reportes (GET /reportes/{id}). Sin id o siendo invitado no se pide. */
+export function useDetalleMiReporte(id: string | undefined) {
+  const esInvitado = useEsInvitado();
+  return useQuery({
+    queryKey: perfilKeys.detalle(id ?? ''),
+    queryFn: () => (env.useMocks ? Promise.resolve(MOCK_DETALLE) : perfilApi.detalle(id as string)),
+    enabled: !esInvitado && id !== undefined,
+  });
 }
