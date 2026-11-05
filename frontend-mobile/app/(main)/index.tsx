@@ -62,8 +62,8 @@ export default function MainMap() {
   const [hojaFiltrosAbierta, setHojaFiltrosAbierta] = useState(false);
 
   const [expandido, setExpandido] = useState(true);
-  const [permisoUbicacion, setPermisoUbicacion] = useState(false);
-  const [miPosicionSimulada, setMiPosicionSimulada] = useState<Coordenadas | null>(null);
+  // Posición del usuario para el punto azul: la última conocida, afinada por el fix del GPS.
+  const [miPosicion, setMiPosicion] = useState<Coordenadas | null>(null);
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -121,9 +121,15 @@ export default function MainMap() {
     cameraRef.current?.flyTo({ center: centro, zoom, duration: 500, padding: SIN_PADDING });
   }, []);
 
-  // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa).
+  // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa). Con permiso
+  // se ubica al abrir el mapa, sin mover la cámara, y el fix del GPS lo va afinando.
   useEffect(() => {
-    void tienePermisoUbicacion().then(setPermisoUbicacion).catch(() => setPermisoUbicacion(false));
+    void tienePermisoUbicacion()
+      .then((concedido) => (concedido ? obtenerPosicionActual({ alRefinar: setMiPosicion }) : null))
+      .then((posicion) => {
+        if (posicion) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -169,13 +175,12 @@ export default function MainMap() {
     try {
       const posicion = await obtenerPosicionActual({
         // Si la posición salió de la caché, el fix nuevo llega después: recentra el mapa solo si
-        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul real lo
-        // actualiza el nativo; la posición simulada ya no aplica si hay un fix real.
+        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul sigue al fix nuevo.
         alRefinar: (fresca) => {
           const previa = posicionMostrada.current;
           if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
           posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
-          setMiPosicionSimulada(null);
+          setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
           cameraRef.current?.flyTo({
             center: [fresca.lng, fresca.lat],
             zoom: MI_UBICACION_ZOOM,
@@ -189,10 +194,7 @@ export default function MainMap() {
         return;
       }
       posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
-      setPermisoUbicacion(true);
-      // Sin GPS (emulador en PC) y con mocks, `posicion.simulada`: el punto azul lo dibujamos
-      // nosotros porque el nativo no tiene posición que mostrar.
-      setMiPosicionSimulada(posicion.simulada ? { lat: posicion.lat, lng: posicion.lng } : null);
+      setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
       setExpandido(true);
       cameraRef.current?.flyTo({
         center: [posicion.lng, posicion.lat],
@@ -257,9 +259,8 @@ export default function MainMap() {
             zoom: 11,
           }}
         />
-        {permisoUbicacion && !miPosicionSimulada && <MapLibreGL.UserLocation />}
-        {miPosicionSimulada && (
-          <MapLibreGL.Marker id="mi-posicion-simulada" lngLat={[miPosicionSimulada.lng, miPosicionSimulada.lat]}>
+        {miPosicion && (
+          <MapLibreGL.Marker id="mi-posicion" lngLat={[miPosicion.lng, miPosicion.lat]}>
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}

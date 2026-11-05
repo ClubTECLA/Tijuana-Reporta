@@ -2,29 +2,16 @@ import { StyleSheet, View } from 'react-native';
 import { colors } from '@/theme/colors';
 
 const PUNTO = 18;
-const HALO = 44;
 
 /**
- * Punto azul con halo de la posición del usuario (Figma 10). El mapa lo usa cuando la
- * posición es simulada; con GPS real lo dibuja `MapLibreGL.UserLocation`.
+ * Punto azul de la posición del usuario. Lo fija el mapa como marcador en la última posición
+ * conocida; no usa la capa nativa de ubicación, que se ve demasiado pequeña.
  */
 export function PuntoUsuario() {
-  return (
-    <View style={styles.halo}>
-      <View style={styles.punto} />
-    </View>
-  );
+  return <View style={styles.punto} />;
 }
 
 const styles = StyleSheet.create({
-  halo: {
-    width: HALO,
-    height: HALO,
-    borderRadius: HALO / 2,
-    backgroundColor: 'rgba(38,119,230,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   punto: {
     width: PUNTO,
     height: PUNTO,
