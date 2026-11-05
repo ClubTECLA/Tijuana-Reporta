@@ -208,7 +208,7 @@ export function Table({ format, debug, headers, children, maxh, maxw }: TablePro
             className="rounded-xl border border-line-strong"
         >
             <div
-                className={`${maxh != null ? "overflow-y-auto" : "overflow-y-hidden"} ${maxw != null ? "overflow-x-auto" : "overflow-x-hidden"}`}
+                className={`w-full max-w-full ${maxh != null ? "overflow-y-auto" : "overflow-y-hidden"} overflow-x-auto`}
                 style={{
                     ...(maxh != null ? { maxHeight: maxh } : {}),
                     ...(maxw != null ? { maxWidth: maxw } : {}),

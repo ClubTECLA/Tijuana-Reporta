@@ -1,4 +1,4 @@
-import { createContext, createElement, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { useMap } from "./useMap";
 import { buscarDireccion, direccionDe } from "./geocoding.services";
@@ -14,6 +14,7 @@ interface LocationPickerContextValue {
     address: string;
     editAddress: (text: string) => void;
     search: (query: string) => Promise<SearchResult>;
+    reset: () => void;
 }
 
 const LocationPickerContext = createContext<LocationPickerContextValue | null>(null);
@@ -47,6 +48,7 @@ function useLocationPickerState(): LocationPickerContextValue {
     // usuario y desmontar cancelan la anterior. Así una respuesta tardía no pisa la ubicación ni el texto, y lo
     // cancelado sale de la cola de Nominatim en vez de retrasar la búsqueda actual.
     const lookupRef = useRef<AbortController | null>(null);
+    const hasBeenResetRef = useRef(false);
 
     // Marcador arrastrable: se mueve arrastrándolo o haciendo clic en el mapa.
     useEffect(() => {
@@ -69,7 +71,11 @@ function useLocationPickerState(): LocationPickerContextValue {
             .addTo(map);
         markerRef.current = marker;
         // También la posición: si el mapa no existía al montar, el estado inicial quedó en null.
-        placeAt(center.lat, center.lng);
+        if (hasBeenResetRef.current) {
+            setPosition({ latitude: center.lat, longitude: center.lng });
+        } else {
+            placeAt(center.lat, center.lng);
+        }
 
         const handleDragEnd = () => {
             const { lat, lng } = marker.getLngLat();
@@ -124,7 +130,22 @@ function useLocationPickerState(): LocationPickerContextValue {
         setAddress(text);
     };
 
-    return { markerElement, position, address, editAddress, search };
+    const reset = useCallback(() => {
+        hasBeenResetRef.current = true;
+        lookupRef.current?.abort();
+        const center = map?.getCenter();
+        if (!center) {
+            setPosition(null);
+            setAddress("");
+            return;
+        }
+
+        markerRef.current?.setLngLat(center);
+        setPosition({ latitude: center.lat, longitude: center.lng });
+        setAddress("");
+    }, [map]);
+
+    return { markerElement, position, address, editAddress, search, reset };
 }
 
 export function LocationPickerProvider({ children }: { children: ReactNode }) {

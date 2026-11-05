@@ -135,7 +135,7 @@ export default function UserView() {
                         ]}
                     >
                         {usersFilter.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((user) => 
-                            <TRow key={user.email}>
+                            <TRow key={`${user.username}-${user.email ?? ""}`}>
                                 <TCell>
                                     <UserCard
                                         username={user.username}
