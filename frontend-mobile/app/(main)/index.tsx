@@ -76,6 +76,9 @@ export default function MainMap() {
   const posicionMostrada = useRef<Coordenadas | null>(null);
   // Cada petición de ubicación toma un número; solo la más reciente puede tocar el punto y la cámara.
   const ultimaSolicitud = useRef(0);
+  // Cuenta los fixes del seguimiento continuo: un resultado puntual que empezó antes de uno de ellos es más
+  // viejo y no debe pisarlo en el punto azul.
+  const fixesSeguimiento = useRef(0);
   const target = useMapaTargetStore((s) => s.target);
   const clearTarget = useMapaTargetStore((s) => s.clear);
 
@@ -129,7 +132,8 @@ export default function MainMap() {
   // se ubica al abrir el mapa, sin mover la cámara, y el fix del GPS lo va afinando.
   useEffect(() => {
     const solicitud = ++ultimaSolicitud.current;
-    const vigente = () => solicitud === ultimaSolicitud.current;
+    const fixes = fixesSeguimiento.current;
+    const vigente = () => solicitud === ultimaSolicitud.current && fixes === fixesSeguimiento.current;
     void tienePermisoUbicacion()
       .then((concedido) => {
         if (!concedido) return null;
@@ -152,12 +156,19 @@ export default function MainMap() {
     if (!siguiendoUbicacion) return;
     let cancelar: (() => void) | null = null;
     let limpiado = false;
-    seguirPosicion((posicion) => setMiPosicion({ lat: posicion.lat, lng: posicion.lng }))
+    seguirPosicion((posicion) => {
+      fixesSeguimiento.current += 1;
+      setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+    })
       .then((quitar) => {
         if (limpiado) quitar();
         else cancelar = quitar;
       })
-      .catch((err) => console.warn('[MainMap] no se pudo seguir la ubicación:', err));
+      .catch((err) => {
+        console.warn('[MainMap] no se pudo seguir la ubicación:', err);
+        // Se libera la bandera para que "Mi ubicación" pueda reintentar el seguimiento.
+        if (!limpiado) setSiguiendoUbicacion(false);
+      });
     return () => {
       limpiado = true;
       cancelar?.();
@@ -206,13 +217,16 @@ export default function MainMap() {
     huboGesto.current = false;
     const solicitud = ++ultimaSolicitud.current;
     const vigente = () => solicitud === ultimaSolicitud.current;
+    // Si el seguimiento entrega un fix mientras esta petición está en vuelo, el de ella ya es más viejo.
+    const fixes = fixesSeguimiento.current;
+    const sinFixMasNuevo = () => fixes === fixesSeguimiento.current;
     try {
       const posicion = await obtenerPosicionActual({
         // Si la posición salió de la caché, el fix nuevo llega después. El punto azul siempre sigue al fix;
         // la cámara solo se recentra si cambió de verdad y el usuario no ha movido el mapa mientras tanto.
         alRefinar: (fresca) => {
           if (!vigente()) return;
-          setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
+          if (sinFixMasNuevo()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
           const previa = posicionMostrada.current;
           if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
           posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
@@ -227,11 +241,13 @@ export default function MainMap() {
       // Otra petición más nueva ya tomó el control: esta respuesta no debe mover el punto ni la cámara.
       if (!vigente()) return;
       if (!posicion) {
+        // Sin primer fix pero con permiso concedido, el seguimiento puede conseguirlo después.
+        if (await tienePermisoUbicacion().catch(() => false)) setSiguiendoUbicacion(true);
         setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
         return;
       }
       posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
-      setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+      if (sinFixMasNuevo()) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
       // Si el permiso se acaba de conceder aquí, desde ahora el punto también sigue al dispositivo.
       setSiguiendoUbicacion(true);
       setExpandido(true);
