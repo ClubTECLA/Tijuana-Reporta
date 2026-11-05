@@ -72,6 +72,8 @@ export default function MainMap() {
   // y se enciende en cuanto algo más lo mueve (un gesto, abrir una tarjeta o una búsqueda).
   const huboGesto = useRef(false);
   const posicionMostrada = useRef<Coordenadas | null>(null);
+  // Cada petición de ubicación toma un número; solo la más reciente puede tocar el punto y la cámara.
+  const ultimaSolicitud = useRef(0);
   const target = useMapaTargetStore((s) => s.target);
   const clearTarget = useMapaTargetStore((s) => s.clear);
 
@@ -124,10 +126,20 @@ export default function MainMap() {
   // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa). Con permiso
   // se ubica al abrir el mapa, sin mover la cámara, y el fix del GPS lo va afinando.
   useEffect(() => {
+    const solicitud = ++ultimaSolicitud.current;
+    const vigente = () => solicitud === ultimaSolicitud.current;
     void tienePermisoUbicacion()
-      .then((concedido) => (concedido ? obtenerPosicionActual({ alRefinar: setMiPosicion }) : null))
+      .then((concedido) =>
+        concedido
+          ? obtenerPosicionActual({
+              alRefinar: (fresca) => {
+                if (vigente()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
+              },
+            })
+          : null,
+      )
       .then((posicion) => {
-        if (posicion) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+        if (posicion && vigente()) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
       })
       .catch(() => undefined);
   }, []);
@@ -172,15 +184,18 @@ export default function MainMap() {
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
     huboGesto.current = false;
+    const solicitud = ++ultimaSolicitud.current;
+    const vigente = () => solicitud === ultimaSolicitud.current;
     try {
       const posicion = await obtenerPosicionActual({
-        // Si la posición salió de la caché, el fix nuevo llega después: recentra el mapa solo si
-        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul sigue al fix nuevo.
+        // Si la posición salió de la caché, el fix nuevo llega después. El punto azul siempre sigue al fix;
+        // la cámara solo se recentra si cambió de verdad y el usuario no ha movido el mapa mientras tanto.
         alRefinar: (fresca) => {
+          if (!vigente()) return;
+          setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
           const previa = posicionMostrada.current;
           if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
           posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
-          setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
           cameraRef.current?.flyTo({
             center: [fresca.lng, fresca.lat],
             zoom: MI_UBICACION_ZOOM,
@@ -189,6 +204,8 @@ export default function MainMap() {
           });
         },
       });
+      // Otra petición más nueva ya tomó el control: esta respuesta no debe mover el punto ni la cámara.
+      if (!vigente()) return;
       if (!posicion) {
         setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
         return;

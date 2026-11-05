@@ -45,9 +45,19 @@ describe('comprimirHastaCaber', () => {
     const uri = await comprimirHastaCaber(comprimir, pesoDe);
 
     const calidades = comprimir.mock.calls.map(([q]) => q);
-    expect(calidades[0]).toBe(CALIDAD_INICIAL);
-    expect(calidades.every((q, i) => i === 0 || q < calidades[i - 1])).toBe(true);
-    expect(uri).toBe(`file:///foto-${calidades[calidades.length - 1].toFixed(2)}.jpg`);
+    // Exacto: 0.75 → 0.65 → 0.55, y se devuelve la versión de 0.55 (no la del último intento).
+    expect(calidades).toEqual([0.75, 0.65, 0.55]);
+    expect(uri).toBe('file:///foto-0.55.jpg');
+  });
+
+  it('borra cada intento que pesa de más, pero no la versión que devuelve', async () => {
+    const { comprimir, pesoDe } = compresor((q) => (q > 0.55 ? PESO_MAX_BYTES + 1 : PESO_MAX_BYTES - 1));
+    const descartar = vi.fn(async (_uri: string) => undefined);
+
+    const uri = await comprimirHastaCaber(comprimir, pesoDe, { descartar });
+
+    expect(descartar.mock.calls.map(([u]) => u)).toEqual(['file:///foto-0.75.jpg', 'file:///foto-0.65.jpg']);
+    expect(descartar).not.toHaveBeenCalledWith(uri);
   });
 
   it('falla si ni con la calidad mínima cabe', async () => {

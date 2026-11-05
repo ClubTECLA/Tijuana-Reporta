@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { mensajeDeError } from '@/lib/estados';
+import { ApiError } from '@/lib/http';
 import type { CategoriaReporte, Reporte } from '@/types/api';
 import { cambiarCategoria, tituloReporte } from './crear/categorias';
 import { buscarDuplicado, desdeDuplicados, RADIO_BUSQUEDA_DUPLICADO_M } from './crear/duplicados';
@@ -105,6 +106,7 @@ export function useCrearReporte(): UseCrearReporteReturn {
   const enviando = useRef(false);
   // Candado síncrono, como `enviando`: dos toques seguidos no deben abrir el selector dos veces.
   const eligiendoFoto = useRef(false);
+  const reintentando = useRef(false);
 
   /** Abre el selector, reduce la foto y la deja en el formulario. Cancelar no es un error. */
   const elegirFoto = async (origen: OrigenFoto): Promise<void> => {
@@ -132,13 +134,27 @@ export function useCrearReporte(): UseCrearReporteReturn {
 
   /** La foto de un reporte que ya existe: reintenta solo la subida, nunca vuelve a crear el reporte. */
   const reintentarFoto = async (): Promise<void> => {
-    if (!creado || form.fotoUri === null || subirFoto.isPending) return;
+    // Candado síncrono: `isPending` tarda un render en cambiar y dos toques seguidos subirían dos veces.
+    if (!creado || form.fotoUri === null || subirFoto.isPending || reintentando.current) return;
+    reintentando.current = true;
     try {
       const imageUrl = await subirFoto.mutateAsync({ id: creado.id, uri: form.fotoUri });
       setCreado({ ...creado, image_url: imageUrl });
       setErrorFoto(null);
     } catch (err) {
+      // 409: el servidor ya tiene una foto, a menudo la de un intento que sí llegó aunque el móvil lo diera
+      // por perdido. Se pide el reporte: si trae la foto, el éxito es real y no hay error que mostrar.
+      if (err instanceof ApiError && err.status === 409) {
+        const actual = await reportesApi.detalle(creado.id).catch(() => null);
+        if (actual?.image_url) {
+          setCreado({ ...creado, image_url: actual.image_url });
+          setErrorFoto(null);
+          return;
+        }
+      }
       setErrorFoto({ mensaje: mensajeSubidaFoto(err), reintentable: esFotoReintentable(err) });
+    } finally {
+      reintentando.current = false;
     }
   };
 

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,9 +17,21 @@ export type ResultadoSeleccionFoto =
   | { tipo: 'sin_permiso' }
   | { tipo: 'error'; mensaje: string };
 
-/** Peso del archivo en bytes, leído del sistema de archivos sin cargar la foto en memoria. */
+/** Peso del archivo en bytes. En nativo se lee del sistema de archivos sin cargar la foto en memoria; en
+ * web no existe la API de archivos de Expo, así que se mide el blob de la uri. */
 async function pesoDeArchivo(uri: string): Promise<number> {
+  if (Platform.OS === 'web') return (await (await fetch(uri)).blob()).size;
   return new File(uri).size;
+}
+
+/** Borra un intento de compresión que no cupo. En web la uri es un blob en memoria: no hay archivo que borrar. */
+async function descartarArchivo(uri: string): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    new File(uri).delete();
+  } catch {
+    // Ya no existe: no hay nada que limpiar.
+  }
 }
 
 /** Reduce la foto a JPEG de lado largo acotado y menos de 2 MB, como pide el servidor. Re-codificar también
@@ -33,7 +46,7 @@ async function reducirFoto(foto: { uri: string; width: number; height: number })
         format: ImageManipulator.SaveFormat.JPEG,
       })
     ).uri;
-  return comprimirHastaCaber(comprimir, pesoDeArchivo);
+  return comprimirHastaCaber(comprimir, pesoDeArchivo, { descartar: descartarArchivo });
 }
 
 /** Abre la cámara o la galería y devuelve la uri de una foto ya lista para subir. La galería no pide

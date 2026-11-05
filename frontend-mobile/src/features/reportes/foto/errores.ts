@@ -15,7 +15,7 @@ export function mensajeSubidaFoto(error: unknown): string {
   if (error instanceof ApiError) {
     switch (error.status) {
       case 400:
-        return 'La foto no tiene un formato válido. Prueba con otra.';
+        return 'La foto no tiene un formato válido.';
       case 401:
         return 'Tu sesión expiró. Inicia sesión de nuevo para subir la foto.';
       case 404:

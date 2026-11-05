@@ -95,6 +95,15 @@ export default function CrearReporte() {
     return () => sub.remove();
   }, [expandido]);
 
+  // Mientras se envía el reporte o se sube su foto no se puede salir: si no, la foto queda sin resultado
+  // a la vista. Al terminar ambas operaciones, la salida vuelve a estar disponible.
+  const ocupado = isSubmitting || subiendoFoto;
+  useEffect(() => {
+    if (!ocupado) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [ocupado]);
+
   if (creado) {
     return (
       <>
@@ -105,10 +114,13 @@ export default function CrearReporte() {
           subiendoFoto={subiendoFoto}
           onReintentarFoto={reintentarFoto}
           onVer={() => {
+            if (ocupado) return;
             setTarget({ lat: creado.lat, lng: creado.lng, nombre: creado.titulo, reporteId: creado.id });
             router.back();
           }}
-          onVolver={() => router.back()}
+          onVolver={() => {
+            if (!ocupado) router.back();
+          }}
         />
         {/* Sugerencia de marcar al 911 encima de la confirmación; se muestra una vez por reporte. */}
         <AvisoEmergencia visible={!avisoEmergenciaCerrado} onCerrar={() => setAvisoEmergenciaCerrado(true)} />
@@ -116,7 +128,9 @@ export default function CrearReporte() {
     );
   }
 
-  const cerrar = () => router.back();
+  const cerrar = () => {
+    if (!ocupado) router.back();
+  };
   const errorCategoria = !!errors.categoria;
   // Si la elegida viene de "+ Ver mas" y no cabe en la grilla, ocupa el último lugar de la grilla.
   const visibles = categoriasVisibles(form.categorias, picker);
