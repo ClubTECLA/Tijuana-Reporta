@@ -6,13 +6,13 @@ interface PanelFooterProps {
 
 export default function PanelFooter({ element }: PanelFooterProps) {
     
-    if(!element) {
-        return null
+    if (element === null || element === undefined || element === false || element === "") {
+        return null;
     }
 
-    if(typeof element === 'string') {
+    if (typeof element === 'string' || typeof element === 'number') {
         return(
-            <div className={`flex flex-col items-start justify-center p-4 w-full`}>
+            <div className={"flex flex-col items-start justify-center p-4 w-full"}>
                 <span className="text-caption text-ink-muted">{element}</span>
             </div>
         )
