@@ -1,11 +1,14 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { IoChevronDown } from "react-icons/io5";
 import SubSection from "@/components/layout/SubSection";
+import { cn } from "@/lib/utils";
 import { OptionsMenu, OptionsTile, type OptionTileProps } from "./OptionsMenu";
 
 interface FilterSelectedProps {
     label: string;
     options: OptionTileProps[];
+    /** Si lo pasas, el componente es controlado por el padre */
+    value?: string;
     onChangeOption?: (optionId: string) => void;
     debug?: boolean;
 }
@@ -13,67 +16,65 @@ interface FilterSelectedProps {
 export default function FilterSelected({
     label,
     options,
+    value,
     onChangeOption,
     debug,
 }: FilterSelectedProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [selectedOptionId, setSelectedOptionId] = useState(
+    const [internalId, setInternalId] = useState(
         () => options.find((option) => option.isSelected)?.id ?? options[0]?.id,
     );
     const menuId = useId();
-    const selectedOption = options.find((option) => option.id === selectedOptionId)
-        ?? options.find((option) => option.isSelected)
-        ?? options[0];
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
+    const selectedId = value !== undefined ? value : internalId;
+    const selectedOption =
+        options.find((option) => option.id === selectedId) ?? options[0];
+
+    // Cerrar al hacer click fuera
     useEffect(() => {
         if (!dropdownOpen) return;
 
         const closeOnOutsideClick = (event: PointerEvent) => {
-            if (
-                !(event.target instanceof Element)
-                || event.target.closest("[data-filter-selected]")?.getAttribute("data-filter-selected") !== menuId
-            ) {
+            if (!wrapperRef.current?.contains(event.target as Node)) {
                 setDropdownOpen(false);
             }
         };
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setDropdownOpen(false);
-        };
 
         document.addEventListener("pointerdown", closeOnOutsideClick);
-        document.addEventListener("keydown", closeOnEscape);
-        return () => {
-            document.removeEventListener("pointerdown", closeOnOutsideClick);
-            document.removeEventListener("keydown", closeOnEscape);
-        };
-    }, [dropdownOpen, menuId]);
+        return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+    }, [dropdownOpen]);
+
+    const closeMenu = () => {
+        setDropdownOpen(false);
+        buttonRef.current?.focus();
+    };
 
     const handleChangeOption = (optionId: string) => {
-        setSelectedOptionId(optionId);
-        setDropdownOpen(false);
+        if (value === undefined) setInternalId(optionId);
+        closeMenu();
         onChangeOption?.(optionId);
     };
 
     return (
-        <SubSection
-            debug={debug}
-            format="both-fit"
-            data-filter-selected={menuId}
-            className="relative"
-        >
+        <SubSection ref={wrapperRef} debug={debug} format="both-fit" className="relative">
             <SubSection
+                ref={buttonRef}
                 as="button"
                 debug={debug}
                 type="button"
+                disabled={options.length === 0}
                 aria-haspopup="menu"
                 aria-expanded={dropdownOpen}
-                aria-controls={menuId}
+                aria-controls={dropdownOpen ? menuId : undefined}
                 onClick={() => setDropdownOpen((open) => !open)}
-                className="
-                    flex h-[50px] items-center gap-2 rounded-full border-2 border-line
-                    bg-surface px-5 font-ui transition-colors hover:border-line-strong
-                    focus-visible:outline-2 focus-visible:outline-brand
-                "
+                className={cn(
+                    "flex h-[50px] items-center gap-2 rounded-full border-2 border-line",
+                    "bg-surface px-5 font-ui transition-colors hover:border-line-strong",
+                    "focus-visible:outline-2 focus-visible:outline-brand",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
             >
                 <SubSection
                     as="span"
@@ -87,19 +88,20 @@ export default function FilterSelected({
                 </SubSection>
                 <IoChevronDown
                     aria-hidden="true"
-                    className={`size-6 shrink-0 text-ink-muted transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                    className={cn(
+                        "size-6 shrink-0 text-ink-muted transition-transform",
+                        dropdownOpen && "rotate-180",
+                    )}
                 />
             </SubSection>
 
             {dropdownOpen && (
-                <SubSection
-                    debug={debug}
-                    className="absolute left-0 top-full z-50 mt-2"
-                >
+                <SubSection debug={debug} className="absolute left-0 top-full z-50 mt-2">
                     <OptionsMenu
                         id={menuId}
                         ariaLabel={label}
                         onChangeOption={handleChangeOption}
+                        onClose={closeMenu}
                         debug={debug}
                     >
                         {options.map((option) => (
