@@ -1,92 +1,97 @@
-import { Children, cloneElement, isValidElement} from "react";
+import { Children, cloneElement, Fragment, isValidElement, type ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
+import clsx from "clsx";
 import PanelHeader from "./PanelHeader";
-import { borders, type SectionProps, type subsectionProps } from "@/types/utils-types";
 import PanelFooter from "./PanelFooter";
+import { borders, type SectionProps } from "@/types/utils-types";
 
 const arrangementNormalize = {
-    toDown: 'justify-start h-fit',
-    toUp: 'justify-end h-full',
-    center: 'justify-center h-full',
-    between: 'justify-between h-full'
-} as const satisfies Record<string, string>
-
+    toDown: "justify-start h-fit",
+    toUp: "justify-end h-full",
+    center: "justify-center h-full",
+    between: "justify-between h-full",
+} as const satisfies Record<string, string>;
 
 interface ColSectionProps extends SectionProps {
-    arrangementSubsections?: keyof typeof arrangementNormalize
+    arrangementSubsections?: keyof typeof arrangementNormalize;
 }
 
-export default function ColSection(
-    {
-        children, 
-        arrangementSubsections = 'toDown', 
-        debug = false,
-        title,
-        subtitle,
-        headerActions,
-        className,
-        footerElement,
-        border
-    }: ColSectionProps
-) {
-    const brd = `${border?.map((b) => borders[b]).join(' ') ?? ''} border-line`;
-    const sizingClasses = className?.split(/\s+/).filter((className) => {
-        const utility = className.split(':').pop() ?? className;
-        return /^(?:w-|h-|min-w-|min-h-|max-w-|max-h-|size-|basis-|grow(?:-|$)|shrink(?:-|$)|flex-(?:1|auto|initial|none)$)/.test(utility);
-    }).join(' ') ?? '';
+function propagateDebug(children: ReactNode, debug: boolean) {
+    return Children.map(children, (child) => {
+        if (
+            isValidElement<{ debug?: boolean }>(child) &&
+            typeof child.type !== "string" &&
+            child.type !== Fragment
+        ) {
+            return cloneElement(child, { debug: debug || child.props.debug });
+        }
+        return child;
+    });
+}
 
-    if(!title){
-        return(
-            <section className={`flex flex-col justify-between ${sizingClasses} ${debug ? "border-2" : ""}`}>
-                <div 
-                    className={`
-                        flex flex-col max-w-full max-h-full
-                        ${debug ? 'border-2 border-red-500' : ''} 
-                        ${arrangementNormalize[arrangementSubsections]} 
-                        items-center ${className}
-                        ${border ? brd : ''}     
-                    `}
+export default function ColSection({
+    children,
+    arrangementSubsections = "toDown",
+    debug = false,
+    title,
+    subtitle,
+    headerActions,
+    className,
+    footerElement,
+    border,
+}: ColSectionProps) {
+    const brd = border?.length
+        ? `${border.map((b) => borders[b]).join(" ")} border-line`
+        : "";
+
+    const content = propagateDebug(children, debug);
+    const footer = (
+        <div className={debug ? "border-2 border-blue-500" : ""}>
+            <PanelFooter element={footerElement} />
+        </div>
+    );
+
+    if (!title) {
+        return (
+            <section className={clsx("flex flex-col justify-between", debug && "border-2")}>
+                <div
+                    className={twMerge(
+                        "flex flex-col items-center max-w-full max-h-full",
+                        arrangementNormalize[arrangementSubsections],
+                        brd,
+                        debug && "border-2 border-red-500",
+                        className
+                    )}
                 >
-                        {Children.map(children, (child) => {
-                            if(isValidElement<subsectionProps | SectionProps>(child)){
-                                return cloneElement(child, {
-                                    debug: debug || child.props.debug
-                                })
-                            }
-
-                            return child;
-                        })}
+                    {content}
                 </div>
-                <div className={debug ? 'border-2 border-blue-500' : ''}>
-                    <PanelFooter element={footerElement}/>
-                </div>
+                {footer}
             </section>
-        )   
+        );
     }
 
-    return(
-        <section className={`
-                w-fit h-full flex flex-col max-h-full max-w-full justify-between
-                ${debug ? 'border-2' : ''}
-                ${border ? brd : ''}     
-            `}
+    return (
+        <section
+            className={clsx(
+                "w-fit h-full flex flex-col max-h-full max-w-full justify-between",
+                debug && "border-2",
+                brd
+            )}
         >
-            <div className={`w-fit h-full flex flex-col max-h-full max-w-full ${debug ? "border-2 border-green-500" : ""}`}>
+            <div className={clsx("w-fit h-full flex flex-col max-h-full max-w-full", debug && "border-2 border-green-500")}>
                 <PanelHeader title={title} subtitle={subtitle} actions={headerActions} />
-                <div className={`max-w-full max-h-full mt-5 flex flex-col ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
-                    {Children.map(children, (child) => {
-                        if(isValidElement<subsectionProps | SectionProps>(child)){
-                            return cloneElement(child, {
-                                debug: debug || child.props.debug
-                            })
-                        }
-
-                        return child;
-                    })}
+                <div
+                    className={twMerge(
+                        "max-w-full max-h-full mt-5 flex flex-col",
+                        arrangementNormalize[arrangementSubsections],
+                        debug && "border-2 border-red-500",
+                        className
+                    )}
+                >
+                    {content}
                 </div>
             </div>
-            <div className={debug ? 'border-2 border-blue-500' : ''}>
-                <PanelFooter element={footerElement}/>            
-            </div>
+            {footer}
         </section>
-    )
+    );
 }
