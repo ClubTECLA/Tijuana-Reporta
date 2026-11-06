@@ -4,7 +4,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
     extend: {
         classGroups: {
-            "font-size": [{ text: ["caption", "body"] }], // AQUI SE DEBEN PONER LOS TAMAÑOS PERSONALIZADOS PARA QUE CN LOS ACEPTE
+            "font-size": [{ text: ["2xs", "caption", "body", "title"] }], // AQUI SE DEBEN PONER LOS TAMAÑOS PERSONALIZADOS PARA QUE CN LOS ACEPTE
         },
     },
 });
