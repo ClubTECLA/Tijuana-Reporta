@@ -4,11 +4,13 @@ import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "@/features/perfil/components/UserProfileWidget";
 import useModals from '@/panels/useModals';
+import { useCommonPanel } from '@/panels/useCommonPanel';
 import { useLocationPicker } from '@/features/mapa/useLocationPicker';
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 
 export default function NavigationWrapper() {
     const { openModal, closeModal, currentModal} = useModals()
+    const { currentPanelView } = useCommonPanel();
     const { pathname } = useRouter();
     const { search, editAddress, address } = useLocationPicker();
     const { showMessage } = useSysMessage();
@@ -34,7 +36,7 @@ export default function NavigationWrapper() {
                         <SearchBar
                             onSubmit={handleSearchAddress}
                             onChangeQuery={editAddress}
-                            value={address}
+                            value={currentPanelView === "Nuevo Incidente" ? "" : address}
                         />
                     </div> 
                     <div className="hidden min-w-0 sm:flex sm:flex-2/3">
