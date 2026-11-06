@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPaginationItems } from "./paginationUtils";
+import { getPaginationItems } from "./pagination";
 
 describe("getPaginationItems", () => {
   it("muestra menos páginas antes del ellipsis al inicio", () => {
