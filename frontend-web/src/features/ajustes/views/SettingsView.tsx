@@ -57,7 +57,7 @@ function CategoriesSection({debug} : subsectionProps) {
                 <SubsectionTitle
                     title="Categorias de incidentes"
                     format='col'
-                    description="Lo que el ciudadano puede elegir al reportar · 7 activas, 1 inactiva"
+                    description={'Lo que el ciudadano puede elegir al reportar · ' + categories.filter(c => c.esta_activo).length + ' activas, ' + categories.filter(c => !c.esta_activo).length + ' inactiva'}
                 />
                 <Button
                     title="Nueva categoria"
@@ -96,11 +96,11 @@ function CategoriesSection({debug} : subsectionProps) {
                         {categories.map((c) => 
                             <TRow key={c.id}>
                                 <SimpleText
-                                    icon={<span className={`inline-block w-7 h-7 rounded-full`} style={{background: c.color}}/>}
+                                    icon={<span className={`inline-block size-7 rounded-full`} style={{background: c.color}}/>}
                                     text={c.nombre}
                                 />
                                 <SimpleStatistics
-                                    statistics={c.tags.length}
+                                    statistics={c.tags?.length ?? 0}
                                 />
                                 <SimpleStatistics
                                     statistics="N/A"
@@ -115,6 +115,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                         onChange={(e) => handleChangeIsActive(e)}
                                     />
                                     <TdButton
+                                        ariaLabel={`Editar ${c.nombre}`}
                                         content={{
                                             icon: <GoPencil/>,
                                         }}
@@ -124,6 +125,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                         }}
                                     />
                                     <TdButton
+                                        ariaLabel={`Eliminar ${c.nombre}`}
                                         content={{
                                             icon: <MdDeleteForever/>,
                                         }}
