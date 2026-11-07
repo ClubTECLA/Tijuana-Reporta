@@ -34,11 +34,9 @@ type Actualizar struct {
 
 // UpdateTxParams agrupa el UPDATE del incidente y quién lo hace, para
 // ejecutarlo junto con la lectura de tags y el historial en una transacción.
-// Cambios es opcional: lo que se quiera dejar en los datos del historial.
 type UpdateTxParams struct {
 	Incidente sqlc.UpdateIncidenteParams
 	ActorID   uuid.UUID
-	Cambios   map[string]any
 }
 
 // NuevoTag es un tag del catálogo que se crea junto con su incidente.
