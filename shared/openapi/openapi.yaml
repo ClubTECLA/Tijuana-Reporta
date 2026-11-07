@@ -43,6 +43,8 @@ paths:
     $ref: './paths/incidentes.yaml#/agregarTags'
   /users:
     $ref: './paths/usuarios.yaml#/listarUsuarios'
+  /roles:
+    $ref: './paths/usuarios.yaml#/listarRoles'
 
 components:
   schemas:
@@ -96,6 +98,8 @@ components:
       $ref: './schemas/incidentes/actualizar_incidente_request.yaml'
     UsuarioResumen:
       $ref: './schemas/users/usuario_resumen.yaml'
+    Rol:
+      $ref: './schemas/roles/rol.yaml'
   securitySchemes:
     bearerAuth:
       type: http

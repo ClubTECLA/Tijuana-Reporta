@@ -20,10 +20,14 @@ export interface ReportesApi {
   /** Reportes activos a menos de `radioM` metros del punto, del más cercano al más lejano. */
   cercanos(lat: number, lng: number, radioM: number): Promise<ZonaPeligro[]>;
   crear(req: CrearReporteRequest): Promise<Reporte>;
+  /** Sube la foto (JPEG ya reducido) a un reporte y devuelve su URL pública. Solo el creador del
+   * reporte puede subirla, una por usuario: por eso va aparte de `crear` y no existe en `confirmarDuplicado`. */
+  subirFoto(reporteId: string, uri: string): Promise<string>;
   apoyar(id: string): Promise<void>;
   /** Confirma que un reporte existente sigue ocurriendo (flujo "¿Es el mismo incidente?"):
-   * suma una confirmación y, si se manda foto, se agrega al reporte existente. */
-  confirmarDuplicado(id: string, imageBase64?: string): Promise<Reporte>;
+   * suma una confirmación. No lleva foto: el reporte es de otra persona y el backend solo deja
+   * subirla a su creador. */
+  confirmarDuplicado(id: string): Promise<Reporte>;
   /** Hilo de comentarios de un reporte, del más antiguo al más reciente. */
   comentarios(id: string): Promise<ComentarioConAutor[]>;
   comentar(id: string, texto: string): Promise<Comentario>;

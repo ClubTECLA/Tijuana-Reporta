@@ -1,4 +1,4 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Reporte } from '@/types/api';
 import { colors } from '@/theme/colors';
@@ -11,11 +11,17 @@ import { resolverCategoria, type CategoriaUI } from '@/features/categorias/categ
 import { useCategorias } from '../hooks';
 import { etiquetaLabel } from './categorias';
 import { codigoReporte } from './codigo';
+import type { ErrorFoto } from '../foto/crearConFoto';
 
 interface ReporteCreadoProps {
   reporte: Reporte;
   /** true si se llegó aquí confirmando "¿Es el mismo incidente?" en vez de crear uno nuevo. */
   viaDuplicado?: boolean;
+  /** El reporte se creó pero su foto no se pudo subir. */
+  errorFoto?: ErrorFoto | null;
+  /** Se está reintentando subir la foto. */
+  subiendoFoto?: boolean;
+  onReintentarFoto?: () => void;
   onVer: () => void;
   onVolver: () => void;
 }
@@ -34,7 +40,15 @@ const hora = (fecha: Date) =>
  * Hoja "Reporte creado" (Figma 1396:9541) sobre el mapa oscurecido; con
  * `viaDuplicado` es la variante "Reporte enviado" (Figma 1505:1650).
  */
-export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }: ReporteCreadoProps) {
+export function ReporteCreado({
+  reporte,
+  viaDuplicado = false,
+  errorFoto = null,
+  subiendoFoto = false,
+  onReintentarFoto,
+  onVer,
+  onVolver,
+}: ReporteCreadoProps) {
   const insets = useSafeAreaInsets();
   const categoriaPrincipal = reporte.categorias[0];
   // Etiqueta y color salen del mismo catálogo que el selector: una categoría nueva del backend se ve completa.
@@ -93,6 +107,28 @@ export function ReporteCreado({ reporte, viaDuplicado = false, onVer, onVolver }
               )}
             </View>
           </View>
+
+          {errorFoto && (
+            <View style={styles.avisoFoto} accessibilityLiveRegion="polite">
+              <Text style={styles.avisoFotoTitulo}>Tu reporte se creó, pero la foto no se subió.</Text>
+              <Text style={styles.avisoFotoTexto}>{errorFoto.mensaje}</Text>
+              {errorFoto.reintentable && onReintentarFoto && (
+                <Pressable
+                  onPress={onReintentarFoto}
+                  disabled={subiendoFoto}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: subiendoFoto, busy: subiendoFoto }}
+                >
+                  {subiendoFoto ? (
+                    <ActivityIndicator color={colors.etiquetaAdvertenciaText} />
+                  ) : (
+                    <Text style={styles.avisoFotoAccion}>Reintentar subir la foto</Text>
+                  )}
+                </Pressable>
+              )}
+            </View>
+          )}
 
           <Pressable onPress={onVer} accessibilityRole="button" style={[styles.boton, styles.botonRojo]}>
             <FileTextIcon size={22} color={colors.white} />
@@ -230,6 +266,29 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: 12,
     color: colors.brandText,
+  },
+  avisoFoto: {
+    gap: 6,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: colors.etiquetaAdvertenciaBg,
+  },
+  avisoFotoTitulo: {
+    fontFamily: fontFamily.bold,
+    fontSize: 14,
+    color: colors.etiquetaAdvertenciaText,
+  },
+  avisoFotoTexto: {
+    fontFamily: fontFamily.regular,
+    fontSize: 13,
+    color: colors.etiquetaAdvertenciaText,
+  },
+  avisoFotoAccion: {
+    marginTop: 2,
+    fontFamily: fontFamily.semiBold,
+    fontSize: 14,
+    color: colors.etiquetaAdvertenciaText,
+    textDecorationLine: 'underline',
   },
   boton: {
     height: 60,

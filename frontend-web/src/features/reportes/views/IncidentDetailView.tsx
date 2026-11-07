@@ -13,7 +13,7 @@ import { useReporteDetalle } from "@/features/reportes/useReporteDetalle";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 import type { ApiComentario, ApiEstadoReporte } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
-import { folio, formatDateTime, fotoUrl, pinOfficialFirst } from "@/features/reportes/reportFormat";
+import { folio, formatDateTime, fotoUrl, incidentBorderColor, incidentColor, incidentIconColor, PENDING_ICON_STYLE, pinOfficialFirst } from "@/features/reportes/reportFormat";
 import { isOfficialRole, rolLabel } from "@/features/sesion/users";
 import { esEstadoFinal, estadosSiguientes } from "@/features/reportes/estadoTransiciones";
 
@@ -48,7 +48,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
     const base = reporte ?? reportes?.find((item) => item.id === reporteId);
     const category = base ? categories.get(base.incidente_id) : undefined;
-    const color = category?.color ?? "var(--color-ink-muted)";
+    const color = base ? incidentColor(base.estado_actual, category?.color) : "var(--color-ink-muted)";
     const icon = createElement(categoryIcon(category?.nombre ?? ""), { "aria-hidden": true });
     const photo = reporte?.multimedia[0];
     // Misma regla que el backend (PATCH /reportes/{id}/estado): cualquier rol menos ciudadano.
@@ -126,7 +126,14 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
             <div className="flex flex-col gap-2.5 pt-2">
                 <div className="flex items-center gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full text-white [&>svg]:size-5.5" style={{ backgroundColor: color }}>
+                    <span
+                        className={`flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-transparent text-white [&>svg]:size-5.5 ${base?.estado_actual === "Pendiente" ? PENDING_ICON_STYLE : ""}`}
+                        style={{
+                            backgroundColor: color,
+                            borderColor: base && incidentBorderColor(base.estado_actual),
+                            color: base && incidentIconColor(base.estado_actual, category?.color),
+                        }}
+                    >
                         {icon}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -22,7 +22,7 @@ import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
 import { HojaCrearCuenta, type MotivoCuenta } from '@/features/sesion/HojaCrearCuenta';
 import { distanciaMetros } from '@/lib/geo';
-import { obtenerPosicionActual, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
+import { obtenerPosicionActual, seguirPosicion, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
 import { esErrorDeRed } from '@/lib/estados';
 import { useEnLinea } from '@/lib/red';
 import { useEsInvitado } from '@/lib/session';
@@ -62,8 +62,10 @@ export default function MainMap() {
   const [hojaFiltrosAbierta, setHojaFiltrosAbierta] = useState(false);
 
   const [expandido, setExpandido] = useState(true);
-  const [permisoUbicacion, setPermisoUbicacion] = useState(false);
-  const [miPosicionSimulada, setMiPosicionSimulada] = useState<Coordenadas | null>(null);
+  // Posición del usuario para el punto azul: la última conocida, afinada por el fix del GPS.
+  const [miPosicion, setMiPosicion] = useState<Coordenadas | null>(null);
+  // Con permiso de ubicación concedido, el punto azul sigue al dispositivo mientras el mapa está abierto.
+  const [siguiendoUbicacion, setSiguiendoUbicacion] = useState(false);
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -72,6 +74,11 @@ export default function MainMap() {
   // y se enciende en cuanto algo más lo mueve (un gesto, abrir una tarjeta o una búsqueda).
   const huboGesto = useRef(false);
   const posicionMostrada = useRef<Coordenadas | null>(null);
+  // Cada petición de ubicación toma un número; solo la más reciente puede tocar el punto y la cámara.
+  const ultimaSolicitud = useRef(0);
+  // Cuenta los fixes del seguimiento continuo: un resultado puntual que empezó antes de uno de ellos es más
+  // viejo y no debe pisarlo en el punto azul.
+  const fixesSeguimiento = useRef(0);
   const target = useMapaTargetStore((s) => s.target);
   const clearTarget = useMapaTargetStore((s) => s.clear);
 
@@ -121,10 +128,52 @@ export default function MainMap() {
     cameraRef.current?.flyTo({ center: centro, zoom, duration: 500, padding: SIN_PADDING });
   }, []);
 
-  // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa).
+  // Punto azul del usuario: solo si el permiso ya se concedió (no se pide al abrir el mapa). Con permiso
+  // se ubica al abrir el mapa, sin mover la cámara, y el fix del GPS lo va afinando.
   useEffect(() => {
-    void tienePermisoUbicacion().then(setPermisoUbicacion).catch(() => setPermisoUbicacion(false));
+    const solicitud = ++ultimaSolicitud.current;
+    const fixes = fixesSeguimiento.current;
+    const vigente = () => solicitud === ultimaSolicitud.current && fixes === fixesSeguimiento.current;
+    void tienePermisoUbicacion()
+      .then((concedido) => {
+        if (!concedido) return null;
+        setSiguiendoUbicacion(true);
+        return obtenerPosicionActual({
+          alRefinar: (fresca) => {
+            if (vigente()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
+          },
+        });
+      })
+      .then((posicion) => {
+        if (posicion && vigente()) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+      })
+      .catch(() => undefined);
   }, []);
+
+  // Cada fix nuevo del GPS mueve el punto azul. El seguimiento se cancela al desmontar; si el efecto se
+  // limpia antes de que la suscripción esté lista, se cancela en cuanto llega.
+  useEffect(() => {
+    if (!siguiendoUbicacion) return;
+    let cancelar: (() => void) | null = null;
+    let limpiado = false;
+    seguirPosicion((posicion) => {
+      fixesSeguimiento.current += 1;
+      setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+    })
+      .then((quitar) => {
+        if (limpiado) quitar();
+        else cancelar = quitar;
+      })
+      .catch((err) => {
+        console.warn('[MainMap] no se pudo seguir la ubicación:', err);
+        // Se libera la bandera para que "Mi ubicación" pueda reintentar el seguimiento.
+        if (!limpiado) setSiguiendoUbicacion(false);
+      });
+    return () => {
+      limpiado = true;
+      cancelar?.();
+    };
+  }, [siguiendoUbicacion]);
 
   useEffect(() => {
     if (!aviso) return;
@@ -166,16 +215,21 @@ export default function MainMap() {
   const irAMiUbicacion = useCallback(async () => {
     setBuscandoUbicacion(true);
     huboGesto.current = false;
+    const solicitud = ++ultimaSolicitud.current;
+    const vigente = () => solicitud === ultimaSolicitud.current;
+    // Si el seguimiento entrega un fix mientras esta petición está en vuelo, el de ella ya es más viejo.
+    const fixes = fixesSeguimiento.current;
+    const sinFixMasNuevo = () => fixes === fixesSeguimiento.current;
     try {
       const posicion = await obtenerPosicionActual({
-        // Si la posición salió de la caché, el fix nuevo llega después: recentra el mapa solo si
-        // cambió de verdad y el usuario no lo ha movido mientras tanto. El punto azul real lo
-        // actualiza el nativo; la posición simulada ya no aplica si hay un fix real.
+        // Si la posición salió de la caché, el fix nuevo llega después. El punto azul siempre sigue al fix;
+        // la cámara solo se recentra si cambió de verdad y el usuario no ha movido el mapa mientras tanto.
         alRefinar: (fresca) => {
+          if (!vigente()) return;
+          if (sinFixMasNuevo()) setMiPosicion({ lat: fresca.lat, lng: fresca.lng });
           const previa = posicionMostrada.current;
           if (huboGesto.current || (previa && distanciaMetros(previa, fresca) < REFINAR_MIN_M)) return;
           posicionMostrada.current = { lat: fresca.lat, lng: fresca.lng };
-          setMiPosicionSimulada(null);
           cameraRef.current?.flyTo({
             center: [fresca.lng, fresca.lat],
             zoom: MI_UBICACION_ZOOM,
@@ -184,15 +238,18 @@ export default function MainMap() {
           });
         },
       });
+      // Otra petición más nueva ya tomó el control: esta respuesta no debe mover el punto ni la cámara.
+      if (!vigente()) return;
       if (!posicion) {
+        // Sin primer fix pero con permiso concedido, el seguimiento puede conseguirlo después.
+        if (await tienePermisoUbicacion().catch(() => false)) setSiguiendoUbicacion(true);
         setAviso('No pudimos obtener tu ubicación. Revisa el permiso y el GPS.');
         return;
       }
       posicionMostrada.current = { lat: posicion.lat, lng: posicion.lng };
-      setPermisoUbicacion(true);
-      // Sin GPS (emulador en PC) y con mocks, `posicion.simulada`: el punto azul lo dibujamos
-      // nosotros porque el nativo no tiene posición que mostrar.
-      setMiPosicionSimulada(posicion.simulada ? { lat: posicion.lat, lng: posicion.lng } : null);
+      if (sinFixMasNuevo()) setMiPosicion({ lat: posicion.lat, lng: posicion.lng });
+      // Si el permiso se acaba de conceder aquí, desde ahora el punto también sigue al dispositivo.
+      setSiguiendoUbicacion(true);
       setExpandido(true);
       cameraRef.current?.flyTo({
         center: [posicion.lng, posicion.lat],
@@ -257,9 +314,8 @@ export default function MainMap() {
             zoom: 11,
           }}
         />
-        {permisoUbicacion && !miPosicionSimulada && <MapLibreGL.UserLocation />}
-        {miPosicionSimulada && (
-          <MapLibreGL.Marker id="mi-posicion-simulada" lngLat={[miPosicionSimulada.lng, miPosicionSimulada.lat]}>
+        {miPosicion && (
+          <MapLibreGL.Marker id="mi-posicion" lngLat={[miPosicion.lng, miPosicion.lat]}>
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}

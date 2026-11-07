@@ -66,6 +66,28 @@ async function posicionFresca(timeoutMs: number): Promise<Coordenadas | null> {
   }
 }
 
+// Seguimiento en primer plano: un fix nuevo solo si se movió esto (o pasó este tiempo, en Android), para
+// mantener el punto al día sin encender el GPS a tope.
+const SEGUIMIENTO_DISTANCIA_M = 10;
+const SEGUIMIENTO_TIEMPO_MS = 5000;
+
+/**
+ * Sigue la posición del dispositivo mientras la app está abierta: llama a `alCambiar` con cada fix nuevo.
+ * Devuelve la función que cancela el seguimiento (hay que llamarla al desmontar). No pide permisos: quien la
+ * llama debe haber comprobado que ya están concedidos.
+ */
+export async function seguirPosicion(alCambiar: (posicion: Coordenadas) => void): Promise<() => void> {
+  const suscripcion = await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.Balanced,
+      distanceInterval: SEGUIMIENTO_DISTANCIA_M,
+      timeInterval: SEGUIMIENTO_TIEMPO_MS,
+    },
+    (posicion) => alCambiar(aCoordenadas(posicion)),
+  );
+  return () => suscripcion.remove();
+}
+
 /** Posición actual del dispositivo, o `null` si no hay permiso o no se obtuvo posición.
  *
  * Devuelve al instante la última posición conocida (si es reciente y precisa) y, en paralelo,

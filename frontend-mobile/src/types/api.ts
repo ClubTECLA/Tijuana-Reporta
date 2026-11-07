@@ -48,5 +48,4 @@ export interface CrearReporteRequest {
   lat: number;
   lng: number;
   direccion?: string;
-  image_base64?: string;
 }

@@ -51,3 +51,17 @@ func (h *Handler) ListarUsuarios(ctx context.Context, request httpapi.ListarUsua
 	}
 	return httpapi.ListarUsuarios200JSONResponse(usuarioResumenes), nil
 }
+
+// ListarRoles obtiene el catálogo de roles para administradores.
+func (h *Handler) ListarRoles(ctx context.Context, request httpapi.ListarRolesRequestObject) (httpapi.ListarRolesResponseObject, error) {
+	roles, err := h.svc.ListarRoles(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	respuesta := make([]httpapi.Rol, len(roles))
+	for i, rol := range roles {
+		respuesta[i] = httpapi.Rol{Id: rol.ID, Nombre: rol.Nombre}
+	}
+	return httpapi.ListarRoles200JSONResponse(respuesta), nil
+}

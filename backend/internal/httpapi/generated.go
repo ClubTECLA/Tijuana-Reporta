@@ -270,6 +270,12 @@ type ReporteResumen struct {
 	Titulo TituloReporte `json:"titulo"`
 }
 
+// Rol defines model for Rol.
+type Rol struct {
+	Id     int    `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
 // SubirMultimediaRequest Foto que el creador de un reporte sube a su reporte.
 type SubirMultimediaRequest struct {
 	File openapi_types.File `json:"file"`
@@ -438,6 +444,9 @@ type ServerInterface interface {
 
 	// (POST /reportes/{reporteId}/multimedia)
 	SubirMultimedia(c *gin.Context, reporteId uuid.UUID)
+
+	// (GET /roles)
+	ListarRoles(c *gin.Context)
 
 	// (GET /users)
 	ListarUsuarios(c *gin.Context)
@@ -940,6 +949,21 @@ func (siw *ServerInterfaceWrapper) SubirMultimedia(c *gin.Context) {
 	siw.Handler.SubirMultimedia(c, reporteId)
 }
 
+// ListarRoles operation middleware
+func (siw *ServerInterfaceWrapper) ListarRoles(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{"admin"})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarRoles(c)
+}
+
 // ListarUsuarios operation middleware
 func (siw *ServerInterfaceWrapper) ListarUsuarios(c *gin.Context) {
 
@@ -1000,6 +1024,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/reportes/:reporteId/comentarios", wrapper.CrearComentario)
 	router.PATCH(options.BaseURL+"/reportes/:reporteId/estado", wrapper.CambiarEstadoReporte)
 	router.POST(options.BaseURL+"/reportes/:reporteId/multimedia", wrapper.SubirMultimedia)
+	router.GET(options.BaseURL+"/roles", wrapper.ListarRoles)
 	router.GET(options.BaseURL+"/users", wrapper.ListarUsuarios)
 }
 
@@ -2138,6 +2163,55 @@ func (response SubirMultimedia503JSONResponse) VisitSubirMultimediaResponse(w ht
 	return err
 }
 
+type ListarRolesRequestObject struct {
+}
+
+type ListarRolesResponseObject interface {
+	VisitListarRolesResponse(w http.ResponseWriter) error
+}
+
+type ListarRoles200JSONResponse []Rol
+
+func (response ListarRoles200JSONResponse) VisitListarRolesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarRoles401JSONResponse ErrorResponse
+
+func (response ListarRoles401JSONResponse) VisitListarRolesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarRoles403JSONResponse ErrorResponse
+
+func (response ListarRoles403JSONResponse) VisitListarRolesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListarUsuariosRequestObject struct {
 }
 
@@ -2243,6 +2317,9 @@ type StrictServerInterface interface {
 
 	// (POST /reportes/{reporteId}/multimedia)
 	SubirMultimedia(ctx context.Context, request SubirMultimediaRequestObject) (SubirMultimediaResponseObject, error)
+
+	// (GET /roles)
+	ListarRoles(ctx context.Context, request ListarRolesRequestObject) (ListarRolesResponseObject, error)
 
 	// (GET /users)
 	ListarUsuarios(ctx context.Context, request ListarUsuariosRequestObject) (ListarUsuariosResponseObject, error)
@@ -2817,6 +2894,30 @@ func (sh *strictHandler) SubirMultimedia(ctx *gin.Context, reporteId uuid.UUID) 
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(SubirMultimediaResponseObject); ok {
 		if err := validResponse.VisitSubirMultimediaResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListarRoles operation middleware
+func (sh *strictHandler) ListarRoles(ctx *gin.Context) {
+	var request ListarRolesRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarRoles(ctx, request.(ListarRolesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarRoles")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarRolesResponseObject); ok {
+		if err := validResponse.VisitListarRolesResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

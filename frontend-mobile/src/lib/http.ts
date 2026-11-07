@@ -24,9 +24,13 @@ export class ErrorRed extends Error {
 }
 
 /** `fetch` que convierte los fallos de red y el tiempo agotado en `ErrorRed`. */
-export async function fetchConRed(url: string, init: RequestInit = {}): Promise<Response> {
+export async function fetchConRed(
+  url: string,
+  init: RequestInit = {},
+  tiempoLimiteMs: number = TIEMPO_LIMITE_MS,
+): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIEMPO_LIMITE_MS);
+  const timer = setTimeout(() => controller.abort(), tiempoLimiteMs);
   // La señal del llamador también cancela, sin quitarle el tiempo límite a la petición.
   const delLlamador = init.signal;
   const cancelar = () => controller.abort();
@@ -36,8 +40,7 @@ export async function fetchConRed(url: string, init: RequestInit = {}): Promise<
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
     // Cancelación pedida por el llamador: no es un fallo de red.
-    if (delLlamador?.aborted) throw err;
-    // `fetch` solo rechaza cuando no hubo respuesta: los errores HTTP llegan como `response.ok === false`.
+    if (delLlamador?.aborted) throw err;    // `fetch` solo rechaza cuando no hubo respuesta: los errores HTTP llegan como `response.ok === false`.
     throw new ErrorRed();
   } finally {
     clearTimeout(timer);
@@ -45,17 +48,27 @@ export async function fetchConRed(url: string, init: RequestInit = {}): Promise<
   }
 }
 
-export async function http<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function http<T>(
+  path: string,
+  init: RequestInit = {},
+  { tiempoLimiteMs }: { tiempoLimiteMs?: number } = {},
+): Promise<T> {
   const token = useSessionStore.getState().token;
+  // Con un formulario (subir una foto) `fetch` fija el Content-Type con su boundary; forzar JSON lo rompería.
+  const esFormulario = init.body instanceof FormData;
 
-  const response = await fetchConRed(`${env.apiUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...init.headers,
+  const response = await fetchConRed(
+    `${env.apiUrl}${path}`,
+    {
+      ...init,
+      headers: {
+        ...(!esFormulario && { 'Content-Type': 'application/json' }),
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...init.headers,
+      },
     },
-  });
+    tiempoLimiteMs,
+  );
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { message?: string } | null;
