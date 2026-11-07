@@ -31,6 +31,14 @@
       "@maplibre/maplibre-react-native",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Tijuana Reporta usa la cámara para que tomes una foto del incidente que reportas.",
+          "photosPermission": "Tijuana Reporta accede a tus fotos para que adjuntes una imagen del incidente que reportas.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Tijuana Reporta usa tu ubicación para ubicar el incidente que reportas.",

@@ -1,4 +1,4 @@
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Reporte } from '@/types/api';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
@@ -14,6 +14,8 @@ interface ReporteDuplicadoProps {
   reporte: Reporte;
   distanciaM: number;
   confirmando: boolean;
+  /** El usuario ya había elegido una foto: al confirmar no se sube, porque el reporte es de otra persona. */
+  fotoDescartada?: boolean;
   /** Error al confirmar o al crear el reporte nuevo (p. ej. sin conexión); se muestra sobre los botones. */
   error?: string | null;
   onConfirmar: () => void;
@@ -32,6 +34,7 @@ export function ReporteDuplicado({
   reporte,
   distanciaM,
   confirmando,
+  fotoDescartada = false,
   error,
   onConfirmar,
   onRechazar,
@@ -41,58 +44,60 @@ export function ReporteDuplicado({
 
   return (
     <View style={styles.sheet}>
-      <View style={styles.cerrar}>
-        <CerrarButton onPress={onCerrar} />
-      </View>
-      <View style={styles.cabecera}>
-        <Text style={styles.titulo}>¿Es el mismo incidente?</Text>
-        <Text style={styles.subtitulo}>
-          Hay uno parecido a {Math.round(distanciaM)} m · {hace(reporte.created_at).toLowerCase()}
-        </Text>
-      </View>
-
-      <View style={styles.contenido}>
-        <View style={styles.tarjeta}>
-          {reporte.image_url ? (
-            <Image source={{ uri: reporte.image_url }} style={styles.foto} resizeMode="cover" />
-          ) : (
-            <View style={[styles.foto, styles.fotoPlaceholder]}>
-              <CategoriaBadge categoria={categoriaPrincipal} size={48} />
-            </View>
-          )}
-
-          <View style={styles.tarjetaCuerpo}>
-            <View style={styles.filaTitulo}>
-              <CategoriaBadge categoria={categoriaPrincipal} size={32} />
-              <Text style={styles.tarjetaTitulo} numberOfLines={1}>
-                {reporte.titulo}
-              </Text>
-            </View>
-
-            <View style={styles.filaMeta}>
-              <View style={styles.probable}>
-                <Text style={styles.probableTexto}>Probable</Text>
-              </View>
-              <Text style={styles.metaTexto} numberOfLines={1}>
-                {codigoReporte(reporte.id)} · {reporte.direccion ?? `${reporte.lat.toFixed(4)}, ${reporte.lng.toFixed(4)}`}
-              </Text>
-            </View>
-
-            <View style={styles.filaConfirmaciones}>
-              <UserIcon size={16} color={colors.slate} />
-              <Text style={styles.confirmacionesTexto}>{reporte.upvotes} vecinos ya lo confirmaron</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.info}>
-          <InfoIcon size={18} color={colors.slate} />
-          <Text style={styles.infoTexto}>
-            Si es el mismo, confirmarlo ayuda a verificarlo más rápido y evita reportes repetidos. Tu foto se agrega
-            al incidente.
+      {/* Con texto del sistema muy grande, el contenido se desplaza; los botones de abajo siempre se ven. */}
+      <ScrollView style={styles.desplazable} showsVerticalScrollIndicator={false}>
+        <View style={styles.cabecera}>
+          <Text style={styles.titulo}>¿Es el mismo incidente?</Text>
+          <Text style={styles.subtitulo}>
+            Hay uno parecido a {Math.round(distanciaM)} m · {hace(reporte.created_at).toLowerCase()}
           </Text>
         </View>
-      </View>
+
+        <View style={styles.contenido}>
+          <View style={styles.tarjeta}>
+            {reporte.image_url ? (
+              <Image source={{ uri: reporte.image_url }} style={styles.foto} resizeMode="cover" />
+            ) : (
+              <View style={[styles.foto, styles.fotoPlaceholder]}>
+                <CategoriaBadge categoria={categoriaPrincipal} size={48} />
+              </View>
+            )}
+
+            <View style={styles.tarjetaCuerpo}>
+              <View style={styles.filaTitulo}>
+                <CategoriaBadge categoria={categoriaPrincipal} size={32} />
+                <Text style={styles.tarjetaTitulo} numberOfLines={1}>
+                  {reporte.titulo}
+                </Text>
+              </View>
+
+              <View style={styles.filaMeta}>
+                <View style={styles.probable}>
+                  <Text style={styles.probableTexto}>Probable</Text>
+                </View>
+                <Text style={styles.metaTexto} numberOfLines={1}>
+                  {codigoReporte(reporte.id)} · {reporte.direccion ?? `${reporte.lat.toFixed(4)}, ${reporte.lng.toFixed(4)}`}
+                </Text>
+              </View>
+
+              <View style={styles.filaConfirmaciones}>
+                <UserIcon size={16} color={colors.slate} />
+                <Text style={styles.confirmacionesTexto}>{reporte.upvotes} vecinos ya lo confirmaron</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.info}>
+            <InfoIcon size={18} color={colors.slate} />
+            <Text style={styles.infoTexto}>
+              Si es el mismo, confirmarlo ayuda a verificarlo más rápido y evita reportes repetidos.
+              {fotoDescartada
+                ? ' La foto que elegiste no se agrega: solo quien creó el reporte puede subirla. Si prefieres conservarla, crea uno nuevo.'
+                : ''}
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
 
       <View style={styles.pie}>
         {!!error && (
@@ -124,16 +129,23 @@ export function ReporteDuplicado({
           <Text style={styles.botonRechazarTexto}>No, es otro · seguir reportando</Text>
         </Pressable>
       </View>
+      <View style={styles.cerrar}>
+        <CerrarButton onPress={onCerrar} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: {
+    maxHeight: '88%',
     backgroundColor: colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
+  },
+  desplazable: {
+    flexShrink: 1,
   },
   cabecera: {
     paddingTop: 24,
