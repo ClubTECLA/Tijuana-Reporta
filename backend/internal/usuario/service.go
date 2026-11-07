@@ -9,6 +9,7 @@ import (
 // store es lo que Service necesita de Store.
 type store interface {
 	ListAllUsers(ctx context.Context) ([]sqlc.ListAllUsersRow, error)
+	ListRoles(ctx context.Context) ([]sqlc.Role, error)
 }
 
 type Service struct {
@@ -24,4 +25,9 @@ func NewService(store store) *Service {
 // counts. It preserves the store's ordering, nil results, and errors.
 func (s *Service) ListarUsuarios(ctx context.Context) ([]sqlc.ListAllUsersRow, error) {
 	return s.store.ListAllUsers(ctx)
+}
+
+// ListarRoles returns the roles catalog in the store's stable order
+func (s *Service) ListarRoles(ctx context.Context) ([]sqlc.Role, error) {
+	return s.store.ListRoles(ctx)
 }

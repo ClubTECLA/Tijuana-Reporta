@@ -26,8 +26,38 @@ listarUsuarios:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+listarRoles:
+  get:
+    operationId: listarRoles
+    description: Obtiene el catálogo de roles del sistema.
+    security:
+      - bearerAuth: [admin]
+    responses:
+      '200':
+        description: Catálogo de roles
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Rol'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
+    Rol:
+      $ref: '../schemas/roles/rol.yaml'
     UsuarioResumen:
       $ref: '../schemas/users/usuario_resumen.yaml'
     ErrorResponse:
