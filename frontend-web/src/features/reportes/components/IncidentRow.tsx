@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { LuChevronRight, LuUsers } from "react-icons/lu";
 import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
-import { confirmaciones, folio, formatDateTime, shortDate } from "@/features/reportes/reportFormat";
+import { confirmaciones, folio, formatDateTime, incidentBorderColor, incidentColor, incidentIconColor, PENDING_ICON_STYLE, shortDate } from "@/features/reportes/reportFormat";
 import { StatusBadge } from "./Badge";
 
 interface IncidentRowProps {
@@ -21,11 +21,15 @@ export default function IncidentRow({ reporte, incidente, onClick }: IncidentRow
 
     const content = <>
         <span
-            className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: incidente?.color ?? "#757575" }}
+            className={`relative flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-transparent text-white ${reporte.estado_actual === "Pendiente" ? PENDING_ICON_STYLE : ""}`}
+            style={{
+                backgroundColor: incidentColor(reporte.estado_actual, incidente?.color),
+                borderColor: incidentBorderColor(reporte.estado_actual),
+                color: incidentIconColor(reporte.estado_actual, incidente?.color),
+            }}
         >
             {createElement(categoryIcon(incidente?.nombre ?? ""), { className: "size-5.5", "aria-hidden": true })}
-            <span className="absolute -top-1.25 left-7.25 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-mono text-2xs font-bold leading-none text-white">
+            <span className="absolute -top-1.75 left-6.75 rounded-full border-2 border-white bg-ink px-1.5 py-0.5 font-mono text-2xs font-bold leading-none text-white">
                 {reporte.avistamientos}
             </span>
         </span>

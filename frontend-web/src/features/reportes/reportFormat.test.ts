@@ -1,9 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { confirmaciones, folio, formatDateTime, fotoUrl, pinOfficialFirst, shortDate, timeAgo } from "./reportFormat";
+import { confirmaciones, folio, formatDateTime, fotoUrl, incidentBorderColor, incidentColor, incidentIconColor, pinOfficialFirst, shortDate, timeAgo } from "./reportFormat";
+import type { ApiEstadoReporte } from "@/types/api-types";
 
 const now = Date.parse("2026-10-26T12:00:00Z");
 
 describe("reportFormat", () => {
+    it("cada estado tiene su distinción en el icono del incidente", () => {
+        const colores = (estado: ApiEstadoReporte) => [incidentColor(estado, "#f00"), incidentBorderColor(estado), incidentIconColor(estado)];
+        expect(colores("Pendiente")).toEqual(["#f00", undefined, undefined]);
+        expect(colores("Probable")).toEqual(["var(--color-probable-muted)", "var(--color-probable)", "var(--color-probable-icon)"]);
+        expect(colores("Verificado")).toEqual(["#f00", undefined, undefined]);
+        expect(colores("Resuelto")).toEqual(["var(--color-resolved-muted)", "var(--color-resolved)", "var(--color-resolved-icon)"]);
+        expect(colores("Descartado")).toEqual(["var(--color-discarded-muted)", "var(--color-discarded)", "var(--color-discarded-icon)"]);
+    });
+
+    it("el dibujo pasa a oscuro solo sobre una categoría demasiado clara para el blanco", () => {
+        expect(incidentIconColor("Verificado", "#F5C518")).toBe("var(--color-ink)"); // luz
+        expect(incidentIconColor("Pendiente", "#F5C518")).toBe("var(--color-ink)");
+        expect(incidentIconColor("Verificado", "#1E88E5")).toBeUndefined(); // inundación, el más claro de los demás
+        expect(incidentIconColor("Verificado")).toBeUndefined();
+        expect(incidentIconColor("Resuelto", "#F5C518")).toBe("var(--color-resolved-icon)");
+    });
+
     it("folio es estable y tiene el formato de mobile", () => {
         expect(folio("abc")).toBe(folio("abc"));
         expect(folio("abc")).toMatch(/^INC-\d{4}$/);

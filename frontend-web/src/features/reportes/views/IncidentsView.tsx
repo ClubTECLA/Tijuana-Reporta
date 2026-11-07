@@ -11,6 +11,7 @@ import { useReportes } from "@/features/reportes/useReportes";
 import {
     filterReportes, TAB_STATUSES, tabOf, tabStatuses, toggledOfficial, toggledStatus, type ReportFilters, type ReportTab as Tab,
 } from "@/features/reportes/reportFilters";
+import { masRecientes } from "@/features/resumen/resumen";
 import { canPublishIncidents } from "@/features/sesion/users";
 import type { ApiEstadoReporte } from "@/types/api-types";
 
@@ -32,7 +33,8 @@ export default function IncidentsView() {
     const countWith = (statuses: ApiEstadoReporte[]) => filterReportes(all, { ...filters, statuses }).length;
     const activeCount = countWith(TAB_STATUSES.activos);
     const resolvedCount = countWith(["Resuelto"]);
-    const shown = filtered.slice(0, visibleCount);
+    // Se ordena antes de paginar: "Cargar más" añade siempre los siguientes más antiguos.
+    const shown = masRecientes(filtered, visibleCount);
     const remaining = filtered.length - shown.length;
 
     // Cambiar el filtro vuelve a la primera tanda.
@@ -71,7 +73,7 @@ export default function IncidentsView() {
                     {tabs.map(({ key, label }) => <TabItem key={key} tabTitle={label} />)}
                 </SegmentedTabs>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1">
                     {/* Cada estado cerrado que se ve tiene su chip marcado: al marcar uno, la pestaña pasa a Todos. */}
                     {TAB_STATUSES[activeTab].map((status) =>
                         <CategoryChip

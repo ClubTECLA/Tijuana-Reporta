@@ -1,7 +1,12 @@
 import { createElement } from "react";
-import { confirmaciones, folio } from "@/features/reportes/reportFormat";
-import type { ApiIncidente, ApiReporteResumen } from "@/types/api-types";
+import type { IconType } from "react-icons";
+import { LuCheck, LuX } from "react-icons/lu";
+import { confirmaciones, folio, incidentBorderColor, incidentColor, incidentIconColor, PENDING_ICON_STYLE } from "@/features/reportes/reportFormat";
+import type { ApiEstadoReporte, ApiIncidente, ApiReporteResumen } from "@/types/api-types";
 import { categoryIcon } from "@/features/categorias/categories";
+
+// En un incidente cerrado, la burbuja del contador indica cómo terminó, con el color del pin: el estado no depende solo del color.
+const CLOSED_ICONS: Partial<Record<ApiEstadoReporte, IconType>> = { Resuelto: LuCheck, Descartado: LuX };
 
 interface IncidentPinProps {
     reporte: ApiReporteResumen
@@ -13,11 +18,12 @@ interface IncidentPinProps {
 }
 
 // "Web/Pin de mapa · Regular" del Figma: color e icono de la categoría y contador de confirmaciones.
-// Los pendientes (aún sin verificar) van translúcidos con borde discontinuo, como en "Mapa en vivo".
+// Los pendientes (aún sin verificar) van translúcidos con borde discontinuo, como en "Mapa en vivo"; los demás estados se distinguen con incidentColor e incidentBorderColor.
 // Se pinta dentro del <button> del marcador (IncidentsLayer), que abre el detalle.
 export default function IncidentPin({ reporte, incidente, isNew = false, selected = false }: IncidentPinProps) {
-    const color = incidente?.color ?? "#757575";
+    const color = incidentColor(reporte.estado_actual, incidente?.color);
     const pending = reporte.estado_actual === "Pendiente" && !selected;
+    const ClosedIcon = CLOSED_ICONS[reporte.estado_actual];
     const label = `${reporte.titulo}, ${reporte.estado_actual}, ${confirmaciones(reporte.avistamientos)}`;
 
     return (
@@ -37,16 +43,20 @@ export default function IncidentPin({ reporte, incidente, isNew = false, selecte
                 className={`
                     relative flex size-full items-center justify-center rounded-full border-2 border-white text-white
                     shadow-pin transition-transform duration-300
-                    ${pending ? "opacity-55 outline-2 outline-offset-2 outline-dashed outline-ink-muted" : ""}
+                    ${pending ? `opacity-55 ${PENDING_ICON_STYLE}` : ""}
                     ${isNew ? "scale-110" : ""}
                 `}
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: color, borderColor: incidentBorderColor(reporte.estado_actual), color: incidentIconColor(reporte.estado_actual, incidente?.color) }}
                 aria-hidden
             >
                 {createElement(categoryIcon(incidente?.nombre ?? ""), { className: selected ? "size-8" : "size-6" })}
             </span>
-            <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-ink px-1.75 py-0.5 font-mono text-xs font-bold leading-none text-white" aria-hidden>
-                {reporte.avistamientos}
+            <span
+                className={`absolute -right-1.5 -top-1.5 rounded-full border-2 border-white bg-ink font-mono text-xs font-bold leading-none text-white ${ClosedIcon ? "p-0.5" : "px-1.75 py-0.5"}`}
+                style={ClosedIcon && { backgroundColor: color, borderColor: incidentBorderColor(reporte.estado_actual), color: incidentIconColor(reporte.estado_actual) }}
+                aria-hidden
+            >
+                {ClosedIcon ? <ClosedIcon className="block size-3" strokeWidth={3} /> : reporte.avistamientos}
             </span>
         </span>
     );

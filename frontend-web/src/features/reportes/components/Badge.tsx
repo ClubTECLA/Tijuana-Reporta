@@ -27,14 +27,16 @@ export function Badge({ children, tone = "neutral", dot = false }: BadgeProps) {
     );
 }
 
-// Tono de cada estado del reporte; los que no están aquí van en neutro.
-const statusTones: Partial<Record<ApiEstadoReporte, BadgeTone>> = {
-    Pendiente: "warning",
+// Tono de cada estado del reporte: "Web/Insignia de estado" del Figma.
+const statusTones: Record<ApiEstadoReporte, BadgeTone> = {
+    Pendiente: "neutral",
+    Probable: "warning",
     Verificado: "success",
-    Resuelto: "success",
+    Resuelto: "info",
+    Descartado: "danger",
 };
 
-/** Estado del reporte con el tono del Figma (Pendiente en ámbar, Verificado y Resuelto en verde). */
+/** Estado del reporte con el tono del Figma. */
 export function StatusBadge({ estado }: { estado: ApiEstadoReporte }) {
-    return <Badge tone={statusTones[estado] ?? "neutral"} dot>{estado}</Badge>;
+    return <Badge tone={statusTones[estado]} dot>{estado}</Badge>;
 }

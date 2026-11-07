@@ -35,6 +35,19 @@
   /* Estados */
   --color-success: #1f8a5b;       /* text-success */
   --color-success-subtle: #e7f7f0;/* bg-success-subtle */
+  /*
+    Icono de un incidente según su estado. Son colores fijos porque los de categoría pueden ser cualquiera. Contraste
+    medido: dibujo/fondo >= 4.5 y borde/fondo >= 3; los fondos se separan también en luminosidad, no solo en tono.
+  */
+  --color-probable: #ffb020;      /* Borde */
+  --color-probable-muted: #8f5b00;/* Fondo */
+  --color-probable-icon: #ffe9a8; /* Dibujo */
+  --color-resolved: #1d4f91;      /* Borde */
+  --color-resolved-muted: #bcdcff;/* Fondo */
+  --color-resolved-icon: #12345f; /* Dibujo */
+  --color-discarded: #ff6b6b;     /* Borde */
+  --color-discarded-muted: #6b1015;/* Fondo */
+  --color-discarded-icon: #ffd6d6;/* Dibujo */
   --color-warning: #b7770f;       /* text-warning */
   --color-warning-subtle: #fff6da;/* bg-warning-subtle */
   --color-danger: #d93f3f;        /* text-danger */
