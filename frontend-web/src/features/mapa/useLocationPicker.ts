@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { useMap } from "./useMap";
 import { buscarDireccion, direccionDe } from "./geocoding.services";
@@ -7,6 +7,17 @@ export type Position = { latitude: number; longitude: number };
 
 /** "found": se movió el marcador; "not-found": Nominatim no dio resultados; "ignored": vacía, cancelada o ya sin marcador. */
 export type SearchResult = "found" | "not-found" | "ignored";
+
+interface LocationPickerContextValue {
+    markerElement: HTMLDivElement;
+    position: Position | null;
+    address: string;
+    editAddress: (text: string) => void;
+    search: (query: string) => Promise<SearchResult>;
+    reset: () => void;
+}
+
+const LocationPickerContext = createContext<LocationPickerContextValue | null>(null);
 
 // Cancela la búsqueda de dirección anterior y devuelve la señal de la nueva.
 function restartLookup(ref: { current: AbortController | null }) {
@@ -21,7 +32,7 @@ function restartLookup(ref: { current: AbortController | null }) {
  * juntos aquí, y el marcador se quita al desmontar. Quien lo usa solo pinta el contenido del marcador, con un portal
  * sobre `markerElement`.
  */
-export function useLocationPicker() {
+function useLocationPickerState(): LocationPickerContextValue {
     const { map } = useMap();
 
     const [position, setPosition] = useState<Position | null>(() => {
@@ -37,6 +48,7 @@ export function useLocationPicker() {
     // usuario y desmontar cancelan la anterior. Así una respuesta tardía no pisa la ubicación ni el texto, y lo
     // cancelado sale de la cola de Nominatim en vez de retrasar la búsqueda actual.
     const lookupRef = useRef<AbortController | null>(null);
+    const hasBeenResetRef = useRef(false);
 
     // Marcador arrastrable: se mueve arrastrándolo o haciendo clic en el mapa.
     useEffect(() => {
@@ -59,7 +71,11 @@ export function useLocationPicker() {
             .addTo(map);
         markerRef.current = marker;
         // También la posición: si el mapa no existía al montar, el estado inicial quedó en null.
-        placeAt(center.lat, center.lng);
+        if (hasBeenResetRef.current) {
+            setPosition({ latitude: center.lat, longitude: center.lng });
+        } else {
+            placeAt(center.lat, center.lng);
+        }
 
         const handleDragEnd = () => {
             const { lat, lng } = marker.getLngLat();
@@ -114,5 +130,35 @@ export function useLocationPicker() {
         setAddress(text);
     };
 
-    return { markerElement, position, address, editAddress, search };
+    const reset = useCallback(() => {
+        hasBeenResetRef.current = true;
+        lookupRef.current?.abort();
+        const center = map?.getCenter();
+        if (!center) {
+            setPosition(null);
+            setAddress("");
+            return;
+        }
+
+        markerRef.current?.setLngLat(center);
+        setPosition({ latitude: center.lat, longitude: center.lng });
+        setAddress("");
+    }, [map]);
+
+    return { markerElement, position, address, editAddress, search, reset };
+}
+
+export function LocationPickerProvider({ children }: { children: ReactNode }) {
+    const picker = useLocationPickerState();
+
+    return createElement(LocationPickerContext.Provider, { value: picker }, children);
+}
+
+export function useLocationPicker() {
+    const context = useContext(LocationPickerContext);
+    if (!context) {
+        throw new Error("useLocationPicker must be used within a LocationPickerProvider");
+    }
+
+    return context;
 }
