@@ -1,4 +1,44 @@
+import type { ApiEstadoReporte } from "@/types/api-types";
+
 // Formatos de presentación de un reporte, compartidos por la lista y el detalle.
+
+// Cómo se distingue cada estado en el icono del incidente; Pendiente y Verificado conservan el color de su categoría.
+// Son colores fijos: sobre un color de categoría cualquiera no se puede garantizar el contraste (ver index.css).
+const STATUS_COLORS: Partial<Record<ApiEstadoReporte, { background: string; border: string; icon: string }>> = {
+    Probable: { background: "var(--color-probable-muted)", border: "var(--color-probable)", icon: "var(--color-probable-icon)" },
+    Resuelto: { background: "var(--color-resolved-muted)", border: "var(--color-resolved)", icon: "var(--color-resolved-icon)" },
+    Descartado: { background: "var(--color-discarded-muted)", border: "var(--color-discarded)", icon: "var(--color-discarded-icon)" },
+};
+
+// Por encima de esta luminancia, un dibujo blanco queda por debajo de un contraste de 3:1.
+const WHITE_ICON_MAX_LUMINANCE = 0.3;
+
+/** Contorno del icono de un incidente pendiente, para que no se confunda con uno verificado. */
+export const PENDING_ICON_STYLE = "outline-2 outline-offset-2 outline-dashed outline-ink-muted";
+
+/** Luminancia relativa (WCAG) de un color #RRGGBB; 0 si tiene otro formato. */
+function luminance(hex: string) {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0;
+    const [r, g, b] = [1, 3, 5]
+        .map((start) => parseInt(hex.slice(start, start + 2), 16) / 255)
+        .map((value) => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Fondo del icono de un incidente: el de su estado, o el de su categoría si el estado no tiene uno propio. */
+export function incidentColor(estado: ApiEstadoReporte, categoryColor = "#757575") {
+    return STATUS_COLORS[estado]?.background ?? categoryColor;
+}
+
+/** Borde del icono de un incidente según su estado; sin uno propio, undefined deja el borde del componente. */
+export function incidentBorderColor(estado: ApiEstadoReporte) {
+    return STATUS_COLORS[estado]?.border;
+}
+
+/** Color del dibujo del icono: el de su estado o, sobre una categoría clara, oscuro; undefined lo deja blanco. */
+export function incidentIconColor(estado: ApiEstadoReporte, categoryColor = "") {
+    return STATUS_COLORS[estado]?.icon ?? (luminance(categoryColor) > WHITE_ICON_MAX_LUMINANCE ? "var(--color-ink)" : undefined);
+}
 
 /** Folio corto derivado del id, con la misma fórmula que codigoReporte() de mobile. Solo presentación. */
 export function folio(id: string) {

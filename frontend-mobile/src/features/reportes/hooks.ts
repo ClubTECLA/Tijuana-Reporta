@@ -6,6 +6,8 @@ import type { Periodo } from '../mapa/filtros/types';
 import { reportesApi } from './api';
 import { categoriasORespaldo, type CategoriaUI } from '../categorias/categorias';
 import { detalleApiKey } from './claves';
+import { crearConFoto } from './foto/crearConFoto';
+import type { CrearReporteRequest } from '@/types/api';
 
 export const reportesKeys = {
   all: ['reportes'] as const,
@@ -23,11 +25,26 @@ export function useReportes() {
   });
 }
 
+/** Crea el reporte y, si hay foto, la sube. La foto es opcional y su fallo no tumba la creación: el
+ * resultado trae `errorFoto` para ofrecer reintentar. */
 export function useCrearReporteMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (req: Parameters<typeof reportesApi.crear>[0]) => reportesApi.crear(req),
+    mutationFn: ({ req, fotoUri }: { req: CrearReporteRequest; fotoUri: string | null }) =>
+      crearConFoto(reportesApi, req, fotoUri),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reportesKeys.all }),
+  });
+}
+
+/** Sube la foto a un reporte ya creado (reintento tras un fallo) y refresca su detalle. */
+export function useSubirFoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, uri }: { id: string; uri: string }) => reportesApi.subirFoto(id, uri),
+    onSuccess: async (_url, { id }) => {
+      await queryClient.invalidateQueries({ queryKey: detalleApiKey(id) });
+      await queryClient.invalidateQueries({ queryKey: reportesKeys.all });
+    },
   });
 }
 
@@ -65,12 +82,11 @@ export function useComentar(reporteId: string) {
   });
 }
 
-/** Confirma un reporte existente con foto opcional e invalida la lista al completarse. */
+/** Confirma un reporte existente e invalida la lista al completarse. */
 export function useConfirmarDuplicado() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, imageBase64 }: { id: string; imageBase64?: string }) =>
-      reportesApi.confirmarDuplicado(id, imageBase64),
+    mutationFn: ({ id }: { id: string }) => reportesApi.confirmarDuplicado(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reportesKeys.all }),
   });
 }

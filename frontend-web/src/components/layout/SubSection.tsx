@@ -3,10 +3,12 @@ import {
     cloneElement,
     Fragment,
     isValidElement,
-    type ComponentPropsWithoutRef,
+    type ComponentPropsWithRef,
     type ReactNode,
+    type RefAttributes,
 } from "react";
 import { Link, type LinkProps } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { subsectionFormats, type subsectionProps } from "@/types/utils-types";
 
 type ElementKind = "div" | "button" | "span" | "link";
@@ -19,19 +21,20 @@ interface SharedProps extends subsectionProps {
 }
 
 type DivSubSectionProps = SharedProps
-    & Omit<ComponentPropsWithoutRef<"div">, keyof SharedProps | "key">
+    & Omit<ComponentPropsWithRef<"div">, keyof SharedProps | "key">
     & { as?: "div" };
 
 type ButtonSubSectionProps = SharedProps
-    & Omit<ComponentPropsWithoutRef<"button">, keyof SharedProps | "key">
+    & Omit<ComponentPropsWithRef<"button">, keyof SharedProps | "key">
     & { as: "button" };
 
 type SpanSubSectionProps = SharedProps
-    & Omit<ComponentPropsWithoutRef<"span">, keyof SharedProps | "key">
+    & Omit<ComponentPropsWithRef<"span">, keyof SharedProps | "key">
     & { as: "span" };
 
 type LinkSubSectionProps = SharedProps
     & Omit<LinkProps, keyof SharedProps | "key">
+    & RefAttributes<HTMLAnchorElement>
     & { as: "link"; to: LinkProps["to"] };
 
 export type SubSectionProps =
@@ -51,12 +54,20 @@ function cloneWithDebug(child: ReactNode, debug?: boolean): ReactNode {
     });
 }
 
+function getClassName(
+    className?: string,
+    format?: keyof typeof subsectionFormats,
+    debug?: boolean,
+) {
+    return cn(
+        "flex",
+        subsectionFormats[format ?? "nothing"],
+        className,
+        debug && "border-2 border-blue-400",
+    );
+}
+
 export default function SubSection(props: SubSectionProps) {
-    const getClassName = (className?: string, format?: keyof typeof subsectionFormats, debug?: boolean) => `
-        flex ${subsectionFormats[format ?? "nothing"]}
-        ${className ?? ""}
-        ${debug ? "border-2 border-blue-400" : ""}
-    `;
     if (props.as === "link") {
         const {
             children,
@@ -71,14 +82,14 @@ export default function SubSection(props: SubSectionProps) {
             ...linkProps
         } = props;
         void _as;
+        void subKey;
         const linkChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
 
         return (
             <Link
                 {...linkProps}
-                className={getClassName(className, format, debug)}
                 to={to}
-                key={subKey}
+                className={getClassName(className, format, debug)}
                 aria-label={ariaLabel ?? nativeAriaLabel}
             >
                 {linkChildren}
@@ -99,13 +110,14 @@ export default function SubSection(props: SubSectionProps) {
             ...buttonProps
         } = props;
         void _as;
+        void subKey;
         const buttonChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
 
         return (
             <button
+                type="button" // antes del spread: un `type` explícito lo sobrescribe
                 {...buttonProps}
                 className={getClassName(className, format, debug)}
-                key={subKey}
                 aria-label={ariaLabel ?? nativeAriaLabel}
             >
                 {buttonChildren}
@@ -126,13 +138,13 @@ export default function SubSection(props: SubSectionProps) {
             ...spanProps
         } = props;
         void _as;
+        void subKey;
         const spanChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
 
         return (
             <span
                 {...spanProps}
                 className={getClassName(className, format, debug)}
-                key={subKey}
                 aria-label={ariaLabel ?? nativeAriaLabel}
             >
                 {spanChildren}
@@ -152,13 +164,13 @@ export default function SubSection(props: SubSectionProps) {
         ...divProps
     } = props;
     void _as;
+    void subKey;
     const divChildren = Children.map(children, (child) => cloneWithDebug(child, debug));
 
     return (
         <div
             {...divProps}
             className={getClassName(className, format, debug)}
-            key={subKey}
             aria-label={ariaLabel ?? nativeAriaLabel}
         >
             {divChildren}

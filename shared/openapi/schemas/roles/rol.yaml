@@ -1,0 +1,7 @@
+type: object
+required: [id, nombre]
+properties:
+  id:
+    type: integer
+  nombre:
+    type: string

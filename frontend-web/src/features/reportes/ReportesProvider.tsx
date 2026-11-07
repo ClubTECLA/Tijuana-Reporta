@@ -75,7 +75,8 @@ export function ReportesProvider({ children }: { children: ReactNode }) {
 
     const publicar = useCallback(async (nuevo: NuevoReporte) => {
         const publicacion = await publicarReporte(nuevo);
-        // La lista y el mapa muestran el reporte nuevo, y su pin se anima.
+        // Sin filtros, para que la lista y el mapa muestren el reporte nuevo y su pin se anime.
+        setFilters(DEFAULT_FILTERS);
         setCreatedId(publicacion.reporte.id);
         void refresh();
         return publicacion;

@@ -20,3 +20,29 @@ func (q *Queries) GetDefaultRole(ctx context.Context) (Role, error) {
 	err := row.Scan(&i.ID, &i.Nombre)
 	return i, err
 }
+
+const listRoles = `-- name: ListRoles :many
+SELECT id, nombre
+FROM roles
+ORDER BY id
+`
+
+func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
+	rows, err := q.db.Query(ctx, listRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Role
+	for rows.Next() {
+		var i Role
+		if err := rows.Scan(&i.ID, &i.Nombre); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

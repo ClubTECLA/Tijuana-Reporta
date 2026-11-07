@@ -2,7 +2,7 @@ import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
 import ColSection from "@/components/layout/ColSection";
 import Input from "@/components/ui/Input";
 import { ListTile, OptionList } from "@/components/ui/OptionsList";
-import UserCart from "@/features/perfil/components/UserCart";
+import UserCard from "@/features/perfil/components/UserCard";
 import { GoShieldCheck } from "react-icons/go";
 import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
@@ -60,7 +60,7 @@ export default function UserProfileView() {
             subtitle="Cuenta institucional - Proteccion Civil"
             className="pb-10 overflow-y-auto px-2"
         >
-            <UserCart
+            <UserCard
                 format={"col"}
                 username={user.username}
                 email={user.email}

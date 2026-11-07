@@ -48,7 +48,7 @@ describe('cuerpoCrearReporte', () => {
   });
 
   it('solo manda los campos que el backend conoce (sin título, tags, foto ni es_oficial)', () => {
-    const cuerpo = cuerpoCrearReporte(req({ direccion: 'x', image_base64: 'abc' }), CATALOGO);
+    const cuerpo = cuerpoCrearReporte(req({ direccion: 'x' }), CATALOGO);
     expect(Object.keys(cuerpo).sort()).toEqual(['direccion', 'incidente_id', 'latitude', 'longitude']);
   });
 

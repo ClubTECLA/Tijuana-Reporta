@@ -114,6 +114,19 @@ type AuthProvider struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type Centro struct {
+	ID         uuid.UUID   `json:"id"`
+	TipoCentro int         `json:"tipo_centro"`
+	Nombre     string      `json:"nombre"`
+	Latitude   float64     `json:"latitude"`
+	Longitude  float64     `json:"longitude"`
+	Capacidad  *int        `json:"capacidad"`
+	Cantidad   *int        `json:"cantidad"`
+	Activo     bool        `json:"activo"`
+	CreatedAt  time.Time   `json:"created_at"`
+	Geom       interface{} `json:"geom"`
+}
+
 type Comentario struct {
 	ID         int       `json:"id"`
 	ReporteID  uuid.UUID `json:"reporte_id"`
@@ -239,6 +252,11 @@ type Tag struct {
 	IncidenteID int    `json:"incidente_id"`
 	Nombre      string `json:"nombre"`
 	Peso        int    `json:"peso"`
+}
+
+type TiposCentro struct {
+	ID     int    `json:"id"`
+	Nombre string `json:"nombre"`
 }
 
 type User struct {

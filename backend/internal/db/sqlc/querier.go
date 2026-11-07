@@ -53,6 +53,7 @@ type Querier interface {
 	// estados viaja como text[]: pgx no sabe codificar el arreglo del enum estado.
 	ListReportesPorUbicacion(ctx context.Context, arg ListReportesPorUbicacionParams) ([]ListReportesPorUbicacionRow, error)
 	ListReportesResumen(ctx context.Context, arg ListReportesResumenParams) ([]ListReportesResumenRow, error)
+	ListRoles(ctx context.Context) ([]Role, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]Tag, error)
 	// Los tags de varios incidentes en una sola consulta, para no hacer una por
 	// incidente al listar.

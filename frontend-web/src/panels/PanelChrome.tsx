@@ -22,7 +22,7 @@ export default function PanelChrome({ entry }: { entry: PanelEntry }) {
             className="
                 fixed left-2 right-2 top-20 bottom-2
                 min-w-0 max-w-none
-                bg-white/90 rounded-2xl
+                bg-glass backdrop-blur-glass rounded-3xl
                 shadow-float p-3
                 z-50
                 sm:left-3 sm:right-auto sm:bottom-5

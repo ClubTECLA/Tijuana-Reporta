@@ -170,6 +170,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
             className="
                 flex-col items-start 
                 justify-center bg-subtle rounded-xl px-2 py-4
+                max-w-100 min-w-70
             "
         >  
             <div className="flex flex-row gap-2 items-center justify-center">

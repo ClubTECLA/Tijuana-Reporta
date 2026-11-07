@@ -6,6 +6,7 @@ import {
   mapearComentario,
   mapearDetalle,
   mapearResumen,
+  urlMultimedia,
   type IncidenteApi,
   type ReporteApi,
   type ReporteCercanoApi,
@@ -14,7 +15,11 @@ import {
 import { rutaCercanos } from './cercanos';
 import { detalleApiKey } from './claves';
 import { cuerpoCrearReporte } from './crear/cuerpoApi';
+import { archivoDeFoto } from './foto/archivo';
+import { formularioFoto } from './foto/multipart';
 import type { ReportesApi } from './port';
+
+const TIEMPO_SUBIDA_FOTO_MS = 60_000;
 
 // El catálogo casi no cambia: se pide una vez y se cruza por `incidente_id`.
 const CATALOGO_STALE_MS = 10 * 60_000;
@@ -59,7 +64,7 @@ export const reportesHttp: ReportesApi = {
   comentarios: async (id) => (await detalleApi(id)).comentarios.map(mapearComentario),
 
   // La respuesta es el reporte completo (201), el mismo que `GET /reportes/{id}`. La foto va aparte
-  // (`POST /reportes/{id}/multimedia`, rebanada 2): aquí `image_base64` y las etiquetas no se mandan.
+  // (`subirFoto`): aquí ni ella ni las etiquetas se mandan.
   crear: async (req) => {
     const incidentes = await catalogo();
     const reporte = await http<ReporteApi>('/reportes', {
@@ -68,13 +73,19 @@ export const reportesHttp: ReportesApi = {
     });
     return mapearDetalle(reporte, incidentes, env.apiUrl);
   },
+  // `POST /reportes/{id}/multimedia` (multipart, campo `file`). Devuelve el `path` guardado; nginx lo sirve en
+  // `/multimedia/{path}`. Con señal débil una foto de ~2 MB tarda más que una petición normal: más margen.
+  subirFoto: async (id, uri) => {
+    const archivo = await http<{ path: string }>(
+      `/reportes/${id}/multimedia`,
+      { method: 'POST', body: formularioFoto(await archivoDeFoto(uri)) },
+      { tiempoLimiteMs: TIEMPO_SUBIDA_FOTO_MS },
+    );
+    return urlMultimedia(archivo.path, env.apiUrl);
+  },
   // TODO(1b): apoyar y confirmar apuntan a rutas que no existen; el backend usa PATCH /reportes/{id}/avistamientos.
   apoyar: (id) => http<void>(`/reportes/${id}/apoyar`, { method: 'POST' }),
-  confirmarDuplicado: (id, imageBase64) =>
-    http<Reporte>(`/reportes/${id}/confirmar`, {
-      method: 'POST',
-      body: JSON.stringify({ image_base64: imageBase64 }),
-    }),
+  confirmarDuplicado: (id) => http<Reporte>(`/reportes/${id}/confirmar`, { method: 'POST' }),
   // TODO(1b): el POST de comentarios existe; falta ajustar la respuesta al tipo `Comentario`.
   comentar: (id, texto) =>
     http<Comentario>(`/reportes/${id}/comentarios`, {
