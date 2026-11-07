@@ -93,7 +93,7 @@ func (s *Store) UpdateIncidente(ctx context.Context, arg UpdateTxParams) (Detall
 	err := db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
 		// Se lee el estado anterior dentro de la transacción, para compararlo
 		// con el nuevo y guardar en el historial solo los campos que cambiaron.
-		anterior, err := q.GetIncidenteById(ctx, arg.Incidente.ID)
+		anterior, err := q.GetIncidenteByIdForUpdate(ctx, arg.Incidente.ID)
 		if err != nil {
 			return err
 		}

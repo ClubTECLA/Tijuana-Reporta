@@ -89,6 +89,25 @@ func (q *Queries) GetIncidenteById(ctx context.Context, id int) (Incidente, erro
 	return i, err
 }
 
+const getIncidenteByIdForUpdate = `-- name: GetIncidenteByIdForUpdate :one
+SELECT id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color FROM incidentes WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetIncidenteByIdForUpdate(ctx context.Context, id int) (Incidente, error) {
+	row := q.db.QueryRow(ctx, getIncidenteByIdForUpdate, id)
+	var i Incidente
+	err := row.Scan(
+		&i.ID,
+		&i.Nombre,
+		&i.Etiqueta,
+		&i.TiempoLimite,
+		&i.Radio,
+		&i.EstaActivo,
+		&i.Color,
+	)
+	return i, err
+}
+
 const listIncidentes = `-- name: ListIncidentes :many
 SELECT id, nombre, etiqueta, tiempo_limite, radio, esta_activo, color FROM incidentes
 WHERE esta_activo OR $1::boolean

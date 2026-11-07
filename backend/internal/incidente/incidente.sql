@@ -14,6 +14,7 @@ SET
     color = $7
 WHERE id = $1
 RETURNING *;
+
 -- name: CreateTag :one
 INSERT INTO tags (incidente_id, nombre, peso)
 VALUES ($1, $2, $3)
@@ -21,6 +22,9 @@ RETURNING *;
 
 -- name: GetIncidenteById :one
 SELECT * FROM incidentes WHERE id = $1;
+
+-- name: GetIncidenteByIdForUpdate :one
+SELECT * FROM incidentes WHERE id = $1 FOR UPDATE;
 
 -- Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
 -- administración).
