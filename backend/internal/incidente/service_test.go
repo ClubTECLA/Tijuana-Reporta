@@ -32,6 +32,10 @@ type fakeIncidenteStore struct {
 	createTagsErr  error
 	tagsByIdsCalls int
 	tagsByIdCalls  int
+
+	lastUpdateArg UpdateTxParams
+	updateCalled  bool
+	updateErr     error
 }
 
 func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg CreateTxParams) (Detalle, error) {
@@ -109,6 +113,35 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int
 		}
 	}
 	return out, nil
+}
+
+func (f *fakeIncidenteStore) UpdateIncidente(_ context.Context, arg UpdateTxParams) (Detalle, error) {
+	f.updateCalled = true
+	f.lastUpdateArg = arg
+	if f.updateErr != nil {
+		return Detalle{}, f.updateErr
+	}
+
+	p := arg.Incidente
+	i, ok := f.incidentes[p.ID]
+	if !ok {
+		return Detalle{}, pgx.ErrNoRows
+	}
+	i.Nombre = p.Nombre
+	i.Etiqueta = p.Etiqueta
+	i.TiempoLimite = p.TiempoLimite
+	i.Radio = p.Radio
+	i.EstaActivo = p.EstaActivo
+	i.Color = p.Color
+	f.incidentes[p.ID] = i
+
+	tags := []sqlc.Tag{}
+	for _, t := range f.tags {
+		if t.IncidenteID == p.ID {
+			tags = append(tags, t)
+		}
+	}
+	return Detalle{Incidente: i, Tags: tags}, nil
 }
 
 func (f *fakeIncidenteStore) agregarIncidente(id int, nombre string, activo bool) {
@@ -404,5 +437,144 @@ func TestIncidenteService_AgregarTags_Errores(t *testing.T) {
 	}
 }
 
+func TestIncidenteService_Actualizar_Exito(t *testing.T) {
+	store := &fakeIncidenteStore{}
+	store.agregarIncidente(1, "socavon", true)
+	store.agregarTag(1, "profundo", 1)
+	svc := NewService(store)
+
+	actorID := uuid.New()
+	d, err := svc.Actualizar(context.Background(), 1, Actualizar{
+		Nombre:       "  bache  ",
+		Etiqueta:     "  Bache  ",
+		Color:        "#EF6C33",
+		EstaActivo:   false,
+		TiempoLimite: ptr(7),
+		Radio:        ptr(25.5),
+	}, actorID)
+	if err != nil {
+		t.Fatalf("Actualizar() error = %v", err)
+	}
+	if !store.updateCalled {
+		t.Fatal("Actualizar() no llamó a UpdateIncidente")
+	}
+	if store.lastUpdateArg.ActorID != actorID {
+		t.Fatalf("UpdateIncidente() actor = %v, want %v", store.lastUpdateArg.ActorID, actorID)
+	}
+	p := store.lastUpdateArg.Incidente
+	if p.ID != 1 || p.Nombre != "bache" || p.Etiqueta != "Bache" {
+		t.Fatalf("UpdateIncidente() incidente = %+v, want id=1 nombre=bache etiqueta=Bache", p)
+	}
+	if p.Color != "#EF6C33" || p.EstaActivo {
+		t.Fatalf("UpdateIncidente() incidente = %+v, want color=#EF6C33 esta_activo=false", p)
+	}
+	if *p.TiempoLimite != 7 || *p.Radio != 25.5 {
+		t.Fatalf("UpdateIncidente() incidente = %+v, want tiempo_limite=7 radio=25.5", p)
+	}
+	if d.Incidente.Nombre != "bache" || len(d.Tags) != 1 || d.Tags[0].Nombre != "profundo" {
+		t.Fatalf("Actualizar() = %+v, want incidente bache con [profundo]", d)
+	}
+}
+
+func TestIncidenteService_Actualizar_Invalido(t *testing.T) {
+	tests := []struct {
+		name   string
+		actual Actualizar
+	}{
+		{name: "nombre vacío", actual: Actualizar{Nombre: "", Etiqueta: "x", Color: "#000000", EstaActivo: true}},
+		{name: "nombre de 101 caracteres", actual: Actualizar{Nombre: strings.Repeat("a", 101), Etiqueta: "x", Color: "#000000", EstaActivo: true}},
+		{name: "etiqueta vacía", actual: Actualizar{Nombre: "bache", Etiqueta: "   ", Color: "#000000", EstaActivo: true}},
+		{name: "etiqueta de 101 caracteres", actual: Actualizar{Nombre: "bache", Etiqueta: strings.Repeat("a", 101), Color: "#000000", EstaActivo: true}},
+		{name: "tiempo_limite negativo", actual: Actualizar{Nombre: "bache", Etiqueta: "x", Color: "#000000", EstaActivo: true, TiempoLimite: ptr(-1)}},
+		{name: "tiempo_limite fuera de rango", actual: Actualizar{Nombre: "bache", Etiqueta: "x", Color: "#000000", EstaActivo: true, TiempoLimite: ptr(40000)}},
+		{name: "radio negativo", actual: Actualizar{Nombre: "bache", Etiqueta: "x", Color: "#000000", EstaActivo: true, Radio: ptr(-0.5)}},
+		{name: "color sin #", actual: Actualizar{Nombre: "bache", Etiqueta: "x", Color: "EF6C33", EstaActivo: true}},
+		{name: "color corto", actual: Actualizar{Nombre: "bache", Etiqueta: "x", Color: "#FFF", EstaActivo: true}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeIncidenteStore{}
+			store.agregarIncidente(1, "socavon", true)
+			svc := NewService(store)
+
+			_, err := svc.Actualizar(context.Background(), 1, tt.actual, uuid.New())
+			if !errors.Is(err, ErrInvalido) {
+				t.Fatalf("Actualizar() error = %v, want %v", err, ErrInvalido)
+			}
+			if store.updateCalled {
+				t.Fatalf("Actualizar() llamó al store con datos inválidos: %+v", store.lastUpdateArg)
+			}
+		})
+	}
+}
+
+func TestIncidenteService_Actualizar_NotFound(t *testing.T) {
+	store := &fakeIncidenteStore{updateErr: pgx.ErrNoRows}
+	svc := NewService(store)
+
+	_, err := svc.Actualizar(context.Background(), 99, Actualizar{
+		Nombre: "bache", Etiqueta: "x", Color: "#000000", EstaActivo: true,
+	}, uuid.New())
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Actualizar() error = %v, want %v", err, ErrNotFound)
+	}
+}
+
+func TestIncidenteService_Actualizar_NombreRepetido(t *testing.T) {
+	store := &fakeIncidenteStore{updateErr: &pgconn.PgError{Code: "23505", ConstraintName: "incidentes_nombre_key"}}
+	store.agregarIncidente(1, "socavon", true)
+	svc := NewService(store)
+
+	_, err := svc.Actualizar(context.Background(), 1, Actualizar{
+		Nombre: "luz", Etiqueta: "x", Color: "#000000", EstaActivo: true,
+	}, uuid.New())
+	if !errors.Is(err, ErrNameTaken) {
+		t.Fatalf("Actualizar() error = %v, want %v", err, ErrNameTaken)
+	}
+}
+
 // ptr devuelve un puntero al valor, para armar argumentos opcionales.
 func ptr[T any](v T) *T { return &v }
+
+func TestPtrIntEqual(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b *int
+		want bool
+	}{
+		{name: "ambos nil", a: nil, b: nil, want: true},
+		{name: "a nil, b con valor", a: nil, b: ptr(7), want: false},
+		{name: "a con valor, b nil", a: ptr(7), b: nil, want: false},
+		{name: "iguales", a: ptr(7), b: ptr(7), want: true},
+		{name: "distintos", a: ptr(7), b: ptr(8), want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ptrIntEqual(tc.a, tc.b); got != tc.want {
+				t.Fatalf("ptrIntEqual(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPtrFloat64Equal(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b *float64
+		want bool
+	}{
+		{name: "ambos nil", a: nil, b: nil, want: true},
+		{name: "a nil, b con valor", a: nil, b: ptr(25.5), want: false},
+		{name: "a con valor, b nil", a: ptr(25.5), b: nil, want: false},
+		{name: "iguales", a: ptr(25.5), b: ptr(25.5), want: true},
+		{name: "distintos", a: ptr(25.5), b: ptr(10.0), want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ptrFloat64Equal(tc.a, tc.b); got != tc.want {
+				t.Fatalf("ptrFloat64Equal(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}

@@ -79,7 +79,8 @@ No edites estos archivos a mano.
 
 - Go (la versión de `go.mod`).
 - [Task](https://taskfile.dev/installation/) para correr los comandos del `Taskfile.yml`.
-- [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html).
+- [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html). Debe quedar en el `PATH`
+  (si lo instalaste en `$(go env GOPATH)/bin`, agrega ese directorio al `PATH`).
 - [golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) (`migrate`).
 - `oapi-codegen` no se instala aparte: está fijado como `tool` en `go.mod` y se ejecuta
   con `go tool oapi-codegen` (el `Taskfile` ya lo hace así).
@@ -254,11 +255,7 @@ WHERE r.id = $1;
 task generate
 ```
 
-Este comando corre `go tool oapi-codegen` (contrato -> `internal/httpapi/generated.go`) y
-`sqlc generate` (SQL -> `internal/db/sqlc/`). Después de esto el build **falla a
-propósito**: `internal/server/router.go` tiene la aserción
-`var _ httpapi.StrictServerInterface = api{}` y ninguna funcionalidad implementa todavía
-el método nuevo. El error del compilador te dice cuál falta.
+Este comando corre `go tool oapi-codegen` (contrato -> `internal/httpapi/generated.go`) y `sqlc generate` (SQL -> `internal/db/sqlc/`). Después de esto el build **falla a propósito**: `internal/server/router.go` tiene la aserción `var _ httpapi.StrictServerInterface = api{}` y ninguna funcionalidad implementa todavía el método nuevo. El error del compilador te dice cuál falta.
 
 Nombres que se generan a partir de `operationId: obtenerReporte`:
 
@@ -268,10 +265,7 @@ Nombres que se generan a partir de `operationId: obtenerReporte`:
 | `httpapi.ObtenerReporteRequestObject` | parámetros de path/query en campos (`ReporteId`) y el body en `.Body` |
 | `httpapi.ObtenerReporte200JSONResponse`, `httpapi.ObtenerReporte404JSONResponse`, … | un tipo por cada respuesta declarada |
 
-A partir de `-- name: GetReporteById :one` se genera el método
-`(*sqlc.Queries).GetReporteById(ctx, id uuid.UUID) (sqlc.GetReporteByIdRow, error)`, que
-también está disponible en el `Store` de cada funcionalidad porque este embebe
-`*sqlc.Queries`.
+A partir de `-- name: GetReporteById :one` se genera el método `(*sqlc.Queries).GetReporteById(ctx, id uuid.UUID) (sqlc.GetReporteByIdRow, error)`, que también está disponible en el `Store` de cada funcionalidad porque este embebe `*sqlc.Queries`.
 
 ### Paso 5: Impleméntalo en la funcionalidad
 

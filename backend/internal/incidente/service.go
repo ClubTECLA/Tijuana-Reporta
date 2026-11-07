@@ -20,6 +20,7 @@ type store interface {
 	CreateTags(ctx context.Context, arg CreateTagsTxParams) ([]sqlc.Tag, error)
 	GetIncidenteById(ctx context.Context, id int) (sqlc.Incidente, error)
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]sqlc.Incidente, error)
+	UpdateIncidente(ctx context.Context, arg UpdateTxParams) (Detalle, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]sqlc.Tag, error)
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]sqlc.Tag, error)
 }
@@ -254,4 +255,52 @@ func (s *Service) AgregarTags(ctx context.Context, incidenteID int, userID uuid.
 		return nil, err
 	}
 	return creados, nil
+}
+
+// Actualizar reemplaza los datos de un incidente existente y deja constancia
+// en el historial, todo en una transacción. Devuelve el incidente con sus tags.
+// Valida igual que Crear para responder 400 antes de tocar la base.
+func (s *Service) Actualizar(ctx context.Context, id int, actual Actualizar, userID uuid.UUID) (Detalle, error) {
+	nombre := strings.TrimSpace(actual.Nombre)
+	if nombre == "" || utf8.RuneCountInString(nombre) > maxNombreIncidente {
+		return Detalle{}, fmt.Errorf("%w: nombre debe tener entre 1 y %d caracteres", ErrInvalido, maxNombreIncidente)
+	}
+
+	etiqueta := strings.TrimSpace(actual.Etiqueta)
+	if etiqueta == "" || utf8.RuneCountInString(etiqueta) > maxNombreIncidente {
+		return Detalle{}, fmt.Errorf("%w: etiqueta debe tener entre 1 y %d caracteres", ErrInvalido, maxNombreIncidente)
+	}
+
+	if t := actual.TiempoLimite; t != nil && (*t < 0 || *t > math.MaxInt16) {
+		return Detalle{}, fmt.Errorf("%w: tiempo_limite debe estar entre 0 y %d", ErrInvalido, math.MaxInt16)
+	}
+	if actual.Radio != nil && *actual.Radio < 0 {
+		return Detalle{}, fmt.Errorf("%w: radio no puede ser negativo", ErrInvalido)
+	}
+	if !colorHex.MatchString(actual.Color) {
+		return Detalle{}, fmt.Errorf("%w: color debe tener formato #RRGGBB", ErrInvalido)
+	}
+
+	detalle, err := s.store.UpdateIncidente(ctx, UpdateTxParams{
+		Incidente: sqlc.UpdateIncidenteParams{
+			ID:           id,
+			Nombre:       nombre,
+			Etiqueta:     etiqueta,
+			TiempoLimite: actual.TiempoLimite,
+			Radio:        actual.Radio,
+			EstaActivo:   actual.EstaActivo,
+			Color:        actual.Color,
+		},
+		ActorID: userID,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return Detalle{}, ErrNotFound
+		}
+		if db.IsUniqueViolation(err) {
+			return Detalle{}, ErrNameTaken
+		}
+		return Detalle{}, err
+	}
+	return detalle, nil
 }
