@@ -166,6 +166,27 @@ func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReportePa
 	return i, err
 }
 
+const deleteReporteById = `-- name: DeleteReporteById :one
+DELETE FROM reporte
+WHERE id = $1
+RETURNING id, incidente_id
+`
+
+type DeleteReporteByIdRow struct {
+	ID          uuid.UUID `json:"id"`
+	IncidenteID int       `json:"incidente_id"`
+}
+
+// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
+// ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
+// del servicio multimedia no: esos los borra el servicio después.
+func (q *Queries) DeleteReporteById(ctx context.Context, id uuid.UUID) (DeleteReporteByIdRow, error) {
+	row := q.db.QueryRow(ctx, deleteReporteById, id)
+	var i DeleteReporteByIdRow
+	err := row.Scan(&i.ID, &i.IncidenteID)
+	return i, err
+}
+
 const deleteTagsUsuarioNotIn = `-- name: DeleteTagsUsuarioNotIn :many
 DELETE FROM incidente_tags
 WHERE reporte_id = $1
@@ -201,6 +222,28 @@ func (q *Queries) DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsua
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCreadorReporteById = `-- name: GetCreadorReporteById :one
+SELECT r.id, ur.user_id AS creador_id
+FROM reporte r
+LEFT JOIN users_reports ur ON ur.reporte_id = r.id
+WHERE r.id = $1
+LIMIT 1
+`
+
+type GetCreadorReporteByIdRow struct {
+	ID        uuid.UUID  `json:"id"`
+	CreadorID *uuid.UUID `json:"creador_id"`
+}
+
+// El creador es quien quedó en users_reports al crear el reporte. Es NULL
+// si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
+func (q *Queries) GetCreadorReporteById(ctx context.Context, id uuid.UUID) (GetCreadorReporteByIdRow, error) {
+	row := q.db.QueryRow(ctx, getCreadorReporteById, id)
+	var i GetCreadorReporteByIdRow
+	err := row.Scan(&i.ID, &i.CreadorID)
+	return i, err
 }
 
 const getEstadoReporteForUpdate = `-- name: GetEstadoReporteForUpdate :one
@@ -642,6 +685,24 @@ func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTagsUsuario = `-- name: LockTagsUsuario :exec
+SELECT pg_advisory_xact_lock(hashtextextended($1::uuid::text || ':' || $2::uuid::text, 0))
+`
+
+type LockTagsUsuarioParams struct {
+	ReporteID uuid.UUID `json:"reporte_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
+// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
+// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
+// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
+func (q *Queries) LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error {
+	_, err := q.db.Exec(ctx, lockTagsUsuario, arg.ReporteID, arg.UserID)
+	return err
 }
 
 const updateEstadoReporte = `-- name: UpdateEstadoReporte :one

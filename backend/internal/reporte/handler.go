@@ -265,3 +265,17 @@ func (h *Handler) ActualizarTagsReporte(ctx context.Context, request httpapi.Act
 	}
 	return httpapi.ActualizarTagsReporte200JSONResponse(toReporte(r)), nil
 }
+
+// EliminarReporte borra un reporte. Quién puede lo decide el servicio.
+func (h *Handler) EliminarReporte(ctx context.Context, request httpapi.EliminarReporteRequestObject) (httpapi.EliminarReporteResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, httperr.ErrNoAutenticado
+	}
+
+	rol, _ := middleware.RolFromContext(ctx)
+	if err := h.svc.Eliminar(ctx, rol, userID, request.ReporteId); err != nil {
+		return nil, err
+	}
+	return httpapi.EliminarReporte204Response{}, nil
+}

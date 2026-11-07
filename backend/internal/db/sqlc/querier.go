@@ -32,12 +32,19 @@ type Querier interface {
 	CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
+	// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
+	// ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
+	// del servicio multimedia no: esos los borra el servicio después.
+	DeleteReporteById(ctx context.Context, id uuid.UUID) (DeleteReporteByIdRow, error)
 	// Quita los tags que el usuario había confirmado en el reporte y ya no
 	// vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
 	// con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
 	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
+	// El creador es quien quedó en users_reports al crear el reporte. Es NULL
+	// si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
+	GetCreadorReporteById(ctx context.Context, id uuid.UUID) (GetCreadorReporteByIdRow, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
@@ -70,6 +77,11 @@ type Querier interface {
 	// incidente al listar.
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
+	// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
+	// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
+	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
+	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
+	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 }
 

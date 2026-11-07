@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -37,6 +39,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 const testJWTSecret = "test-secret-de-al-menos-32-bytes!!"
@@ -69,7 +72,7 @@ func newTestClient(t *testing.T) *testClient {
 
 	gin.SetMode(gin.TestMode)
 	router := server.NewRouter(server.Handlers{
-		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)))),
+		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)), almacen)),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(testPool(t)))),
 		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
@@ -1168,6 +1171,7 @@ func TestActualizarTagsReporte(t *testing.T) {
 	}{
 		{name: "tag de otro incidente", path: path, body: map[string]any{"tag_ids": []int{ids["b"], ids["x"]}}, want: http.StatusBadRequest},
 		{name: "tag inexistente", path: path, body: map[string]any{"tag_ids": []int{999999}}, want: http.StatusBadRequest},
+		{name: "tag fuera del rango de integer", path: path, body: map[string]any{"tag_ids": []int{math.MaxInt32 + 1}}, want: http.StatusBadRequest},
 		{name: "sin tag_ids", path: path, body: map[string]any{}, want: http.StatusBadRequest},
 		{name: "reporte inexistente", path: "/v1/reportes/" + uuid.NewString() + "/tags", body: map[string]any{"tag_ids": []int{ids["a"]}}, want: http.StatusNotFound},
 	}
@@ -1189,4 +1193,111 @@ func TestActualizarTagsReporte(t *testing.T) {
 		anonimo := newTestClient(t)
 		anonimo.expect(http.StatusUnauthorized, http.MethodPut, path, map[string]any{"tag_ids": []int{ids["a"]}})
 	})
+}
+
+func TestEliminarReporte(t *testing.T) {
+	creador := newTestClient(t)
+	creador.login()
+	reporte := creador.crearReporte()
+	id := reporte.Id.String()
+	creador.expect(http.StatusCreated, http.MethodPost, "/v1/reportes/"+id+"/comentarios", map[string]any{"comentario": "sigue ahí"})
+	if rec := creador.subir(id, "file", jpegRuidoso(t, 64, 64)); rec.Code != http.StatusCreated {
+		t.Fatalf("subiendo la foto: status = %d; body: %s", rec.Code, rec.Body)
+	}
+
+	otro := newTestClient(t)
+	otro.login()
+	otro.expect(http.StatusForbidden, http.MethodDelete, "/v1/reportes/"+id, nil)
+	anonimo := newTestClient(t)
+	anonimo.expect(http.StatusUnauthorized, http.MethodDelete, "/v1/reportes/"+id, nil)
+
+	creador.expect(http.StatusNoContent, http.MethodDelete, "/v1/reportes/"+id, nil)
+
+	// Se fue el reporte con todo lo que dependía de él, y su foto se borró de
+	// multimedia.
+	creador.expect(http.StatusNotFound, http.MethodGet, "/v1/reportes/"+id, nil)
+	creador.expect(http.StatusNotFound, http.MethodDelete, "/v1/reportes/"+id, nil)
+	var hijos int
+	err := testPool(t).QueryRow(t.Context(), `SELECT
+		(SELECT count(*) FROM comentarios WHERE reporte_id = $1) +
+		(SELECT count(*) FROM multimedia WHERE reporte_id = $1) +
+		(SELECT count(*) FROM location WHERE reporte_id = $1) +
+		(SELECT count(*) FROM users_reports WHERE reporte_id = $1)`, reporte.Id).Scan(&hijos)
+	if err != nil {
+		t.Fatalf("contando filas hijas: %v", err)
+	}
+	if hijos != 0 {
+		t.Errorf("quedaron %d filas que dependían del reporte, quería 0", hijos)
+	}
+	wantPath := "reportes/" + id + "/falso1.jpg"
+	if !slices.Equal(creador.multimedia.borrados, []string{wantPath}) {
+		t.Errorf("archivos borrados = %v, quería [%s]", creador.multimedia.borrados, wantPath)
+	}
+	if n := contarHistorial(t, "reporte.eliminar", "reporte", id); n != 1 {
+		t.Errorf("eventos reporte.eliminar = %d, quería 1", n)
+	}
+
+	t.Run("un gestor borra el de otro", func(t *testing.T) {
+		ajeno := newTestClient(t)
+		ajeno.login()
+		r := ajeno.crearReporte()
+		admin := newTestClient(t)
+		admin.loginComo("admin")
+		admin.expect(http.StatusNoContent, http.MethodDelete, "/v1/reportes/"+r.Id.String(), nil)
+	})
+}
+
+// Dos PUT simultáneos del mismo usuario deben quedar como si hubieran
+// corrido uno tras otro: al final está el conjunto de uno de los dos, nunca
+// una mezcla ni nada.
+func TestActualizarTagsReporte_Concurrente(t *testing.T) {
+	admin := newTestClient(t)
+	admin.loginComo("admin")
+	inc := admin.crearIncidente(map[string]any{"nombre": nombreIncidente(), "tags": []map[string]any{
+		{"nombre": "a"}, {"nombre": "b"}, {"nombre": "c"},
+	}})
+	ids := map[string]int{}
+	for _, tg := range inc.Tags {
+		ids[tg.Nombre] = tg.Id
+	}
+
+	c := newTestClient(t)
+	auth := c.login()
+	rec := c.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": inc.Id, "latitude": 32.5149, "longitude": -117.0382,
+	})
+	reporteID := decode[httpapi.Reporte](t, rec).Id
+	path := "/v1/reportes/" + reporteID.String() + "/tags"
+
+	uno := []int{ids["a"]}
+	otro := []int{ids["b"], ids["c"]}
+	for i := range 30 {
+		c.expect(http.StatusOK, http.MethodPut, path, map[string]any{"tag_ids": []int{ids["a"], ids["b"]}})
+
+		var wg sync.WaitGroup
+		codes := make([]int, 2)
+		for j, tagIDs := range [][]int{uno, otro} {
+			wg.Go(func() {
+				codes[j] = c.do(http.MethodPut, path, map[string]any{"tag_ids": tagIDs}).Code
+			})
+		}
+		wg.Wait()
+		if codes[0] != http.StatusOK || codes[1] != http.StatusOK {
+			t.Fatalf("vuelta %d: status = %v, quería [200 200]", i, codes)
+		}
+
+		rows, err := testPool(t).Query(t.Context(),
+			`SELECT tag_id FROM incidente_tags WHERE reporte_id = $1 AND added_by = $2 ORDER BY tag_id`,
+			reporteID, auth.User.Id)
+		if err != nil {
+			t.Fatalf("leyendo tags: %v", err)
+		}
+		got, err := pgx.CollectRows(rows, pgx.RowTo[int])
+		if err != nil {
+			t.Fatalf("leyendo tags: %v", err)
+		}
+		if !slices.Equal(got, uno) && !slices.Equal(got, otro) {
+			t.Fatalf("vuelta %d: tags del usuario = %v, quería %v o %v", i, got, uno, otro)
+		}
+	}
 }

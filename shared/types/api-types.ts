@@ -67,7 +67,8 @@ export interface paths {
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Elimina el reporte junto con todo lo que depende de él (comentarios, multimedia, tags, ubicaciones) y borra sus archivos del servicio multimedia. Lo puede eliminar su creador o cualquier rol menos ciudadano. */
+        delete: operations["eliminarReporte"];
         options?: never;
         head?: never;
         patch?: never;
@@ -777,6 +778,62 @@ export interface operations {
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    eliminarReporte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reporte eliminado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no es el creador del reporte y es ciudadano */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -28,14 +28,18 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 		return nil, err
 	}
 
+	// Un solo cliente de multimedia: multimedia sube y borra archivos, y
+	// reporte borra los de un reporte eliminado.
+	archivos := almacen.NewCliente(cfg.MultimediaURL, multimediaTimeout)
+
 	return NewRouter(Handlers{
-		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(pool))),
+		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(pool), archivos)),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(pool))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(pool))),
 		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
 		// multimedia no tiene operaciones de varias sentencias: le basta con
 		// las consultas que genera sqlc.
-		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(pool), almacen.NewCliente(cfg.MultimediaURL, multimediaTimeout), multimedia.OpcionesFoto{
+		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(pool), archivos, multimedia.OpcionesFoto{
 			MaxBytes:   cfg.MaxFotoBytes,
 			MaxPixeles: cfg.MaxFotoPixeles,
 		})),

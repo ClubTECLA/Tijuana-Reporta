@@ -106,6 +106,47 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+  delete:
+    operationId: eliminarReporte
+    description: >-
+      Elimina el reporte junto con todo lo que depende de él (comentarios,
+      multimedia, tags, ubicaciones) y borra sus archivos del servicio
+      multimedia. Lo puede eliminar su creador o cualquier rol menos ciudadano.
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '204':
+        description: Reporte eliminado
+      '400':
+        description: Datos inválidos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no es el creador del reporte y es ciudadano
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 agregarAvistamiento:
   patch:
     operationId: agregarAvistamiento
