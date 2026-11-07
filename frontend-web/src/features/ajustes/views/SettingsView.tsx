@@ -7,7 +7,7 @@ import { LuShieldCheck } from "react-icons/lu";
 import SubsectionTitle from "@/components/ui/SubsectionTitle";
 import Button from "@/components/ui/Button";
 import { BiPlus } from "react-icons/bi";
-import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TdItemsWrapped, TRow } from "@/components/ui/Tables";
+import { Checkbox, SimpleStatistics, SimpleText, Table, TdButton, TCell, TRow } from "@/components/ui/Tables";
 import { GoPencil } from "react-icons/go";
 import type { ApiIncidente } from "@/types/api-types";
 import CategoryForm from "@/features/categorias/components/CategoryForm";
@@ -15,6 +15,7 @@ import SubSection from "@/components/layout/SubSection";
 import type { subsectionProps } from "@/types/utils-types";
 import { listarIncidentes } from "@/features/categorias/incidentes.services";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
+import { MdDeleteForever } from "react-icons/md";
 
 function CategoriesSection({debug} : subsectionProps) {
     const { showMessage } = useSysMessage();
@@ -50,13 +51,13 @@ function CategoriesSection({debug} : subsectionProps) {
         <ColSection className="min-w-0 w-full gap-2"
             debug={debug}
         >
-            <RowSection
-                className="h-fit items-center justify-between gap-3 p-2"
+            <SubSection
+                className="gap-3 p-2 flex-row justify-between w-full"
             >
                 <SubsectionTitle
                     title="Categorias de incidentes"
                     format='col'
-                    description="Lo que el ciudadano puede elegir al reportar · 7 activas, 1 inactiva"
+                    description={'Lo que el ciudadano puede elegir al reportar · ' + categories.filter(c => c.esta_activo).length + ' activas, ' + categories.filter(c => !c.esta_activo).length + ' inactiva'}
                 />
                 <Button
                     title="Nueva categoria"
@@ -68,14 +69,15 @@ function CategoriesSection({debug} : subsectionProps) {
                         setOpenForm(true);
                     }}
                 />
-            </RowSection>
+            </SubSection>
             <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
                 <SubSection
                     format={'nothing'}
-                    className="max-h-120 min-w-0 w-full overflow-y-auto overflow-x-hidden min-w-150"
+                    className="min-w-0 w-fit overflow-x-hidden"
                 >
                     <Table
                         format='col'
+                        maxh="30rem"
                         headers={[
                             {
                                 title: 'Categoria',
@@ -94,16 +96,16 @@ function CategoriesSection({debug} : subsectionProps) {
                         {categories.map((c) => 
                             <TRow key={c.id}>
                                 <SimpleText
-                                    icon={<span className={`inline-block w-7 h-7 rounded-full`} style={{background: c.color}}/>}
+                                    icon={<span className={`inline-block size-7 rounded-full`} style={{background: c.color}}/>}
                                     text={c.nombre}
                                 />
                                 <SimpleStatistics
-                                    statistics={c.tags.length}
+                                    statistics={c.tags?.length ?? 0}
                                 />
                                 <SimpleStatistics
                                     statistics="N/A"
                                 />
-                                <TdItemsWrapped
+                                <TCell
                                     className="flex flex-row items-center justify-end p-2"
                                 >
                                     <Checkbox
@@ -113,6 +115,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                         onChange={(e) => handleChangeIsActive(e)}
                                     />
                                     <TdButton
+                                        ariaLabel={`Editar ${c.nombre}`}
                                         content={{
                                             icon: <GoPencil/>,
                                         }}
@@ -121,7 +124,16 @@ function CategoriesSection({debug} : subsectionProps) {
                                             setOpenForm(true);
                                         }}
                                     />
-                                </TdItemsWrapped>
+                                    <TdButton
+                                        ariaLabel={`Eliminar ${c.nombre}`}
+                                        content={{
+                                            icon: <MdDeleteForever/>,
+                                        }}
+                                        onClick={() => {
+                                            setOpenForm(true);
+                                        }}
+                                    />
+                                </TCell>
                             </TRow>
                             )
                         }

@@ -90,6 +90,6 @@ export interface SectionProps {
     /** Acciones a la derecha del título del panel (botones, enlaces...). */
     headerActions?: ReactNode
     className?: string
-    footerText?: string
+    footerElement?: ReactNode;
     border?: borderType[]
 }

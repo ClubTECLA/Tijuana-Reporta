@@ -1,6 +1,7 @@
 import { isValidElement, cloneElement, Children } from "react";
 import PanelHeader from "./PanelHeader";
 import { borders, type SectionProps, type subsectionProps } from "@/types/utils-types";
+import PanelFooter from "./PanelFooter";
 
 
 const arrangementNormalize = {
@@ -23,47 +24,56 @@ export default function RowSection(
         subtitle,
         headerActions,
         className,
-        footerText,
+        footerElement,
         border
     }: RowSectionProps
 ) {
     const borderClasses = `${border?.map((side) => borders[side]).join(' ') ?? ''} ${border ? 'border-line' : ''}`;
+    const sizingClasses = className?.split(/\s+/).filter((className) => {
+        const utility = className.split(':').pop() ?? className;
+        return /^(?:w-|h-|min-w-|min-h-|max-w-|max-h-|size-|basis-|grow(?:-|$)|shrink(?:-|$)|flex-(?:1|auto|initial|none)$)/.test(utility);
+    }).join(' ') ?? '';
 
     if(!title){
         return(
-            <section className={`${className} flex flex-row  ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center  ${borderClasses}`}>
-                {Children.map(children, (child) => {
-                    if(isValidElement<subsectionProps | SectionProps>(child)){
-                        return cloneElement(child, {
-                            debug: debug || child.props.debug
-                        })
-                    }
+            <section className={`flex flex-col justify-between ${sizingClasses} ${debug ? 'border-2 border-green-500' : ''} ${borderClasses}`}>
+                <div className={`h-full flex flex-row max-h-full max-w-full ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} items-center ${className}`}>
+                    {Children.map(children, (child) => {
+                        if(isValidElement<subsectionProps | SectionProps>(child)){
+                            return cloneElement(child, {
+                                debug: debug || child.props.debug
+                            })
+                        }
 
-                    return child;
-                })}
+                        return child;
+                    })}
+                </div>
+                <div className={debug ? 'border-2 border-blue-500' : ''}>
+                    <PanelFooter element={footerElement}/>
+                </div>
             </section>
         )   
     }
 
     return(
-        <section className={`w-full h-full flex flex-col max-h-full max-w-full ${debug ? 'border-2' : ''} ${borderClasses}`}>
-            <PanelHeader title={title} subtitle={subtitle} actions={headerActions} />
-            <div className={`${className} max-w-full max-h-full flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${borderClasses}`}>
-                {Children.map(children, (child) => {
-                    if(isValidElement<subsectionProps | SectionProps>(child)){
-                        return cloneElement(child, {
-                            debug: debug || child.props.debug
-                        })
-                    }
-                
-                    return child;
-                })}
+        <section className={`w-full h-full flex flex-col max-h-full max-w-full justify-between ${debug ? 'border-2' : ''} ${borderClasses}`}>
+            <div className={`w-full h-fit flex flex-col max-h-full max-w-full`}>
+                <PanelHeader title={title} subtitle={subtitle} actions={headerActions} />
+                <div className={`max-w-full max-h-full flex flex-row mt-5 ${debug ? 'border-2 border-red-500' : ''} ${arrangementNormalize[arrangementSubsections]} ${className}`}>
+                    {Children.map(children, (child) => {
+                        if(isValidElement<subsectionProps | SectionProps>(child)){
+                            return cloneElement(child, {
+                                debug: debug || child.props.debug
+                            })
+                        }
+                    
+                        return child;
+                    })}
+                </div>
             </div>
-            {footerText && 
-                    <div className={`flex flex-col items-start justify-center p-4 w-full ${debug ? 'border-2 border-blue-500' : ''}`}>
-                        <span className="text-xs text-ink-muted">{footerText}</span>
-                    </div>
-                }
+            <div className={debug ? 'border-2 border-blue-500' : ''}>
+                <PanelFooter element={footerElement}/>            
+            </div>
         </section>
     )
 }

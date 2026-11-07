@@ -8,7 +8,7 @@ import ColSection from "@/components/layout/ColSection";
 import RowSection from "@/components/layout/RowSection";
 import Button from "@/components/ui/Button";
 import { ListTile, OptionList } from "@/components/ui/OptionsList";
-import UserCart from "@/features/perfil/components/UserCart";
+import UserCard from "@/features/perfil/components/UserCard";
 
 export default function UserMenu() {
     const { user, logout } = useAuth();
@@ -20,7 +20,7 @@ export default function UserMenu() {
             className="px-4 pb-2"
         >
             <RowSection arrangementSubsections="toLeft">
-                <UserCart
+                <UserCard
                     format="row"
                     username={user?.username || "Usuario"}
                     email={user?.email || "email@email.com"}
