@@ -1,58 +1,69 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ReportCard } from '../components/ReportCard';
 import { EstadoVista } from '../components/estado/EstadoVista';
 import { Reporte } from '../types/reporte';
 import { perfilColors, perfilRadius } from '../theme/perfilTokens';
 
-// igual aqui son ejemoplos
-const MOCK_ACTIVOS: Reporte[] = [
-  { id: '1', codigo: 'REP-8814', titulo: 'Inundación en 3ra y Constitución', estado: 'en_revision', meta: 'se unió a INC-2471' },
-  { id: '2', codigo: 'REP-8833', titulo: 'Árbol caído en Blvd. Agua Caliente', estado: 'en_revision', meta: 'hoy 14:33' },
-  { id: '3', codigo: 'REP-8835', titulo: 'Socavón en Col. Libertad', estado: 'pendiente', meta: 'enviando...' },
-];
-
-const MOCK_CERRADOS: Reporte[] = [
-  { id: '4', codigo: 'REP-8702', titulo: 'Drenaje tapado en Col. Obrera', estado: 'resuelto', meta: '28 ago' },
-  { id: '5', codigo: 'REP-8690', titulo: 'Luz intermitente en Otay', estado: 'descartado', meta: 'duplicado de INC-2464' },
-];
-
-const TOTAL_HISTORIAL = 10;
-
 interface MisReportesScreenProps {
+  activos: Reporte[];
+  cerrados: Reporte[];
+  cargando?: boolean;
+  sinConexion?: boolean;
+  error?: boolean;
+  onReintentar?: () => void;
   onBack?: () => void;
   onSelectReporte?: (reporte: Reporte) => void;
 }
 
-export const MisReportesScreen = ({ onBack, onSelectReporte }: MisReportesScreenProps) => (
+export const MisReportesScreen = ({
+  activos,
+  cerrados,
+  cargando,
+  sinConexion,
+  error,
+  onReintentar,
+  onBack,
+  onSelectReporte,
+}: MisReportesScreenProps) => (
   <View style={styles.screen}>
     <ScreenHeader title="Mis reportes" onBack={onBack} />
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.historialPill}>
-        <Text style={styles.historialText}>Historial · {TOTAL_HISTORIAL}</Text>
-      </View>
-
-      {MOCK_ACTIVOS.length === 0 && MOCK_CERRADOS.length === 0 ? (
-        <EstadoVista
-          estado="vacio"
-          titulo="Aún no has reportado nada"
-          mensaje="Cuando reportes un incidente desde el mapa, aquí podrás seguir su estado."
-        />
+      {cargando ? (
+        <ActivityIndicator color={perfilColors.primary} style={styles.cargando} />
+      ) : sinConexion ? (
+        <EstadoVista estado="sin-conexion" mensaje="Sin conexión: tus reportes se cargarán al reconectar." />
+      ) : error ? (
+        <EstadoVista estado="error" mensaje="No se pudieron cargar tus reportes." onReintentar={onReintentar} />
       ) : (
         <>
-          <Text style={styles.section}>Activos</Text>
-          {MOCK_ACTIVOS.length === 0 ? (
-            <EstadoVista estado="vacio" mensaje="No tienes reportes activos." compacto />
-          ) : (
-            MOCK_ACTIVOS.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
-          )}
+          <View style={styles.historialPill}>
+            <Text style={styles.historialText}>Historial · {activos.length + cerrados.length}</Text>
+          </View>
 
-          <Text style={styles.section}>Cerrados</Text>
-          {MOCK_CERRADOS.length === 0 ? (
-            <EstadoVista estado="vacio" mensaje="Ningún reporte cerrado todavía." compacto />
+          {activos.length === 0 && cerrados.length === 0 ? (
+            <EstadoVista
+              estado="vacio"
+              titulo="Aún no has reportado nada"
+              mensaje="Cuando reportes un incidente desde el mapa, aquí podrás seguir su estado."
+            />
           ) : (
-            MOCK_CERRADOS.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
+            <>
+              <Text style={styles.section}>Activos</Text>
+              {activos.length === 0 ? (
+                <EstadoVista estado="vacio" mensaje="No tienes reportes activos." compacto />
+              ) : (
+                activos.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
+              )}
+
+              <Text style={styles.section}>Cerrados</Text>
+              {cerrados.length === 0 ? (
+                <EstadoVista estado="vacio" mensaje="Ningún reporte cerrado todavía." compacto />
+              ) : (
+                cerrados.map((r) => <ReportCard key={r.id} reporte={r} onPress={() => onSelectReporte?.(r)} />)
+              )}
+            </>
           )}
         </>
       )}
@@ -63,6 +74,7 @@ export const MisReportesScreen = ({ onBack, onSelectReporte }: MisReportesScreen
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: perfilColors.screenBg },
   content: { paddingHorizontal: 16, paddingBottom: 32 },
+  cargando: { marginVertical: 40 },
   historialPill: {
     backgroundColor: perfilColors.card,
     borderRadius: perfilRadius.pill,
