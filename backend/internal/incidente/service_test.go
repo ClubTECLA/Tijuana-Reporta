@@ -33,9 +33,9 @@ type fakeIncidenteStore struct {
 	tagsByIdsCalls int
 	tagsByIdCalls  int
 
-	lastUpdateArg  UpdateTxParams
-	updateCalled   bool
-	updateErr      error
+	lastUpdateArg UpdateTxParams
+	updateCalled  bool
+	updateErr     error
 }
 
 func (f *fakeIncidenteStore) CreateIncidenteConTags(_ context.Context, arg CreateTxParams) (Detalle, error) {
@@ -455,7 +455,7 @@ func TestIncidenteService_Actualizar_Exito(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Actualizar() error = %v", err)
 	}
-		if !store.updateCalled {
+	if !store.updateCalled {
 		t.Fatal("Actualizar() no llamó a UpdateIncidente")
 	}
 	if store.lastUpdateArg.ActorID != actorID {
@@ -478,8 +478,8 @@ func TestIncidenteService_Actualizar_Exito(t *testing.T) {
 
 func TestIncidenteService_Actualizar_Invalido(t *testing.T) {
 	tests := []struct {
-		name    string
-		actual  Actualizar
+		name   string
+		actual Actualizar
 	}{
 		{name: "nombre vacío", actual: Actualizar{Nombre: "", Etiqueta: "x", Color: "#000000", EstaActivo: true}},
 		{name: "nombre de 101 caracteres", actual: Actualizar{Nombre: strings.Repeat("a", 101), Etiqueta: "x", Color: "#000000", EstaActivo: true}},
