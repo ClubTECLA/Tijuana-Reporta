@@ -40,6 +40,9 @@ type fakeReporteStore struct {
 	lastCambiarEstadoArg CambiarEstadoTxParams
 	cambiarEstadoCalled  bool
 
+	lastActualizarTagsArg ActualizarTagsTxParams
+	actualizarTagsCalled  bool
+
 	createErr error
 	listErr   error
 }
@@ -666,5 +669,76 @@ func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
 	}
 	if want := "Socavón en Av. Revolución 1234"; len(rows) != 1 || rows[0].Titulo != want {
 		t.Fatalf("ListarPorUsuario() = %+v, want titulo %q", rows, want)
+	}
+}
+
+// ActualizarTags imita la transacción real solo en lo que el servicio ve:
+// pgx.ErrNoRows si el reporte no existe. Qué tags son válidos y los conteos
+// los decide la base (ver TestActualizarTagsReporte).
+func (f *fakeReporteStore) ActualizarTags(_ context.Context, arg ActualizarTagsTxParams) error {
+	f.actualizarTagsCalled = true
+	f.lastActualizarTagsArg = arg
+	if _, ok := f.byID[arg.ReporteID]; !ok {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func TestReporteService_ActualizarTags_QuitaRepetidos(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewService(store)
+	creado, err := svc.Crear(context.Background(), Nuevo{
+		UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+	})
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	userID := uuid.New()
+
+	r, err := svc.ActualizarTags(context.Background(), userID, creado.Reporte.ID, []int{3, 1, 3, 1})
+	if err != nil {
+		t.Fatalf("ActualizarTags() error = %v", err)
+	}
+	if r.Reporte.ID != creado.Reporte.ID {
+		t.Fatalf("ActualizarTags() id = %v, want %v", r.Reporte.ID, creado.Reporte.ID)
+	}
+	arg := store.lastActualizarTagsArg
+	if arg.UserID != userID || arg.ReporteID != creado.Reporte.ID || !slices.Equal(arg.TagIDs, []int{3, 1}) {
+		t.Fatalf("ActualizarTags() arg = %+v, want userID=%v tagIDs=[3 1]", arg, userID)
+	}
+
+	// Una lista nil (o vacía) llega como vacía, no como nil: así la store
+	// quita todos los del usuario.
+	if _, err := svc.ActualizarTags(context.Background(), userID, creado.Reporte.ID, nil); err != nil {
+		t.Fatalf("ActualizarTags(nil) error = %v", err)
+	}
+	if got := store.lastActualizarTagsArg.TagIDs; got == nil || len(got) != 0 {
+		t.Fatalf("ActualizarTags(nil) tagIDs = %#v, want []int{}", got)
+	}
+}
+
+func TestReporteService_ActualizarTags_Demasiados(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewService(store)
+
+	tags := make([]int, MaxTagsPorPeticion+1)
+	for i := range tags {
+		tags[i] = i + 1
+	}
+	_, err := svc.ActualizarTags(context.Background(), uuid.New(), uuid.New(), tags)
+	if !errors.Is(err, ErrDemasiadosTags) {
+		t.Fatalf("ActualizarTags() error = %v, want %v", err, ErrDemasiadosTags)
+	}
+	if store.actualizarTagsCalled {
+		t.Fatal("ActualizarTags() llegó a la store con demasiados tags")
+	}
+}
+
+func TestReporteService_ActualizarTags_NoEncontrado(t *testing.T) {
+	svc := NewService(newFakeReporteStore())
+
+	_, err := svc.ActualizarTags(context.Background(), uuid.New(), uuid.New(), []int{1})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("ActualizarTags() error = %v, want %v", err, ErrNotFound)
 	}
 }

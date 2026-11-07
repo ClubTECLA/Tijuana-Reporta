@@ -12,6 +12,9 @@ import (
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
+	// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
+	// todos, alguno es de otro incidente o no existe.
+	CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateHistorialEvento(ctx context.Context, arg CreateHistorialEventoParams) error
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
@@ -23,13 +26,22 @@ type Querier interface {
 	CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error)
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
+	// Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
+	// UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
+	// cambia nada. El trigger trg_update_tag_counts suma.
+	CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
+	// Quita los tags que el usuario había confirmado en el reporte y ya no
+	// vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
+	// con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
+	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
+	GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)

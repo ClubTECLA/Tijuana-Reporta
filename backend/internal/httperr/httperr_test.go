@@ -44,6 +44,8 @@ func TestResolver(t *testing.T) {
 		{"estado inválido", reporte.ErrEstadoInvalido, http.StatusBadRequest, "estado invalido"},
 		{"oficial no permitido", reporte.ErrOficialNoPermitido, http.StatusForbidden, "un ciudadano no puede crear reportes oficiales"},
 		{"estado no permitido", reporte.ErrEstadoNoPermitido, http.StatusForbidden, "un ciudadano no puede cambiar el estado de un reporte"},
+		{"tag inválido", reporte.ErrTagInvalido, http.StatusBadRequest, "algun tag no pertenece al tipo de incidente del reporte"},
+		{"demasiados tags", reporte.ErrDemasiadosTags, http.StatusBadRequest, "demasiados tags"},
 		{"no autenticado", httperr.ErrNoAutenticado, http.StatusUnauthorized, "no autenticado"},
 		{"token inválido", httperr.ErrTokenInvalido, http.StatusUnauthorized, "token invalido"},
 		{"prohibido", httperr.ErrProhibido, http.StatusForbidden, "prohibido"},
@@ -107,6 +109,8 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		reporte.ErrTransicionInvalida,
 		reporte.ErrOficialNoPermitido,
 		reporte.ErrEstadoNoPermitido,
+		reporte.ErrTagInvalido,
+		reporte.ErrDemasiadosTags,
 	}
 
 	for _, err := range errs {

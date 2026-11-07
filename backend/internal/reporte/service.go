@@ -2,6 +2,7 @@ package reporte
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ type store interface {
 	ListReportesPorUbicacion(ctx context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error)
 	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
 	CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error)
+	ActualizarTags(ctx context.Context, arg ActualizarTagsTxParams) error
 }
 
 type Service struct {
@@ -272,6 +274,34 @@ func (s *Service) CambiarEstado(ctx context.Context, rol string, userID, id uuid
 		ID: id, Estado: estado, ActorID: userID,
 	})
 
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
+	}
+	if err != nil {
+		return Detalle{}, err
+	}
+	return s.Obtener(ctx, id)
+}
+
+// ActualizarTags reemplaza los tags que userID confirmó en el reporte por
+// tagIDs y devuelve el reporte con los conteos ya recalculados. Los repetidos
+// cuentan una vez; una lista vacía quita todos los del usuario. El router no
+// valida el body contra el contrato, así que el límite de
+// MaxTagsPorPeticion se aplica aquí.
+func (s *Service) ActualizarTags(ctx context.Context, userID, id uuid.UUID, tagIDs []int) (Detalle, error) {
+	unicos := make([]int, 0, len(tagIDs))
+	for _, t := range tagIDs {
+		if !slices.Contains(unicos, t) {
+			unicos = append(unicos, t)
+		}
+	}
+	if len(unicos) > MaxTagsPorPeticion {
+		return Detalle{}, ErrDemasiadosTags
+	}
+
+	err := s.store.ActualizarTags(ctx, ActualizarTagsTxParams{
+		ReporteID: id, UserID: userID, TagIDs: unicos,
+	})
 	if db.IsNotFound(err) {
 		return Detalle{}, ErrNotFound
 	}

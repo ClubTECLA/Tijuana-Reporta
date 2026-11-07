@@ -216,6 +216,54 @@ cambiarEstadoReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+actualizarTagsReporte:
+  put:
+    operationId: actualizarTagsReporte
+    description: >-
+      Reemplaza los tags que el usuario autenticado confirmó en el reporte por
+      los de `tag_ids`: agrega los nuevos y quita los que ya no vengan. Es
+      idempotente y una lista vacía quita todos los del usuario. Los conteos y
+      el score del reporte se recalculan solos. 400 si algún tag no es del
+      tipo de incidente del reporte.
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActualizarTagsReporteRequest'
+    responses:
+      '200':
+        description: Tags actualizados; devuelve el reporte con los conteos nuevos
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '400':
+        description: Datos inválidos (p. ej. un tag que no es del incidente del reporte)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 listarReportesCercanos:
   get:
     operationId: listarReportesCercanos
@@ -287,6 +335,8 @@ components:
       $ref: '../schemas/reportes/reporte.yaml'
     CambiarEstadoReporteRequest:
       $ref: '../schemas/reportes/cambiar_estado_reporte_request.yaml'
+    ActualizarTagsReporteRequest:
+      $ref: '../schemas/reportes/actualizar_tags_reporte_request.yaml'
     ReporteResumen:
       $ref: '../schemas/reportes/reporte_resumen.yaml'
     CrearReporteRequest:

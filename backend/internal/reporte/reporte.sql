@@ -114,3 +114,34 @@ WHERE
     c.reporte_id = $1
 ORDER BY
     c.created_at;
+
+-- name: GetIncidenteIdByReporteId :one
+SELECT incidente_id FROM reporte WHERE id = $1;
+
+-- name: CountTagsByIncidenteId :one
+-- Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
+-- todos, alguno es de otro incidente o no existe.
+SELECT count(*)::int
+FROM tags
+WHERE incidente_id = $1
+AND id = ANY(sqlc.arg(tag_ids)::int[]);
+
+-- name: DeleteTagsUsuarioNotIn :many
+-- Quita los tags que el usuario había confirmado en el reporte y ya no
+-- vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
+-- con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
+DELETE FROM incidente_tags
+WHERE reporte_id = $1
+AND added_by = $2
+AND NOT (tag_id = ANY(sqlc.arg(tag_ids)::int[]))
+RETURNING tag_id;
+
+-- name: CreateTagsUsuario :many
+-- Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
+-- UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
+-- cambia nada. El trigger trg_update_tag_counts suma.
+INSERT INTO incidente_tags (reporte_id, tag_id, added_by)
+SELECT sqlc.arg(reporte_id)::uuid, t.tag_id, sqlc.arg(added_by)::uuid
+FROM unnest(sqlc.arg(tag_ids)::int[]) AS t(tag_id)
+ON CONFLICT (reporte_id, tag_id, added_by) DO NOTHING
+RETURNING tag_id;

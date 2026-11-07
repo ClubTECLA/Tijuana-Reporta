@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -1100,5 +1101,92 @@ func TestCreateTags(t *testing.T) {
 		if !db.IsForeignKeyViolation(err, "tags_incidente_id_fkey") {
 			t.Fatalf("CreateTags() error = %v, quería el FOREIGN KEY tags_incidente_id_fkey", err)
 		}
+	})
+}
+
+// conteosDeTags devuelve cuántas confirmaciones tiene cada tag del reporte,
+// por nombre.
+func conteosDeTags(tags []httpapi.Tag) map[string]int {
+	conteos := make(map[string]int, len(tags))
+	for _, t := range tags {
+		conteos[t.Nombre] = t.Count
+	}
+	return conteos
+}
+
+func TestActualizarTagsReporte(t *testing.T) {
+	admin := newTestClient(t)
+	admin.loginComo("admin")
+	inc := admin.crearIncidente(map[string]any{"nombre": nombreIncidente(), "tags": []map[string]any{
+		{"nombre": "a"}, {"nombre": "b"}, {"nombre": "c"},
+	}})
+	otro := admin.crearIncidente(map[string]any{"nombre": nombreIncidente(), "tags": []map[string]any{{"nombre": "x"}}})
+	ids := map[string]int{}
+	for _, tg := range append(inc.Tags, otro.Tags...) {
+		ids[tg.Nombre] = tg.Id
+	}
+
+	uno := newTestClient(t)
+	uno.login()
+	rec := uno.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+		"incidente_id": inc.Id, "latitude": 32.5149, "longitude": -117.0382,
+	})
+	reporteID := decode[httpapi.Reporte](t, rec).Id
+	path := "/v1/reportes/" + reporteID.String() + "/tags"
+
+	dos := newTestClient(t)
+	dos.login()
+
+	// actualizar manda los tags como c y revisa los conteos del reporte que
+	// devuelve, que ya trae lo que recalculó el trigger.
+	actualizar := func(c *testClient, nombres []string, want map[string]int) {
+		t.Helper()
+		tagIDs := []int{}
+		for _, n := range nombres {
+			tagIDs = append(tagIDs, ids[n])
+		}
+		rec := c.expect(http.StatusOK, http.MethodPut, path, map[string]any{"tag_ids": tagIDs})
+		if got := conteosDeTags(decode[httpapi.Reporte](t, rec).Tags); !maps.Equal(got, want) {
+			t.Fatalf("PUT %v: conteos = %v, quería %v", nombres, got, want)
+		}
+	}
+
+	actualizar(uno, []string{"a", "b"}, map[string]int{"a": 1, "b": 1})
+	actualizar(dos, []string{"b", "c"}, map[string]int{"a": 1, "b": 2, "c": 1})
+	// Modificar: uno ya no confirma a; los de dos no se tocan.
+	actualizar(uno, []string{"b"}, map[string]int{"b": 2, "c": 1})
+	// Repetir la petición no cambia nada.
+	actualizar(uno, []string{"b"}, map[string]int{"b": 2, "c": 1})
+	// Una lista vacía quita todos los de ese usuario.
+	actualizar(dos, []string{}, map[string]int{"b": 1})
+
+	errores := []struct {
+		name string
+		path string
+		body any
+		want int
+	}{
+		{name: "tag de otro incidente", path: path, body: map[string]any{"tag_ids": []int{ids["b"], ids["x"]}}, want: http.StatusBadRequest},
+		{name: "tag inexistente", path: path, body: map[string]any{"tag_ids": []int{999999}}, want: http.StatusBadRequest},
+		{name: "sin tag_ids", path: path, body: map[string]any{}, want: http.StatusBadRequest},
+		{name: "reporte inexistente", path: "/v1/reportes/" + uuid.NewString() + "/tags", body: map[string]any{"tag_ids": []int{ids["a"]}}, want: http.StatusNotFound},
+	}
+	for _, tt := range errores {
+		t.Run(tt.name, func(t *testing.T) {
+			tc := *uno
+			tc.t = t
+			tc.expect(tt.want, http.MethodPut, tt.path, tt.body)
+		})
+	}
+
+	// Los errores no dejaron nada a medias.
+	rec = uno.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporteID.String(), nil)
+	if got := conteosDeTags(decode[httpapi.Reporte](t, rec).Tags); !maps.Equal(got, map[string]int{"b": 1}) {
+		t.Errorf("conteos tras los errores = %v, quería map[b:1]", got)
+	}
+
+	t.Run("sin token", func(t *testing.T) {
+		anonimo := newTestClient(t)
+		anonimo.expect(http.StatusUnauthorized, http.MethodPut, path, map[string]any{"tag_ids": []int{ids["a"]}})
 	})
 }
