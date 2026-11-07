@@ -114,3 +114,58 @@ WHERE
     c.reporte_id = $1
 ORDER BY
     c.created_at;
+
+-- name: LockTagsUsuario :exec
+-- Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
+-- sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
+-- Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
+-- a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
+SELECT pg_advisory_xact_lock(hashtextextended(sqlc.arg(reporte_id)::uuid::text || ':' || sqlc.arg(user_id)::uuid::text, 0));
+
+-- name: GetIncidenteIdByReporteId :one
+SELECT incidente_id FROM reporte WHERE id = $1;
+
+-- name: CountTagsByIncidenteId :one
+-- Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
+-- todos, alguno es de otro incidente o no existe.
+SELECT count(*)::int
+FROM tags
+WHERE incidente_id = $1
+AND id = ANY(sqlc.arg(tag_ids)::int[]);
+
+-- name: DeleteTagsUsuarioNotIn :many
+-- Quita los tags que el usuario había confirmado en el reporte y ya no
+-- vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
+-- con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
+DELETE FROM incidente_tags
+WHERE reporte_id = $1
+AND added_by = $2
+AND NOT (tag_id = ANY(sqlc.arg(tag_ids)::int[]))
+RETURNING tag_id;
+
+-- name: CreateTagsUsuario :many
+-- Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
+-- UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
+-- cambia nada. El trigger trg_update_tag_counts suma.
+INSERT INTO incidente_tags (reporte_id, tag_id, added_by)
+SELECT sqlc.arg(reporte_id)::uuid, t.tag_id, sqlc.arg(added_by)::uuid
+FROM unnest(sqlc.arg(tag_ids)::int[]) AS t(tag_id)
+ON CONFLICT (reporte_id, tag_id, added_by) DO NOTHING
+RETURNING tag_id;
+
+-- name: GetCreadorReporteById :one
+-- El creador es quien quedó en users_reports al crear el reporte. Es NULL
+-- si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
+SELECT r.id, ur.user_id AS creador_id
+FROM reporte r
+LEFT JOIN users_reports ur ON ur.reporte_id = r.id
+WHERE r.id = $1
+LIMIT 1;
+
+-- name: DeleteReporteById :one
+-- Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
+-- ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
+-- del servicio multimedia no: esos los borra el servicio después.
+DELETE FROM reporte
+WHERE id = $1
+RETURNING id, incidente_id;

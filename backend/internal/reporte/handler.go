@@ -244,3 +244,38 @@ func (h *Handler) CambiarEstadoReporte(ctx context.Context, request httpapi.Camb
 	}
 	return httpapi.CambiarEstadoReporte200JSONResponse(toReporte(r)), nil
 }
+
+// ActualizarTagsReporte reemplaza los tags que el usuario autenticado
+// confirmó en el reporte por los del body y devuelve el reporte actualizado.
+func (h *Handler) ActualizarTagsReporte(ctx context.Context, request httpapi.ActualizarTagsReporteRequestObject) (httpapi.ActualizarTagsReporteResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, httperr.ErrNoAutenticado
+	}
+	// El router no valida el required del contrato: sin esto, un body sin
+	// tag_ids (nil) se tomaría como lista vacía y borraría todos los tags del
+	// usuario. Un [] explícito sí llega como slice vacío y no nil.
+	if request.Body == nil || request.Body.TagIds == nil {
+		return nil, httperr.ErrBodyInvalido
+	}
+
+	r, err := h.svc.ActualizarTags(ctx, userID, request.ReporteId, request.Body.TagIds)
+	if err != nil {
+		return nil, err
+	}
+	return httpapi.ActualizarTagsReporte200JSONResponse(toReporte(r)), nil
+}
+
+// EliminarReporte borra un reporte. Quién puede lo decide el servicio.
+func (h *Handler) EliminarReporte(ctx context.Context, request httpapi.EliminarReporteRequestObject) (httpapi.EliminarReporteResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, httperr.ErrNoAutenticado
+	}
+
+	rol, _ := middleware.RolFromContext(ctx)
+	if err := h.svc.Eliminar(ctx, rol, userID, request.ReporteId); err != nil {
+		return nil, err
+	}
+	return httpapi.EliminarReporte204Response{}, nil
+}
