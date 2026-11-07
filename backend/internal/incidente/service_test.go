@@ -536,3 +536,45 @@ func TestIncidenteService_Actualizar_NombreRepetido(t *testing.T) {
 
 // ptr devuelve un puntero al valor, para armar argumentos opcionales.
 func ptr[T any](v T) *T { return &v }
+
+func TestPtrIntEqual(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b *int
+		want bool
+	}{
+		{name: "ambos nil", a: nil, b: nil, want: true},
+		{name: "a nil, b con valor", a: nil, b: ptr(7), want: false},
+		{name: "a con valor, b nil", a: ptr(7), b: nil, want: false},
+		{name: "iguales", a: ptr(7), b: ptr(7), want: true},
+		{name: "distintos", a: ptr(7), b: ptr(8), want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ptrIntEqual(tc.a, tc.b); got != tc.want {
+				t.Fatalf("ptrIntEqual(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPtrFloat64Equal(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b *float64
+		want bool
+	}{
+		{name: "ambos nil", a: nil, b: nil, want: true},
+		{name: "a nil, b con valor", a: nil, b: ptr(25.5), want: false},
+		{name: "a con valor, b nil", a: ptr(25.5), b: nil, want: false},
+		{name: "iguales", a: ptr(25.5), b: ptr(25.5), want: true},
+		{name: "distintos", a: ptr(25.5), b: ptr(10.0), want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ptrFloat64Equal(tc.a, tc.b); got != tc.want {
+				t.Fatalf("ptrFloat64Equal(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}

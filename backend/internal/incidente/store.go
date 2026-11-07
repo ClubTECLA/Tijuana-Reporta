@@ -129,10 +129,11 @@ func (s *Store) UpdateIncidente(ctx context.Context, arg UpdateTxParams) (Detall
 			datos["radio"] = map[string]any{"antes": anterior.Radio, "despues": detalle.Incidente.Radio}
 		}
 
-		if len(datos) == 0 {
-			datos = nil
+		var historialDatos any
+		if len(datos) > 0 {
+			historialDatos = datos
 		}
-		return historial.Registrar(ctx, q, arg.ActorID, "incidente.actualizar", "incidente", strconv.Itoa(detalle.Incidente.ID), datos)
+		return historial.Registrar(ctx, q, arg.ActorID, "incidente.actualizar", "incidente", strconv.Itoa(detalle.Incidente.ID), historialDatos)
 	})
 
 	if err != nil {
