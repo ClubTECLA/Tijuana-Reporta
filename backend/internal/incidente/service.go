@@ -20,7 +20,7 @@ type store interface {
 	CreateTags(ctx context.Context, arg CreateTagsTxParams) ([]sqlc.Tag, error)
 	GetIncidenteById(ctx context.Context, id int) (sqlc.Incidente, error)
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]sqlc.Incidente, error)
-	UpdateIncidenteConHistorial(ctx context.Context, arg UpdateTxParams) (Detalle, error)
+	UpdateIncidente(ctx context.Context, arg UpdateTxParams) (Detalle, error)
 	ListTagsByIncidenteId(ctx context.Context, incidenteID int) ([]sqlc.Tag, error)
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]sqlc.Tag, error)
 }
@@ -281,7 +281,7 @@ func (s *Service) Actualizar(ctx context.Context, id int, actual Actualizar, use
 		return Detalle{}, fmt.Errorf("%w: color debe tener formato #RRGGBB", ErrInvalido)
 	}
 
-	detalle, err := s.store.UpdateIncidenteConHistorial(ctx, UpdateTxParams{
+	detalle, err := s.store.UpdateIncidente(ctx, UpdateTxParams{
 		Incidente: sqlc.UpdateIncidenteParams{
 			ID:           id,
 			Nombre:       nombre,

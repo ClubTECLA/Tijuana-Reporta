@@ -87,7 +87,7 @@ func nombresDeTags(tags []sqlc.Tag) []string {
 	return nombres
 }
 
-func (s *Store) UpdateIncidenteConHistorial(ctx context.Context, arg UpdateTxParams) (Detalle, error) {
+func (s *Store) UpdateIncidente(ctx context.Context, arg UpdateTxParams) (Detalle, error) {
 	var detalle Detalle
 
 	err := db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {

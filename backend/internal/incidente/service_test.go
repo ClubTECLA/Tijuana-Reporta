@@ -115,7 +115,7 @@ func (f *fakeIncidenteStore) ListTagsByIncidenteIds(_ context.Context, ids []int
 	return out, nil
 }
 
-func (f *fakeIncidenteStore) UpdateIncidenteConHistorial(_ context.Context, arg UpdateTxParams) (Detalle, error) {
+func (f *fakeIncidenteStore) UpdateIncidente(_ context.Context, arg UpdateTxParams) (Detalle, error) {
 	f.updateCalled = true
 	f.lastUpdateArg = arg
 	if f.updateErr != nil {
@@ -456,20 +456,20 @@ func TestIncidenteService_Actualizar_Exito(t *testing.T) {
 		t.Fatalf("Actualizar() error = %v", err)
 	}
 		if !store.updateCalled {
-		t.Fatal("Actualizar() no llamó a UpdateIncidenteConHistorial")
+		t.Fatal("Actualizar() no llamó a UpdateIncidente")
 	}
 	if store.lastUpdateArg.ActorID != actorID {
-		t.Fatalf("UpdateIncidenteConHistorial() actor = %v, want %v", store.lastUpdateArg.ActorID, actorID)
+		t.Fatalf("UpdateIncidente() actor = %v, want %v", store.lastUpdateArg.ActorID, actorID)
 	}
 	p := store.lastUpdateArg.Incidente
 	if p.ID != 1 || p.Nombre != "bache" || p.Etiqueta != "Bache" {
-		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want id=1 nombre=bache etiqueta=Bache", p)
+		t.Fatalf("UpdateIncidente() incidente = %+v, want id=1 nombre=bache etiqueta=Bache", p)
 	}
 	if p.Color != "#EF6C33" || p.EstaActivo {
-		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want color=#EF6C33 esta_activo=false", p)
+		t.Fatalf("UpdateIncidente() incidente = %+v, want color=#EF6C33 esta_activo=false", p)
 	}
 	if *p.TiempoLimite != 7 || *p.Radio != 25.5 {
-		t.Fatalf("UpdateIncidenteConHistorial() incidente = %+v, want tiempo_limite=7 radio=25.5", p)
+		t.Fatalf("UpdateIncidente() incidente = %+v, want tiempo_limite=7 radio=25.5", p)
 	}
 	if d.Incidente.Nombre != "bache" || len(d.Tags) != 1 || d.Tags[0].Nombre != "profundo" {
 		t.Fatalf("Actualizar() = %+v, want incidente bache con [profundo]", d)
