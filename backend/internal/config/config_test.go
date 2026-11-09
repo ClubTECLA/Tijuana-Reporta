@@ -12,7 +12,12 @@ func entornoMinimo(t *testing.T) {
 	for _, v := range variablesFoto {
 		t.Setenv(v, "")
 	}
+	for _, v := range variablesMantenimiento {
+		t.Setenv(v, "")
+	}
 }
+
+var variablesMantenimiento = []string{"MANTENIMIENTO_HORA", "MANTENIMIENTO_MAX_ACCIONES", "CUARENTENA_DIAS"}
 
 var variablesFoto = []string{"MAX_FOTO_BYTES", "MAX_FOTO_PIXELES"}
 
@@ -99,5 +104,68 @@ func TestLoad_FotoInvalida(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestLoad_MantenimientoPorDefecto(t *testing.T) {
+	entornoMinimo(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v, want nil", err)
+	}
+	if cfg.MantenimientoHora != 3 || cfg.MantenimientoMinuto != 0 {
+		t.Errorf("hora = %02d:%02d, want 03:00", cfg.MantenimientoHora, cfg.MantenimientoMinuto)
+	}
+	if cfg.MantenimientoMaxAcciones != defaultMantenimientoMaxAcciones {
+		t.Errorf("MantenimientoMaxAcciones = %d, want %d", cfg.MantenimientoMaxAcciones, defaultMantenimientoMaxAcciones)
+	}
+	if cfg.CuarentenaDias != defaultCuarentenaDias {
+		t.Errorf("CuarentenaDias = %d, want %d", cfg.CuarentenaDias, defaultCuarentenaDias)
+	}
+}
+
+func TestLoad_MantenimientoDelEntorno(t *testing.T) {
+	entornoMinimo(t)
+	t.Setenv("MANTENIMIENTO_HORA", "23:45")
+	t.Setenv("MANTENIMIENTO_MAX_ACCIONES", "5")
+	t.Setenv("CUARENTENA_DIAS", "7")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v, want nil", err)
+	}
+	if cfg.MantenimientoHora != 23 || cfg.MantenimientoMinuto != 45 {
+		t.Errorf("hora = %02d:%02d, want 23:45", cfg.MantenimientoHora, cfg.MantenimientoMinuto)
+	}
+	if cfg.MantenimientoMaxAcciones != 5 {
+		t.Errorf("MantenimientoMaxAcciones = %d, want 5", cfg.MantenimientoMaxAcciones)
+	}
+	if cfg.CuarentenaDias != 7 {
+		t.Errorf("CuarentenaDias = %d, want 7", cfg.CuarentenaDias)
+	}
+}
+
+func TestLoad_MantenimientoInvalido(t *testing.T) {
+	tests := []struct{ variable, valor string }{
+		{"MANTENIMIENTO_HORA", "3"},
+		{"MANTENIMIENTO_HORA", "25:00"},
+		{"MANTENIMIENTO_HORA", "03:60"},
+		{"MANTENIMIENTO_HORA", "tres"},
+		{"MANTENIMIENTO_MAX_ACCIONES", "0"},
+		{"MANTENIMIENTO_MAX_ACCIONES", "abc"},
+		{"CUARENTENA_DIAS", "-1"},
+		{"CUARENTENA_DIAS", "abc"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.variable+"="+tt.valor, func(t *testing.T) {
+			entornoMinimo(t)
+			t.Setenv(tt.variable, tt.valor)
+
+			if _, err := Load(); err == nil {
+				t.Errorf("Load() con %s=%q error = nil, want error", tt.variable, tt.valor)
+			}
+		})
 	}
 }

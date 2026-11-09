@@ -6,6 +6,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -34,6 +35,7 @@ type Querier interface {
 	CreateTipoCentro(ctx context.Context, nombre string) (TiposCentro, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
+	DeleteMultimediaPorPaths(ctx context.Context, paths []string) (int64, error)
 	// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
 	// ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
 	// del servicio multimedia no: esos los borra el servicio después.
@@ -45,6 +47,7 @@ type Querier interface {
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetCentroById(ctx context.Context, id uuid.UUID) (GetCentroByIdRow, error)
+	GetCorteMantenimiento(ctx context.Context, nombre string) (time.Time, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
@@ -66,6 +69,10 @@ type Querier interface {
 	ListIncidentes(ctx context.Context, incluirInactivos bool) ([]Incidente, error)
 	ListLocationsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Location, error)
 	ListMultimediaByReporteId(ctx context.Context, reporteID uuid.UUID) ([]Multimedia, error)
+	// Rutas de las filas creadas desde (incluido) hasta (no incluido).
+	ListMultimediaPathsCreadas(ctx context.Context, arg ListMultimediaPathsCreadasParams) ([]string, error)
+	// De las rutas dadas, las que tienen fila en multimedia.
+	ListMultimediaPathsExistentes(ctx context.Context, paths []string) ([]string, error)
 	// Incluye los históricos: es el historial del usuario, no el mapa.
 	ListReportesByUserId(ctx context.Context, arg ListReportesByUserIdParams) ([]ListReportesByUserIdRow, error)
 	// sqlc no conoce las funciones de PostGIS, así que cada parámetro lleva su
@@ -86,6 +93,7 @@ type Querier interface {
 	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
 	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
+	SetCorteMantenimiento(ctx context.Context, arg SetCorteMantenimientoParams) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }

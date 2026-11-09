@@ -5,7 +5,7 @@ import "testing"
 // limpiarEntorno deja sin valor todas las variables de configuración.
 func limpiarEntorno(t *testing.T) {
 	t.Helper()
-	for _, v := range []string{"MULTIMEDIA_PORT", "UPLOADS_DIR", "MAX_ARCHIVO_BYTES"} {
+	for _, v := range []string{"MULTIMEDIA_PORT", "UPLOADS_DIR", "CUARENTENA_DIR", "MAX_ARCHIVO_BYTES", "MAX_FOTO_BYTES"} {
 		t.Setenv(v, "")
 	}
 }
@@ -23,8 +23,14 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.UploadsDir != defaultUploadsDir {
 		t.Errorf("UploadsDir = %q, want %q", cfg.UploadsDir, defaultUploadsDir)
 	}
+	if cfg.CuarentenaDir != defaultCuarentenaDir {
+		t.Errorf("CuarentenaDir = %q, want %q", cfg.CuarentenaDir, defaultCuarentenaDir)
+	}
 	if cfg.MaxArchivoBytes != defaultMaxArchivoBytes {
 		t.Errorf("MaxArchivoBytes = %d, want %d", cfg.MaxArchivoBytes, defaultMaxArchivoBytes)
+	}
+	if cfg.MaxFotoBytes != defaultMaxFotoBytes {
+		t.Errorf("MaxFotoBytes = %d, want %d", cfg.MaxFotoBytes, defaultMaxFotoBytes)
 	}
 }
 
@@ -32,7 +38,9 @@ func TestLoad_ValoresDelEntorno(t *testing.T) {
 	limpiarEntorno(t)
 	t.Setenv("MULTIMEDIA_PORT", "9000")
 	t.Setenv("UPLOADS_DIR", "/data/uploads")
+	t.Setenv("CUARENTENA_DIR", "/data/cuarentena")
 	t.Setenv("MAX_ARCHIVO_BYTES", "500000")
+	t.Setenv("MAX_FOTO_BYTES", "100000")
 
 	cfg, err := Load()
 	if err != nil {
@@ -44,12 +52,19 @@ func TestLoad_ValoresDelEntorno(t *testing.T) {
 	if cfg.UploadsDir != "/data/uploads" {
 		t.Errorf("UploadsDir = %q, want %q", cfg.UploadsDir, "/data/uploads")
 	}
+	if cfg.CuarentenaDir != "/data/cuarentena" {
+		t.Errorf("CuarentenaDir = %q, want %q", cfg.CuarentenaDir, "/data/cuarentena")
+	}
 	if cfg.MaxArchivoBytes != 500000 {
 		t.Errorf("MaxArchivoBytes = %d, want %d", cfg.MaxArchivoBytes, 500000)
+	}
+	if cfg.MaxFotoBytes != 100000 {
+		t.Errorf("MaxFotoBytes = %d, want %d", cfg.MaxFotoBytes, 100000)
 	}
 }
 
 func TestLoad_LimiteInvalido(t *testing.T) {
+	variables := []string{"MAX_ARCHIVO_BYTES", "MAX_FOTO_BYTES"}
 	valores := []struct {
 		name  string
 		valor string
@@ -59,14 +74,16 @@ func TestLoad_LimiteInvalido(t *testing.T) {
 		{name: "negativo", valor: "-5"},
 	}
 
-	for _, v := range valores {
-		t.Run(v.name, func(t *testing.T) {
-			limpiarEntorno(t)
-			t.Setenv("MAX_ARCHIVO_BYTES", v.valor)
+	for _, variable := range variables {
+		for _, v := range valores {
+			t.Run(variable+"/"+v.name, func(t *testing.T) {
+				limpiarEntorno(t)
+				t.Setenv(variable, v.valor)
 
-			if _, err := Load(); err == nil {
-				t.Errorf("Load() con MAX_ARCHIVO_BYTES=%q = nil, want error", v.valor)
-			}
-		})
+				if _, err := Load(); err == nil {
+					t.Errorf("Load() con %s=%q = nil, want error", variable, v.valor)
+				}
+			})
+		}
 	}
 }

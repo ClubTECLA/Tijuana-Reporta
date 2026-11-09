@@ -27,13 +27,30 @@ func CarpetaValida(carpeta string) bool {
 	return carpetaValida.MatchString(carpeta)
 }
 
-// Almacen guarda archivos dentro de un directorio raíz.
+// Almacen guarda archivos dentro de un directorio raíz y aparta los sospechosos
+// en otro directorio, la cuarentena, que no se sirve al público.
 type Almacen struct {
-	raiz *os.Root
+	raiz       *os.Root
+	cuarentena *os.Root
 }
 
-// Abrir crea el directorio dir si no existe y devuelve un Almacen sobre él.
-func Abrir(dir string) (*Almacen, error) {
+// Abrir crea los directorios dir y dirCuarentena si no existen y devuelve un
+// Almacen sobre ellos.
+func Abrir(dir, dirCuarentena string) (*Almacen, error) {
+	raiz, err := abrirRaiz(dir)
+	if err != nil {
+		return nil, err
+	}
+	cuarentena, err := abrirRaiz(dirCuarentena)
+	if err != nil {
+		raiz.Close()
+		return nil, err
+	}
+	return &Almacen{raiz: raiz, cuarentena: cuarentena}, nil
+}
+
+// abrirRaiz crea el directorio dir si no existe y lo abre como raíz.
+func abrirRaiz(dir string) (*os.Root, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("crear directorio: %w", err)
 	}
@@ -41,12 +58,12 @@ func Abrir(dir string) (*Almacen, error) {
 	if err != nil {
 		return nil, fmt.Errorf("abrir directorio: %w", err)
 	}
-	return &Almacen{raiz: raiz}, nil
+	return raiz, nil
 }
 
-// Cerrar libera el directorio raíz.
+// Cerrar libera los directorios raíz.
 func (a *Almacen) Cerrar() error {
-	return a.raiz.Close()
+	return errors.Join(a.raiz.Close(), a.cuarentena.Close())
 }
 
 // Guardar escribe contenido como un JPEG nuevo dentro de carpeta y devuelve su

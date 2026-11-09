@@ -14,7 +14,7 @@ func nuevoAlmacen(t *testing.T) (*Almacen, string) {
 	t.Helper()
 
 	dir := t.TempDir()
-	a, err := Abrir(dir)
+	a, err := Abrir(dir, filepath.Join(t.TempDir(), "cuarentena"))
 	if err != nil {
 		t.Fatalf("Abrir() = %v, want nil", err)
 	}
@@ -169,7 +169,7 @@ func TestGuardar_PermisosDelArchivo(t *testing.T) {
 func TestAbrir_CreaElDirectorio(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "no", "existe", "aun")
 
-	a, err := Abrir(dir)
+	a, err := Abrir(dir, filepath.Join(t.TempDir(), "cuarentena"))
 	if err != nil {
 		t.Fatalf("Abrir() = %v, want nil", err)
 	}

@@ -13,6 +13,7 @@ sql:
       - "internal/usuario/roles.sql"
       - "internal/multimedia/multimedia.sql"
       - "internal/centro/centro.sql"
+      - "internal/mantenimiento/mantenimiento.sql"
     schema: "internal/db/migrations"
     gen:
       go:

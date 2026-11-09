@@ -55,6 +55,11 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-Administrador}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MULTIMEDIA_URL: http://multimedia:8081
+      # La hora del mantenimiento diario se interpreta en esta zona horaria.
+      TZ: ${TZ:-America/Tijuana}
+      MANTENIMIENTO_HORA: ${MANTENIMIENTO_HORA:-}
+      MANTENIMIENTO_MAX_ACCIONES: ${MANTENIMIENTO_MAX_ACCIONES:-}
+      CUARENTENA_DIAS: ${CUARENTENA_DIAS:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
     logging:
@@ -79,6 +84,9 @@ services:
     restart: unless-stopped
     volumes:
       - uploads:/data/uploads
+      # Aquí se aparta lo que no cumple las reglas. nginx no lo monta, así que
+      # nada de esto se sirve al público.
+      - cuarentena:/data/cuarentena
     expose: ["8081"]
 
   frontend-web:
@@ -103,3 +111,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  cuarentena:

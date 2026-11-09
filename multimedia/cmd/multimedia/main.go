@@ -14,7 +14,7 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	almacen, err := almacenamiento.Abrir(cfg.UploadsDir)
+	almacen, err := almacenamiento.Abrir(cfg.UploadsDir, cfg.CuarentenaDir)
 	if err != nil {
 		log.Fatalf("Failed to open uploads directory: %v", err)
 	}
@@ -22,6 +22,7 @@ func main() {
 
 	r := api.NewRouter(api.Opciones{
 		MaxArchivoBytes: cfg.MaxArchivoBytes,
+		MaxFotoBytes:    cfg.MaxFotoBytes,
 		Almacen:         almacen,
 	})
 

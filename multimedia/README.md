@@ -18,7 +18,7 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
 | Pieza | Qué hace | Qué NO hace |
 |---|---|---|
 | **backend** | Expone el endpoint público, autentica, comprueba que el usuario sea el creador del reporte, valida y convierte la imagen, registra la fila en `multimedia`. | No guarda archivos en disco. |
-| **multimedia** (este servicio) | Guarda el JPEG que le manda el backend con nombre aleatorio y lo puede borrar. | No autentica, no valida, no convierte, no conoce la base de datos. |
+| **multimedia** (este servicio) | Guarda el JPEG que le manda el backend con nombre aleatorio, lo puede borrar, revisa lo guardado y aparta en cuarentena lo que el backend le pida. | No autentica, no valida lo que recibe, no convierte, no conoce la base de datos. |
 | **nginx** | Enruta `/api/` al backend y sirve `/multimedia/<path>` leyendo el volumen. | No escribe en el volumen ni enruta nada hacia `multimedia`. |
 
 ## Flujo de una subida
@@ -166,6 +166,50 @@ limpiar si el backend no pudo registrar la fila en la base de datos.
 | `400` | La ruta no tiene la forma de un archivo guardado por el servicio. |
 | `500` | Error al borrar. |
 
+### `GET /archivos?desde=<RFC 3339>&hasta=<RFC 3339>`
+
+Lista los archivos guardados cuya fecha de modificación cae entre `desde` (incluido)
+y `hasta` (no incluido), y dice cuáles incumplen las reglas. Solo lee.
+
+```json
+{ "archivos": [
+  { "path": "reportes/<id>/<32 hex>.jpg", "bytes": 123456 },
+  { "path": "reportes/<id>/otra.png", "bytes": 99, "motivo": "nombre no generado por el servicio" }
+] }
+```
+
+`motivo` solo aparece si incumple, y es el primero de: `nombre no generado por el servicio`,
+`no es JPEG` (no empieza con la firma `FF D8 FF`) o `excede el tamaño máximo` (`MAX_FOTO_BYTES`).
+
+| Código | Cuándo |
+|---|---|
+| `200` | Lista (vacía si no hay archivos). |
+| `400` | Falta `desde` o `hasta`, o no son fechas RFC 3339. |
+| `500` | Error al recorrer el almacén. |
+
+### `POST /existen`
+
+Body `{"paths": ["reportes/<id>/<32 hex>.jpg", ...]}` (máx. 1 MiB). Responde
+`200 {"faltan": [...]}` con las rutas que no existen como archivo guardado. Una ruta que no
+tiene la forma de un archivo guardado cuenta como faltante.
+
+### `POST /cuarentena/{path}`
+
+Mueve el archivo al volumen de cuarentena, conservando su ruta, y lo quita del almacén. Acepta
+cualquier nombre (sirve justo para apartar archivos ajenos). Si en la cuarentena ya hay uno con
+ese nombre, no lo pisa: le agrega un sufijo.
+
+| Código | Cuándo |
+|---|---|
+| `204` | Movido, o ya no existía. |
+| `400` | La ruta no es una ruta relativa limpia (`..`, absoluta, etc.). |
+| `500` | Error al mover. |
+
+### `DELETE /cuarentena?antes=<RFC 3339>`
+
+Borra de la cuarentena los archivos que llegaron a ella antes de `antes`. Responde
+`200 {"borrados": N}`; `400` si falta `antes` o no es una fecha válida.
+
 ### `GET /health`
 
 `200 {"status": "ok"}`.
@@ -180,7 +224,9 @@ Todos los errores salen como `{"message": "..."}`, igual que el backend.
 |---|---|---|
 | `MULTIMEDIA_PORT` | `8081` | Puerto. |
 | `UPLOADS_DIR` | `uploads` (`/data/uploads` en la imagen) | Directorio donde se guardan los archivos. |
+| `CUARENTENA_DIR` | `cuarentena` (`/data/cuarentena` en la imagen) | Directorio donde se aparta lo que no cumple las reglas. Debe quedar **fuera** de `UPLOADS_DIR`, que es lo que sirve nginx. |
 | `MAX_ARCHIVO_BYTES` | `12582912` (12 MiB) | Tamaño máximo del archivo a guardar. |
+| `MAX_FOTO_BYTES` | `3145728` (3 MiB) | A partir de este tamaño, `GET /archivos` marca un archivo como demasiado grande. Debe coincidir con el del backend. |
 
 Un valor inválido (no numérico, cero o negativo) impide que el servicio arranque.
 
@@ -204,6 +250,83 @@ symlinks y con `X-Content-Type-Options: nosniff`. Los archivos se crean con
 permisos `0644` y las carpetas con `0755` para que nginx pueda leerlos. La imagen
 corre con el usuario `multimedia` (UID 10001).
 
+## Mantenimiento diario
+
+El backend (`backend/internal/mantenimiento`) es quien coordina; este servicio solo expone
+las rutas de arriba. Todos los días a `MANTENIMIENTO_HORA` (por defecto `03:00`, en la zona
+horaria `TZ` del backend; en compose, `America/Tijuana`) el backend revisa **solo lo nuevo**,
+desde el último corte hasta una hora antes de ese momento (una hora para no tocar una subida
+en curso). El corte se guarda en la tabla `mantenimiento_estado`, así que un reinicio o un
+día sin correr no deja huecos: la siguiente pasada cubre todo lo pendiente. La primera vez
+revisa las últimas 24 horas.
+
+| Caso | Qué hace |
+|---|---|
+| Archivo que no es JPEG, pasa de `MAX_FOTO_BYTES` o tiene nombre ajeno | Lo manda a cuarentena y borra su fila de `multimedia`. |
+| Archivo válido sin fila | Lo manda a cuarentena. |
+| Fila sin archivo | Borra la fila. |
+| Archivo en cuarentena con más de `CUARENTENA_DIAS` días | Lo borra. |
+
+**Freno de seguridad:** si una pasada va a tocar más de `MANTENIMIENTO_MAX_ACCIONES`
+archivos y filas, o la mitad o más de las filas de la ventana (con al menos 10) no tienen
+archivo, no hace nada, deja un error en el log y **no avanza el corte**. Suele indicar un
+volumen vacío o desmontado, o un límite mal configurado, y no archivos malos. Hay que
+revisarlo a mano; la alerta se repite cada noche hasta que se resuelva.
+
+**Reintentos:** si la pasada falla (multimedia o la base caídas, un archivo que no se pudo
+apartar), el corte no avanza y se reintenta cada hora. Si falló a la mitad, lo ya
+procesado no se repite y lo pendiente se completa en el reintento.
+
+### Variables del backend
+
+| Variable | Por defecto | Descripción |
+|---|---|---|
+| `MANTENIMIENTO_HORA` | `03:00` | Hora del día (HH:MM) en que corre. |
+| `MANTENIMIENTO_MAX_ACCIONES` | `20` | Tope del freno de seguridad. |
+| `CUARENTENA_DIAS` | `15` | Días que se conserva un archivo en la cuarentena. |
+| `TZ` | `America/Tijuana` (en compose) | Zona horaria de la hora anterior. |
+
+### Cuarentena
+
+Es un volumen aparte (`cuarentena`) que solo monta este servicio: nginx no lo ve, así que lo
+apartado deja de ser público. Para **restaurar** un archivo hay que copiarlo de vuelta a mano
+al volumen `uploads` (y volver a crear su fila si hace falta); no hay ruta para eso.
+
+```sh
+docker compose exec multimedia ls -R /data/cuarentena
+```
+
+## Limitaciones conocidas
+
+No son errores: son los límites con los que se acordó dejar esto. Cualquier implementación
+futura (video, más tipos de archivo, más réplicas, subidas más estrictas) **debe tenerlos
+presentes**.
+
+- **El mantenimiento tarda hasta ~24 horas en actuar.** Un archivo inválido que se cuele
+  puede estar visible en `/multimedia/...` hasta la siguiente pasada. Si no es aceptable,
+  hay que agregar una pasada más frecuente o validar mejor al subir.
+- **No se decodifica la imagen completa.** Hoy el backend solo lee la cabecera y quita los
+  metadatos. Un JPEG con cabecera válida y píxeles corruptos, o con datos raros dentro de
+  los segmentos que se conservan (por ejemplo el perfil ICC), pasa tanto la subida como el
+  mantenimiento. Para cerrarlo hay que decodificar al subir (`image.Decode` en lugar de
+  `DecodeConfig`, con un límite de decodificaciones simultáneas, porque cuesta CPU y
+  memoria) o recodificar la imagen.
+- **Las rutas internas no tienen autenticación.** Igual que `/upload`: se protegen no
+  exponiendo este servicio fuera de la red de Docker. Si algún día se expone, hay que
+  autenticarlas.
+- **Una sola réplica del backend.** Si hubiera dos, las dos correrían el mantenimiento a la
+  vez. Haría falta un candado (por ejemplo, `pg_advisory_lock`).
+- **Si el backend no corre a la hora configurada**, la siguiente pasada cubre lo pendiente,
+  pero un archivo inválido sigue visible entre tanto.
+- **Los archivos se detectan por su fecha de modificación.** Un archivo copiado a mano con
+  una fecha anterior al último corte no se revisa.
+- **La cuarentena no tiene rastro en `historial`**: solo queda en el log del backend
+  (`invalid file moved to quarantine`, `file without row moved to quarantine`,
+  `row without file deleted`).
+- **Los videos** (cuando existan) necesitarán otras reglas de validación y de tamaño, y que
+  `multimedia` acepte otra extensión además de `.jpg`: el nombre válido y la firma que se
+  revisan hoy son solo de JPEG.
+
 ## Desarrollo
 
 Desde `multimedia/`:
@@ -222,7 +345,7 @@ Estructura:
 |---|---|
 | `cmd/multimedia` | `main`: carga la configuración y arranca. |
 | `internal/api` | Router y handlers. |
-| `internal/almacenamiento` | Guardar y borrar archivos dentro de `UPLOADS_DIR`. |
+| `internal/almacenamiento` | Guardar, borrar, listar y revisar archivos dentro de `UPLOADS_DIR`, y apartarlos en la cuarentena. |
 | `internal/config` | Lectura de variables de entorno. |
 
 La validación de imágenes y la limpieza de metadatos **no** están aquí: vive en el backend
@@ -233,4 +356,4 @@ La validación de imágenes y la limpieza de metadatos **no** están aquí: vive
 
 - Video: el backend lo procesará y lo enviará aquí; hará falta que `multimedia` acepte otra extensión además de `.jpg`.
 - HEIC y PNG: se rechazan con `400` en el backend; la app debe exportar a JPEG.
-- Job de mantenimiento (después): borrar archivos huérfanos (sin fila en `multimedia`, con una antigüedad mínima) y los que pasen del límite de tamaño.
+- Ver [Limitaciones conocidas](#limitaciones-conocidas).

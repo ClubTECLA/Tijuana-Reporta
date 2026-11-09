@@ -200,6 +200,13 @@ CREATE SEQUENCE public.multimedia_id_seq
 -- Name: multimedia_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 ALTER SEQUENCE public.multimedia_id_seq OWNED BY public.multimedia.id;
 
+-- Name: mantenimiento_estado; Type: TABLE; Schema: public; Owner: -
+-- Hasta qué momento revisó cada tarea de mantenimiento (por ahora, la de multimedia), para que una pasada continúe donde terminó la anterior.
+CREATE TABLE public.mantenimiento_estado (
+    nombre text PRIMARY KEY,
+    ultimo_corte timestamptz NOT NULL
+);
+
 -- Name: historial; Type: TABLE; Schema: public; Owner: -
 -- Historial de acciones realizadas por los usuarios (mas que nada dirigida a usuarios con roles superiores a ciudadano)
 CREATE TABLE public.historial (

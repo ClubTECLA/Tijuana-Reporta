@@ -11,10 +11,11 @@ FROM alpine:3.22
 # Usuario sin privilegios con UID fijo; el directorio se crea con su dueño para
 # que un volumen nuevo herede el permiso de escritura.
 RUN adduser -D -u 10001 multimedia \
-    && mkdir -p /data/uploads \
-    && chown multimedia /data/uploads
+    && mkdir -p /data/uploads /data/cuarentena \
+    && chown multimedia /data/uploads /data/cuarentena
 COPY --from=builder /bin/multimedia /bin/multimedia
 ENV UPLOADS_DIR=/data/uploads
+ENV CUARENTENA_DIR=/data/cuarentena
 USER multimedia
 EXPOSE 8081
 ENTRYPOINT ["/bin/multimedia"]

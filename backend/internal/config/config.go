@@ -24,6 +24,13 @@ const defaultMultimediaURL = "http://localhost:8081"
 // defaultMaxMultimediaBytes es el máximo del body al subir un archivo a un reporte (12 MiB).
 const defaultMaxMultimediaBytes = 12 << 20
 
+// Valores por defecto del mantenimiento diario de multimedia.
+const (
+	defaultMantenimientoHora        = "03:00" // en la zona horaria del proceso (TZ)
+	defaultMantenimientoMaxAcciones = 20      // archivos y filas que una pasada puede tocar
+	defaultCuarentenaDias           = 15      // una quincena
+)
+
 // Valores por defecto de la validación de fotos.
 const (
 	defaultMaxFotoBytes   = 3 << 20    // tamaño máximo de la foto de entrada; la app la comprime antes de subirla
@@ -41,9 +48,16 @@ type Config struct {
 
 	MaxFotoBytes   int64
 	MaxFotoPixeles int64
-	AdminEmail     string
-	AdminUsername  string
-	AdminPassword  string
+
+	// Mantenimiento diario de multimedia (ver internal/mantenimiento).
+	MantenimientoHora        int
+	MantenimientoMinuto      int
+	MantenimientoMaxAcciones int
+	CuarentenaDias           int
+
+	AdminEmail    string
+	AdminUsername string
+	AdminPassword string
 
 	LogLevel  string
 	LogFormat string
@@ -114,7 +128,34 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	if err := cfg.cargarMantenimiento(); err != nil {
+		return Config{}, err
+	}
+
 	return cfg, nil
+}
+
+// cargarMantenimiento lee la configuración del mantenimiento diario de multimedia.
+func (cfg *Config) cargarMantenimiento() error {
+	hora := getEnvOrDefault("MANTENIMIENTO_HORA", defaultMantenimientoHora)
+	t, err := time.Parse("15:04", hora)
+	if err != nil {
+		return fmt.Errorf("invalid MANTENIMIENTO_HORA %q: use HH:MM, por ejemplo 03:00", hora)
+	}
+	cfg.MantenimientoHora, cfg.MantenimientoMinuto = t.Hour(), t.Minute()
+
+	maxAcciones, err := enteroPositivo("MANTENIMIENTO_MAX_ACCIONES", defaultMantenimientoMaxAcciones)
+	if err != nil {
+		return err
+	}
+	cfg.MantenimientoMaxAcciones = int(maxAcciones)
+
+	dias, err := enteroPositivo("CUARENTENA_DIAS", defaultCuarentenaDias)
+	if err != nil {
+		return err
+	}
+	cfg.CuarentenaDias = int(dias)
+	return nil
 }
 
 // enteroPositivo lee la variable nombre como entero mayor que cero, o def si no está definida.
