@@ -28,7 +28,11 @@ function parseValue<K extends localStorageKeys>(key: K, item: string | null): lo
     if (item === null) return localStorageBaseRegistry[key];
 
     try {
-      return JSON.parse(item) as localStorageValues<K>;
+      const parsed: unknown = JSON.parse(item);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return localStorageBaseRegistry[key];
+      }
+      return { ...localStorageBaseRegistry[key], ...parsed } as localStorageValues<K>;
     } catch (error) {
       console.error(`Error reading localStorage for the key "${key}":`, error);
       return localStorageBaseRegistry[key];
@@ -74,7 +78,7 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
     const [valueForKey, setValueForKey] = useState(() => ({
       key,
       value: readValue(key),
-      shouldPersist: true,
+      shouldPersist: false,
     }));
 
     // Si cambia la clave, lee el valor correspondiente sin reutilizar el estado de la anterior.
