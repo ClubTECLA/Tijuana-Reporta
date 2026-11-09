@@ -22,7 +22,7 @@ const MOCK_NOTIFICACIONES: Notificacion[] = [
     id: '2',
     tipo: 'info',
     titulo: 'Tu reporte fue agrupado',
-    subtitulo: 'REP-8814 ahora es parte de INC-2471.',
+    subtitulo: 'Tu reporte ahora es parte de INC-2471',
     tiempo: 'hace 28 min',
     grupo: 'Hoy',
     leida: false,
