@@ -6,14 +6,18 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import type { localStorageKeys, localStorageValues } from '@/types/localStorage-types';
+import { localStorageBaseRegistry } from '@/lib/LocalStorageRegistry';
 
-function readValue<T>(key: string, initialValue: T): T {
+function readValue<K extends localStorageKeys>(key: K): localStorageValues<K> {
+  const defaultValue = localStorageBaseRegistry[key];
+
   try {
     const item = localStorage.getItem(key);
-    return item ? (JSON.parse(item) as T) : initialValue;
+    return item === null ? defaultValue : (JSON.parse(item) as localStorageValues<K>);
   } catch (error) {
     console.error(`Error reading localStorage for the key "${key}":`, error);
-    return initialValue;
+    return defaultValue;
   }
 }
 
@@ -21,14 +25,15 @@ function isStateUpdater<T>(value: SetStateAction<T>): value is (previousValue: T
   return typeof value === 'function';
 }
 
-export function useLocalStorage<T>(key: string, initialValue: T) {
+export function useLocalStorage<K extends localStorageKeys>(key: K) {
   const [valueForKey, setValueForKey] = useState(() => ({
     key,
-    value: readValue(key, initialValue),
+    value: readValue(key),
   }));
+  
   const storedValue = useMemo(
-    () => (valueForKey.key === key ? valueForKey.value : readValue(key, initialValue)),
-    [key, initialValue, valueForKey],
+    () => (valueForKey.key === key ? valueForKey.value : readValue(key)),
+    [key, valueForKey],
   );
 
   useEffect(() => {
@@ -39,7 +44,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   }, [key, storedValue]);
 
-  const setStoredValue: Dispatch<SetStateAction<T>> = useCallback(
+  const setStoredValue: Dispatch<SetStateAction<localStorageValues<K>>> = useCallback(
     (action) => {
       setValueForKey((current) => ({
         key,

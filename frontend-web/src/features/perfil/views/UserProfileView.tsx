@@ -1,4 +1,4 @@
-import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
+import { FiHelpCircle, FiMoon } from "react-icons/fi";
 import ColSection from "@/components/layout/ColSection";
 import Input from "@/components/ui/Input";
 import { ListTile, OptionList } from "@/components/ui/OptionsList";
@@ -12,6 +12,8 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "@/components/ui/Button";
 import RowSection from "@/components/layout/RowSection";
 import { useCommonPanel } from "@/panels/useCommonPanel";
+import { GrMapLocation } from "react-icons/gr";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 
 type FormState = {
     username: string;
@@ -19,6 +21,8 @@ type FormState = {
 };
 
 export default function UserProfileView() {
+    const [ preferences, setPreferences ] = useLocalStorage('Preferencias generales');
+    const [ userAuthPreferences, setUserAuthPreferences ] = useLocalStorage('Preferencias de seguridad');
     const { openPanel } = useCommonPanel();
     const { user, isAuthenticated } = useAuth();
     const [form, setForm] = useState<FormState>({
@@ -77,13 +81,13 @@ export default function UserProfileView() {
             />
             <Input
                 format={"col"}
-                label="Celular para codigos"
+                label="Correo electronico"
                 debug={false}
                 value={form.email}
                 onChange={handleChangeForm}
                 name="email"
             />
-            <OptionList format="col" debug={false} title="Seguridad">
+            <OptionList format="col" title="Seguridad">
                 <ListTile
                     tileName="Cambiar contraseña"
                     tileDescription="Actualizada hace 3 meses"
@@ -97,21 +101,21 @@ export default function UserProfileView() {
                     onChange={() => {}}
                     icon={<GoShieldCheck />}
                 />
-                <ListTile
-                    tileName="Sesiones activas"
-                    tileDescription="Chrome . Windows (esta) . iPad"
-                    valueBadge={2}
-                    onClick={() => {}}
-                    icon={<FiSmartphone />}
-                />
             </OptionList>
-            <OptionList format="col" debug={false} title="Preferencias">
+            <OptionList format="col" title="Preferencias">
                 <ListTile
                     tileName="Tema oscuro"
                     tileDescription="Usa la version oscura de consola"
                     onChange={() => {}}
                     type="checkbox"
                     icon={<FiMoon />}
+                />
+                <ListTile
+                    type='checkbox'
+                    onChange={() => {}}
+                    tileName="Mostrar ubicacion al navegar"
+                    tileDescription="Mostrar la ubicacion en la barra de busqueda al moverde y dar click sobre el mapa."
+                    icon={<GrMapLocation />}
                 />
                 <ListTile
                     tileName="Notificaciones"

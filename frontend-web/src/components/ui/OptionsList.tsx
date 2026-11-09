@@ -55,11 +55,25 @@ interface listTileProps {
     valueBadge?: string | number;
     onClick?: () => void;
     onChange?: () => void;
+    checked?: boolean;
 }
 
 // Fila de una lista de opciones (perfil, notificaciones, ayuda, menú de usuario). Las dos variantes comparten
 // la misma estructura (icono, nombre y descripción que ocupan el ancho libre, y el control a la derecha) y el tono.
-export function ListTile({debug, icon, tileName, type = 'button', tileDescription, valueBadge, onChange, onClick, color = 'white'} : listTileProps) {
+export function ListTile(
+    {
+        debug, 
+        icon, 
+        tileName, 
+        type = 'button', 
+        tileDescription, 
+        valueBadge, 
+        onChange, 
+        onClick, 
+        color = 'white',
+        checked = false
+    } : listTileProps
+) {
     const tone = colorWrapped[color];
     const rowStyle = `flex w-full flex-row items-center gap-4 rounded-2xl px-2 py-1 text-left ${tone.wrappedStyle} ${debug ? 'border-2 border-blue-400' : ''}`;
 
@@ -69,7 +83,7 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
         }
         <span className="flex min-w-0 flex-1 flex-col items-start justify-center">
             <span className={`text-base font-semibold ${tone.textStyle}`}>{tileName}</span>
-            {tileDescription && <span className={`text-sm ${tone.descriptionStyle}`}>{tileDescription}</span>}
+            {tileDescription && <span className={`w-full max-w-xs break-words text-sm ${tone.descriptionStyle}`}>{tileDescription}</span>}
         </span>
     </>;
 
@@ -79,7 +93,14 @@ export function ListTile({debug, icon, tileName, type = 'button', tileDescriptio
                 {content}
                 {onChange &&
                     <span className="flex h-10 shrink-0 items-center">
-                        <Input type='checkbox' format='col' debug={debug} onChange={onChange} ariaLabel={tileName} />
+                        <Input 
+                            checked={checked}
+                            type='checkbox' 
+                            format='col' 
+                            debug={debug} 
+                            onChange={onChange} 
+                            ariaLabel={tileName} 
+                        />
                     </span>
                 }
             </div>
