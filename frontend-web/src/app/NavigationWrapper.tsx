@@ -7,8 +7,10 @@ import useModals from '@/panels/useModals';
 import { useCommonPanel } from '@/panels/useCommonPanel';
 import { useLocationPicker } from '@/features/mapa/useLocationPicker';
 import { useSysMessage } from "@/components/ui/SysMessageContext";
+import { useLocalStorage } from '@/lib/useLocalStorage';
 
 export default function NavigationWrapper() {
+    const [ generalPreferences ] = useLocalStorage('Preferencias generales');
     const { openModal, closeModal, currentModal} = useModals()
     const { currentPanelView } = useCommonPanel();
     const { pathname } = useRouter();
@@ -36,7 +38,7 @@ export default function NavigationWrapper() {
                         <SearchBar
                             onSubmit={handleSearchAddress}
                             onChangeQuery={editAddress}
-                            value={currentPanelView === "Nuevo Incidente" ? "" : address}
+                            value={(currentPanelView !== "Nuevo Incidente" && generalPreferences.show_location_in_searchBar) ? address : "" }
                         />
                     </div> 
                     <div className="hidden min-w-0 sm:flex sm:flex-2/3">

@@ -14,6 +14,8 @@ import RowSection from "@/components/layout/RowSection";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { GrMapLocation } from "react-icons/gr";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import type { GeneralPreferencesType, SecurityPreferencesType } from "@/types/localStorage-types";
+import { hasOwnKey } from "@/lib/utils";
 
 type FormState = {
     username: string;
@@ -21,8 +23,8 @@ type FormState = {
 };
 
 export default function UserProfileView() {
-    const [ preferences, setPreferences ] = useLocalStorage('Preferencias generales');
-    const [ userAuthPreferences, setUserAuthPreferences ] = useLocalStorage('Preferencias de seguridad');
+    const [ generalPreferences, setGeneralPreferences ] = useLocalStorage('Preferencias generales');
+    const [ securityPreferences, setSecurityPreferences ] = useLocalStorage('Preferencias de seguridad');
     const { openPanel } = useCommonPanel();
     const { user, isAuthenticated } = useAuth();
     const [form, setForm] = useState<FormState>({
@@ -38,6 +40,14 @@ export default function UserProfileView() {
             email: user.email ?? "",
         });
     }, [isAuthenticated, user]);
+
+    const handleChangeCheckboxPreferences = (key: keyof GeneralPreferencesType | keyof SecurityPreferencesType , value: boolean) => {
+        if (hasOwnKey(generalPreferences, key)) {
+            setGeneralPreferences((prev) => ({ ...prev, [key]: value }));
+        } else if (hasOwnKey(securityPreferences, key)) {
+            setSecurityPreferences((prev) => ({ ...prev, [key]: value }));
+        }
+    }
 
     const handleChangeForm = (e: ChangeEvent<HTMLInputElement>) => {
         const field = e.target.name as keyof FormState;
@@ -98,7 +108,8 @@ export default function UserProfileView() {
                     tileName="Verificacion en dos pasos"
                     tileDescription="Codigo por SMS al iniciar sesion"
                     type="checkbox"
-                    onChange={() => {}}
+                    checked={securityPreferences.two_steps_verification}
+                    onChange={() => handleChangeCheckboxPreferences("two_steps_verification", !securityPreferences.two_steps_verification)}
                     icon={<GoShieldCheck />}
                 />
             </OptionList>
@@ -106,13 +117,15 @@ export default function UserProfileView() {
                 <ListTile
                     tileName="Tema oscuro"
                     tileDescription="Usa la version oscura de consola"
-                    onChange={() => {}}
+                    onChange={() => handleChangeCheckboxPreferences("dark_mode", !generalPreferences.dark_mode)}
+                    checked={generalPreferences.dark_mode}
                     type="checkbox"
                     icon={<FiMoon />}
                 />
                 <ListTile
                     type='checkbox'
-                    onChange={() => {}}
+                    onChange={() => handleChangeCheckboxPreferences("show_location_in_searchBar", !generalPreferences.show_location_in_searchBar)}
+                    checked={generalPreferences.show_location_in_searchBar}
                     tileName="Mostrar ubicacion al navegar"
                     tileDescription="Mostrar la ubicacion en la barra de busqueda al moverde y dar click sobre el mapa."
                     icon={<GrMapLocation />}

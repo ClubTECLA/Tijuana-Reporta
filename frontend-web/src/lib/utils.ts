@@ -12,3 +12,7 @@ const twMerge = extendTailwindMerge({
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
+
+export function hasOwnKey<T extends object>(object: T, key: PropertyKey): key is keyof T {
+    return Object.prototype.hasOwnProperty.call(object, key);
+}
