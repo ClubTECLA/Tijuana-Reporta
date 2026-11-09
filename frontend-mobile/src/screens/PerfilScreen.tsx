@@ -47,7 +47,6 @@ export const PerfilScreen = ({
   onAlertas,
   onCerrarSesion,
 }: PerfilScreenProps) => {
-  const [modoOscuro, setModoOscuro] = useState(false);
   const total =
     reportesActivos !== undefined && reportesCerrados !== undefined ? reportesActivos + reportesCerrados : undefined;  
   const n = MOCK_NOTIFICACIONES;
@@ -89,7 +88,7 @@ export const PerfilScreen = ({
           <MenuRow
             icon="file-text"
             title="Mis reportes"
-            subtitle={total !== undefined ? `${reportesActivos} activos · ${total} en historial` : 'Toca para ver tus reportes'}
+            subtitle={total !== undefined ? `${reportesActivos} ${reportesActivos === 1 ? 'activo' : 'activos'} · ${total} en historial` : 'Toca para ver tus reportes'}
             value={reportesActivos !== undefined ? String(reportesActivos) : undefined}
             onPress={onMisReportes}
           />
@@ -105,14 +104,6 @@ export const PerfilScreen = ({
 
         <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
-          <MenuRow
-            icon="moon"
-            title="Modo oscuro"
-            subtitle="Usa la versión oscura de la aplicación"
-            switchValue={modoOscuro}
-            onSwitchChange={setModoOscuro}
-          />
-          <View style={styles.divider} />
           <MenuRow
             icon="map-pin"
             title="Alertas y lugares"
