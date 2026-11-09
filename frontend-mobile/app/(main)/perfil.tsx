@@ -33,7 +33,6 @@ export default function Perfil() {
       onReintentar={() => void perfil.refetch()}
       onBack={() => router.back()}
       onMisReportes={() => router.push('/(main)/mis-reportes')}
-      onNotificaciones={() => router.push('/(main)/notificaciones')}
       onAlertas={() => router.push('/(main)/alertas')}
       onCerrarSesion={cerrarSesion}
     />

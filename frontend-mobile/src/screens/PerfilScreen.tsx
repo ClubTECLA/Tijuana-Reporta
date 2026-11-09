@@ -9,13 +9,6 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { EstadoVista } from '../components/estado/EstadoVista';
 import { perfilColors } from '../theme/perfilTokens';
 
-// TODO: no existe endpoint de notificaciones (contrato OpenAPI revisado el 04/11/2026).
-// Estos contadores siguen siendo datos de ejemplo hasta que exista.
-const MOCK_NOTIFICACIONES = {
-  nuevas: 3,
-  historial: 10,
-};
-
 interface PerfilScreenProps {
   nombre: string;
   correo?: string;
@@ -27,7 +20,6 @@ interface PerfilScreenProps {
   onReintentar?: () => void;
   onBack?: () => void;
   onMisReportes?: () => void;
-  onNotificaciones?: () => void;
   onAlertas?: () => void;
   onCerrarSesion?: () => void;
 }
@@ -43,13 +35,11 @@ export const PerfilScreen = ({
   onReintentar,
   onBack,
   onMisReportes,
-  onNotificaciones,
   onAlertas,
   onCerrarSesion,
 }: PerfilScreenProps) => {
   const total =
     reportesActivos !== undefined && reportesCerrados !== undefined ? reportesActivos + reportesCerrados : undefined;  
-  const n = MOCK_NOTIFICACIONES;
 
   // Perfil sigue montado debajo de "Alertas y lugares": se relee al volver para mostrar lo que se guardó.
   const [radioAlertasKm, setRadioAlertasKm] = useState(RADIO_ALERTA_KM_DEFECTO);
@@ -91,14 +81,6 @@ export const PerfilScreen = ({
             subtitle={total !== undefined ? `${reportesActivos} ${reportesActivos === 1 ? 'activo' : 'activos'} · ${total} en historial` : 'Toca para ver tus reportes'}
             value={reportesActivos !== undefined ? String(reportesActivos) : undefined}
             onPress={onMisReportes}
-          />
-          <View style={styles.divider} />
-          <MenuRow
-            icon="bell"
-            title="Notificaciones"
-            subtitle={`${n.nuevas} hoy · ${n.historial} en historial`}
-            value={String(n.nuevas)}
-            onPress={onNotificaciones}
           />
         </Card>
 
