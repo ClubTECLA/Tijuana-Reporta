@@ -103,6 +103,7 @@ export default function UserProfileView() {
                     tileDescription="Actualizada hace 3 meses"
                     onClick={() => {}}
                     icon={<LuLock />}
+                    disabled={true}
                 />
                 <ListTile
                     tileName="Verificacion en dos pasos"
@@ -121,6 +122,7 @@ export default function UserProfileView() {
                     checked={generalPreferences.dark_mode}
                     type="checkbox"
                     icon={<FiMoon />}
+                    disabled={true}
                 />
                 <ListTile
                     type='checkbox'
@@ -135,6 +137,7 @@ export default function UserProfileView() {
                     tileDescription="Que te avisamos y por donde"
                     onClick={() => openPanel('Notificaciones')}
                     icon={<IoMdNotificationsOutline />}
+                    disabled={true}
                 />
                 <ListTile
                     tileName="Ayudas y guias"
