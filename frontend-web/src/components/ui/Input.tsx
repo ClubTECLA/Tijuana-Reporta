@@ -76,7 +76,7 @@ export default function Input({
                     transition-colors 
                     after:absolute after:left-1 after:top-1 
                     after:h-5 after:w-5 after:rounded-full 
-                    after:bg-white after:shadow after:transition-transform 
+                    after:bg-surface after:shadow after:transition-transform
                     after:content-[''] peer-checked:bg-brand 
                     peer-checked:after:translate-x-8 
                     peer-focus-visible:outline-2 

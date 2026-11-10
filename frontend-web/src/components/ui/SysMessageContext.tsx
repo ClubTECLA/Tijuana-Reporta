@@ -62,22 +62,22 @@ const SysMessageContext = createContext<SysMessageContextType | null>(null);
 const config: Record<MessageColor, { icon: React.ReactNode; barClass: string; wrapped: string }> = {
     green: {
         icon: <IoMdCheckmarkCircleOutline className="text-success text-4xl"/>,
-        barClass: "border-l-green-500",
+        barClass: "border-l-success",
         wrapped: "break-words whitespace-normal text-success bg-success-subtle",
     },
     red: {
         icon: <FiAlertTriangle className="text-danger text-4xl"/>,
-        barClass: "border-l-red-500",
+        barClass: "border-l-danger-line",
         wrapped: "break-words whitespace-normal text-danger bg-danger-subtle",
     },
     yellow: {
         icon: <FiAlertCircle className="text-warning text-4xl"/>,
-        barClass: "border-l-yellow-500",
+        barClass: "border-l-warning",
         wrapped: "break-words whitespace-normal text-warning bg-warning-subtle",
     },
     blue: {
         icon: <IoMdCheckmarkCircleOutline className="text-brand text-4xl"/>,
-        barClass: "border-l-blue-500",
+        barClass: "border-l-brand",
         wrapped: "break-words whitespace-normal text-brand-text bg-brand-subtle",
     }
 };
@@ -143,7 +143,7 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
             fixed ${justifyM[justify]} z-[100]
             flex items-center gap-3 px-5 py-3.5
             border-l-4 ${currentStyle.barClass} rounded-2xl shadow-float
-            w-max max-w-[90vw] bg-white
+            w-max max-w-[90vw] bg-surface
             transition-all duration-300 ease-out font-sn-pro
             ${animate ? "top-20 opacity-100 scale-100" : "top-0 opacity-0 scale-95 pointer-events-none"}
         `}>

@@ -174,7 +174,7 @@ export default function SettingView () {
             title="Ajustes"
             subtitle="Configuración general del sistema · solo administradores"  
             debug={false}  
-            className="h-full min-h-0 min-w-0 gap-2 max-sm:flex-col"
+            className="h-full min-h-0 min-w-0 gap-2 max-sm:flex-col font-ui"
         >
             <ColSection
                 border={['right']}

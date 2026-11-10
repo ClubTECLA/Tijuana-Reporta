@@ -72,9 +72,9 @@ export function CustomColorPickerButton({
           ${className}
         `}
       >
-        <div className="w-full h-full rounded-full bg-white dark:bg-white flex items-center justify-center transition-colors group-hover:bg-subtle dark:group-hover:bg-line-strong">
+        <div className="w-full h-full rounded-full bg-surface flex items-center justify-center transition-colors group-hover:bg-subtle">
           <svg
-            className="w-3.5 h-3.5 text-ink dark:text-ink transition-transform group-hover:scale-110"
+            className="w-3.5 h-3.5 text-ink transition-transform group-hover:scale-110"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
