@@ -4,6 +4,7 @@ import SubSection from "@/components/layout/SubSection";
 import { IoIosArrowForward } from "react-icons/io";
 import Input from "./Input";
 import { validateChildren } from "@/lib/validateChildren";
+import { cn } from "@/lib/utils";
 
 // Tono de cada fila: fondo y colores de icono, nombre, descripción e insignia.
 const colorWrapped = {
@@ -56,6 +57,7 @@ interface listTileProps {
     onClick?: () => void;
     onChange?: () => void;
     checked?: boolean;
+    disabled?: boolean;
 }
 
 // Fila de una lista de opciones (perfil, notificaciones, ayuda, menú de usuario). Las dos variantes comparten
@@ -71,7 +73,8 @@ export function ListTile(
         onChange, 
         onClick, 
         color = 'white',
-        checked = false
+        checked = false,
+        disabled = false
     } : listTileProps
 ) {
     const tone = colorWrapped[color];
@@ -89,7 +92,7 @@ export function ListTile(
 
     if (type === 'checkbox') {
         return (
-            <div className={rowStyle}>
+            <div className={cn(rowStyle, disabled && "opacity-50")}>
                 {content}
                 {onChange &&
                     <span className="flex h-10 shrink-0 items-center">
@@ -99,7 +102,8 @@ export function ListTile(
                             format='col' 
                             debug={debug} 
                             onChange={onChange} 
-                            ariaLabel={tileName} 
+                            ariaLabel={tileName}
+                            disabled={disabled} 
                         />
                     </span>
                 }
@@ -108,7 +112,16 @@ export function ListTile(
     }
 
     return (
-        <button type="button" onClick={onClick} className={`${rowStyle} transition hover:brightness-95`}>
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={cn(
+                rowStyle,
+                "transition focus-visible:outline-2 focus-visible:outline-brand",
+                disabled ? "cursor-not-allowed opacity-50" : "hover:brightness-95",
+            )}
+        >
             {content}
             {onClick &&
                 <span className="flex h-10 shrink-0 items-center gap-1 text-2xl text-ink-secondary">
