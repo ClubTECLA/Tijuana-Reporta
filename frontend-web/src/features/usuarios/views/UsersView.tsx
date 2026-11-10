@@ -154,6 +154,7 @@ export default function UserView() {
                                     />
                                 </TCell>
                                 <TdButton
+                                    ariaLabel={`Más opciones para ${user.username}`}
                                     content={{
                                         icon: <IoIosMore/>
                                     }}
