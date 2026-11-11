@@ -103,6 +103,60 @@ obtenerIncidente:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+  put:
+    operationId: actualizarIncidente
+    description: Actualiza un tipo de incidente existente. Solo administradores.
+    security:
+      - bearerAuth: [admin]
+    parameters:
+      - name: incidenteId
+        in: path
+        required: true
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActualizarIncidenteRequest'
+    responses:
+      '200':
+        description: Incidente actualizado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Incidente'
+      '400':
+        description: Datos inválidos (p. ej. color mal formado)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Incidente no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: Ya existe otro incidente con ese nombre
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
 
 agregarTags:
   post:
@@ -180,6 +234,8 @@ components:
       $ref: '../schemas/incidentes/crear_incidente_request.yaml'
     CrearTagRequest:
       $ref: '../schemas/tags/crear_tag_request.yaml'
+    ActualizarIncidenteRequest:
+      $ref: '../schemas/incidentes/actualizar_incidente_request.yaml'
     TagCatalogo:
       $ref: '../schemas/tags/tag_catalogo.yaml'
     ErrorResponse:

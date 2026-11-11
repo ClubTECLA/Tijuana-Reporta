@@ -1,20 +1,43 @@
-import { useRef, useState, type FocusEvent } from 'react';
+import { useRef, useState, useEffect, type ChangeEvent, type FocusEvent } from 'react';
 import { LuSearch, LuX } from 'react-icons/lu';
 
-export default function SearchBar() {
+interface SearchBarProps {
+    onChangeQuery?: (query: string) => void;
+    onSubmit?: (query: string) => void;
+    placeholder?: string;
+    value?: string
+}
+
+export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = ''}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(value);
     const [focused, setFocused] = useState(false);
 
     const isActive = focused;
+
+    useEffect(() => {
+        setQuery(value);
+    }, [value]);
 
     const handleBlur = (e: FocusEvent<HTMLFormElement>) => {
         // Pasar el foco del input a los botones de la barra no la saca del estado Enfoque.
         if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
     };
 
+    const handleChangeQuery = (e: ChangeEvent<HTMLInputElement>) => {
+        const newQuery = e.target.value;
+        setQuery(newQuery);
+        onChangeQuery?.(newQuery);
+    };
+
+    const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        onSubmit?.(query);
+    }
+
     const exit = () => {
         setQuery('');
+        onChangeQuery?.('');
         inputRef.current?.blur();
         setFocused(false);
     };
@@ -31,25 +54,26 @@ export default function SearchBar() {
             onBlur={handleBlur}
             className={`
                 flex h-14 w-full max-w-110 min-w-0 items-center gap-3
-                rounded-full border-2 bg-white
+                rounded-full border-2 bg-surface
                 font-ui
                 shadow-float
                 transition-colors duration-200
                 ${isActive ? 'border-brand px-2' : 'border-transparent px-7.5'}
             `}
+            onSubmit={handleSubmit}
         >
             <input
                 ref={inputRef}
                 id="searchInput"
                 name="search"
                 type="search"
-                aria-label="Buscar folio, dirección o colonia"
-                placeholder="Buscar folio, dirección o colonia"
+                aria-label={placeholder}
+                placeholder={placeholder}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleChangeQuery}
                 className="
                     min-w-0 flex-1 bg-transparent
-                    text-[17px] text-ink placeholder:text-ink-muted
+                    text-body text-ink placeholder:text-ink-muted
                     outline-none
                     [&::-webkit-search-cancel-button]:appearance-none
                 "

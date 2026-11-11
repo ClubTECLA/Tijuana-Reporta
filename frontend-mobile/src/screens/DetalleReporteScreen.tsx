@@ -2,7 +2,9 @@ import React from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
+  ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -12,49 +14,56 @@ import { Card } from '../components/Card';
 import { Feather } from '@expo/vector-icons';
 import { StatusBadge } from '../components/StatusBadge';
 import { TrackingTimeline } from '../components/TrackingTimeline';
+import { EstadoVista } from '../components/estado/EstadoVista';
 import { PasoSeguimiento } from '../types/seguimiento';
 import { EstadoReporte, perfilColors, perfilRadius } from '../theme/perfilTokens';
 
-
-// Datos de ejemplo: todavía no existe el endpoint de detalle de reporte en el contrato OpenAPI.
-const MOCK_REPORTE = {
-  codigo: 'REP-8814',
-  titulo: 'Inundación en 3ra y Constitución',
-  descripcion: 'Está subiendo el agua en la 3ra, ya no pasan carros.',
-  estado: 'agrupado' as EstadoReporte,
-  enviadoMeta: 'Enviado hoy 14:21',
-};
-
-const MOCK_PASOS: PasoSeguimiento[] = [
-  { id: '1', titulo: 'Reporte enviado', subtitulo: 'Con foto y ubicación', hora: '14:21', estado: 'completado' },
-  { id: '2', titulo: 'Agrupado con reportes cercanos', subtitulo: 'Se unió a INC-2471 (a 120 m)', hora: '14:35', estado: 'completado' },
-  { id: '3', titulo: 'En revisión por el equipo', subtitulo: 'Falta 1 confirmación para verificar', hora: 'ahora', estado: 'activo' },
-  { id: '4', titulo: 'Resuelto', subtitulo: 'Te avisaremos cuando termine', hora: '–', estado: 'pendiente' },
-];
-
 const TOP_INSET = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) : 54;
 
-interface DetalleReporteScreenProps {
-  onBack?: () => void;
-  onShare?: () => void;
-  onEliminar?: () => void;
+/** Lo que la pantalla pinta de un reporte, ya traducido desde el backend. */
+export interface DetalleVista {
+  titulo: string;
+  direccion?: string;
+  estado: EstadoReporte;
+  enviado: string;
+  confirmaciones: number;
+  fotoUrl?: string;
+  pasos: PasoSeguimiento[];
 }
 
-export const DetalleReporteScreen = ({ onBack, onShare, onEliminar }: DetalleReporteScreenProps) => {
-  const r = MOCK_REPORTE;
+interface DetalleReporteScreenProps {
+  reporte?: DetalleVista;
+  cargando?: boolean;
+  sinConexion?: boolean;
+  error?: boolean;
+  noEncontrado?: boolean;
+  onReintentar?: () => void;
+  onBack?: () => void;
+  onShare?: () => void;
+}
 
-  return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.iconButton}
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-        >
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>{r.codigo}</Text>
+export const DetalleReporteScreen = ({
+  reporte: r,
+  cargando,
+  sinConexion,
+  error,
+  noEncontrado,
+  onReintentar,
+  onBack,
+  onShare,
+}: DetalleReporteScreenProps) => (
+  <View style={styles.screen}>
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.iconButton}
+        accessibilityRole="button"
+        accessibilityLabel="Volver"
+      >
+        <Text style={styles.backIcon}>‹</Text>
+      </TouchableOpacity>
+      <Text style={styles.title} numberOfLines={1}>Mi reporte</Text>
+      {r ? (
         <TouchableOpacity
           onPress={onShare}
           style={styles.iconButton}
@@ -63,42 +72,53 @@ export const DetalleReporteScreen = ({ onBack, onShare, onEliminar }: DetalleRep
         >
           <Feather name="share-2" size={16} color={perfilColors.textPrimary} />
         </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Placeholder de foto: todavía no hay imágenes reales conectadas */}
-        <View style={styles.photo} />
-
-        <View style={styles.metaRow}>
-          <StatusBadge estado={r.estado} />
-          <Text style={styles.enviadoMeta}>{r.enviadoMeta}</Text>
-        </View>
-
-        <Text style={styles.tituloReporte}>{r.titulo}</Text>
-        <Text style={styles.cita}>«{r.descripcion}»</Text>
-
-        <Text style={styles.section}>Seguimiento</Text>
-        <Card style={styles.timelineCard}>
-          <TrackingTimeline pasos={MOCK_PASOS} />
-        </Card>
-
-        <TouchableOpacity style={styles.compartirBtn} onPress={onShare}>
-          <View style={styles.btnRow}>
-            <Feather name="share-2" size={16} color={perfilColors.textPrimary} />
-            <Text style={styles.compartirText}>  Compartir</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.eliminarBtn} onPress={onEliminar}>
-          <View style={styles.btnRow}>
-            <Feather name="trash-2" size={16} color={perfilColors.danger} />
-            <Text style={styles.eliminarText}>  Eliminar</Text>
-          </View>
-        </TouchableOpacity>
-      </ScrollView>
+      ) : null}
     </View>
-  );
-};
+
+    <ScrollView contentContainerStyle={styles.content}>
+      {cargando ? (
+        <ActivityIndicator color={perfilColors.primary} style={styles.cargando} />
+      ) : sinConexion ? (
+        <EstadoVista estado="sin-conexion" mensaje="Sin conexión: el reporte se cargará al reconectar." />
+      ) : noEncontrado ? (
+        <EstadoVista estado="vacio" titulo="Reporte no encontrado" mensaje="Puede que ya no esté disponible." />
+      ) : error || !r ? (
+        <EstadoVista estado="error" mensaje="No se pudo cargar el reporte." onReintentar={onReintentar} />
+      ) : (
+        <>
+          {r.fotoUrl ? (
+            <Image source={{ uri: r.fotoUrl }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <View style={styles.photo} />
+          )}
+
+          <View style={styles.metaRow}>
+            <StatusBadge estado={r.estado} />
+            <Text style={styles.enviadoMeta}>{r.enviado}</Text>
+          </View>
+
+          <Text style={styles.tituloReporte}>{r.titulo}</Text>
+          {r.direccion ? <Text style={styles.direccion}>{r.direccion}</Text> : null}
+          <Text style={styles.confirmaciones}>
+            {r.confirmaciones === 1 ? '1 confirmación' : `${r.confirmaciones} confirmaciones`}
+          </Text>
+
+          <Text style={styles.section}>Seguimiento</Text>
+          <Card style={styles.timelineCard}>
+            <TrackingTimeline pasos={r.pasos} />
+          </Card>
+
+          <TouchableOpacity style={styles.compartirBtn} onPress={onShare}>
+            <View style={styles.btnRow}>
+              <Feather name="share-2" size={16} color={perfilColors.textPrimary} />
+              <Text style={styles.compartirText}>  Compartir</Text>
+            </View>
+          </TouchableOpacity>
+        </>
+      )}
+    </ScrollView>
+  </View>
+);
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: perfilColors.screenBg },
@@ -129,6 +149,7 @@ const styles = StyleSheet.create({
     color: perfilColors.textPrimary,
   },
   content: { paddingHorizontal: 16, paddingBottom: 32 },
+  cargando: { marginVertical: 40 },
   photo: {
     height: 180,
     borderRadius: perfilRadius.card,
@@ -138,7 +159,8 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   enviadoMeta: { fontSize: 12, color: perfilColors.textSecondary, marginLeft: 8 },
   tituloReporte: { fontSize: 18, fontWeight: '700', color: perfilColors.textPrimary, marginBottom: 4 },
-  cita: { fontSize: 14, color: perfilColors.textSecondary, fontStyle: 'italic' },
+  direccion: { fontSize: 14, color: perfilColors.textSecondary },
+  confirmaciones: { fontSize: 13, color: perfilColors.textSecondary, marginTop: 4 },
   section: {
     fontSize: 12,
     fontWeight: '600',
@@ -158,12 +180,4 @@ const styles = StyleSheet.create({
     borderColor: perfilColors.divider,
   },
   compartirText: { fontSize: 15, fontWeight: '600', color: perfilColors.textPrimary },
-  eliminarBtn: {
-    marginTop: 10,
-    backgroundColor: perfilColors.dangerTint,
-    borderRadius: perfilRadius.pill,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  eliminarText: { fontSize: 15, fontWeight: '600', color: perfilColors.danger },
 });

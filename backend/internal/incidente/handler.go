@@ -131,3 +131,30 @@ func (h *Handler) AgregarTags(ctx context.Context, request httpapi.AgregarTagsRe
 
 	return httpapi.AgregarTags201JSONResponse(toTagsCatalogo(tags)), nil
 }
+
+// toActualizar convierte el body de la petición en lo que pide el servicio.
+func toActualizar(b *httpapi.ActualizarIncidenteRequest) Actualizar {
+	return Actualizar{
+		Nombre:       b.Nombre,
+		Etiqueta:     b.Etiqueta,
+		Color:        b.Color,
+		EstaActivo:   b.EstaActivo,
+		TiempoLimite: b.TiempoLimite,
+		Radio:        b.Radio,
+	}
+}
+
+// ActualizarIncidente actualiza un tipo de incidente existente. Solo admins.
+func (h *Handler) ActualizarIncidente(ctx context.Context, request httpapi.ActualizarIncidenteRequestObject) (httpapi.ActualizarIncidenteResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, httperr.ErrNoAutenticado
+	}
+
+	d, err := h.svc.Actualizar(ctx, request.IncidenteId, toActualizar(request.Body), userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return httpapi.ActualizarIncidente200JSONResponse(toIncidente(d)), nil
+}

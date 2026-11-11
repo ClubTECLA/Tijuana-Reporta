@@ -41,7 +41,7 @@ export default function HelpAndGuidesView() {
             arrangementSubsections="toDown"
             title="Ayuda y guías"
             subtitle="Respuestas rápidas para el equipo"
-            footerText="Tijuana Reporta · consola v1.0 · sep 2026"
+            footerElement="Tijuana Reporta · consola v1.0 · sep 2026"
         >
             <SearchField
                 format='col'

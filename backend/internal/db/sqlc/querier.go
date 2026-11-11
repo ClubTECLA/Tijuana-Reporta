@@ -46,6 +46,7 @@ type Querier interface {
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error)
+	GetIncidenteByIdForUpdate(ctx context.Context, id int) (Incidente, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
@@ -80,6 +81,7 @@ type Querier interface {
 	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
+	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }
 
 var _ Querier = (*Queries)(nil)

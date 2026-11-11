@@ -43,7 +43,7 @@ function NewIncidentForm() {
     // El reporte ya se publicó pero su foto falló y se puede reintentar: el formulario queda solo para eso.
     const [photoRetry, setPhotoRetry] = useState<{ reporteId: string; motivo: string; pendientes: string[] } | null>(null);
     // Marcador, posición y dirección: el hook se ocupa de MapLibre y Nominatim; aquí solo se pinta el marcador.
-    const { markerElement, position, address, editAddress, search } = useLocationPicker();
+    const { markerElement, position, address, editAddress, search, reset } = useLocationPicker();
 
     const selectedCategory = categories?.find((c) => c.id === categoryId);
     const visibleCategories = showAllCategories ? categories : categories?.slice(0, VISIBLE_CATEGORIES);
@@ -53,6 +53,10 @@ function NewIncidentForm() {
     useEffect(() => {
         void refresh();
     }, [refresh]);
+
+    useEffect(() => {
+        reset();
+    }, [reset]);
 
     const handleSearchAddress = async (query: string) => {
         try {

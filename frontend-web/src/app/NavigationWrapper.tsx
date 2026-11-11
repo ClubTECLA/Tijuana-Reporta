@@ -4,10 +4,28 @@ import NavBar from "./NavBar";
 import SearchBar from './SearchBar';
 import UserProfileWidget from "@/features/perfil/components/UserProfileWidget";
 import useModals from '@/panels/useModals';
+import { useCommonPanel } from '@/panels/useCommonPanel';
+import { useLocationPicker } from '@/features/mapa/useLocationPicker';
+import { useSysMessage } from "@/components/ui/SysMessageContext";
+import { useLocalStorage } from '@/lib/useLocalStorage';
 
 export default function NavigationWrapper() {
+    const [ generalPreferences ] = useLocalStorage('Preferencias generales');
     const { openModal, closeModal, currentModal} = useModals()
+    const { currentPanelView } = useCommonPanel();
     const { pathname } = useRouter();
+    const { search, editAddress, address } = useLocationPicker();
+    const { showMessage } = useSysMessage();
+
+    const handleSearchAddress = async (query: string) => {
+        try {
+            if (await search(query) === "not-found") {
+                showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
+            }
+        } catch {
+            showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
+        }
+    };
 
     if(pathname === '/auth'){
         return null
@@ -17,7 +35,11 @@ export default function NavigationWrapper() {
             <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 sm:flex sm:justify-end">
                 <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
                     <div className="min-w-0 flex-1 sm:flex-1/3">
-                        <SearchBar/>
+                        <SearchBar
+                            onSubmit={handleSearchAddress}
+                            onChangeQuery={editAddress}
+                            value={(currentPanelView !== "Nuevo Incidente" && generalPreferences.show_location_in_searchBar) ? address : "" }
+                        />
                     </div> 
                     <div className="hidden min-w-0 sm:flex sm:flex-2/3">
                         <NavBar />

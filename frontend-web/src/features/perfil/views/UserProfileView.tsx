@@ -1,8 +1,8 @@
-import { FiHelpCircle, FiMoon, FiSmartphone } from "react-icons/fi";
+import { FiHelpCircle, FiMoon } from "react-icons/fi";
 import ColSection from "@/components/layout/ColSection";
 import Input from "@/components/ui/Input";
 import { ListTile, OptionList } from "@/components/ui/OptionsList";
-import UserCart from "@/features/perfil/components/UserCart";
+import UserCard from "@/features/perfil/components/UserCard";
 import { GoShieldCheck } from "react-icons/go";
 import { LuLock, LuSun } from "react-icons/lu";
 import { IoMdNotificationsOutline } from "react-icons/io";
@@ -12,6 +12,10 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "@/components/ui/Button";
 import RowSection from "@/components/layout/RowSection";
 import { useCommonPanel } from "@/panels/useCommonPanel";
+import { GrMapLocation } from "react-icons/gr";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import type { GeneralPreferencesType, SecurityPreferencesType } from "@/types/localStorage-types";
+import { hasOwnKey } from "@/lib/utils";
 
 type FormState = {
     username: string;
@@ -19,6 +23,8 @@ type FormState = {
 };
 
 export default function UserProfileView() {
+    const [ generalPreferences, setGeneralPreferences ] = useLocalStorage('Preferencias generales');
+    const [ securityPreferences, setSecurityPreferences ] = useLocalStorage('Preferencias de seguridad');
     const { openPanel } = useCommonPanel();
     const { user, isAuthenticated } = useAuth();
     const [form, setForm] = useState<FormState>({
@@ -34,6 +40,14 @@ export default function UserProfileView() {
             email: user.email ?? "",
         });
     }, [isAuthenticated, user]);
+
+    const handleChangeCheckboxPreferences = (key: keyof GeneralPreferencesType | keyof SecurityPreferencesType , value: boolean) => {
+        if (hasOwnKey(generalPreferences, key)) {
+            setGeneralPreferences((prev) => ({ ...prev, [key]: value }));
+        } else if (hasOwnKey(securityPreferences, key)) {
+            setSecurityPreferences((prev) => ({ ...prev, [key]: value }));
+        }
+    }
 
     const handleChangeForm = (e: ChangeEvent<HTMLInputElement>) => {
         const field = e.target.name as keyof FormState;
@@ -60,7 +74,7 @@ export default function UserProfileView() {
             subtitle="Cuenta institucional - Proteccion Civil"
             className="pb-10 overflow-y-auto px-2"
         >
-            <UserCart
+            <UserCard
                 format={"col"}
                 username={user.username}
                 email={user.email}
@@ -77,47 +91,53 @@ export default function UserProfileView() {
             />
             <Input
                 format={"col"}
-                label="Celular para codigos"
+                label="Correo electronico"
                 debug={false}
                 value={form.email}
                 onChange={handleChangeForm}
                 name="email"
             />
-            <OptionList format="col" debug={false} title="Seguridad">
+            <OptionList format="col" title="Seguridad">
                 <ListTile
                     tileName="Cambiar contraseña"
                     tileDescription="Actualizada hace 3 meses"
                     onClick={() => {}}
                     icon={<LuLock />}
+                    disabled={true}
                 />
                 <ListTile
                     tileName="Verificacion en dos pasos"
                     tileDescription="Codigo por SMS al iniciar sesion"
                     type="checkbox"
-                    onChange={() => {}}
+                    checked={securityPreferences.two_steps_verification}
+                    onChange={() => handleChangeCheckboxPreferences("two_steps_verification", !securityPreferences.two_steps_verification)}
                     icon={<GoShieldCheck />}
                 />
-                <ListTile
-                    tileName="Sesiones activas"
-                    tileDescription="Chrome . Windows (esta) . iPad"
-                    valueBadge={2}
-                    onClick={() => {}}
-                    icon={<FiSmartphone />}
-                />
             </OptionList>
-            <OptionList format="col" debug={false} title="Preferencias">
+            <OptionList format="col" title="Preferencias">
                 <ListTile
                     tileName="Tema oscuro"
                     tileDescription="Usa la version oscura de consola"
-                    onChange={() => {}}
+                    onChange={() => handleChangeCheckboxPreferences("dark_mode", !generalPreferences.dark_mode)}
+                    checked={generalPreferences.dark_mode}
                     type="checkbox"
                     icon={<FiMoon />}
+                    disabled={true}
+                />
+                <ListTile
+                    type='checkbox'
+                    onChange={() => handleChangeCheckboxPreferences("show_location_in_searchBar", !generalPreferences.show_location_in_searchBar)}
+                    checked={generalPreferences.show_location_in_searchBar}
+                    tileName="Mostrar ubicacion al navegar"
+                    tileDescription="Mostrar la ubicacion en la barra de busqueda al moverde y dar click sobre el mapa."
+                    icon={<GrMapLocation />}
                 />
                 <ListTile
                     tileName="Notificaciones"
                     tileDescription="Que te avisamos y por donde"
                     onClick={() => openPanel('Notificaciones')}
                     icon={<IoMdNotificationsOutline />}
+                    disabled={true}
                 />
                 <ListTile
                     tileName="Ayudas y guias"

@@ -98,6 +98,8 @@ components:
       $ref: './schemas/incidentes/incidente.yaml'
     CrearIncidenteRequest:
       $ref: './schemas/incidentes/crear_incidente_request.yaml'
+    ActualizarIncidenteRequest:
+      $ref: './schemas/incidentes/actualizar_incidente_request.yaml'
     UsuarioResumen:
       $ref: './schemas/users/usuario_resumen.yaml'
     Rol:

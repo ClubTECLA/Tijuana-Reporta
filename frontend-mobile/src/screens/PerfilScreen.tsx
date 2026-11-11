@@ -9,26 +9,17 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { EstadoVista } from '../components/estado/EstadoVista';
 import { perfilColors } from '../theme/perfilTokens';
 
-// TODO: el contrato OpenAPI (revisado el 27/10/2026) no tiene operaciones para "reportes del usuario"
-// ni notificaciones. Estos contadores son datos de ejemplo hasta que existan.
-const MOCK_CONTADORES = {
-  totalReportes: 12,
-  reportesActivos: 2,
-  reportesHistorial: 10,
-  notificacionesNuevas: 3,
-  notificacionesHistorial: 10,
-};
-
 interface PerfilScreenProps {
   nombre: string;
   correo?: string;
+  reportesActivos?: number;
+  reportesCerrados?: number;
   cargando?: boolean;
   sinConexion?: boolean;
   error?: boolean;
   onReintentar?: () => void;
   onBack?: () => void;
   onMisReportes?: () => void;
-  onNotificaciones?: () => void;
   onAlertas?: () => void;
   onCerrarSesion?: () => void;
 }
@@ -36,18 +27,19 @@ interface PerfilScreenProps {
 export const PerfilScreen = ({
   nombre,
   correo,
+  reportesActivos,
+  reportesCerrados,
   cargando,
   sinConexion,
   error,
   onReintentar,
   onBack,
   onMisReportes,
-  onNotificaciones,
   onAlertas,
   onCerrarSesion,
 }: PerfilScreenProps) => {
-  const u = MOCK_CONTADORES;
-  const [modoOscuro, setModoOscuro] = useState(false);
+  const total =
+    reportesActivos !== undefined && reportesCerrados !== undefined ? reportesActivos + reportesCerrados : undefined;  
 
   // Perfil sigue montado debajo de "Alertas y lugares": se relee al volver para mostrar lo que se guardó.
   const [radioAlertasKm, setRadioAlertasKm] = useState(RADIO_ALERTA_KM_DEFECTO);
@@ -76,7 +68,7 @@ export const PerfilScreen = ({
             </>
           )}
           <Card style={styles.statCard}>
-            <Text style={styles.statNumber}>{u.totalReportes}</Text>
+            <Text style={styles.statNumber}>{total ?? '-'}</Text>
             <Text style={styles.statLabel}>Reportes</Text>
           </Card>
         </View>
@@ -86,30 +78,14 @@ export const PerfilScreen = ({
           <MenuRow
             icon="file-text"
             title="Mis reportes"
-            subtitle={`${u.reportesActivos} activos · ${u.reportesHistorial} en historial`}
-            value={String(u.reportesActivos)}
+            subtitle={total !== undefined ? `${reportesActivos} ${reportesActivos === 1 ? 'activo' : 'activos'} · ${total} en historial` : 'Toca para ver tus reportes'}
+            value={reportesActivos !== undefined ? String(reportesActivos) : undefined}
             onPress={onMisReportes}
-          />
-          <View style={styles.divider} />
-          <MenuRow
-            icon="bell"
-            title="Notificaciones"
-            subtitle={`${u.notificacionesNuevas} hoy · ${u.notificacionesHistorial} en historial`}
-            value={String(u.notificacionesNuevas)}
-            onPress={onNotificaciones}
           />
         </Card>
 
         <Text style={styles.section}>Preferencias</Text>
         <Card style={styles.block}>
-          <MenuRow
-            icon="moon"
-            title="Modo oscuro"
-            subtitle="Usa la versión oscura de la aplicación"
-            switchValue={modoOscuro}
-            onSwitchChange={setModoOscuro}
-          />
-          <View style={styles.divider} />
           <MenuRow
             icon="map-pin"
             title="Alertas y lugares"
