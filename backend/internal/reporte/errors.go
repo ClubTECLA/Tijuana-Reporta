@@ -34,5 +34,5 @@ var ReglasHTTP = []httperr.Regla{
 	{Err: ErrEstadoNoPermitido, Status: http.StatusForbidden, Message: "un ciudadano no puede cambiar el estado de un reporte"},
 	{Err: ErrTagInvalido, Status: http.StatusBadRequest, Message: "algun tag no pertenece al tipo de incidente del reporte"},
 	{Err: ErrDemasiadosTags, Status: http.StatusBadRequest, Message: "demasiados tags"},
-	{Err: ErrEliminarNoPermitido, Status: http.StatusForbidden, Message: "solo el creador o un rol distinto de ciudadano puede eliminar el reporte"},
+	{Err: ErrEliminarNoPermitido, Status: http.StatusForbidden, Message: "solo un rol distinto de ciudadano puede eliminar reportes"},
 }

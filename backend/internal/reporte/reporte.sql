@@ -153,15 +153,6 @@ FROM unnest(sqlc.arg(tag_ids)::int[]) AS t(tag_id)
 ON CONFLICT (reporte_id, tag_id, added_by) DO NOTHING
 RETURNING tag_id;
 
--- name: GetCreadorReporteById :one
--- El creador es quien quedó en users_reports al crear el reporte. Es NULL
--- si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
-SELECT r.id, ur.user_id AS creador_id
-FROM reporte r
-LEFT JOIN users_reports ur ON ur.reporte_id = r.id
-WHERE r.id = $1
-LIMIT 1;
-
 -- name: DeleteReporteById :one
 -- Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
 -- ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos

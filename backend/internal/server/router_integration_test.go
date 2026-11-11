@@ -1205,13 +1205,18 @@ func TestEliminarReporte(t *testing.T) {
 		t.Fatalf("subiendo la foto: status = %d; body: %s", rec.Code, rec.Body)
 	}
 
+	// Un ciudadano no puede eliminar, ni siquiera el que lo creó.
 	otro := newTestClient(t)
 	otro.login()
 	otro.expect(http.StatusForbidden, http.MethodDelete, "/v1/reportes/"+id, nil)
+	creador.expect(http.StatusForbidden, http.MethodDelete, "/v1/reportes/"+id, nil)
 	anonimo := newTestClient(t)
 	anonimo.expect(http.StatusUnauthorized, http.MethodDelete, "/v1/reportes/"+id, nil)
 
-	creador.expect(http.StatusNoContent, http.MethodDelete, "/v1/reportes/"+id, nil)
+	// Cualquier rol que no sea ciudadano puede, aunque no sea suyo.
+	rescatista := newTestClient(t)
+	rescatista.loginComo("rescatista")
+	rescatista.expect(http.StatusNoContent, http.MethodDelete, "/v1/reportes/"+id, nil)
 
 	// Se fue el reporte con todo lo que dependía de él, y su foto se borró de
 	// multimedia.

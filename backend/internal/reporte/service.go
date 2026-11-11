@@ -29,7 +29,6 @@ type store interface {
 	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
 	CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error)
 	ActualizarTags(ctx context.Context, arg ActualizarTagsTxParams) error
-	GetCreadorReporteById(ctx context.Context, id uuid.UUID) (sqlc.GetCreadorReporteByIdRow, error)
 	EliminarReporte(ctx context.Context, id, actorID uuid.UUID) error
 }
 
@@ -333,24 +332,17 @@ func (s *Service) ActualizarTags(ctx context.Context, userID, id uuid.UUID, tagI
 }
 
 // Eliminar borra el reporte y todo lo que depende de él a nombre de userID.
-// Lo puede hacer su creador o un rol que gestiona reportes (PuedeGestionar);
-// cualquier otro recibe ErrEliminarNoPermitido. Los archivos del servicio
-// multimedia se borran después del commit: si alguno falla solo se registra,
-// porque el reporte ya no existe y reintentar la petición daría 404.
+// Solo lo puede hacer un rol que gestiona reportes (PuedeGestionar), sea o no
+// quien lo creó; cualquier otro recibe ErrEliminarNoPermitido. Los archivos
+// del servicio multimedia se borran después del commit: si alguno falla solo
+// se registra, porque el reporte ya no existe y reintentar daría 404.
 func (s *Service) Eliminar(ctx context.Context, rol string, userID, id uuid.UUID) error {
-	r, err := s.store.GetCreadorReporteById(ctx, id)
-	if db.IsNotFound(err) {
-		return ErrNotFound
-	}
-	if err != nil {
-		return err
-	}
-	esCreador := r.CreadorID != nil && *r.CreadorID == userID
-	if !esCreador && !PuedeGestionar(rol) {
+	if !PuedeGestionar(rol) {
 		return ErrEliminarNoPermitido
 	}
 
 	// Las rutas se leen antes de borrar: después la cascada ya se las llevó.
+	// Si el reporte no existe la lista sale vacía y el DELETE da ErrNotFound.
 	multimedia, err := s.store.ListMultimediaByReporteId(ctx, id)
 	if err != nil {
 		return err
@@ -358,7 +350,7 @@ func (s *Service) Eliminar(ctx context.Context, rol string, userID, id uuid.UUID
 
 	err = s.store.EliminarReporte(ctx, id, userID)
 	if db.IsNotFound(err) {
-		return ErrNotFound // otra petición lo borró entre la lectura y el DELETE
+		return ErrNotFound
 	}
 	if err != nil {
 		return err

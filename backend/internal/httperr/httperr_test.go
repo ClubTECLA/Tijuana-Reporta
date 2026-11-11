@@ -46,7 +46,7 @@ func TestResolver(t *testing.T) {
 		{"estado no permitido", reporte.ErrEstadoNoPermitido, http.StatusForbidden, "un ciudadano no puede cambiar el estado de un reporte"},
 		{"tag inválido", reporte.ErrTagInvalido, http.StatusBadRequest, "algun tag no pertenece al tipo de incidente del reporte"},
 		{"demasiados tags", reporte.ErrDemasiadosTags, http.StatusBadRequest, "demasiados tags"},
-		{"eliminar no permitido", reporte.ErrEliminarNoPermitido, http.StatusForbidden, "solo el creador o un rol distinto de ciudadano puede eliminar el reporte"},
+		{"eliminar no permitido", reporte.ErrEliminarNoPermitido, http.StatusForbidden, "solo un rol distinto de ciudadano puede eliminar reportes"},
 		{"no autenticado", httperr.ErrNoAutenticado, http.StatusUnauthorized, "no autenticado"},
 		{"token inválido", httperr.ErrTokenInvalido, http.StatusUnauthorized, "token invalido"},
 		{"prohibido", httperr.ErrProhibido, http.StatusForbidden, "prohibido"},

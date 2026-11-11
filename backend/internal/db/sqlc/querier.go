@@ -42,9 +42,6 @@ type Querier interface {
 	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
-	// El creador es quien quedó en users_reports al crear el reporte. Es NULL
-	// si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
-	GetCreadorReporteById(ctx context.Context, id uuid.UUID) (GetCreadorReporteByIdRow, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)

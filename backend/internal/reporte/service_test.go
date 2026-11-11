@@ -27,7 +27,6 @@ type fakeReporteStore struct {
 	multimedia  map[uuid.UUID][]sqlc.Multimedia
 	tags        map[uuid.UUID][]sqlc.ListTagsByReporteIdRow
 	locations   map[uuid.UUID][]sqlc.Location
-	creadores   map[uuid.UUID]uuid.UUID
 	resumen     []sqlc.ListReportesResumenRow
 	cercanos    []sqlc.ListReportesPorUbicacionRow
 	delUsuario  []sqlc.ListReportesByUserIdRow
@@ -59,7 +58,6 @@ func newFakeReporteStore() *fakeReporteStore {
 		multimedia:  map[uuid.UUID][]sqlc.Multimedia{},
 		tags:        map[uuid.UUID][]sqlc.ListTagsByReporteIdRow{},
 		locations:   map[uuid.UUID][]sqlc.Location{},
-		creadores:   map[uuid.UUID]uuid.UUID{},
 	}
 }
 
@@ -77,7 +75,6 @@ func (f *fakeReporteStore) CreateReporte(_ context.Context, arg CreateTxParams) 
 		EstadoActual: sqlc.EstadoPendiente,
 	}
 	f.byID[r.ID] = r
-	f.creadores[r.ID] = arg.UserID
 	f.locations[r.ID] = []sqlc.Location{
 		{ID: 1, ReporteID: r.ID, Latitude: arg.Latitude, Longitude: arg.Longitude, UserID: arg.UserID},
 	}
@@ -749,18 +746,6 @@ func TestReporteService_ActualizarTags_NoEncontrado(t *testing.T) {
 	}
 }
 
-// GetCreadorReporteById devuelve el creador que guardó CreateReporte.
-func (f *fakeReporteStore) GetCreadorReporteById(_ context.Context, id uuid.UUID) (sqlc.GetCreadorReporteByIdRow, error) {
-	if _, ok := f.byID[id]; !ok {
-		return sqlc.GetCreadorReporteByIdRow{}, pgx.ErrNoRows
-	}
-	row := sqlc.GetCreadorReporteByIdRow{ID: id}
-	if c, ok := f.creadores[id]; ok {
-		row.CreadorID = &c
-	}
-	return row, nil
-}
-
 // EliminarReporte imita el DELETE con su cascada: el reporte y su
 // multimedia dejan de existir.
 func (f *fakeReporteStore) EliminarReporte(_ context.Context, id, _ uuid.UUID) error {
@@ -806,10 +791,11 @@ func TestReporteService_Eliminar_Permisos(t *testing.T) {
 		userID  uuid.UUID
 		wantErr error
 	}{
-		{name: "el creador", rol: RolCiudadano, userID: creador},
 		{name: "un gestor que no lo creó", rol: "admin", userID: uuid.New()},
+		{name: "otro rol de gestión", rol: "rescatista", userID: uuid.New()},
+		{name: "el creador ciudadano", rol: RolCiudadano, userID: creador, wantErr: ErrEliminarNoPermitido},
 		{name: "otro ciudadano", rol: RolCiudadano, userID: uuid.New(), wantErr: ErrEliminarNoPermitido},
-		{name: "rol vacío que no lo creó", rol: "", userID: uuid.New(), wantErr: ErrEliminarNoPermitido},
+		{name: "rol vacío", rol: "", userID: creador, wantErr: ErrEliminarNoPermitido},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -846,9 +832,6 @@ func TestReporteService_Eliminar_NoEncontrado(t *testing.T) {
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("Eliminar() error = %v, want %v", err, ErrNotFound)
 	}
-	if store.eliminarCalled {
-		t.Fatal("Eliminar() llegó a la store con un reporte que no existe")
-	}
 }
 
 // Si multimedia no borra el archivo, el reporte ya está borrado: el error
@@ -860,7 +843,7 @@ func TestReporteService_Eliminar_FallaBorrarArchivo(t *testing.T) {
 	creador := uuid.New()
 	id := crearParaEliminar(t, store, svc, creador)
 
-	if err := svc.Eliminar(context.Background(), RolCiudadano, creador, id); err != nil {
+	if err := svc.Eliminar(context.Background(), "admin", uuid.New(), id); err != nil {
 		t.Fatalf("Eliminar() error = %v, want nil", err)
 	}
 	if len(archivos.borrados) != 1 {

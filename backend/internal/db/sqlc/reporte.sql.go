@@ -224,28 +224,6 @@ func (q *Queries) DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsua
 	return items, nil
 }
 
-const getCreadorReporteById = `-- name: GetCreadorReporteById :one
-SELECT r.id, ur.user_id AS creador_id
-FROM reporte r
-LEFT JOIN users_reports ur ON ur.reporte_id = r.id
-WHERE r.id = $1
-LIMIT 1
-`
-
-type GetCreadorReporteByIdRow struct {
-	ID        uuid.UUID  `json:"id"`
-	CreadorID *uuid.UUID `json:"creador_id"`
-}
-
-// El creador es quien quedó en users_reports al crear el reporte. Es NULL
-// si el reporte no tiene creador registrado (p. ej. uno sembrado a mano).
-func (q *Queries) GetCreadorReporteById(ctx context.Context, id uuid.UUID) (GetCreadorReporteByIdRow, error) {
-	row := q.db.QueryRow(ctx, getCreadorReporteById, id)
-	var i GetCreadorReporteByIdRow
-	err := row.Scan(&i.ID, &i.CreadorID)
-	return i, err
-}
-
 const getEstadoReporteForUpdate = `-- name: GetEstadoReporteForUpdate :one
 SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE
 `

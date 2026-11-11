@@ -67,7 +67,7 @@ export interface paths {
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
-        /** @description Elimina el reporte junto con todo lo que depende de él (comentarios, multimedia, tags, ubicaciones) y borra sus archivos del servicio multimedia. Lo puede eliminar su creador o cualquier rol menos ciudadano. */
+        /** @description Elimina el reporte junto con todo lo que depende de él (comentarios, multimedia, tags, ubicaciones) y borra sus archivos del servicio multimedia. Lo puede eliminar cualquier rol menos ciudadano, aunque no sea quien lo creó; un ciudadano no puede eliminar ni los suyos. */
         delete: operations["eliminarReporte"];
         options?: never;
         head?: never;
