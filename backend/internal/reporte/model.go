@@ -139,7 +139,7 @@ type CambiarEstadoTxParams struct {
 
 // MaxTagsPorPeticion es cuántos tags puede mandar un usuario en
 // ActualizarTags (el maxItems de ActualizarTagsReporteRequest).
-const MaxTagsPorPeticion = 50
+const MaxTagsPorPeticion = 20
 
 // ActualizarTagsTxParams es lo que necesita reemplazar los tags que un
 // usuario confirmó en un reporte: el reporte, el usuario y el conjunto nuevo
