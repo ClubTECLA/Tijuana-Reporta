@@ -28,7 +28,7 @@ properties:
     description: Se usa el gris por defecto (#757575).
   tags:
     type: array
-    maxItems: 50
+    maxItems: 20
     description: Tags del catálogo del incidente. Los nombres no se pueden repetir (sin importar mayúsculas).
     items:
       $ref: '../../openapi.yaml#/components/schemas/CrearTagRequest'
