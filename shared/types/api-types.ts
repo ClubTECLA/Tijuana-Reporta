@@ -67,7 +67,8 @@ export interface paths {
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Elimina el reporte junto con todo lo que depende de él (comentarios, multimedia, tags, ubicaciones) y borra sus archivos del servicio multimedia. Lo puede eliminar cualquier rol menos ciudadano, aunque no sea quien lo creó; un ciudadano no puede eliminar ni los suyos. */
+        delete: operations["eliminarReporte"];
         options?: never;
         head?: never;
         patch?: never;
@@ -139,6 +140,23 @@ export interface paths {
         head?: never;
         /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto, pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no final. Resuelto y Descartado son finales; cualquier otro cambio es 409. */
         patch: operations["cambiarEstadoReporte"];
+        trace?: never;
+    };
+    "/reportes/{reporteId}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Reemplaza los tags que el usuario autenticado confirmó en el reporte por los de `tag_ids`: agrega los nuevos y quita los que ya no vengan. Es idempotente y una lista vacía quita todos los del usuario. Los conteos y el score del reporte se recalculan solos. 400 si algún tag no es del tipo de incidente del reporte. */
+        put: operations["actualizarTagsReporte"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/auth/register": {
@@ -306,6 +324,7 @@ export interface components {
         ReporteResumen: components["schemas"]["reporte_resumen"];
         ReporteCercano: components["schemas"]["reporte_cercano"];
         CambiarEstadoReporteRequest: components["schemas"]["cambiar_estado_reporte_request"];
+        ActualizarTagsReporteRequest: components["schemas"]["actualizar_tags_reporte_request"];
         EstadoReporte: components["schemas"]["estado_reporte"];
         TituloReporte: components["schemas"]["titulo_reporte"];
         Multimedia: components["schemas"]["multimedia"];
@@ -456,6 +475,10 @@ export interface components {
         };
         cambiar_estado_reporte_request: {
             estado: components["schemas"]["estado_reporte"];
+        };
+        /** @description Tags que el usuario autenticado confirma en el reporte. Reemplaza los que ya había confirmado: se agregan los nuevos y se quitan los que no vengan. Una lista vacía quita todos los suyos. Los tags deben ser del catálogo del tipo de incidente del reporte. */
+        actualizar_tags_reporte_request: {
+            tag_ids: number[];
         };
         register_request: {
             /** Format: email */
@@ -786,6 +809,62 @@ export interface operations {
             };
         };
     };
+    eliminarReporte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reporte eliminado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El usuario no es el creador del reporte y es ciudadano */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
     agregarAvistamiento: {
         parameters: {
             query?: never;
@@ -1039,6 +1118,59 @@ export interface operations {
             };
             /** @description Usuario no encontrado */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    actualizarTagsReporte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reporteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["actualizar_tags_reporte_request"];
+            };
+        };
+        responses: {
+            /** @description Tags actualizados; devuelve el reporte con los conteos nuevos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reporte"];
+                };
+            };
+            /** @description Datos inválidos (p. ej. un tag que no es del incidente del reporte) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Reporte no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

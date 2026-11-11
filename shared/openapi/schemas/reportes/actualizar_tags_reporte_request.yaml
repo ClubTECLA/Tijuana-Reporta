@@ -1,0 +1,14 @@
+description: >-
+  Tags que el usuario autenticado confirma en el reporte. Reemplaza los que ya
+  había confirmado: se agregan los nuevos y se quitan los que no vengan. Una
+  lista vacía quita todos los suyos. Los tags deben ser del catálogo del tipo
+  de incidente del reporte.
+type: object
+required: [tag_ids]
+properties:
+  tag_ids:
+    type: array
+    maxItems: 20
+    uniqueItems: true
+    items:
+      type: integer

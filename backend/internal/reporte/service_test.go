@@ -3,6 +3,7 @@ package reporte
 import (
 	"context"
 	"errors"
+	"math"
 	"slices"
 	"testing"
 	"time"
@@ -39,6 +40,11 @@ type fakeReporteStore struct {
 
 	lastCambiarEstadoArg CambiarEstadoTxParams
 	cambiarEstadoCalled  bool
+
+	lastActualizarTagsArg ActualizarTagsTxParams
+	actualizarTagsCalled  bool
+
+	eliminarCalled bool
 
 	createErr error
 	listErr   error
@@ -162,7 +168,7 @@ func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg CambiarEs
 
 func TestReporteService_Crear(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 	userID := uuid.New()
 
 	fakeNuevoReporte := Nuevo{
@@ -211,7 +217,7 @@ func TestReporteService_Crear_Direccion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewService(store)
+			svc := NewService(store, &fakeArchivos{})
 
 			r, err := svc.Crear(context.Background(), Nuevo{
 				UserID:      uuid.New(),
@@ -246,7 +252,7 @@ func TestReporteService_Crear_EsOficial(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewService(store)
+			svc := NewService(store, &fakeArchivos{})
 
 			fakeNuevoReporte := Nuevo{
 				UserID:      uuid.New(),
@@ -275,7 +281,7 @@ func TestReporteService_Crear_EsOficial(t *testing.T) {
 
 func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
@@ -298,7 +304,7 @@ func TestReporteService_Crear_NoOficialCiudadano(t *testing.T) {
 func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 	store := newFakeReporteStore()
 	store.createErr = &pgconn.PgError{Code: "23503", ConstraintName: "reporte_incidente_id_fkey"}
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
@@ -317,7 +323,7 @@ func TestReporteService_Crear_IncidenteNoExiste(t *testing.T) {
 
 func TestReporteService_Obtener(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
@@ -356,7 +362,7 @@ func TestReporteService_Obtener(t *testing.T) {
 }
 
 func TestReporteService_Obtener_NoEncontrado(t *testing.T) {
-	svc := NewService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore(), &fakeArchivos{})
 
 	_, err := svc.Obtener(context.Background(), uuid.New())
 	if !errors.Is(err, ErrNotFound) {
@@ -370,7 +376,7 @@ func ptr[T any](v T) *T { return &v }
 func TestReporteService_Listar_SinArea(t *testing.T) {
 	store := newFakeReporteStore()
 	store.resumen = []sqlc.ListReportesResumenRow{{ID: uuid.New(), IncidenteID: 2}}
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	rows, err := svc.Listar(context.Background(), nil, nil, nil, nil)
 	if err != nil {
@@ -386,7 +392,7 @@ func TestReporteService_Listar_SinArea(t *testing.T) {
 
 func TestReporteService_Listar_ConArea(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	if _, err := svc.Listar(context.Background(), ptr(32.4), ptr(32.6), ptr(-117.2), ptr(-116.8)); err != nil {
 		t.Fatalf("Listar() error = %v", err)
@@ -400,7 +406,7 @@ func TestReporteService_Listar_ConArea(t *testing.T) {
 
 func TestReporteService_Listar_AreaIncompleta(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	_, err := svc.Listar(context.Background(), ptr(32.4), nil, nil, nil)
 	if !errors.Is(err, ErrAreaIncompleta) {
@@ -421,7 +427,7 @@ func TestReporteService_Listar_AreaInvalida(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc := NewService(newFakeReporteStore())
+			svc := NewService(newFakeReporteStore(), &fakeArchivos{})
 
 			_, err := svc.Listar(context.Background(), ptr(tt.minLat), ptr(tt.maxLat), ptr(tt.minLng), ptr(tt.maxLng))
 			if !errors.Is(err, ErrAreaInvalida) {
@@ -434,7 +440,7 @@ func TestReporteService_Listar_AreaInvalida(t *testing.T) {
 func TestReporteService_Listar_ErrorStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	if _, err := svc.Listar(context.Background(), nil, nil, nil, nil); !errors.Is(err, store.listErr) {
 		t.Fatalf("Listar() error = %v, want %v", err, store.listErr)
@@ -443,7 +449,7 @@ func TestReporteService_Listar_ErrorStore(t *testing.T) {
 
 func TestReporteService_AddAvistamientoById(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	fakeNuevoReporte := Nuevo{
 		UserID:      uuid.New(),
@@ -471,7 +477,7 @@ func TestReporteService_AddAvistamientoById(t *testing.T) {
 }
 
 func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
-	svc := NewService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore(), &fakeArchivos{})
 
 	_, err := svc.AgregarAvistamiento(context.Background(), uuid.New())
 	if !errors.Is(err, ErrNotFound) {
@@ -482,7 +488,7 @@ func TestReporteService_AgregarAvistamiento_NoEncontrado(t *testing.T) {
 func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
 	store := newFakeReporteStore()
 	store.cercanos = []sqlc.ListReportesPorUbicacionRow{{ID: uuid.New(), DistanciaM: 12.5}}
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	rows, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200)
 	if err != nil {
@@ -503,7 +509,7 @@ func TestReporteService_ListarCercanos_SinFiltros(t *testing.T) {
 
 func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 	desde := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	_, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000,
@@ -522,7 +528,7 @@ func TestReporteService_ListarCercanos_ConFiltros(t *testing.T) {
 func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	if _, err := svc.ListarCercanos(context.Background(), -117.0382, 32.5149, 2000, nil, nil, nil, 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarCercanos() error = %v, want %v", err, store.listErr)
@@ -532,7 +538,7 @@ func TestReporteService_ListarCercanos_ErrorDeStore(t *testing.T) {
 func TestReporteService_ListarPorUsuario(t *testing.T) {
 	store := newFakeReporteStore()
 	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New()}}
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 	userID := uuid.New()
 
 	rows, err := svc.ListarPorUsuario(context.Background(), userID, 10)
@@ -550,7 +556,7 @@ func TestReporteService_ListarPorUsuario(t *testing.T) {
 func TestReporteService_ListarPorUsuario_ErrorDeStore(t *testing.T) {
 	store := newFakeReporteStore()
 	store.listErr = errors.New("db caída")
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	if _, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 200); !errors.Is(err, store.listErr) {
 		t.Fatalf("ListarPorUsuario() error = %v, want %v", err, store.listErr)
@@ -572,7 +578,7 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("rol "+tt.rol, func(t *testing.T) {
 			store := newFakeReporteStore()
-			svc := NewService(store)
+			svc := NewService(store, &fakeArchivos{})
 			creado, err := svc.Crear(context.Background(), Nuevo{
 				UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
 			})
@@ -608,7 +614,7 @@ func TestReporteService_CambiarEstado_Rol(t *testing.T) {
 }
 
 func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
-	svc := NewService(newFakeReporteStore())
+	svc := NewService(newFakeReporteStore(), &fakeArchivos{})
 
 	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.EstadoVerificado)
 	if !errors.Is(err, ErrNotFound) {
@@ -618,7 +624,7 @@ func TestReporteService_CambiarEstado_NoEncontrado(t *testing.T) {
 
 func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 	creado, err := svc.Crear(context.Background(), Nuevo{
 		UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
 	})
@@ -643,7 +649,7 @@ func TestReporteService_CambiarEstado_Transicion(t *testing.T) {
 
 func TestReporteService_CambiarEstado_EstadoInvalido(t *testing.T) {
 	store := newFakeReporteStore()
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	_, err := svc.CambiarEstado(context.Background(), "admin", uuid.New(), uuid.New(), sqlc.Estado("Arreglado"))
 	if !errors.Is(err, ErrEstadoInvalido) {
@@ -658,7 +664,7 @@ func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
 	store := newFakeReporteStore()
 	direccion := "Av. Revolución 1234"
 	store.delUsuario = []sqlc.ListReportesByUserIdRow{{ID: uuid.New(), IncidenteEtiqueta: "Socavón", Direccion: &direccion}}
-	svc := NewService(store)
+	svc := NewService(store, &fakeArchivos{})
 
 	rows, err := svc.ListarPorUsuario(context.Background(), uuid.New(), 10)
 	if err != nil {
@@ -666,5 +672,196 @@ func TestReporteService_ListarPorUsuario_Titulo(t *testing.T) {
 	}
 	if want := "Socavón en Av. Revolución 1234"; len(rows) != 1 || rows[0].Titulo != want {
 		t.Fatalf("ListarPorUsuario() = %+v, want titulo %q", rows, want)
+	}
+}
+
+// ActualizarTags imita la transacción real solo en lo que el servicio ve:
+// pgx.ErrNoRows si el reporte no existe. Qué tags son válidos y los conteos
+// los decide la base (ver TestActualizarTagsReporte).
+func (f *fakeReporteStore) ActualizarTags(_ context.Context, arg ActualizarTagsTxParams) error {
+	f.actualizarTagsCalled = true
+	f.lastActualizarTagsArg = arg
+	if _, ok := f.byID[arg.ReporteID]; !ok {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func TestReporteService_ActualizarTags_QuitaRepetidos(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewService(store, &fakeArchivos{})
+	creado, err := svc.Crear(context.Background(), Nuevo{
+		UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+	})
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	userID := uuid.New()
+
+	r, err := svc.ActualizarTags(context.Background(), userID, creado.Reporte.ID, []int{3, 1, 3, 1})
+	if err != nil {
+		t.Fatalf("ActualizarTags() error = %v", err)
+	}
+	if r.Reporte.ID != creado.Reporte.ID {
+		t.Fatalf("ActualizarTags() id = %v, want %v", r.Reporte.ID, creado.Reporte.ID)
+	}
+	arg := store.lastActualizarTagsArg
+	if arg.UserID != userID || arg.ReporteID != creado.Reporte.ID || !slices.Equal(arg.TagIDs, []int{3, 1}) {
+		t.Fatalf("ActualizarTags() arg = %+v, want userID=%v tagIDs=[3 1]", arg, userID)
+	}
+
+	// Una lista nil (o vacía) llega como vacía, no como nil: así la store
+	// quita todos los del usuario.
+	if _, err := svc.ActualizarTags(context.Background(), userID, creado.Reporte.ID, nil); err != nil {
+		t.Fatalf("ActualizarTags(nil) error = %v", err)
+	}
+	if got := store.lastActualizarTagsArg.TagIDs; got == nil || len(got) != 0 {
+		t.Fatalf("ActualizarTags(nil) tagIDs = %#v, want []int{}", got)
+	}
+}
+
+func TestReporteService_ActualizarTags_Demasiados(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewService(store, &fakeArchivos{})
+
+	tags := make([]int, MaxTagsPorPeticion+1)
+	for i := range tags {
+		tags[i] = i + 1
+	}
+	_, err := svc.ActualizarTags(context.Background(), uuid.New(), uuid.New(), tags)
+	if !errors.Is(err, ErrDemasiadosTags) {
+		t.Fatalf("ActualizarTags() error = %v, want %v", err, ErrDemasiadosTags)
+	}
+	if store.actualizarTagsCalled {
+		t.Fatal("ActualizarTags() llegó a la store con demasiados tags")
+	}
+}
+
+func TestReporteService_ActualizarTags_NoEncontrado(t *testing.T) {
+	svc := NewService(newFakeReporteStore(), &fakeArchivos{})
+
+	_, err := svc.ActualizarTags(context.Background(), uuid.New(), uuid.New(), []int{1})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("ActualizarTags() error = %v, want %v", err, ErrNotFound)
+	}
+}
+
+// EliminarReporte imita el DELETE con su cascada: el reporte y su
+// multimedia dejan de existir.
+func (f *fakeReporteStore) EliminarReporte(_ context.Context, id, _ uuid.UUID) error {
+	f.eliminarCalled = true
+	if _, ok := f.byID[id]; !ok {
+		return pgx.ErrNoRows
+	}
+	delete(f.byID, id)
+	delete(f.multimedia, id)
+	return nil
+}
+
+// fakeArchivos implementa Archivos en memoria: guarda las rutas que se
+// pidieron borrar y falla con err si lo tiene.
+type fakeArchivos struct {
+	borrados []string
+	err      error
+}
+
+func (f *fakeArchivos) Borrar(_ context.Context, path string) error {
+	f.borrados = append(f.borrados, path)
+	return f.err
+}
+
+// crearParaEliminar crea un reporte de creador con una foto en multimedia.
+func crearParaEliminar(t *testing.T, store *fakeReporteStore, svc *Service, creador uuid.UUID) uuid.UUID {
+	t.Helper()
+	r, err := svc.Crear(context.Background(), Nuevo{
+		UserID: creador, Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+	})
+	if err != nil {
+		t.Fatalf("Crear() error = %v", err)
+	}
+	store.multimedia[r.Reporte.ID] = []sqlc.Multimedia{{ID: 1, ReporteID: r.Reporte.ID, UserID: creador, Path: "reportes/foto.jpg"}}
+	return r.Reporte.ID
+}
+
+func TestReporteService_Eliminar_Permisos(t *testing.T) {
+	creador := uuid.New()
+	tests := []struct {
+		name    string
+		rol     string
+		userID  uuid.UUID
+		wantErr error
+	}{
+		{name: "un gestor que no lo creó", rol: "admin", userID: uuid.New()},
+		{name: "otro rol de gestión", rol: "rescatista", userID: uuid.New()},
+		{name: "el creador ciudadano", rol: RolCiudadano, userID: creador, wantErr: ErrEliminarNoPermitido},
+		{name: "otro ciudadano", rol: RolCiudadano, userID: uuid.New(), wantErr: ErrEliminarNoPermitido},
+		{name: "rol vacío", rol: "", userID: creador, wantErr: ErrEliminarNoPermitido},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeReporteStore()
+			archivos := &fakeArchivos{}
+			svc := NewService(store, archivos)
+			id := crearParaEliminar(t, store, svc, creador)
+
+			err := svc.Eliminar(context.Background(), tt.rol, tt.userID, id)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Eliminar() error = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				if store.eliminarCalled || len(archivos.borrados) != 0 {
+					t.Fatal("Eliminar() sin permiso llegó a borrar el reporte o sus archivos")
+				}
+				return
+			}
+			if _, ok := store.byID[id]; ok {
+				t.Fatal("Eliminar() no borró el reporte")
+			}
+			if !slices.Equal(archivos.borrados, []string{"reportes/foto.jpg"}) {
+				t.Fatalf("archivos borrados = %v, want [reportes/foto.jpg]", archivos.borrados)
+			}
+		})
+	}
+}
+
+func TestReporteService_Eliminar_NoEncontrado(t *testing.T) {
+	store := newFakeReporteStore()
+	svc := NewService(store, &fakeArchivos{})
+
+	err := svc.Eliminar(context.Background(), "admin", uuid.New(), uuid.New())
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Eliminar() error = %v, want %v", err, ErrNotFound)
+	}
+}
+
+// Si multimedia no borra el archivo, el reporte ya está borrado: el error
+// solo se registra y la petición sale bien.
+func TestReporteService_Eliminar_FallaBorrarArchivo(t *testing.T) {
+	store := newFakeReporteStore()
+	archivos := &fakeArchivos{err: errors.New("multimedia caído")}
+	svc := NewService(store, archivos)
+	creador := uuid.New()
+	id := crearParaEliminar(t, store, svc, creador)
+
+	if err := svc.Eliminar(context.Background(), "admin", uuid.New(), id); err != nil {
+		t.Fatalf("Eliminar() error = %v, want nil", err)
+	}
+	if len(archivos.borrados) != 1 {
+		t.Fatalf("archivos borrados = %v, want 1 intento", archivos.borrados)
+	}
+}
+
+func TestReporteService_ActualizarTags_FueraDeRango(t *testing.T) {
+	for _, id := range []int{math.MaxInt32 + 1, math.MinInt32 - 1} {
+		store := newFakeReporteStore()
+		svc := NewService(store, &fakeArchivos{})
+
+		_, err := svc.ActualizarTags(context.Background(), uuid.New(), uuid.New(), []int{1, id})
+		if !errors.Is(err, ErrTagInvalido) {
+			t.Fatalf("ActualizarTags(%d) error = %v, want %v", id, err, ErrTagInvalido)
+		}
+		if store.actualizarTagsCalled {
+			t.Fatalf("ActualizarTags(%d) llegó a la store con un id fuera de int4", id)
+		}
 	}
 }

@@ -27,6 +27,8 @@ paths:
     $ref: './paths/multimedia.yaml#/subirMultimedia'
   /reportes/{reporteId}/estado:
     $ref: './paths/reportes.yaml#/cambiarEstadoReporte'
+  /reportes/{reporteId}/tags:
+    $ref: './paths/reportes.yaml#/actualizarTagsReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:
@@ -60,6 +62,8 @@ components:
       $ref: './schemas/reportes/reporte_cercano.yaml'
     CambiarEstadoReporteRequest:
       $ref: './schemas/reportes/cambiar_estado_reporte_request.yaml'
+    ActualizarTagsReporteRequest:
+      $ref: './schemas/reportes/actualizar_tags_reporte_request.yaml'
     EstadoReporte:
       $ref: './schemas/reportes/estado_reporte.yaml'
     TituloReporte:

@@ -177,7 +177,7 @@ agregarTags:
           schema:
             type: array
             minItems: 1
-            maxItems: 50
+            maxItems: 20
             items:
               $ref: '#/components/schemas/CrearTagRequest'
     responses:

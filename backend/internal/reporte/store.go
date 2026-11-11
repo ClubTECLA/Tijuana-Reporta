@@ -6,6 +6,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/historial"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -92,4 +93,90 @@ func (s *Store) CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxPar
 	}
 
 	return reporte, nil
+}
+
+// ActualizarTags reemplaza los tags que arg.UserID confirmó en el reporte por
+// arg.TagIDs y registra lo agregado y lo quitado en el historial, en la misma
+// transacción. Devuelve pgx.ErrNoRows si el reporte no existe y ErrTagInvalido
+// si algún tag no es del catálogo del incidente del reporte. Los conteos y el
+// score los recalcula el trigger trg_update_tag_counts.
+func (s *Store) ActualizarTags(ctx context.Context, arg ActualizarTagsTxParams) error {
+	// pgx manda un slice nil como NULL, y con NULL el DELETE no borraría nada.
+	tagIDs := arg.TagIDs
+	if tagIDs == nil {
+		tagIDs = []int{}
+	}
+
+	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		// Antes de leer nada: el DELETE y el INSERT de abajo deben ver lo que
+		// dejó la petición anterior del mismo usuario, ya confirmado.
+		if err := q.LockTagsUsuario(ctx, sqlc.LockTagsUsuarioParams{
+			ReporteID: arg.ReporteID,
+			UserID:    arg.UserID,
+		}); err != nil {
+			return err
+		}
+
+		incidenteID, err := q.GetIncidenteIdByReporteId(ctx, arg.ReporteID)
+		if err != nil {
+			return err // pgx.ErrNoRows, lo mapea IsNotFound en el service
+		}
+
+		validos, err := q.CountTagsByIncidenteId(ctx, sqlc.CountTagsByIncidenteIdParams{
+			IncidenteID: incidenteID,
+			TagIds:      tagIDs,
+		})
+		if err != nil {
+			return err
+		}
+		if validos != len(tagIDs) {
+			return ErrTagInvalido
+		}
+
+		quitados, err := q.DeleteTagsUsuarioNotIn(ctx, sqlc.DeleteTagsUsuarioNotInParams{
+			ReporteID: arg.ReporteID,
+			AddedBy:   arg.UserID,
+			TagIds:    tagIDs,
+		})
+		if err != nil {
+			return err
+		}
+
+		agregados, err := q.CreateTagsUsuario(ctx, sqlc.CreateTagsUsuarioParams{
+			ReporteID: arg.ReporteID,
+			AddedBy:   arg.UserID,
+			TagIds:    tagIDs,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Repetir la misma petición no cambia nada: no ensucia el historial.
+		if len(agregados) == 0 && len(quitados) == 0 {
+			return nil
+		}
+		// sqlc devuelve nil sin filas; se guarda [] en vez de null.
+		if agregados == nil {
+			agregados = []int{}
+		}
+		if quitados == nil {
+			quitados = []int{}
+		}
+		return historial.Registrar(ctx, q, arg.UserID, "reporte.actualizar_tags", "reporte", arg.ReporteID.String(),
+			map[string][]int{"agregados": agregados, "quitados": quitados})
+	})
+}
+
+// EliminarReporte borra el reporte (lo demás cae por ON DELETE CASCADE) y
+// registra quién lo borró en el historial, en la misma transacción. Devuelve
+// pgx.ErrNoRows si el reporte no existe.
+func (s *Store) EliminarReporte(ctx context.Context, id, actorID uuid.UUID) error {
+	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		borrado, err := q.DeleteReporteById(ctx, id)
+		if err != nil {
+			return err // pgx.ErrNoRows, lo mapea IsNotFound en el service
+		}
+		return historial.Registrar(ctx, q, actorID, "reporte.eliminar", "reporte", id.String(),
+			map[string]int{"incidente_id": borrado.IncidenteID})
+	})
 }

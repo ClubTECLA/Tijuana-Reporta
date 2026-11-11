@@ -12,6 +12,9 @@ import (
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
+	// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
+	// todos, alguno es de otro incidente o no existe.
+	CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateHistorialEvento(ctx context.Context, arg CreateHistorialEventoParams) error
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
@@ -23,14 +26,27 @@ type Querier interface {
 	CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error)
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
+	// Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
+	// UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
+	// cambia nada. El trigger trg_update_tag_counts suma.
+	CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
+	// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
+	// ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
+	// del servicio multimedia no: esos los borra el servicio después.
+	DeleteReporteById(ctx context.Context, id uuid.UUID) (DeleteReporteByIdRow, error)
+	// Quita los tags que el usuario había confirmado en el reporte y ya no
+	// vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
+	// con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
+	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteByIdForUpdate(ctx context.Context, id int) (Incidente, error)
+	GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
@@ -59,6 +75,11 @@ type Querier interface {
 	// incidente al listar.
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
+	// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
+	// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
+	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
+	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
+	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }

@@ -31,6 +31,27 @@ func (q *Queries) AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvi
 	return i, err
 }
 
+const countTagsByIncidenteId = `-- name: CountTagsByIncidenteId :one
+SELECT count(*)::int
+FROM tags
+WHERE incidente_id = $1
+AND id = ANY($2::int[])
+`
+
+type CountTagsByIncidenteIdParams struct {
+	IncidenteID int   `json:"incidente_id"`
+	TagIds      []int `json:"tag_ids"`
+}
+
+// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
+// todos, alguno es de otro incidente o no existe.
+func (q *Queries) CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error) {
+	row := q.db.QueryRow(ctx, countTagsByIncidenteId, arg.IncidenteID, arg.TagIds)
+	var column_1 int
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createLocation = `-- name: CreateLocation :one
 INSERT INTO location (reporte_id, latitude, longitude, user_id)
 VALUES ($1, $3, $4, $2)
@@ -92,6 +113,43 @@ func (q *Queries) CreateReporte(ctx context.Context, arg CreateReporteParams) (R
 	return i, err
 }
 
+const createTagsUsuario = `-- name: CreateTagsUsuario :many
+INSERT INTO incidente_tags (reporte_id, tag_id, added_by)
+SELECT $1::uuid, t.tag_id, $2::uuid
+FROM unnest($3::int[]) AS t(tag_id)
+ON CONFLICT (reporte_id, tag_id, added_by) DO NOTHING
+RETURNING tag_id
+`
+
+type CreateTagsUsuarioParams struct {
+	ReporteID uuid.UUID `json:"reporte_id"`
+	AddedBy   uuid.UUID `json:"added_by"`
+	TagIds    []int     `json:"tag_ids"`
+}
+
+// Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
+// UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
+// cambia nada. El trigger trg_update_tag_counts suma.
+func (q *Queries) CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error) {
+	rows, err := q.db.Query(ctx, createTagsUsuario, arg.ReporteID, arg.AddedBy, arg.TagIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int
+	for rows.Next() {
+		var tag_id int
+		if err := rows.Scan(&tag_id); err != nil {
+			return nil, err
+		}
+		items = append(items, tag_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createUserReporte = `-- name: CreateUserReporte :one
 INSERT INTO users_reports (user_id, reporte_id) VALUES ($1, $2) RETURNING id, user_id, reporte_id
 `
@@ -108,6 +166,64 @@ func (q *Queries) CreateUserReporte(ctx context.Context, arg CreateUserReportePa
 	return i, err
 }
 
+const deleteReporteById = `-- name: DeleteReporteById :one
+DELETE FROM reporte
+WHERE id = $1
+RETURNING id, incidente_id
+`
+
+type DeleteReporteByIdRow struct {
+	ID          uuid.UUID `json:"id"`
+	IncidenteID int       `json:"incidente_id"`
+}
+
+// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
+// ubicaciones, puntos_origen, conteos, score y users_reports. Los archivos
+// del servicio multimedia no: esos los borra el servicio después.
+func (q *Queries) DeleteReporteById(ctx context.Context, id uuid.UUID) (DeleteReporteByIdRow, error) {
+	row := q.db.QueryRow(ctx, deleteReporteById, id)
+	var i DeleteReporteByIdRow
+	err := row.Scan(&i.ID, &i.IncidenteID)
+	return i, err
+}
+
+const deleteTagsUsuarioNotIn = `-- name: DeleteTagsUsuarioNotIn :many
+DELETE FROM incidente_tags
+WHERE reporte_id = $1
+AND added_by = $2
+AND NOT (tag_id = ANY($3::int[]))
+RETURNING tag_id
+`
+
+type DeleteTagsUsuarioNotInParams struct {
+	ReporteID uuid.UUID `json:"reporte_id"`
+	AddedBy   uuid.UUID `json:"added_by"`
+	TagIds    []int     `json:"tag_ids"`
+}
+
+// Quita los tags que el usuario había confirmado en el reporte y ya no
+// vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
+// con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
+func (q *Queries) DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error) {
+	rows, err := q.db.Query(ctx, deleteTagsUsuarioNotIn, arg.ReporteID, arg.AddedBy, arg.TagIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int
+	for rows.Next() {
+		var tag_id int
+		if err := rows.Scan(&tag_id); err != nil {
+			return nil, err
+		}
+		items = append(items, tag_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEstadoReporteForUpdate = `-- name: GetEstadoReporteForUpdate :one
 SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE
 `
@@ -117,6 +233,17 @@ func (q *Queries) GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (
 	var estado_actual Estado
 	err := row.Scan(&estado_actual)
 	return estado_actual, err
+}
+
+const getIncidenteIdByReporteId = `-- name: GetIncidenteIdByReporteId :one
+SELECT incidente_id FROM reporte WHERE id = $1
+`
+
+func (q *Queries) GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error) {
+	row := q.db.QueryRow(ctx, getIncidenteIdByReporteId, id)
+	var incidente_id int
+	err := row.Scan(&incidente_id)
+	return incidente_id, err
 }
 
 const getPuntoOrigenByReporteId = `-- name: GetPuntoOrigenByReporteId :one
@@ -536,6 +663,24 @@ func (q *Queries) ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTagsUsuario = `-- name: LockTagsUsuario :exec
+SELECT pg_advisory_xact_lock(hashtextextended($1::uuid::text || ':' || $2::uuid::text, 0))
+`
+
+type LockTagsUsuarioParams struct {
+	ReporteID uuid.UUID `json:"reporte_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
+// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
+// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
+// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
+func (q *Queries) LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error {
+	_, err := q.db.Exec(ctx, lockTagsUsuario, arg.ReporteID, arg.UserID)
+	return err
 }
 
 const updateEstadoReporte = `-- name: UpdateEstadoReporte :one

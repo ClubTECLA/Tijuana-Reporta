@@ -136,3 +136,16 @@ type CambiarEstadoTxParams struct {
 	Estado  sqlc.Estado
 	ActorID uuid.UUID
 }
+
+// MaxTagsPorPeticion es cuántos tags puede mandar un usuario en
+// ActualizarTags (el maxItems de ActualizarTagsReporteRequest).
+const MaxTagsPorPeticion = 20
+
+// ActualizarTagsTxParams es lo que necesita reemplazar los tags que un
+// usuario confirmó en un reporte: el reporte, el usuario y el conjunto nuevo
+// de tags, ya sin repetidos.
+type ActualizarTagsTxParams struct {
+	ReporteID uuid.UUID
+	UserID    uuid.UUID
+	TagIDs    []int
+}

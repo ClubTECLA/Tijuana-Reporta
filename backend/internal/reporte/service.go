@@ -2,6 +2,9 @@ package reporte
 
 import (
 	"context"
+	"log/slog"
+	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,15 +28,29 @@ type store interface {
 	ListReportesPorUbicacion(ctx context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error)
 	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
 	CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error)
+	ActualizarTags(ctx context.Context, arg ActualizarTagsTxParams) error
+	EliminarReporte(ctx context.Context, id, actorID uuid.UUID) error
 }
+
+// Archivos es lo que este servicio necesita del servicio multimedia: borrar
+// los archivos de un reporte eliminado. *almacen.Cliente lo cumple.
+type Archivos interface {
+	Borrar(ctx context.Context, path string) error
+}
+
+// tiempoLimpieza es lo que se espera a borrar cada archivo de un reporte
+// eliminado.
+const tiempoLimpieza = 10 * time.Second
 
 type Service struct {
-	store store
+	store    store
+	archivos Archivos
 }
 
-// NewService crea un servicio de reportes con la store dada.
-func NewService(store store) *Service {
-	return &Service{store: store}
+// NewService crea un servicio de reportes con la store y el cliente de
+// archivos dados.
+func NewService(store store, archivos Archivos) *Service {
+	return &Service{store: store, archivos: archivos}
 }
 
 // Crear crea un reporte del incidente dado, con la ubicación inicial del
@@ -279,4 +296,80 @@ func (s *Service) CambiarEstado(ctx context.Context, rol string, userID, id uuid
 		return Detalle{}, err
 	}
 	return s.Obtener(ctx, id)
+}
+
+// ActualizarTags reemplaza los tags que userID confirmó en el reporte por
+// tagIDs y devuelve el reporte con los conteos ya recalculados. Los repetidos
+// cuentan una vez; una lista vacía quita todos los del usuario. El router no
+// valida el body contra el contrato, así que el límite de
+// MaxTagsPorPeticion se aplica aquí.
+func (s *Service) ActualizarTags(ctx context.Context, userID, id uuid.UUID, tagIDs []int) (Detalle, error) {
+	unicos := make([]int, 0, len(tagIDs))
+	for _, t := range tagIDs {
+		// tags.id es integer (int4): un id fuera de rango no puede existir, y
+		// pgx no lo sabría codificar (sería un 500 en vez de un 400).
+		if t < math.MinInt32 || t > math.MaxInt32 {
+			return Detalle{}, ErrTagInvalido
+		}
+		if !slices.Contains(unicos, t) {
+			unicos = append(unicos, t)
+			if len(unicos) > MaxTagsPorPeticion {
+				return Detalle{}, ErrDemasiadosTags
+			}
+		}
+	}
+
+	err := s.store.ActualizarTags(ctx, ActualizarTagsTxParams{
+		ReporteID: id, UserID: userID, TagIDs: unicos,
+	})
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
+	}
+	if err != nil {
+		return Detalle{}, err
+	}
+	return s.Obtener(ctx, id)
+}
+
+// Eliminar borra el reporte y todo lo que depende de él a nombre de userID.
+// Solo lo puede hacer un rol que gestiona reportes (PuedeGestionar), sea o no
+// quien lo creó; cualquier otro recibe ErrEliminarNoPermitido. Los archivos
+// del servicio multimedia se borran después del commit: si alguno falla solo
+// se registra, porque el reporte ya no existe y reintentar daría 404.
+func (s *Service) Eliminar(ctx context.Context, rol string, userID, id uuid.UUID) error {
+	if !PuedeGestionar(rol) {
+		return ErrEliminarNoPermitido
+	}
+
+	// Las rutas se leen antes de borrar: después la cascada ya se las llevó.
+	// Si el reporte no existe la lista sale vacía y el DELETE da ErrNotFound.
+	multimedia, err := s.store.ListMultimediaByReporteId(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = s.store.EliminarReporte(ctx, id, userID)
+	if db.IsNotFound(err) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, m := range multimedia {
+		s.borrarArchivo(ctx, m.Path)
+	}
+	return nil
+}
+
+// borrarArchivo borra de multimedia un archivo de un reporte ya eliminado.
+// Usa un contexto propio para que se borre aunque el cliente haya cancelado
+// la petición; si falla solo lo registra.
+func (s *Service) borrarArchivo(ctx context.Context, path string) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), tiempoLimpieza)
+	defer cancel()
+
+	if err := s.archivos.Borrar(ctx, path); err != nil {
+		slog.WarnContext(ctx, "couldn't delete a deleted report's file", "path", path, "error", err)
+	}
 }
