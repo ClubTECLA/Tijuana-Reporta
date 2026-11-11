@@ -190,13 +190,13 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                             htmlFor="uploadCategoryImage"
                             className="
                                 w-12 h-12 border-2  
-                                border-white rounded-full flex items-center 
+                                border-surface rounded-full flex items-center
                                 justify-center
                                 group
                             "
                             style={{background: categoryForEdit.color}}
                         >
-                            <FiUpload className="text-2xl text-white group-hover:scale-120 transition-all duration-300"/>
+                            <FiUpload className="text-2xl text-surface group-hover:scale-120 transition-all duration-300"/>
                         </label>
                     </>
                 }

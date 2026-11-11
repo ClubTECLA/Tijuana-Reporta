@@ -15,7 +15,7 @@ export function CreateTagButton({format = 'both-fit', debug, title = 'Agregar', 
         <SubSection
             format={format}
             debug={debug}
-            className="rounded-3xl bg-brand text-white font-bold flex-row px-3 py-1 items-center justify-center"
+            className="rounded-3xl bg-brand text-surface font-bold flex-row px-3 py-1 items-center justify-center"
             as='button'
             onClick={onClick}
         >
@@ -85,7 +85,7 @@ export function Tag(
         <SubSection
             format={'col'}
             debug={debug}
-            className="flex-row items-center justify-start gap-1 rounded-3xl bg-white px-3
+            className="flex-row items-center justify-start gap-1 rounded-3xl bg-surface px-3
                 shadow-raised font-bold py-1
             "
         >
@@ -118,7 +118,7 @@ export function Tag(
                     />
                 ) : (
                     <span
-                        className={`text-md ${value ? "text-ink" : "text-gray-500"} min-w-1/2`}
+                        className={`text-md ${value ? "text-ink" : "text-ink-muted"} min-w-1/2`}
                         onDoubleClick={() => setStateEditValue(true)}
                         onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
@@ -182,7 +182,7 @@ export function Tag(
                             className="
                                 w-16 shrink-0 rounded-full
                                 border border-line-strong
-                                bg-white px-2 py-1 text-center
+                                bg-surface px-2 py-1 text-center
                                 text-sm font-semibold text-ink
                                 outline-none transition
                                 focus:border-brand
@@ -205,7 +205,7 @@ export function Tag(
                         onRemove();
                     }}
                 >
-                    <IoMdClose className="p-1/2 text-gray-700 text-xl rounded-2xl"/>
+                    <IoMdClose className="p-1/2 text-icon text-xl rounded-2xl"/>
                 </SubSection>
             )}
         </SubSection>
