@@ -1221,7 +1221,7 @@ func TestEliminarReporte(t *testing.T) {
 	// Se fue el reporte con todo lo que dependía de él, y su foto se borró de
 	// multimedia.
 	creador.expect(http.StatusNotFound, http.MethodGet, "/v1/reportes/"+id, nil)
-	creador.expect(http.StatusNotFound, http.MethodDelete, "/v1/reportes/"+id, nil)
+	rescatista.expect(http.StatusNotFound, http.MethodDelete, "/v1/reportes/"+id, nil)
 	var hijos int
 	err := testPool(t).QueryRow(t.Context(), `SELECT
 		(SELECT count(*) FROM comentarios WHERE reporte_id = $1) +
@@ -1235,8 +1235,9 @@ func TestEliminarReporte(t *testing.T) {
 		t.Errorf("quedaron %d filas que dependían del reporte, quería 0", hijos)
 	}
 	wantPath := "reportes/" + id + "/falso1.jpg"
-	if !slices.Equal(creador.multimedia.borrados, []string{wantPath}) {
-		t.Errorf("archivos borrados = %v, quería [%s]", creador.multimedia.borrados, wantPath)
+	// Cada cliente tiene su multimedia falso: el borrado lo ve el de quien eliminó.
+	if !slices.Equal(rescatista.multimedia.borrados, []string{wantPath}) {
+		t.Errorf("archivos borrados = %v, quería [%s]", rescatista.multimedia.borrados, wantPath)
 	}
 	if n := contarHistorial(t, "reporte.eliminar", "reporte", id); n != 1 {
 		t.Errorf("eventos reporte.eliminar = %d, quería 1", n)
