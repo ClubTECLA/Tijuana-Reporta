@@ -10,6 +10,7 @@ import { useRouter } from '@/lib/useRouter'
 import { FiInfo, FiLock, FiMail } from 'react-icons/fi'
 import { GoPaperAirplane } from 'react-icons/go'
 import { FaRegQuestionCircle } from 'react-icons/fa'
+import { IoIosArrowBack } from 'react-icons/io'
 
 
 const formsInputsDivsStyle = `
@@ -519,9 +520,25 @@ export default function AuthPage() {
     return(
         <div className="relative min-h-screen w-full font-ui">
             {/* Captura del fondo del Figma */}
+            <Link
+                to="/"
+                aria-label="Volver al mapa"
+                className="
+                    group absolute left-4 top-4 z-50 inline-flex items-center gap-1.5
+                    text-surface
+                    transition-[transform,background-color,color,box-shadow] duration-300 ease-out
+                    hover:scale-105
+                    motion-reduce:transition-none
+                    sm:left-6 sm:top-6 sm:gap-2 sm:px-4
+                    lg:left-[7.29%] lg:top-8
+                "
+            >
+                <IoIosArrowBack className="size-6 transition-transform duration-300 group-hover:-translate-x-1 motion-reduce:transition-none sm:size-7"/>
+                <span className="text-base font-semibold sm:text-lg">Mapa</span>
+            </Link>
             <img src="/auth/fondo.webp" alt="" aria-hidden="true" className="pointer-events-none fixed inset-0 size-full object-cover object-left lg:object-center" />
 
-            <div className="relative flex min-h-screen flex-col px-4 py-8 sm:px-8 lg:py-10 lg:pl-[7.29%] lg:pr-[10.42%]">
+            <div className="relative flex min-h-screen flex-col px-4 py-8 pt-20 sm:px-8 sm:pt-24 lg:py-10 lg:pl-[7.29%] lg:pr-[10.42%]">
                 {/*
                   Móvil: marca → tarjeta → métricas, en una columna.
                   Escritorio (lg): composición del Figma, marca y métricas a la izquierda y la tarjeta a la derecha.
