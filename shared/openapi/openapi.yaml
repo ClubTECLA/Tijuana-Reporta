@@ -117,9 +117,9 @@ components:
     CrearTipoCentroRequest:
       $ref: './schemas/tipos_centro/crear_tipo_centro_request.yaml'
     Centro:
-      $ref: '../schemas/centros/centro.yaml'
+      $ref: './schemas/centros/centro.yaml'
     CrearCentroRequest:
-      $ref: '../schemas/centros/crear_centro_request.yaml'
+      $ref: './schemas/centros/crear_centro_request.yaml'
   securitySchemes:
     bearerAuth:
       type: http

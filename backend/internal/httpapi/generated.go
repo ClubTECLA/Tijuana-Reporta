@@ -92,6 +92,23 @@ type CambiarEstadoReporteRequest struct {
 	Estado EstadoReporte `json:"estado"`
 }
 
+// Centro Detalle completo de un Centroide
+type Centro struct {
+	Activo      bool      `json:"activo"`
+	Cantidad    *int      `json:"cantidad"`
+	Capacidad   *int      `json:"capacidad"`
+	CreatedAt   time.Time `json:"created_at"`
+	Descripcion *string   `json:"descripcion"`
+	Id          uuid.UUID `json:"id"`
+	ImagePath   *string   `json:"image_path"`
+	Latitude    float64   `json:"latitude"`
+	Longitude   float64   `json:"longitude"`
+	Nombre      string    `json:"nombre"`
+
+	// TipoCentro Id del tipo de centro
+	TipoCentro int `json:"tipo_centro"`
+}
+
 // Comentario defines model for Comentario.
 type Comentario struct {
 	Comentario string    `json:"comentario"`
@@ -101,6 +118,18 @@ type Comentario struct {
 	RolName    *string   `json:"rol_name,omitempty"`
 	UserId     uuid.UUID `json:"user_id"`
 	Username   *string   `json:"username,omitempty"`
+}
+
+// CrearCentroRequest defines model for CrearCentroRequest.
+type CrearCentroRequest struct {
+	Activo      *bool   `json:"activo,omitempty"`
+	Cantidad    *int    `json:"cantidad,omitempty"`
+	Capacidad   *int    `json:"capacidad,omitempty"`
+	Descripcion *string `json:"descripcion,omitempty"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float32 `json:"longitude"`
+	Nombre      string  `json:"nombre"`
+	TipoCentro  int     `json:"tipo_centro"`
 }
 
 // CrearComentarioRequest defines model for CrearComentarioRequest.
@@ -139,6 +168,11 @@ type CrearReporteRequest struct {
 type CrearTagRequest struct {
 	Nombre string `json:"nombre"`
 	Peso   *int   `json:"peso,omitempty"`
+}
+
+// CrearTipoCentroRequest defines model for CrearTipoCentroRequest.
+type CrearTipoCentroRequest struct {
+	Nombre string `json:"nombre"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
@@ -301,6 +335,12 @@ type TagCatalogo struct {
 	Peso   int    `json:"peso"`
 }
 
+// TiposCentro defines model for TiposCentro.
+type TiposCentro struct {
+	Id     int    `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
 // TituloReporte Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
 //
 // Example: Socavón en Calle Flores Magón 8267 · Zona Centro
@@ -333,6 +373,11 @@ type UsuarioResumen struct {
 
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
+
+// ListarCentrosParams defines parameters for ListarCentros.
+type ListarCentrosParams struct {
+	IncluirInactivos *bool `form:"incluir_inactivos,omitempty" json:"incluir_inactivos,omitempty"`
+}
 
 // ListarIncidentesParams defines parameters for ListarIncidentes.
 type ListarIncidentesParams struct {
@@ -372,6 +417,9 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// CrearCentroJSONRequestBody defines body for CrearCentro for application/json ContentType.
+type CrearCentroJSONRequestBody = CrearCentroRequest
+
 // CrearIncidenteJSONRequestBody defines body for CrearIncidente for application/json ContentType.
 type CrearIncidenteJSONRequestBody = CrearIncidenteRequest
 
@@ -396,6 +444,9 @@ type SubirMultimediaMultipartRequestBody = SubirMultimediaRequest
 // ActualizarTagsReporteJSONRequestBody defines body for ActualizarTagsReporte for application/json ContentType.
 type ActualizarTagsReporteJSONRequestBody = ActualizarTagsReporteRequest
 
+// CrearTipoCentroJSONRequestBody defines body for CrearTipoCentro for application/json ContentType.
+type CrearTipoCentroJSONRequestBody = CrearTipoCentroRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -410,6 +461,15 @@ type ServerInterface interface {
 
 	// (POST /auth/register)
 	Register(c *gin.Context)
+
+	// (GET /centro)
+	ListarCentros(c *gin.Context, params ListarCentrosParams)
+
+	// (POST /centro)
+	CrearCentro(c *gin.Context)
+
+	// (GET /centro/{centroId})
+	ObtenerCentro(c *gin.Context, centroId uuid.UUID)
 
 	// (GET /incidentes)
 	ListarIncidentes(c *gin.Context, params ListarIncidentesParams)
@@ -461,6 +521,15 @@ type ServerInterface interface {
 
 	// (GET /roles)
 	ListarRoles(c *gin.Context)
+
+	// (GET /tipos-centro)
+	ListarTiposCentro(c *gin.Context)
+
+	// (POST /tipos-centro)
+	CrearTipoCentro(c *gin.Context)
+
+	// (GET /tipos-centro/{tipoCentroId})
+	ObtenerTipoCentro(c *gin.Context, tipoCentroId int)
 
 	// (GET /users)
 	ListarUsuarios(c *gin.Context)
@@ -527,6 +596,77 @@ func (siw *ServerInterfaceWrapper) Register(c *gin.Context) {
 	}
 
 	siw.Handler.Register(c)
+}
+
+// ListarCentros operation middleware
+func (siw *ServerInterfaceWrapper) ListarCentros(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListarCentrosParams
+
+	// ------------- Optional query parameter "incluir_inactivos" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "incluir_inactivos", c.Request.URL.Query(), &params.IncluirInactivos, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter incluir_inactivos: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarCentros(c, params)
+}
+
+// CrearCentro operation middleware
+func (siw *ServerInterfaceWrapper) CrearCentro(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{"admin"})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CrearCentro(c)
+}
+
+// ObtenerCentro operation middleware
+func (siw *ServerInterfaceWrapper) ObtenerCentro(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "centroId" -------------
+	var centroId uuid.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "centroId", c.Param("centroId"), &centroId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter centroId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ObtenerCentro(c, centroId)
 }
 
 // ListarIncidentes operation middleware
@@ -1032,6 +1172,63 @@ func (siw *ServerInterfaceWrapper) ListarRoles(c *gin.Context) {
 	siw.Handler.ListarRoles(c)
 }
 
+// ListarTiposCentro operation middleware
+func (siw *ServerInterfaceWrapper) ListarTiposCentro(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListarTiposCentro(c)
+}
+
+// CrearTipoCentro operation middleware
+func (siw *ServerInterfaceWrapper) CrearTipoCentro(c *gin.Context) {
+
+	c.Set(string(BearerAuthScopes), []string{"admin"})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CrearTipoCentro(c)
+}
+
+// ObtenerTipoCentro operation middleware
+func (siw *ServerInterfaceWrapper) ObtenerTipoCentro(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tipoCentroId" -------------
+	var tipoCentroId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tipoCentroId", c.Param("tipoCentroId"), &tipoCentroId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter tipoCentroId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(string(BearerAuthScopes), []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ObtenerTipoCentro(c, tipoCentroId)
+}
+
 // ListarUsuarios operation middleware
 func (siw *ServerInterfaceWrapper) ListarUsuarios(c *gin.Context) {
 
@@ -1078,6 +1275,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout)
 	router.GET(options.BaseURL+"/auth/me", wrapper.Me)
 	router.POST(options.BaseURL+"/auth/register", wrapper.Register)
+	router.GET(options.BaseURL+"/centro", wrapper.ListarCentros)
+	router.POST(options.BaseURL+"/centro", wrapper.CrearCentro)
+	router.GET(options.BaseURL+"/centro/:centroId", wrapper.ObtenerCentro)
 	router.GET(options.BaseURL+"/incidentes", wrapper.ListarIncidentes)
 	router.POST(options.BaseURL+"/incidentes", wrapper.CrearIncidente)
 	router.GET(options.BaseURL+"/incidentes/:incidenteId", wrapper.ObtenerIncidente)
@@ -1095,6 +1295,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/reportes/:reporteId/multimedia", wrapper.SubirMultimedia)
 	router.PUT(options.BaseURL+"/reportes/:reporteId/tags", wrapper.ActualizarTagsReporte)
 	router.GET(options.BaseURL+"/roles", wrapper.ListarRoles)
+	router.GET(options.BaseURL+"/tipos-centro", wrapper.ListarTiposCentro)
+	router.POST(options.BaseURL+"/tipos-centro", wrapper.CrearTipoCentro)
+	router.GET(options.BaseURL+"/tipos-centro/:tipoCentroId", wrapper.ObtenerTipoCentro)
 	router.GET(options.BaseURL+"/users", wrapper.ListarUsuarios)
 }
 
@@ -1244,6 +1447,198 @@ func (response Register409JSONResponse) VisitRegisterResponse(w http.ResponseWri
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarCentrosRequestObject struct {
+	Params ListarCentrosParams
+}
+
+type ListarCentrosResponseObject interface {
+	VisitListarCentrosResponse(w http.ResponseWriter) error
+}
+
+type ListarCentros200JSONResponse []Centro
+
+func (response ListarCentros200JSONResponse) VisitListarCentrosResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarCentros401JSONResponse ErrorResponse
+
+func (response ListarCentros401JSONResponse) VisitListarCentrosResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarCentros500JSONResponse ErrorResponse
+
+func (response ListarCentros500JSONResponse) VisitListarCentrosResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearCentroRequestObject struct {
+	Body *CrearCentroJSONRequestBody
+}
+
+type CrearCentroResponseObject interface {
+	VisitCrearCentroResponse(w http.ResponseWriter) error
+}
+
+type CrearCentro201JSONResponse Centro
+
+func (response CrearCentro201JSONResponse) VisitCrearCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearCentro400JSONResponse ErrorResponse
+
+func (response CrearCentro400JSONResponse) VisitCrearCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearCentro401JSONResponse ErrorResponse
+
+func (response CrearCentro401JSONResponse) VisitCrearCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearCentro403JSONResponse ErrorResponse
+
+func (response CrearCentro403JSONResponse) VisitCrearCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearCentro500JSONResponse ErrorResponse
+
+func (response CrearCentro500JSONResponse) VisitCrearCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerCentroRequestObject struct {
+	CentroId uuid.UUID `json:"centroId"`
+}
+
+type ObtenerCentroResponseObject interface {
+	VisitObtenerCentroResponse(w http.ResponseWriter) error
+}
+
+type ObtenerCentro200JSONResponse Centro
+
+func (response ObtenerCentro200JSONResponse) VisitObtenerCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerCentro401JSONResponse ErrorResponse
+
+func (response ObtenerCentro401JSONResponse) VisitObtenerCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerCentro404JSONResponse ErrorResponse
+
+func (response ObtenerCentro404JSONResponse) VisitObtenerCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerCentro500JSONResponse ErrorResponse
+
+func (response ObtenerCentro500JSONResponse) VisitObtenerCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -2419,6 +2814,211 @@ func (response ListarRoles403JSONResponse) VisitListarRolesResponse(w http.Respo
 	return err
 }
 
+type ListarTiposCentroRequestObject struct {
+}
+
+type ListarTiposCentroResponseObject interface {
+	VisitListarTiposCentroResponse(w http.ResponseWriter) error
+}
+
+type ListarTiposCentro200JSONResponse []TiposCentro
+
+func (response ListarTiposCentro200JSONResponse) VisitListarTiposCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarTiposCentro401JSONResponse ErrorResponse
+
+func (response ListarTiposCentro401JSONResponse) VisitListarTiposCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListarTiposCentro500JSONResponse ErrorResponse
+
+func (response ListarTiposCentro500JSONResponse) VisitListarTiposCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentroRequestObject struct {
+	Body *CrearTipoCentroJSONRequestBody
+}
+
+type CrearTipoCentroResponseObject interface {
+	VisitCrearTipoCentroResponse(w http.ResponseWriter) error
+}
+
+type CrearTipoCentro201JSONResponse TiposCentro
+
+func (response CrearTipoCentro201JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentro400JSONResponse ErrorResponse
+
+func (response CrearTipoCentro400JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentro401JSONResponse ErrorResponse
+
+func (response CrearTipoCentro401JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentro403JSONResponse ErrorResponse
+
+func (response CrearTipoCentro403JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentro409JSONResponse ErrorResponse
+
+func (response CrearTipoCentro409JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CrearTipoCentro500JSONResponse ErrorResponse
+
+func (response CrearTipoCentro500JSONResponse) VisitCrearTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerTipoCentroRequestObject struct {
+	TipoCentroId int `json:"tipoCentroId"`
+}
+
+type ObtenerTipoCentroResponseObject interface {
+	VisitObtenerTipoCentroResponse(w http.ResponseWriter) error
+}
+
+type ObtenerTipoCentro200JSONResponse TiposCentro
+
+func (response ObtenerTipoCentro200JSONResponse) VisitObtenerTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerTipoCentro401JSONResponse ErrorResponse
+
+func (response ObtenerTipoCentro401JSONResponse) VisitObtenerTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerTipoCentro404JSONResponse ErrorResponse
+
+func (response ObtenerTipoCentro404JSONResponse) VisitObtenerTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ObtenerTipoCentro500JSONResponse ErrorResponse
+
+func (response ObtenerTipoCentro500JSONResponse) VisitObtenerTipoCentroResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListarUsuariosRequestObject struct {
 }
 
@@ -2483,6 +3083,15 @@ type StrictServerInterface interface {
 	// (POST /auth/register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
 
+	// (GET /centro)
+	ListarCentros(ctx context.Context, request ListarCentrosRequestObject) (ListarCentrosResponseObject, error)
+
+	// (POST /centro)
+	CrearCentro(ctx context.Context, request CrearCentroRequestObject) (CrearCentroResponseObject, error)
+
+	// (GET /centro/{centroId})
+	ObtenerCentro(ctx context.Context, request ObtenerCentroRequestObject) (ObtenerCentroResponseObject, error)
+
 	// (GET /incidentes)
 	ListarIncidentes(ctx context.Context, request ListarIncidentesRequestObject) (ListarIncidentesResponseObject, error)
 
@@ -2533,6 +3142,15 @@ type StrictServerInterface interface {
 
 	// (GET /roles)
 	ListarRoles(ctx context.Context, request ListarRolesRequestObject) (ListarRolesResponseObject, error)
+
+	// (GET /tipos-centro)
+	ListarTiposCentro(ctx context.Context, request ListarTiposCentroRequestObject) (ListarTiposCentroResponseObject, error)
+
+	// (POST /tipos-centro)
+	CrearTipoCentro(ctx context.Context, request CrearTipoCentroRequestObject) (CrearTipoCentroResponseObject, error)
+
+	// (GET /tipos-centro/{tipoCentroId})
+	ObtenerTipoCentro(ctx context.Context, request ObtenerTipoCentroRequestObject) (ObtenerTipoCentroResponseObject, error)
 
 	// (GET /users)
 	ListarUsuarios(ctx context.Context, request ListarUsuariosRequestObject) (ListarUsuariosResponseObject, error)
@@ -2698,6 +3316,89 @@ func (sh *strictHandler) Register(ctx *gin.Context) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(RegisterResponseObject); ok {
 		if err := validResponse.VisitRegisterResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListarCentros operation middleware
+func (sh *strictHandler) ListarCentros(ctx *gin.Context, params ListarCentrosParams) {
+	var request ListarCentrosRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarCentros(ctx, request.(ListarCentrosRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarCentros")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarCentrosResponseObject); ok {
+		if err := validResponse.VisitListarCentrosResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CrearCentro operation middleware
+func (sh *strictHandler) CrearCentro(ctx *gin.Context) {
+	var request CrearCentroRequestObject
+
+	var body CrearCentroJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CrearCentro(ctx, request.(CrearCentroRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CrearCentro")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CrearCentroResponseObject); ok {
+		if err := validResponse.VisitCrearCentroResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ObtenerCentro operation middleware
+func (sh *strictHandler) ObtenerCentro(ctx *gin.Context, centroId uuid.UUID) {
+	var request ObtenerCentroRequestObject
+
+	request.CentroId = centroId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ObtenerCentro(ctx, request.(ObtenerCentroRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ObtenerCentro")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ObtenerCentroResponseObject); ok {
+		if err := validResponse.VisitObtenerCentroResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -3197,6 +3898,87 @@ func (sh *strictHandler) ListarRoles(ctx *gin.Context) {
 	}
 }
 
+// ListarTiposCentro operation middleware
+func (sh *strictHandler) ListarTiposCentro(ctx *gin.Context) {
+	var request ListarTiposCentroRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListarTiposCentro(ctx, request.(ListarTiposCentroRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListarTiposCentro")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListarTiposCentroResponseObject); ok {
+		if err := validResponse.VisitListarTiposCentroResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CrearTipoCentro operation middleware
+func (sh *strictHandler) CrearTipoCentro(ctx *gin.Context) {
+	var request CrearTipoCentroRequestObject
+
+	var body CrearTipoCentroJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CrearTipoCentro(ctx, request.(CrearTipoCentroRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CrearTipoCentro")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CrearTipoCentroResponseObject); ok {
+		if err := validResponse.VisitCrearTipoCentroResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ObtenerTipoCentro operation middleware
+func (sh *strictHandler) ObtenerTipoCentro(ctx *gin.Context, tipoCentroId int) {
+	var request ObtenerTipoCentroRequestObject
+
+	request.TipoCentroId = tipoCentroId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ObtenerTipoCentro(ctx, request.(ObtenerTipoCentroRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ObtenerTipoCentro")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ObtenerTipoCentroResponseObject); ok {
+		if err := validResponse.VisitObtenerTipoCentroResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListarUsuarios operation middleware
 func (sh *strictHandler) ListarUsuarios(ctx *gin.Context) {
 	var request ListarUsuariosRequestObject
@@ -3226,94 +4008,104 @@ func (sh *strictHandler) ListarUsuarios(ctx *gin.Context) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"1RI3QncFQjc3DfT/AwA=",
+	"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",
+	"Nq/AvVp54Pn/AwA=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
