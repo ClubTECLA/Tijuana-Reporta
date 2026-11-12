@@ -37,3 +37,23 @@ func (s *Store) CreateTipoCentroTx(ctx context.Context, arg CreateTipoCentroTxPa
 
 	return detalle, nil
 }
+
+func (s *Store) CreateCentroTx(ctx context.Context, arg CreateCentroTxParams) (Centro, error) {
+	var centro Centro
+
+	err := db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		var err error
+		centro, err = q.CreateCentro(ctx, arg.Centro)
+		if err != nil {
+			return err
+		}
+
+		return historial.Registrar(ctx, q, arg.ActorID, "centro.crear", "centro", centro.ID.String(),
+			map[string]any{"nombre": centro.Nombre})
+	})
+	if err != nil {
+		return Centro{}, err
+	}
+
+	return centro, nil
+}

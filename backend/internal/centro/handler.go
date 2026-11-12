@@ -31,6 +31,34 @@ func toNuevoTipoCentro(b *httpapi.CrearTipoCentroRequest) NuevoTipoCentro {
 	return nuevo
 }
 
+func toCentro(c Centro) httpapi.Centro {
+	return httpapi.Centro{
+		Activo:      c.Activo,
+		Cantidad:    c.Cantidad,
+		Capacidad:   c.Capacidad,
+		CreatedAt:   c.CreatedAt,
+		Descripcion: c.Descripcion,
+		Id:          c.ID,
+		ImagePath:   c.ImagePath,
+		Latitude:    c.Latitude,
+		Longitude:   c.Longitude,
+		Nombre:      c.Nombre,
+	}
+}
+
+func toNuevoCentro(b *httpapi.CrearCentroRequest) NuevoCentro {
+	return NuevoCentro{
+		TipoCentro:  b.TipoCentro,
+		Nombre:      b.Nombre,
+		Descripcion: b.Descripcion,
+		Latitude:    b.Latitude,
+		Longitude:   float64(b.Longitude),
+		Capacidad:   b.Capacidad,
+		Cantidad:    b.Cantidad,
+		Activo:      b.Activo,
+	}
+}
+
 func (h *Handler) ListarTiposCentro(ctx context.Context, request httpapi.ListarTiposCentroRequestObject) (httpapi.ListarTiposCentroResponseObject, error) {
 	detalles, err := h.svc.ListarTiposCentro(ctx)
 	if err != nil {
@@ -65,4 +93,37 @@ func (h *Handler) CrearTipoCentro(ctx context.Context, request httpapi.CrearTipo
 	}
 
 	return httpapi.CrearTipoCentro201JSONResponse(toTiposCentro(t)), nil
+}
+
+func (h *Handler) CrearCentro(ctx context.Context, request httpapi.CrearCentroRequestObject) (httpapi.CrearCentroResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, httperr.ErrNoAutenticado
+	}
+	c, err := h.svc.CrearCentro(ctx, toNuevoCentro(request.Body), userID)
+	if err != nil {
+		return nil, err
+	}
+	return httpapi.CrearCentro201JSONResponse(toCentro(c)), nil
+}
+
+func (h *Handler) ObtenerCentro(ctx context.Context, request httpapi.ObtenerCentroRequestObject) (httpapi.ObtenerCentroResponseObject, error) {
+	c, err := h.svc.ObtenerCentro(ctx, request.CentroId)
+	if err != nil {
+		return nil, err
+	}
+	return httpapi.ObtenerCentro200JSONResponse(toCentro(c)), nil
+}
+
+func (h *Handler) ListarCentros(ctx context.Context, request httpapi.ListarCentrosRequestObject) (httpapi.ListarCentrosResponseObject, error) {
+	incluir := request.Params.IncluirInactivos != nil && *request.Params.IncluirInactivos
+	centros, err := h.svc.ListarCentros(ctx, incluir)
+	if err != nil {
+		return nil, err
+	}
+	out := make(httpapi.ListarCentros200JSONResponse, 0, len(centros))
+	for _, c := range centros {
+		out = append(out, toCentro(c))
+	}
+	return out, nil
 }
