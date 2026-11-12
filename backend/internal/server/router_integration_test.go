@@ -81,7 +81,7 @@ func newTestClient(t *testing.T) *testClient {
 			MaxBytes:   3 << 20,
 			MaxPixeles: 16_000_000,
 		})),
-		Centros: centro.NewHandler(centro.NewService(centro.NewStore(pool))),
+		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
 	}, testJWTSecret)
 
 	return &testClient{t: t, router: router, multimedia: almacen}
