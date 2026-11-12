@@ -5,7 +5,7 @@ import FilterSelected from "@/components/ui/FilterSelected";
 import type { OptionTileProps } from "@/components/ui/OptionsMenu";
 import { useEffect, useState } from "react";
 import { listarRoles, listarUsuarios } from "../usuarios.services";
-import type { ApiListarUsuariosResponse } from "@/types/api-types";
+import type { ApiListarRolesResponse, ApiListarUsuariosResponse } from "@/types/api-types";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 import { Table, TRow, TdButton, TCell, SimpleStatistics } from "@/components/ui/Tables"; 
 import UserCard from "@/features/perfil/components/UserCard";
@@ -24,6 +24,17 @@ const roleColors: Record<string, ColorBadgeColor> = {
     ciudadano: "gray",
 };
 
+function getRoleOptions(roleNames: string[]): OptionTileProps[] {
+    return [
+        { id: "all", title: "todos", isSelected: true },
+        ...Array.from(new Set(roleNames), role => ({
+            id: role,
+            title: role,
+            isSelected: false,
+        })),
+    ];
+}
+
 
 
 export default function UserView() {
@@ -37,7 +48,17 @@ export default function UserView() {
             user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const [ rolesOptions, setRolesOptions ] = useState<OptionTileProps[]>([{'id': 'all', 'title': 'todos', 'isSelected': true}]);
+    const [ roles, setRoles ] = useState<ApiListarRolesResponse | null>(null);
+    const rolesOptions = roles
+        ? [
+            { id: "all", title: "todos", isSelected: true },
+            ...roles.map(role => ({
+                id: role.nombre,
+                title: role.nombre,
+                isSelected: false,
+            })),
+        ]
+        : getRoleOptions(users.map(user => user.rol_name));
     const { showMessage } = useSysMessage();
     const [ currentPage, setCurrentPage ] = useState(1);
     const pageSize = 8;
@@ -64,16 +85,7 @@ export default function UserView() {
 
     useEffect(() => {
         listarRoles()
-            .then(roles => {
-                setRolesOptions([
-                    { id: 'all', title: 'todos', isSelected: true },
-                    ...roles.map(role => ({
-                        id: role.nombre,
-                        title: role.nombre,
-                        isSelected: false,
-                    })),
-                ]);
-            })
+            .then(setRoles)
             .catch(err => {
                 console.error("Error al listar roles: ", err);
                 showMessage("Error al obtener la lista de roles", {'color': 'red', 'showTime': 3000, 'title': 'Error', 'type': 'float'});
