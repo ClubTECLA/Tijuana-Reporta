@@ -7,7 +7,80 @@ package sqlc
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createCentro = `-- name: CreateCentro :one
+INSERT INTO centros (
+    tipo_centro, nombre, descripcion, image_path,
+    latitude, longitude, capacidad, cantidad, activo
+)
+VALUES (
+    $1, $2, $3, $4,
+    $5, $6, $7, $8,
+    COALESCE($9::boolean, true)
+)
+RETURNING id, tipo_centro, nombre, descripcion, image_path,
+          latitude, longitude, capacidad, cantidad, activo, created_at
+`
+
+type CreateCentroParams struct {
+	TipoCentro  int         `json:"tipo_centro"`
+	Nombre      string      `json:"nombre"`
+	Descripcion *string     `json:"descripcion"`
+	ImagePath   *string     `json:"image_path"`
+	Latitude    float64     `json:"latitude"`
+	Longitude   float64     `json:"longitude"`
+	Capacidad   *int        `json:"capacidad"`
+	Cantidad    *int        `json:"cantidad"`
+	Activo      pgtype.Bool `json:"activo"`
+}
+
+type CreateCentroRow struct {
+	ID          uuid.UUID `json:"id"`
+	TipoCentro  int       `json:"tipo_centro"`
+	Nombre      string    `json:"nombre"`
+	Descripcion *string   `json:"descripcion"`
+	ImagePath   *string   `json:"image_path"`
+	Latitude    float64   `json:"latitude"`
+	Longitude   float64   `json:"longitude"`
+	Capacidad   *int      `json:"capacidad"`
+	Cantidad    *int      `json:"cantidad"`
+	Activo      bool      `json:"activo"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (q *Queries) CreateCentro(ctx context.Context, arg CreateCentroParams) (CreateCentroRow, error) {
+	row := q.db.QueryRow(ctx, createCentro,
+		arg.TipoCentro,
+		arg.Nombre,
+		arg.Descripcion,
+		arg.ImagePath,
+		arg.Latitude,
+		arg.Longitude,
+		arg.Capacidad,
+		arg.Cantidad,
+		arg.Activo,
+	)
+	var i CreateCentroRow
+	err := row.Scan(
+		&i.ID,
+		&i.TipoCentro,
+		&i.Nombre,
+		&i.Descripcion,
+		&i.ImagePath,
+		&i.Latitude,
+		&i.Longitude,
+		&i.Capacidad,
+		&i.Cantidad,
+		&i.Activo,
+		&i.CreatedAt,
+	)
+	return i, err
+}
 
 const createTipoCentro = `-- name: CreateTipoCentro :one
 INSERT INTO tipos_centro (nombre)
@@ -22,6 +95,46 @@ func (q *Queries) CreateTipoCentro(ctx context.Context, nombre string) (TiposCen
 	return i, err
 }
 
+const getCentroById = `-- name: GetCentroById :one
+SELECT id, tipo_centro, nombre, descripcion, image_path,
+       latitude, longitude, capacidad, cantidad, activo, created_at
+FROM centros
+WHERE id = $1
+`
+
+type GetCentroByIdRow struct {
+	ID          uuid.UUID `json:"id"`
+	TipoCentro  int       `json:"tipo_centro"`
+	Nombre      string    `json:"nombre"`
+	Descripcion *string   `json:"descripcion"`
+	ImagePath   *string   `json:"image_path"`
+	Latitude    float64   `json:"latitude"`
+	Longitude   float64   `json:"longitude"`
+	Capacidad   *int      `json:"capacidad"`
+	Cantidad    *int      `json:"cantidad"`
+	Activo      bool      `json:"activo"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetCentroById(ctx context.Context, id uuid.UUID) (GetCentroByIdRow, error) {
+	row := q.db.QueryRow(ctx, getCentroById, id)
+	var i GetCentroByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.TipoCentro,
+		&i.Nombre,
+		&i.Descripcion,
+		&i.ImagePath,
+		&i.Latitude,
+		&i.Longitude,
+		&i.Capacidad,
+		&i.Cantidad,
+		&i.Activo,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getTipoCentroById = `-- name: GetTipoCentroById :one
 SELECT id, nombre FROM tipos_centro
 WHERE id = $1
@@ -32,6 +145,60 @@ func (q *Queries) GetTipoCentroById(ctx context.Context, id int) (TiposCentro, e
 	var i TiposCentro
 	err := row.Scan(&i.ID, &i.Nombre)
 	return i, err
+}
+
+const listCentros = `-- name: ListCentros :many
+SELECT id, tipo_centro, nombre, descripcion, image_path,
+       latitude, longitude, capacidad, cantidad, activo, created_at
+FROM centros
+WHERE activo OR $1::boolean
+ORDER BY nombre
+`
+
+type ListCentrosRow struct {
+	ID          uuid.UUID `json:"id"`
+	TipoCentro  int       `json:"tipo_centro"`
+	Nombre      string    `json:"nombre"`
+	Descripcion *string   `json:"descripcion"`
+	ImagePath   *string   `json:"image_path"`
+	Latitude    float64   `json:"latitude"`
+	Longitude   float64   `json:"longitude"`
+	Capacidad   *int      `json:"capacidad"`
+	Cantidad    *int      `json:"cantidad"`
+	Activo      bool      `json:"activo"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (q *Queries) ListCentros(ctx context.Context, incluirInactivos bool) ([]ListCentrosRow, error) {
+	rows, err := q.db.Query(ctx, listCentros, incluirInactivos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCentrosRow
+	for rows.Next() {
+		var i ListCentrosRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TipoCentro,
+			&i.Nombre,
+			&i.Descripcion,
+			&i.ImagePath,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Capacidad,
+			&i.Cantidad,
+			&i.Activo,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listTiposCentro = `-- name: ListTiposCentro :many

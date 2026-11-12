@@ -15,6 +15,7 @@ type Querier interface {
 	// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
 	// todos, alguno es de otro incidente o no existe.
 	CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error)
+	CreateCentro(ctx context.Context, arg CreateCentroParams) (CreateCentroRow, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateHistorialEvento(ctx context.Context, arg CreateHistorialEventoParams) error
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
@@ -43,6 +44,7 @@ type Querier interface {
 	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
+	GetCentroById(ctx context.Context, id uuid.UUID) (GetCentroByIdRow, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
@@ -56,6 +58,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
+	ListCentros(ctx context.Context, incluirInactivos bool) ([]ListCentrosRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error)
 	ListHistorialPorEntidad(ctx context.Context, arg ListHistorialPorEntidadParams) ([]Historial, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
