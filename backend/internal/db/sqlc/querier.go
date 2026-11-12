@@ -30,6 +30,7 @@ type Querier interface {
 	// UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
 	// cambia nada. El trigger trg_update_tag_counts suma.
 	CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error)
+	CreateTipoCentro(ctx context.Context, nombre string) (TiposCentro, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
 	// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
@@ -50,6 +51,7 @@ type Querier interface {
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
+	GetTipoCentroById(ctx context.Context, id int) (TiposCentro, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
@@ -75,6 +77,7 @@ type Querier interface {
 	// incidente al listar.
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
+	ListTiposCentro(ctx context.Context) ([]TiposCentro, error)
 	// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
 	// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
 	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
