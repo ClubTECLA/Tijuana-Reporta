@@ -51,6 +51,10 @@ paths:
     $ref: './paths/tipos_centro.yaml#/coleccionTiposCentro'
   /tipos-centro/{tipoCentroId}:
     $ref: './paths/tipos_centro.yaml#/tiposCentroPorId'
+  /centro:
+    $ref: './paths/centros.yaml#/coleccionCentros'
+  /centro/{centroId}:
+    $ref: './paths/centros.yaml#/centrosPorId'
 
 components:
   schemas:
@@ -112,6 +116,10 @@ components:
       $ref: './schemas/tipos_centro/tipos_centro.yaml'
     CrearTipoCentroRequest:
       $ref: './schemas/tipos_centro/crear_tipo_centro_request.yaml'
+    Centro:
+      $ref: '../schemas/centros/centro.yaml'
+    CrearCentroRequest:
+      $ref: '../schemas/centros/crear_centro_request.yaml'
   securitySchemes:
     bearerAuth:
       type: http
