@@ -47,6 +47,10 @@ paths:
     $ref: './paths/usuarios.yaml#/listarUsuarios'
   /roles:
     $ref: './paths/usuarios.yaml#/listarRoles'
+  /tipos-centro:
+    $ref: './paths/tipos_centro.yaml#/coleccionTiposCentro'
+  /tipos-centro/{tipoCentroId}:
+    $ref: './paths/tipos_centro.yaml#/tiposCentroPorId'
 
 components:
   schemas:
@@ -104,6 +108,10 @@ components:
       $ref: './schemas/users/usuario_resumen.yaml'
     Rol:
       $ref: './schemas/roles/rol.yaml'
+    TiposCentro:
+      $ref: './schemas/tipos_centro/tipos_centro.yaml'
+    CrearTipoCentroRequest:
+      $ref: './schemas/tipos_centro/crear_tipo_centro_request.yaml'
   securitySchemes:
     bearerAuth:
       type: http
