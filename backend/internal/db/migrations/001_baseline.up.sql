@@ -120,6 +120,8 @@ CREATE TABLE public.centros (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tipo_centro integer NOT NULL,
     nombre character varying(50) NOT NULL,
+    descripcion text,
+    image_path text,
     latitude double precision NOT NULL,
     longitude double precision NOT NULL,
     capacidad integer,
