@@ -1,0 +1,26 @@
+type: object
+required: [tipo_centro, nombre, latitude, longitude]
+properties:
+  tipo_centro:
+    type: integer
+  nombre:
+    type: string
+    minLength: 1
+    maxLength: 50
+  descripcion:
+    type: string
+  latitude:
+    type: number
+    format: double
+  longitude:
+    type: number
+    formato: double
+  capacidad:
+    type: integer
+    minimum: 0
+  cantidad:
+    type: integer
+    minimum: 0
+  activo:
+    type: boolean
+    default: true
