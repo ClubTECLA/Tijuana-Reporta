@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createCentro = `-- name: CreateCentro :one
@@ -21,22 +20,22 @@ INSERT INTO centros (
 VALUES (
     $1, $2, $3, $4,
     $5, $6, $7, $8,
-    COALESCE($9::boolean, true)
+    $9::boolean
 )
 RETURNING id, tipo_centro, nombre, descripcion, image_path,
           latitude, longitude, capacidad, cantidad, activo, created_at
 `
 
 type CreateCentroParams struct {
-	TipoCentro  int         `json:"tipo_centro"`
-	Nombre      string      `json:"nombre"`
-	Descripcion *string     `json:"descripcion"`
-	ImagePath   *string     `json:"image_path"`
-	Latitude    float64     `json:"latitude"`
-	Longitude   float64     `json:"longitude"`
-	Capacidad   *int        `json:"capacidad"`
-	Cantidad    *int        `json:"cantidad"`
-	Activo      pgtype.Bool `json:"activo"`
+	TipoCentro  int     `json:"tipo_centro"`
+	Nombre      string  `json:"nombre"`
+	Descripcion *string `json:"descripcion"`
+	ImagePath   *string `json:"image_path"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+	Capacidad   *int    `json:"capacidad"`
+	Cantidad    *int    `json:"cantidad"`
+	Activo      bool    `json:"activo"`
 }
 
 type CreateCentroRow struct {

@@ -32,7 +32,7 @@ INSERT INTO centros (
 VALUES (
     sqlc.arg(tipo_centro), sqlc.arg(nombre), sqlc.narg(descripcion), sqlc.narg(image_path),
     sqlc.arg(latitude), sqlc.arg(longitude), sqlc.narg(capacidad), sqlc.narg(cantidad),
-    COALESCE(sqlc.narg(activo)::boolean, true)
+    sqlc.arg(activo)::boolean
 )
 RETURNING id, tipo_centro, nombre, descripcion, image_path,
           latitude, longitude, capacidad, cantidad, activo, created_at;
