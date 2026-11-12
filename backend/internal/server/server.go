@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/centro"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
@@ -43,5 +44,6 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 			MaxBytes:   cfg.MaxFotoBytes,
 			MaxPixeles: cfg.MaxFotoPixeles,
 		})),
+		Centros: centro.NewHandler(centro.NewService(centro.NewStore(pool))),
 	}, cfg.JWTSecret, WithMaxMultimediaBytes(cfg.MaxMultimediaBytes)), nil
 }
