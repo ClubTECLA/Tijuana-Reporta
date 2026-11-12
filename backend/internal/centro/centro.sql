@@ -10,3 +10,29 @@ WHERE id = $1;
 INSERT INTO tipos_centro (nombre)
 VALUES (sqlc.arg(nombre))
 RETURNING *;
+
+-- name: ListCentros :many
+SELECT id, tipo_centro, nombre, descripcion, image_path,
+       latitude, longitude, capacidad, cantidad, activo, created_at
+FROM centros
+WHERE activo OR sqlc.arg(incluir_inactivos)::boolean
+ORDER BY nombre;
+
+-- name: GetCentroById :one
+SELECT id, tipo_centro, nombre, descripcion, image_path,
+       latitude, longitude, capacidad, cantidad, activo, created_at
+FROM centros
+WHERE id = $1;
+
+-- name: CreateCentro :one
+INSERT INTO centros (
+    tipo_centro, nombre, descripcion, image_path,
+    latitude, longitude, capacidad, cantidad, activo
+)
+VALUES (
+    sqlc.arg(tipo_centro), sqlc.arg(nombre), sqlc.narg(descripcion), sqlc.narg(image_path),
+    sqlc.arg(latitude), sqlc.arg(longitude), sqlc.narg(capacidad), sqlc.narg(cantidad),
+    COALESCE(sqlc.narg(activo)::boolean, true)
+)
+RETURNING id, tipo_centro, nombre, descripcion, image_path,
+          latitude, longitude, capacidad, cantidad, activo, created_at;
