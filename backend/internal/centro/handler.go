@@ -43,6 +43,7 @@ func toCentro(c Centro) httpapi.Centro {
 		Latitude:    c.Latitude,
 		Longitude:   c.Longitude,
 		Nombre:      c.Nombre,
+		TipoCentro:  c.TipoCentro,
 	}
 }
 
@@ -52,7 +53,7 @@ func toNuevoCentro(b *httpapi.CrearCentroRequest) NuevoCentro {
 		Nombre:      b.Nombre,
 		Descripcion: b.Descripcion,
 		Latitude:    b.Latitude,
-		Longitude:   float64(b.Longitude),
+		Longitude:   b.Longitude,
 		Capacidad:   b.Capacidad,
 		Cantidad:    b.Cantidad,
 		Activo:      b.Activo,
