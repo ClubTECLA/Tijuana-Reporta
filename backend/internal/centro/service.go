@@ -30,6 +30,7 @@ func NewService(store store) *Service {
 
 const (
 	maxNombre = 50
+	maxInt32  = 1<<31 - 1 // 2147483647
 )
 
 func (s *Service) CrearTipoCentro(ctx context.Context, nuevo NuevoTipoCentro, userID uuid.UUID) (sqlc.TiposCentro, error) {
@@ -76,9 +77,12 @@ func (s *Service) ObtenerTipoCentro(ctx context.Context, id int) (sqlc.TiposCent
 	return t, nil
 }
 
-func validarCentro(nombre string, lat, lng float64, capacidad, cantidad *int) error {
+func validarCentro(nombre string, tipoCentro int, lat, lng float64, capacidad, cantidad *int) error {
 	if nombre == "" || utf8.RuneCountInString(nombre) > maxNombre {
 		return fmt.Errorf("%w: nombre debe tener entre 1 y %d caracteres", ErrCentroInvalido, maxNombre)
+	}
+	if tipoCentro < 1 || tipoCentro > maxInt32 {
+		return fmt.Errorf("%w: tipo_centro fuera de rango", ErrCentroInvalido)
 	}
 	if lat < -90 || lat > 90 {
 		return fmt.Errorf("%w: latitude debe estar entre -90 y 90", ErrCentroInvalido)
@@ -86,11 +90,11 @@ func validarCentro(nombre string, lat, lng float64, capacidad, cantidad *int) er
 	if lng < -180 || lng > 180 {
 		return fmt.Errorf("%w: longitude debe estar entre -180 y 180", ErrCentroInvalido)
 	}
-	if capacidad != nil && *capacidad < 0 {
-		return fmt.Errorf("%w: capacidad no puede ser negativa", ErrCentroInvalido)
+	if capacidad != nil && (*capacidad < 0 || *capacidad > maxInt32) {
+		return fmt.Errorf("%w: capacidad debe estar entre 0 y %d", ErrCentroInvalido, maxInt32)
 	}
-	if cantidad != nil && *cantidad < 0 {
-		return fmt.Errorf("%w: cantidad no puede ser negativa", ErrCentroInvalido)
+	if cantidad != nil && (*cantidad < 0 || *cantidad > maxInt32) {
+		return fmt.Errorf("%w: cantidad debe estar entre 0 y %d", ErrCentroInvalido, maxInt32)
 	}
 	if capacidad != nil && cantidad != nil && *cantidad > *capacidad {
 		return fmt.Errorf("%w: cantidad no puede ser mayor que capacidad", ErrCentroInvalido)
@@ -100,7 +104,7 @@ func validarCentro(nombre string, lat, lng float64, capacidad, cantidad *int) er
 
 func (s *Service) CrearCentro(ctx context.Context, nuevo NuevoCentro, userID uuid.UUID) (Centro, error) {
 	nombre := strings.TrimSpace(nuevo.Nombre)
-	if err := validarCentro(nombre, nuevo.Latitude, nuevo.Longitude, nuevo.Capacidad, nuevo.Cantidad); err != nil {
+	if err := validarCentro(nombre, nuevo.TipoCentro, nuevo.Latitude, nuevo.Longitude, nuevo.Capacidad, nuevo.Cantidad); err != nil {
 		return Centro{}, err
 	}
 
