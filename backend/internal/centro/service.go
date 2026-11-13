@@ -127,7 +127,7 @@ func (s *Service) CrearCentro(ctx context.Context, nuevo NuevoCentro, userID uui
 		ActorID: userID,
 	})
 	if db.IsForeignKeyViolation(err, "centros_tipo_centros_id_fkey") {
-		return Centro{}, ErrTipoCentroNotFound
+		return Centro{}, ErrTipoCentroInexistente
 	}
 	if err != nil {
 		return Centro{}, err

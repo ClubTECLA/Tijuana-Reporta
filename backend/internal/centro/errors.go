@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	ErrTipoCentroNotFound  = errors.New("tipo_centro not found")
-	ErrTipoCentroInvalido  = errors.New("invalid tipo_centro")
-	ErrNameTipoCentroTaken = errors.New("tipo_centro name taken")
-	ErrCentroNotFound      = errors.New("centro not found")
-	ErrCentroInvalido      = errors.New("invalid centro")
+	ErrTipoCentroNotFound    = errors.New("tipo_centro not found")
+	ErrTipoCentroInvalido    = errors.New("invalid tipo de centro")
+	ErrNameTipoCentroTaken   = errors.New("tipo_centro name taken")
+	ErrCentroNotFound        = errors.New("centro not found")
+	ErrCentroInvalido        = errors.New("invalid centro")
+	ErrTipoCentroInexistente = errors.New("tipo_centro inexistente")
 )
 
 var ReglasHTTP = []httperr.Regla{
@@ -21,4 +22,5 @@ var ReglasHTTP = []httperr.Regla{
 	{Err: ErrNameTipoCentroTaken, Status: http.StatusConflict, Message: "ya existe un tipo de centro con ese nombre"},
 	{Err: ErrCentroNotFound, Status: http.StatusNotFound, Message: "centro no encontrado"},
 	{Err: ErrCentroInvalido, Status: http.StatusBadRequest},
+	{Err: ErrTipoCentroInexistente, Status: http.StatusBadRequest, Message: "el tipo de centro indicado no existe"},
 }
