@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/centro"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
@@ -53,6 +54,7 @@ type Handlers struct {
 	Comentarios *comentario.Handler
 	Usuarios    *usuario.Handler
 	Multimedia  *multimedia.Handler
+	Centros     *centro.Handler
 }
 
 // Cada funcionalidad llama Handler a su handler, y dos campos embebidos no
@@ -64,6 +66,7 @@ type (
 	comentarios = comentario.Handler
 	usuarios    = usuario.Handler
 	multimedias = multimedia.Handler
+	centros     = centro.Handler
 )
 
 // api junta los handlers de cada funcionalidad en la interfaz que genera
@@ -75,6 +78,7 @@ type api struct {
 	*comentarios
 	*usuarios
 	*multimedias
+	*centros
 }
 
 // Assertion en tiempo de compilación: si el contrato gana un endpoint y
@@ -95,7 +99,7 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 
 	// Una sola tabla con las reglas de todos los errores que pueden devolver
 	// los handlers.
-	tabla := httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP)
+	tabla := httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP, centro.ReglasHTTP)
 
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
@@ -130,7 +134,7 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	strict := httpapi.NewStrictHandlerWithOptions(
-		api{reportes: h.Reportes, incidentes: h.Incidentes, comentarios: h.Comentarios, usuarios: h.Usuarios, multimedias: h.Multimedia},
+		api{reportes: h.Reportes, incidentes: h.Incidentes, comentarios: h.Comentarios, usuarios: h.Usuarios, multimedias: h.Multimedia, centros: h.Centros},
 		nil,
 		httpapi.StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {

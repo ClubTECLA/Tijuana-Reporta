@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/centro"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
@@ -16,7 +17,7 @@ import (
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.
-var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP)
+var tabla = httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP, centro.ReglasHTTP)
 
 func TestResolver(t *testing.T) {
 	tests := []struct {
@@ -52,6 +53,9 @@ func TestResolver(t *testing.T) {
 		{"prohibido", httperr.ErrProhibido, http.StatusForbidden, "prohibido"},
 		{"body muy grande", httperr.ErrBodyMuyGrande, http.StatusRequestEntityTooLarge, "body muy grande"},
 		{"body inválido", httperr.ErrBodyInvalido, http.StatusBadRequest, "body invalido"},
+		{"tipo de centro no encontrado", centro.ErrTipoCentroNotFound, http.StatusNotFound, "tipo de centro no encontrado"},
+		{"nombre de tipo de centro repetido", centro.ErrNameTipoCentroTaken, http.StatusConflict, "ya existe un tipo de centro con ese nombre"},
+		{"tipo de centro inválido con detalle", fmt.Errorf("%w: nombre vacío", centro.ErrTipoCentroInvalido), http.StatusBadRequest, "invalid tipo de centro: nombre vacío"},
 
 		// El orden de la tabla y errors.Is existen para esto: los servicios
 		// envuelven los sentinels con contexto.
@@ -113,6 +117,12 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		reporte.ErrTagInvalido,
 		reporte.ErrDemasiadosTags,
 		reporte.ErrEliminarNoPermitido,
+		centro.ErrTipoCentroNotFound,
+		centro.ErrTipoCentroInvalido,
+		centro.ErrNameTipoCentroTaken,
+		centro.ErrCentroInvalido,
+		centro.ErrCentroNotFound,
+		centro.ErrTipoCentroInexistente,
 	}
 
 	for _, err := range errs {

@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/centro"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
@@ -80,6 +81,7 @@ func newTestClient(t *testing.T) *testClient {
 			MaxBytes:   3 << 20,
 			MaxPixeles: 16_000_000,
 		})),
+		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
 	}, testJWTSecret)
 
 	return &testClient{t: t, router: router, multimedia: almacen}

@@ -1,0 +1,127 @@
+coleccionTiposCentro:
+  get:
+    operationId: listarTiposCentro
+    description: Tipos de centro ordenados por nombre
+    tags: [Tipos de centro]
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Lista de tipos de centros
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TiposCentro'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+  
+  post:
+    operationId: crearTipoCentro
+    description: Crea un nuevo tipo de centro. Solo para administradores.
+    tags: [Tipos de centro]
+    security:
+      - bearerAuth: [admin]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CrearTipoCentroRequest'
+    responses:
+      '201':
+        description: Tipo de centro creado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TiposCentro'
+      '400':
+        description: Datos inválidos (nombre vacio)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: Ya existe un tipo de centro con ese nombre
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+tiposCentroPorId:
+  get:
+    operationId: obtenerTipoCentro
+    description: Un tipo de centro
+    tags: [Tipos de centro]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: tipoCentroId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minium: 1
+    responses:
+      '200':
+        description: Tipo de centro encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TiposCentro'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Tipo de centro no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+components:
+  schemas:
+    TiposCentro:
+      $ref: '../schemas/tipos_centro/tipos_centro.yaml'
+    CrearTipoCentroRequest:
+      $ref: '../schemas/tipos_centro/crear_tipo_centro_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

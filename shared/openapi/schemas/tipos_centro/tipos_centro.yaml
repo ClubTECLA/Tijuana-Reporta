@@ -1,0 +1,8 @@
+type: object
+required: [id, nombre]
+properties:
+  id:
+    type: integer
+  nombre:
+    type: string
+    maxLength: 50

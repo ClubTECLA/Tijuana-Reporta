@@ -15,6 +15,7 @@ type Querier interface {
 	// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
 	// todos, alguno es de otro incidente o no existe.
 	CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error)
+	CreateCentro(ctx context.Context, arg CreateCentroParams) (CreateCentroRow, error)
 	CreateComentario(ctx context.Context, arg CreateComentarioParams) (CreateComentarioRow, error)
 	CreateHistorialEvento(ctx context.Context, arg CreateHistorialEventoParams) error
 	CreateIncidente(ctx context.Context, arg CreateIncidenteParams) (Incidente, error)
@@ -30,6 +31,7 @@ type Querier interface {
 	// UNIQUE (reporte_id, tag_id, added_by), así que repetir la petición no
 	// cambia nada. El trigger trg_update_tag_counts suma.
 	CreateTagsUsuario(ctx context.Context, arg CreateTagsUsuarioParams) ([]int, error)
+	CreateTipoCentro(ctx context.Context, nombre string) (TiposCentro, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserReporte(ctx context.Context, arg CreateUserReporteParams) (UsersReport, error)
 	// Elimina el reporte; ON DELETE CASCADE borra comentarios, multimedia, tags,
@@ -42,6 +44,7 @@ type Querier interface {
 	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
+	GetCentroById(ctx context.Context, id uuid.UUID) (GetCentroByIdRow, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
@@ -50,10 +53,12 @@ type Querier interface {
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
+	GetTipoCentroById(ctx context.Context, id int) (TiposCentro, error)
 	GetUserByEmail(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error)
 	ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error)
+	ListCentros(ctx context.Context, incluirInactivos bool) ([]ListCentrosRow, error)
 	ListComentariosByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListComentariosByReporteIdRow, error)
 	ListHistorialPorEntidad(ctx context.Context, arg ListHistorialPorEntidadParams) ([]Historial, error)
 	// Los inactivos solo se incluyen si se piden (p. ej. para una pantalla de
@@ -75,6 +80,7 @@ type Querier interface {
 	// incidente al listar.
 	ListTagsByIncidenteIds(ctx context.Context, incidenteIds []int) ([]Tag, error)
 	ListTagsByReporteId(ctx context.Context, reporteID uuid.UUID) ([]ListTagsByReporteIdRow, error)
+	ListTiposCentro(ctx context.Context) ([]TiposCentro, error)
 	// Serializa los reemplazos de tags de un mismo usuario en un mismo reporte:
 	// sin esto, dos PUT simultáneos pueden dejar una mezcla de ambos conjuntos.
 	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea

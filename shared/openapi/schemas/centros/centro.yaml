@@ -1,0 +1,57 @@
+type: object
+description: Detalle completo de un Centroide
+required:
+  - id
+  - tipo_centro
+  - nombre
+  - descripcion
+  - image_path
+  - latitude
+  - longitude
+  - capacidad
+  - cantidad
+  - activo
+  - created_at
+properties:
+  id:
+    type: string
+    format: uuid
+  tipo_centro:
+    type: integer
+    description: Id del tipo de centro
+    minimum: 1
+    maximum: 2147483647
+  nombre:
+    type: string
+    maxLength: 50
+  descripcion:
+    type: string
+    nullable: true
+  image_path:
+    type: string
+    nullable: true
+  latitude:
+    type: number
+    format: double
+    minimum: -90
+    maximum: 90
+  longitude:
+    type: number
+    format: double
+    minimum: -180
+    maximum: 180
+  capacidad:
+    type: integer
+    minimum: 0
+    maximum: 2147483647
+    nullable: true
+  cantidad:
+    type: integer
+    minimum: 0
+    maximum: 2147483647
+    nullable: true
+  activo:
+    type: boolean
+  created_at:
+    type: string
+    format: date-time  

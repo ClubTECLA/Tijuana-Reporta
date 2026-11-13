@@ -1,0 +1,123 @@
+coleccionCentros:
+  get:
+    operationId: listarCentros
+    description: Centros para el mapa. Por defecto solo los activos.
+    tags: [Centros]
+    parameters:
+      - name: incluir_inactivos
+        in: query
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Lista de Centros
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Centro'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+  
+  post:
+    operationId: crearCentro
+    description: Crea un centro en la ubicacion indicada.
+    tags: [Centros]
+    security:
+      - bearerAuth: [admin]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CrearCentroRequest'
+    responses:
+      '201':
+        description: Centro creado con exito.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Centro'
+      '400':
+        description: Datos inválidos (p. ej. cantidad mayor que capacidad)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario no tiene rol de administrador
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      
+centrosPorId:
+  get:
+    operationId: obtenerCentro
+    description: Se obtiene un centro con su descripción, ubicación y foto (si la tiene)
+    tags: [Centros]
+    parameters:
+      - name: centroId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Centro encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Centro'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Centro no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Centro:
+      $ref: '../schemas/centros/centro.yaml'
+    CrearCentroRequest:
+      $ref: '../schemas/centros/crear_centro_request.yaml'
+    ErrorResponse:
+      $ref: '../schemas/error_response.yaml'

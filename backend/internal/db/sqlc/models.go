@@ -115,16 +115,18 @@ type AuthProvider struct {
 }
 
 type Centro struct {
-	ID         uuid.UUID   `json:"id"`
-	TipoCentro int         `json:"tipo_centro"`
-	Nombre     string      `json:"nombre"`
-	Latitude   float64     `json:"latitude"`
-	Longitude  float64     `json:"longitude"`
-	Capacidad  *int        `json:"capacidad"`
-	Cantidad   *int        `json:"cantidad"`
-	Activo     bool        `json:"activo"`
-	CreatedAt  time.Time   `json:"created_at"`
-	Geom       interface{} `json:"geom"`
+	ID          uuid.UUID   `json:"id"`
+	TipoCentro  int         `json:"tipo_centro"`
+	Nombre      string      `json:"nombre"`
+	Descripcion *string     `json:"descripcion"`
+	ImagePath   *string     `json:"image_path"`
+	Latitude    float64     `json:"latitude"`
+	Longitude   float64     `json:"longitude"`
+	Capacidad   *int        `json:"capacidad"`
+	Cantidad    *int        `json:"cantidad"`
+	Activo      bool        `json:"activo"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Geom        interface{} `json:"geom"`
 }
 
 type Comentario struct {
