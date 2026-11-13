@@ -213,6 +213,9 @@ func TestService_CrearCentro_Invalido(t *testing.T) {
 		"cantidad mayor que capacidad": func(n *NuevoCentro) {
 			n.Capacidad, n.Cantidad = ptr(5), ptr(10)
 		},
+		"capacidad fuera de rango int32": func(n *NuevoCentro) { n.Capacidad = ptr(maxInt32 + 1) },
+		"cantidad fuera de rango int32":  func(n *NuevoCentro) { n.Cantidad = ptr(maxInt32 + 1) },
+		"tipo_centro fuera de rango":     func(n *NuevoCentro) { n.TipoCentro = maxInt32 + 1 },
 	}
 	for nombre, mutar := range casos {
 		t.Run(nombre, func(t *testing.T) {
