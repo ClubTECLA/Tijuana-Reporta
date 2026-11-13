@@ -53,9 +53,9 @@ func TestResolver(t *testing.T) {
 		{"prohibido", httperr.ErrProhibido, http.StatusForbidden, "prohibido"},
 		{"body muy grande", httperr.ErrBodyMuyGrande, http.StatusRequestEntityTooLarge, "body muy grande"},
 		{"body inválido", httperr.ErrBodyInvalido, http.StatusBadRequest, "body invalido"},
-		{"tipo de centro no encontrado", centro.ErrTipoCentroNotFound, http.StatusNotFound, "tipo_centro no encontrado"},
-		{"nombre de tipo de centro repetido", centro.ErrNameTipoCentroTaken, http.StatusConflict, "ya existe un tipo_centro con ese nombre"},
-		{"tipo de centro inválido con detalle", fmt.Errorf("%w: nombre vacío", centro.ErrTipoCentroInvalido), http.StatusBadRequest, "invalid tipo_centro: nombre vacío"},
+		{"tipo de centro no encontrado", centro.ErrTipoCentroNotFound, http.StatusNotFound, "tipo de centro no encontrado"},
+		{"nombre de tipo de centro repetido", centro.ErrNameTipoCentroTaken, http.StatusConflict, "ya existe un tipo de centro con ese nombre"},
+		{"tipo de centro inválido con detalle", fmt.Errorf("%w: nombre vacío", centro.ErrTipoCentroInvalido), http.StatusBadRequest, "invalid tipo de centro: nombre vacío"},
 
 		// El orden de la tabla y errors.Is existen para esto: los servicios
 		// envuelven los sentinels con contexto.
