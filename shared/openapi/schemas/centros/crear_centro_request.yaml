@@ -3,6 +3,8 @@ required: [tipo_centro, nombre, latitude, longitude]
 properties:
   tipo_centro:
     type: integer
+    minimum: 1
+    maximum: 2147483647
   nombre:
     type: string
     minLength: 1
@@ -22,9 +24,11 @@ properties:
   capacidad:
     type: integer
     minimum: 0
+    maximum: 2147483647
   cantidad:
     type: integer
     minimum: 0
+    maximum: 2147483647
   activo:
     type: boolean
     default: true
