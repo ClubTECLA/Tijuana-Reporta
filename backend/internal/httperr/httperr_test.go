@@ -122,6 +122,7 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		centro.ErrNameTipoCentroTaken,
 		centro.ErrCentroInvalido,
 		centro.ErrCentroNotFound,
+		centro.ErrTipoCentroInexistente,
 	}
 
 	for _, err := range errs {

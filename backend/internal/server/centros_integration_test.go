@@ -143,8 +143,7 @@ func TestCentros(t *testing.T) {
 	t.Run("tipo de centro inexistente", func(t *testing.T) {
 		tc := *admin
 		tc.t = t
-		// Hoy ErrTipoCentroNotFound da 404; cambia el status si decides usar 400.
-		tc.expect(http.StatusNotFound, http.MethodPost, "/v1/centro", body(map[string]any{"tipo_centro": 2147483647}))
+		tc.expect(http.StatusBadRequest, http.MethodPost, "/v1/centro", body(map[string]any{"tipo_centro": 2147483647}))
 	})
 
 	t.Run("ciudadano no puede crear", func(t *testing.T) {

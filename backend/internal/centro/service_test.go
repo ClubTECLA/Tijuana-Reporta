@@ -247,8 +247,8 @@ func TestService_CrearCentro_TipoCentroInexistente(t *testing.T) {
 	s := NewService(f)
 
 	_, err := s.CrearCentro(t.Context(), nuevoCentroValido(), uuid.New())
-	if !errors.Is(err, ErrTipoCentroNotFound) {
-		t.Errorf("CrearCentro() error = %v, want ErrTipoCentroNotFound", err)
+	if !errors.Is(err, ErrTipoCentroInexistente) {
+		t.Errorf("CrearCentro() error = %v, want ErrTipoCentroInexistente", err)
 	}
 }
 
