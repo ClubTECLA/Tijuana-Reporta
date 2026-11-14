@@ -17,6 +17,8 @@ import { prepararFoto, type PreparedPhoto } from "@/features/reportes/prepararFo
 const VISIBLE_CATEGORIES = 6;
 // Límite del backend para un comentario (crear_comentario_request.yaml).
 const DESCRIPTION_MAX_LENGTH = 500;
+// Límite del backend para las etiquetas de un reporte (actualizar_tags_reporte_request.yaml).
+const MAX_TAGS = 20;
 
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
@@ -66,8 +68,15 @@ function NewIncidentForm() {
         setCategoryId(id);
     };
 
-    const toggleTag = (id: number) =>
-        setTagIds((prev) => prev.includes(id) ? prev.filter((tagId) => tagId !== id) : [...prev, id]);
+    const toggleTag = (id: number) => {
+        if (tagIds.includes(id)) {
+            setTagIds(tagIds.filter((tagId) => tagId !== id));
+        } else if (tagIds.length >= MAX_TAGS) {
+            showMessage(`Puedes elegir hasta ${MAX_TAGS} etiquetas.`, { color: "yellow", type: "float", title: "Etiquetas" });
+        } else {
+            setTagIds([...tagIds, id]);
+        }
+    };
 
     const handleSearchAddress = async (query: string) => {
         try {
@@ -220,7 +229,8 @@ function NewIncidentForm() {
                 <div className="flex flex-col gap-2">
                     <span className={sectionTitleStyle}>Etiquetas</span>
                     {selectedCategory?.tags.length
-                        ? <div className="flex flex-wrap gap-2">
+                        // Desactivadas al publicar y al reintentar la foto: ya se enviaron y cambiarlas no tendría efecto.
+                        ? <fieldset disabled={publishing || !!photoRetry} className="flex min-w-0 flex-wrap gap-2 disabled:opacity-60">
                             {selectedCategory.tags.map((tag) =>
                                 <CategoryChip
                                     key={tag.id}
@@ -229,7 +239,7 @@ function NewIncidentForm() {
                                     onPress={() => toggleTag(tag.id)}
                                 />
                             )}
-                        </div>
+                        </fieldset>
                         : <span className={pendingNoteStyle}>
                             {selectedCategory ? "Esta categoría no tiene etiquetas." : "Elige una categoría para ver sus etiquetas."}
                         </span>
