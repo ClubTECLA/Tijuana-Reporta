@@ -71,7 +71,8 @@ export default function MainMap() {
   const [capas, setCapas] = useState<CapasMapa>(CAPAS_POR_DEFECTO);
   const verIncidentes = muestraIncidentes(capas);
   const verRefugios = muestraRefugios(capas);
-  const [selectedRefugio, setSelectedRefugio] = useState<Refugio | null>(null);
+  // Solo se guarda el id: el refugio se deriva de la lista vigente, así la tarjeta se actualiza con cada recarga.
+  const [selectedRefugioId, setSelectedRefugioId] = useState<string | null>(null);
   const refugiosQuery = useRefugios(verRefugios);
   const reportesQuery = useReportes();
   const categorias = useCategorias();
@@ -119,6 +120,10 @@ export default function MainMap() {
     sinCoincidencias: reportes.length > 0 && reportesVisibles.length === 0,
   });
   const refugios = useMemo(() => refugiosQuery.data ?? [], [refugiosQuery.data]);
+  const selectedRefugio = useMemo(
+    () => refugios.find((r) => r.id === selectedRefugioId) ?? null,
+    [refugios, selectedRefugioId],
+  );
   // Cada aviso solo cuenta si su capa se ve. Con las dos, los de incidentes mandan; con solo refugios, solo los suyos.
   const avisoIncidentes = verIncidentes ? avisoDatos : null;
   const avisoRefugios = verRefugios
@@ -136,15 +141,15 @@ export default function MainMap() {
 
   // Si el refugio abierto ya no viene en la lista (lo desactivaron), se cierra su tarjeta.
   useEffect(() => {
-    if (selectedRefugio && refugiosQuery.data && !refugiosQuery.data.some((r) => r.id === selectedRefugio.id)) {
-      setSelectedRefugio(null);
+    if (selectedRefugioId && refugiosQuery.data && !refugiosQuery.data.some((r) => r.id === selectedRefugioId)) {
+      setSelectedRefugioId(null);
     }
-  }, [refugiosQuery.data, selectedRefugio]);
+  }, [refugiosQuery.data, selectedRefugioId]);
 
   /** Pasa a las siguientes capas del mapa; cierra la tarjeta abierta, que podría ser de una capa que ya no se ve. */
   const alternarCapas = useCallback(() => {
     setSelectedReporte(null);
-    setSelectedRefugio(null);
+    setSelectedRefugioId(null);
     setCapas(siguienteCapas);
   }, []);
 
@@ -155,7 +160,7 @@ export default function MainMap() {
   const seleccionar = useCallback(
     (reporte: Reporte) => {
       huboGesto.current = true;
-      setSelectedRefugio(null);
+      setSelectedRefugioId(null);
       setSelectedReporte(reporte);
       cameraRef.current?.flyTo({
         center: [reporte.lng, reporte.lat],
@@ -171,7 +176,7 @@ export default function MainMap() {
     (refugio: Refugio) => {
       huboGesto.current = true;
       setSelectedReporte(null);
-      setSelectedRefugio(refugio);
+      setSelectedRefugioId(refugio.id);
       cameraRef.current?.flyTo({
         center: [refugio.lng, refugio.lat],
         duration: 700,
@@ -430,10 +435,10 @@ export default function MainMap() {
           {/* Desvanecimiento del mapa: tocarlo cierra la tarjeta. */}
           <Pressable
             style={styles.scrim}
-            onPress={() => setSelectedRefugio(null)}
+            onPress={() => setSelectedRefugioId(null)}
             accessibilityLabel="Cerrar refugio"
           />
-          <RefugioDetalle refugio={selectedRefugio} bottom={fabBottom} onClose={() => setSelectedRefugio(null)} />
+          <RefugioDetalle refugio={selectedRefugio} bottom={fabBottom} onClose={() => setSelectedRefugioId(null)} />
         </>
       ) : selectedReporte ? (
         <>

@@ -1,4 +1,5 @@
-import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CarpaIcon } from '@/components/icons/CarpaIcon';
 import { LocationPinIcon } from '@/components/icons/LocationPinIcon';
 import { SendIcon } from '@/components/icons/SendIcon';
@@ -9,6 +10,8 @@ import { useDireccionRefugio } from './hooks';
 import type { Refugio } from './types';
 
 const ALTURA_CABECERA = 151;
+// Aire que se deja entre la tarjeta y el borde superior de la zona segura.
+const MARGEN_SUPERIOR = 16;
 // Los números de la capacidad van en monoespaciada (JetBrains Mono en el Figma; no está en el proyecto).
 const FUENTE_NUMEROS = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
@@ -33,6 +36,11 @@ function fraccionDisponible({ capacidad, disponibles }: Refugio): number | null 
  * Se abre al tocar un marcador de refugio del mapa.
  */
 export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps) {
+  const { height: pantallaAlto } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // Con descripción larga, texto grande o una pantalla baja la tarjeta no debe salirse por arriba: se acota al
+  // espacio libre y el cuerpo se desplaza, con la cabecera (y su botón de cerrar) y "Ir a Refugio" fijos.
+  const alturaMaxima = pantallaAlto - insets.top - bottom - MARGEN_SUPERIOR;
   const direccion = useDireccionRefugio(refugio);
   const fraccion = fraccionDisponible(refugio);
   const { capacidad, disponibles } = refugio;
@@ -42,7 +50,7 @@ export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps
   };
 
   return (
-    <View style={[styles.tarjeta, { bottom }]}>
+    <View style={[styles.tarjeta, { bottom, maxHeight: alturaMaxima }]}>
       <View style={styles.cabecera}>
         {refugio.imagenUrl ? (
           <Image source={{ uri: refugio.imagenUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -56,42 +64,50 @@ export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps
         </View>
       </View>
 
-      <View style={styles.titulo}>
-        <CarpaIcon size={22} color={colors.ink} />
-        <Text style={styles.tituloTexto} numberOfLines={2} accessibilityRole="header">
-          {refugio.nombre}
-        </Text>
-      </View>
-
-      <View style={styles.zona}>
-        <LocationPinIcon size={23} color={colors.slate} />
-        <Text style={styles.zonaTexto} numberOfLines={2}>
-          {direccion === undefined
-            ? 'Buscando dirección…'
-            : (direccion ?? `${refugio.lat.toFixed(4)}, ${refugio.lng.toFixed(4)}`)}
-        </Text>
-      </View>
-
-      {refugio.descripcion !== null && (
-        <View style={styles.descripcion}>
-          <Text style={styles.descripcionEtiqueta}>DESCRIPCIÓN</Text>
-          <Text style={styles.descripcionTexto}>{refugio.descripcion}</Text>
+      <ScrollView
+        style={styles.cuerpo}
+        contentContainerStyle={styles.cuerpoContenido}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.titulo}>
+          <CarpaIcon size={22} color={colors.ink} />
+          <Text style={styles.tituloTexto} numberOfLines={2} accessibilityRole="header">
+            {refugio.nombre}
+          </Text>
         </View>
-      )}
 
-      {disponibles !== null && (
-        <View style={styles.capacidad}>
-          <View style={styles.capacidadFila}>
-            <Text style={styles.capacidadTitulo}>Espacios disponibles del refugio</Text>
-            <Text style={styles.capacidadNumeros}>{capacidad === null ? disponibles : `${disponibles} de ${capacidad}`}</Text>
+        <View style={styles.zona}>
+          <LocationPinIcon size={23} color={colors.slate} />
+          <Text style={styles.zonaTexto} numberOfLines={2}>
+            {direccion === undefined
+              ? 'Buscando dirección…'
+              : (direccion ?? `${refugio.lat.toFixed(4)}, ${refugio.lng.toFixed(4)}`)}
+          </Text>
+        </View>
+
+        {refugio.descripcion !== null && (
+          <View style={styles.descripcion}>
+            <Text style={styles.descripcionEtiqueta}>DESCRIPCIÓN</Text>
+            <Text style={styles.descripcionTexto}>{refugio.descripcion}</Text>
           </View>
-          {fraccion !== null && (
-            <View style={styles.barra} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacidad ?? 0, now: disponibles }}>
-              <View style={[styles.barraRelleno, { width: `${fraccion * 100}%` }]} />
+        )}
+
+        {disponibles !== null && (
+          <View style={styles.capacidad}>
+            <View style={styles.capacidadFila}>
+              <Text style={styles.capacidadTitulo}>Espacios disponibles del refugio</Text>
+              <Text style={styles.capacidadNumeros}>{capacidad === null ? disponibles : `${disponibles} de ${capacidad}`}</Text>
             </View>
-          )}
-        </View>
-      )}
+            {fraccion !== null && (
+              <View style={styles.barra} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacidad ?? 0, now: disponibles }}>
+                <View style={[styles.barraRelleno, { width: `${fraccion * 100}%` }]} />
+              </View>
+            )}
+          </View>
+        )}
+
+      </ScrollView>
 
       <View style={styles.pie}>
         <Pressable
@@ -123,7 +139,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 5,
   },
+  // Lo único que se encoge (y se desplaza) cuando falta alto es el cuerpo: cabecera y pie se quedan completos.
+  cuerpo: {
+    flexShrink: 1,
+  },
+  cuerpoContenido: {
+    gap: 13,
+  },
   cabecera: {
+    flexShrink: 0,
     height: ALTURA_CABECERA,
     backgroundColor: colors.photoBackground,
   },
@@ -219,6 +243,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
   },
   pie: {
+    flexShrink: 0,
     alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: 1.3,
