@@ -12,7 +12,7 @@ export function idTipoRefugio(tipos: readonly TipoCentroApi[]): number | undefin
   return tipos.find((t) => normalizar(t.nombre) === NOMBRE_TIPO_REFUGIO)?.id;
 }
 
-/** Centro del backend -> `Refugio`. `cantidad` son los espacios disponibles (lo que muestra el Figma). */
+/** Centro del backend -> `Refugio`. `cantidad` es la gente que hay ahora; los espacios libres se derivan de ella. */
 export function mapearCentro(c: CentroApi, apiUrl: string): Refugio {
   return {
     id: c.id,
@@ -23,7 +23,7 @@ export function mapearCentro(c: CentroApi, apiUrl: string): Refugio {
     lat: c.latitude,
     lng: c.longitude,
     capacidad: c.capacidad,
-    disponibles: c.cantidad,
+    ocupados: c.cantidad,
   };
 }
 

@@ -18,7 +18,7 @@ const SEED: Refugio[] = [
     lat: 32.5274663,
     lng: -116.9928726,
     capacidad: 50,
-    disponibles: 35,
+    ocupados: 15,
   },
   {
     id: 'mock-refugio-zona-rio',
@@ -29,7 +29,7 @@ const SEED: Refugio[] = [
     lat: 32.5271,
     lng: -117.0208,
     capacidad: 80,
-    disponibles: 12,
+    ocupados: 68,
   },
   {
     id: 'mock-refugio-libertad',
@@ -40,7 +40,7 @@ const SEED: Refugio[] = [
     lat: 32.5348,
     lng: -117.0036,
     capacidad: 120,
-    disponibles: 120,
+    ocupados: 0,
   },
   {
     id: 'mock-refugio-playas',
@@ -51,7 +51,7 @@ const SEED: Refugio[] = [
     lat: 32.5313,
     lng: -117.1219,
     capacidad: 60,
-    disponibles: 3,
+    ocupados: 57,
   },
   {
     id: 'mock-refugio-cerro-colorado',
@@ -62,7 +62,7 @@ const SEED: Refugio[] = [
     lat: 32.4983,
     lng: -116.9677,
     capacidad: null,
-    disponibles: null,
+    ocupados: null,
   },
 ];
 

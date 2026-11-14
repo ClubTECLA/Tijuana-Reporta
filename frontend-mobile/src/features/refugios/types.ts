@@ -30,8 +30,8 @@ export interface Refugio {
   direccion: string | null;
   lat: number;
   lng: number;
-  /** Total de espacios; `null` si no se registró. */
+  /** Cuánta gente cabe en el refugio (`capacidad` del backend); `null` si no se registró. */
   capacidad: number | null;
-  /** Espacios disponibles (`cantidad` del backend, según el Figma: "35 de 50"); `null` si no se registró. */
-  disponibles: number | null;
+  /** Cuánta gente hay ahora (`cantidad` del backend); `null` si no se registró. Ver `espaciosDisponibles`. */
+  ocupados: number | null;
 }

@@ -6,6 +6,7 @@ import { SendIcon } from '@/components/icons/SendIcon';
 import { CerrarButton } from '@/features/reportes/crear/CerrarButton';
 import { colors } from '@/theme/colors';
 import { fontFamily } from '@/theme/typography';
+import { espaciosDisponibles } from './capacidad';
 import { useDireccionRefugio } from './hooks';
 import type { Refugio } from './types';
 
@@ -25,9 +26,9 @@ interface RefugioDetalleProps {
 /** Ruta en la app de mapas del dispositivo hacia el refugio (el Figma lo resuelve con Google Maps). */
 const urlRuta = (r: Refugio) => `https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`;
 
-/** Fracción (0-1) de espacios disponibles, o `null` si falta alguno de los dos datos. */
-function fraccionDisponible({ capacidad, disponibles }: Refugio): number | null {
-  if (capacidad === null || disponibles === null || capacidad <= 0) return null;
+/** Fracción (0-1) de la capacidad que está libre, para llenar la barra; `null` si la capacidad es 0. */
+function fraccionDisponible(disponibles: number, capacidad: number): number | null {
+  if (capacidad <= 0) return null;
   return Math.min(1, Math.max(0, disponibles / capacidad));
 }
 
@@ -42,8 +43,10 @@ export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps
   // espacio libre y el cuerpo se desplaza, con la cabecera (y su botón de cerrar) y "Ir a Refugio" fijos.
   const alturaMaxima = pantallaAlto - insets.top - bottom - MARGEN_SUPERIOR;
   const direccion = useDireccionRefugio(refugio);
-  const fraccion = fraccionDisponible(refugio);
-  const { capacidad, disponibles } = refugio;
+  // El backend guarda cuánta gente cabe y cuánta hay; lo que muestra el Figma ("35 de 50") son los espacios libres.
+  const { capacidad } = refugio;
+  const disponibles = espaciosDisponibles(refugio);
+  const fraccion = disponibles !== null && capacidad !== null ? fraccionDisponible(disponibles, capacidad) : null;
 
   const irARefugio = () => {
     Linking.openURL(urlRuta(refugio)).catch((err) => console.warn('[RefugioDetalle] no se pudo abrir la ruta:', err));
@@ -93,14 +96,14 @@ export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps
           </View>
         )}
 
-        {disponibles !== null && (
+        {disponibles !== null && capacidad !== null && (
           <View style={styles.capacidad}>
             <View style={styles.capacidadFila}>
               <Text style={styles.capacidadTitulo}>Espacios disponibles del refugio</Text>
-              <Text style={styles.capacidadNumeros}>{capacidad === null ? disponibles : `${disponibles} de ${capacidad}`}</Text>
+              <Text style={styles.capacidadNumeros}>{`${disponibles} de ${capacidad}`}</Text>
             </View>
             {fraccion !== null && (
-              <View style={styles.barra} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacidad ?? 0, now: disponibles }}>
+              <View style={styles.barra} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacidad, now: disponibles }}>
                 <View style={[styles.barraRelleno, { width: `${fraccion * 100}%` }]} />
               </View>
             )}
