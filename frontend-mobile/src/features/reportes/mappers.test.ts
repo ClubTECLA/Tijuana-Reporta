@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   categoriaDeIncidente,
-  esRescatista,
+  autorDeComentario,
+  esRolOficial,
   mapearComentario,
   mapearDetalle,
   mapearEstado,
@@ -72,16 +73,30 @@ describe('categoriaDeIncidente', () => {
   });
 });
 
-describe('esRescatista', () => {
-  it('rescatista y protección civil son personal de atención', () => {
-    expect(esRescatista('rescatista')).toBe(true);
-    expect(esRescatista('proteccion_civil')).toBe(true);
+describe('esRolOficial / autorDeComentario', () => {
+  it('todo rol distinto de ciudadano es oficial y se firma con el nombre del rol', () => {
+    expect(esRolOficial('rescatista')).toBe(true);
+    expect(autorDeComentario('rescatista')).toBe('Rescatista');
+    expect(autorDeComentario('proteccion_civil')).toBe('Protección Civil');
+    expect(autorDeComentario('admin')).toBe('Administrador');
+    expect(autorDeComentario('moderador')).toBe('Moderador');
+    expect(autorDeComentario('analista')).toBe('Analista');
   });
 
-  it('ciudadano, otros roles y rol ausente no lo son', () => {
-    expect(esRescatista('ciudadano')).toBe(false);
-    expect(esRescatista('admin')).toBe(false);
-    expect(esRescatista(undefined)).toBe(false);
+  it('un rol desconocido se muestra tal cual', () => {
+    expect(autorDeComentario('inspector')).toBe('inspector');
+  });
+
+  it('un rol que coincide con una propiedad heredada de Object sigue siendo texto', () => {
+    expect(autorDeComentario('constructor')).toBe('constructor');
+    expect(autorDeComentario('toString')).toBe('toString');
+  });
+
+  it('ciudadano y rol ausente son "Anónimo"', () => {
+    expect(esRolOficial('ciudadano')).toBe(false);
+    expect(esRolOficial(undefined)).toBe(false);
+    expect(autorDeComentario('ciudadano')).toBe('Anónimo');
+    expect(autorDeComentario(undefined)).toBe('Anónimo');
   });
 });
 
@@ -127,7 +142,7 @@ describe('mapearResumen', () => {
 });
 
 describe('mapearComentario', () => {
-  it('autor <- username y es_rescatista <- rol_name', () => {
+  it('un rol oficial firma con el nombre del rol, no con el username', () => {
     const c = mapearComentario({
       id: 9,
       reporte_id: 'r1',
@@ -141,23 +156,25 @@ describe('mapearComentario', () => {
       id: 9,
       reporte_id: 'r1',
       user_id: 'u1',
-      autor: 'jose_m',
-      es_rescatista: true,
+      autor: 'Rescatista',
+      es_oficial: true,
       comentario: 'En camino',
       created_at: '2026-10-22T10:00:00Z',
     });
   });
 
-  it('sin username el autor es "Anónimo"', () => {
+  it('un ciudadano es "Anónimo" aunque el backend mande su username', () => {
     const c = mapearComentario({
       id: 1,
       reporte_id: 'r1',
       user_id: 'u1',
+      username: 'maria_g',
+      rol_name: 'ciudadano',
       comentario: 'x',
       created_at: '2026-10-22T10:00:00Z',
     });
     expect(c.autor).toBe('Anónimo');
-    expect(c.es_rescatista).toBe(false);
+    expect(c.es_oficial).toBe(false);
   });
 });
 

@@ -96,6 +96,9 @@ export const colors = {
   // Hoja de filtros (Figma 14 / Modal - Filtros) y botón de capas (Figma 10.1).
   iconoOscuro: '#334155',
 
+  // Refugios (Figma 10.2 y Modal - Refugio): fondo de la tarjeta de capacidad.
+  capacidadFondo: '#dae9f9',
+
   // Estados de carga, vacío, error y sin conexión. Provisionales: aún no hay diseño en Figma.
   estadoIcono: '#64748b',
   estadoIconoFondo: '#eef2f7',

@@ -73,11 +73,23 @@ export function categoriaDeIncidente(incidente: IncidenteApi | undefined): Categ
 }
 
 // Roles de la tabla `roles`: ciudadano, admin, moderador, analista, proteccion_civil, rescatista.
-// Se destaca como "Rescatista" a quien atiende en campo: rescatista y protección civil.
-const ROLES_RESCATISTA = ['rescatista', 'proteccion_civil'];
+// Es oficial todo rol distinto de ciudadano (igual que `isOfficialRole` en web).
+const ROL_CIUDADANO = 'ciudadano';
+// Un `Map` y no un objeto: un rol llamado "constructor" o "toString" no debe resolver a una función heredada.
+const ETIQUETAS_ROL = new Map<string, string>([
+  ['admin', 'Administrador'],
+  ['moderador', 'Moderador'],
+  ['analista', 'Analista'],
+  ['proteccion_civil', 'Protección Civil'],
+  ['rescatista', 'Rescatista'],
+]);
 
-export const esRescatista = (rolName: string | undefined): boolean =>
-  rolName !== undefined && ROLES_RESCATISTA.includes(rolName);
+export const esRolOficial = (rolName: string | undefined): rolName is string =>
+  rolName !== undefined && rolName !== ROL_CIUDADANO;
+
+/** Cómo se firma un comentario: un ciudadano (o sin rol) es "Anónimo"; un rol oficial aparece solo con el nombre del rol. */
+export const autorDeComentario = (rolName: string | undefined): string =>
+  esRolOficial(rolName) ? (ETIQUETAS_ROL.get(rolName) ?? rolName) : 'Anónimo';
 
 /** Esquema + host (+ puerto) de la API, sin ruta: `http://10.0.2.2/api/v1` -> `http://10.0.2.2`. */
 export function origenDeApi(apiUrl: string): string {
@@ -119,8 +131,8 @@ export function mapearComentario(c: ComentarioApi): ComentarioConAutor {
     id: c.id,
     reporte_id: c.reporte_id,
     user_id: c.user_id,
-    autor: c.username ?? 'Anónimo',
-    es_rescatista: esRescatista(c.rol_name),
+    autor: autorDeComentario(c.rol_name),
+    es_oficial: esRolOficial(c.rol_name),
     comentario: c.comentario,
     created_at: c.created_at,
   };

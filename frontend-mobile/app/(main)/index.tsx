@@ -20,10 +20,23 @@ import { PuntoUsuario } from '@/features/mapa/PuntoUsuario';
 import { ReportarFab } from '@/features/mapa/ReportarFab';
 import { UbicacionFab } from '@/features/mapa/UbicacionFab';
 import { useMapaTargetStore } from '@/features/mapa/mapaTargetStore';
+import { avisoDeRefugios } from '@/features/refugios/avisos';
+import { BotonRefugios } from '@/features/refugios/BotonRefugios';
+import {
+  CAPAS_POR_DEFECTO,
+  muestraIncidentes,
+  muestraRefugios,
+  siguienteCapas,
+  type CapasMapa,
+} from '@/features/refugios/capasMapa';
+import { CapaRefugios } from '@/features/refugios/CapaRefugios';
+import { useRefugios } from '@/features/refugios/hooks';
+import { RefugioDetalle } from '@/features/refugios/RefugioDetalle';
+import type { Refugio } from '@/features/refugios/types';
 import { HojaCrearCuenta, type MotivoCuenta } from '@/features/sesion/HojaCrearCuenta';
 import { distanciaMetros } from '@/lib/geo';
 import { obtenerPosicionActual, seguirPosicion, tienePermisoUbicacion, type Coordenadas } from '@/lib/ubicacion';
-import { esErrorDeRed } from '@/lib/estados';
+import { esErrorDeRed, estadoDeQuery } from '@/lib/estados';
 import { useEnLinea } from '@/lib/red';
 import { useEsInvitado } from '@/lib/session';
 import type { Reporte } from '@/types/api';
@@ -46,12 +59,21 @@ const FAB_ALTO = 60;
 const SEPARACION_FAB = 31;
 // Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
 const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
+// La tarjeta del refugio (Modal - Refugio) mide ~500 dp y se ancla abajo: el marcador se centra en lo que queda libre.
+const TARJETA_REFUGIO_ALTO = 480;
 
 /** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
 export default function MainMap() {
   const insets = useSafeAreaInsets();
   const { height: pantallaAlto } = useWindowDimensions();
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
+  // Botón de la carpa: recorre solo incidentes → ambos → solo refugios. Los refugios solo se piden si se muestran.
+  const [capas, setCapas] = useState<CapasMapa>(CAPAS_POR_DEFECTO);
+  const verIncidentes = muestraIncidentes(capas);
+  const verRefugios = muestraRefugios(capas);
+  // Solo se guarda el id: el refugio se deriva de la lista vigente, así la tarjeta se actualiza con cada recarga.
+  const [selectedRefugioId, setSelectedRefugioId] = useState<string | null>(null);
+  const refugiosQuery = useRefugios(verRefugios);
   const reportesQuery = useReportes();
   const categorias = useCategorias();
   const { data: reportes = [], isFetching: actualizandoReportes } = reportesQuery;
@@ -97,6 +119,18 @@ export default function MainMap() {
     periodo: filtros.periodo,
     sinCoincidencias: reportes.length > 0 && reportesVisibles.length === 0,
   });
+  const refugios = useMemo(() => refugiosQuery.data ?? [], [refugiosQuery.data]);
+  const selectedRefugio = useMemo(
+    () => refugios.find((r) => r.id === selectedRefugioId) ?? null,
+    [refugios, selectedRefugioId],
+  );
+  // Cada aviso solo cuenta si su capa se ve. Con las dos, los de incidentes mandan; con solo refugios, solo los suyos.
+  const avisoIncidentes = verIncidentes ? avisoDatos : null;
+  const avisoRefugios = verRefugios
+    ? avisoDeRefugios(estadoDeQuery(refugiosQuery, (lista) => lista.length === 0), refugiosQuery.error)
+    : null;
+  const avisoMapa = avisoIncidentes ?? avisoRefugios;
+  const reintentarDatos = () => void (avisoIncidentes ? reportesQuery.refetch() : refugiosQuery.refetch());
   // Aplica "7 días" al store: cambia la queryKey y la lista se vuelve a pedir sola.
   const ampliarPeriodo = () => useFiltrosStore.getState().aplicar({ ...filtros, periodo: PERIODO_MAS_AMPLIO });
 
@@ -105,6 +139,20 @@ export default function MainMap() {
     if (selectedReporte && !reportesVisibles.some((r) => r.id === selectedReporte.id)) setSelectedReporte(null);
   }, [reportesVisibles, selectedReporte]);
 
+  // Si el refugio abierto ya no viene en la lista (lo desactivaron), se cierra su tarjeta.
+  useEffect(() => {
+    if (selectedRefugioId && refugiosQuery.data && !refugiosQuery.data.some((r) => r.id === selectedRefugioId)) {
+      setSelectedRefugioId(null);
+    }
+  }, [refugiosQuery.data, selectedRefugioId]);
+
+  /** Pasa a las siguientes capas del mapa; cierra la tarjeta abierta, que podría ser de una capa que ya no se ve. */
+  const alternarCapas = useCallback(() => {
+    setSelectedReporte(null);
+    setSelectedRefugioId(null);
+    setCapas(siguienteCapas);
+  }, []);
+
   /**
    * Abre la tarjeta y desplaza el mapa para que el pin quede en la franja libre bajo ella
    * (el `padding` superior reduce la zona "visible" del mapa a esa franja).
@@ -112,6 +160,7 @@ export default function MainMap() {
   const seleccionar = useCallback(
     (reporte: Reporte) => {
       huboGesto.current = true;
+      setSelectedRefugioId(null);
       setSelectedReporte(reporte);
       cameraRef.current?.flyTo({
         center: [reporte.lng, reporte.lat],
@@ -120,6 +169,21 @@ export default function MainMap() {
       });
     },
     [pantallaAlto, tarjetaBottom],
+  );
+
+  /** Abre la tarjeta del refugio (anclada abajo) y centra el mapa en el marcador, en la franja que ella deja libre. */
+  const seleccionarRefugio = useCallback(
+    (refugio: Refugio) => {
+      huboGesto.current = true;
+      setSelectedReporte(null);
+      setSelectedRefugioId(refugio.id);
+      cameraRef.current?.flyTo({
+        center: [refugio.lng, refugio.lat],
+        duration: 700,
+        padding: { ...SIN_PADDING, bottom: Math.min(TARJETA_REFUGIO_ALTO, pantallaAlto * 0.6) },
+      });
+    },
+    [pantallaAlto],
   );
 
   /** Tocar un grupo de pins: acerca la cámara al zoom en que el grupo se separa. */
@@ -283,6 +347,8 @@ export default function MainMap() {
   // "Ver reporte" desde la pantalla de éxito: abre la tarjeta del reporte recién creado/confirmado.
   useEffect(() => {
     if (!target?.reporteId) return;
+    // Con "solo refugios" el pin del reporte no se vería: se vuelve a los incidentes.
+    setCapas((actual) => (muestraIncidentes(actual) ? actual : CAPAS_POR_DEFECTO));
     const reporte = reportes.find((r) => r.id === target.reporteId);
     if (!reporte) {
       // Recién creado, la lista puede estar refrescándose: se espera a que termine. Si ya terminó y
@@ -319,13 +385,23 @@ export default function MainMap() {
             <PuntoUsuario />
           </MapLibreGL.Marker>
         )}
-        <CapaReportes
-          reportes={reportesVisibles}
-          catalogo={categorias}
-          seleccionadoId={selectedReporte?.id ?? null}
-          onSeleccionar={seleccionar}
-          onAcercar={acercarAGrupo}
-        />
+        {/* Los refugios van primero: con las dos capas, los incidentes se dibujan encima, que son lo urgente. */}
+        {verRefugios && (
+          <CapaRefugios
+            refugios={refugios}
+            seleccionadoId={selectedRefugio?.id ?? null}
+            onSeleccionar={seleccionarRefugio}
+          />
+        )}
+        {verIncidentes && (
+          <CapaReportes
+            reportes={reportesVisibles}
+            catalogo={categorias}
+            seleccionadoId={selectedReporte?.id ?? null}
+            onSeleccionar={seleccionar}
+            onAcercar={acercarAGrupo}
+          />
+        )}
       </MapLibreGL.Map>
 
       <View style={[styles.searchWrapper, { top: buscadorTop }]} pointerEvents="box-none">
@@ -335,26 +411,36 @@ export default function MainMap() {
         />
       </View>
 
-      {avisoDatos && !selectedReporte && (
+      {avisoMapa && !selectedReporte && !selectedRefugio && (
         <View
           style={[styles.avisoDatosWrapper, { top: buscadorTop + BUSCADOR_ALTO + SEPARACION_AVISO_DATOS }]}
           pointerEvents="box-none"
         >
           <AvisoFlotante
-            tipo={avisoDatos.tipo}
-            mensaje={avisoDatos.mensaje}
+            tipo={avisoMapa.tipo}
+            mensaje={avisoMapa.mensaje}
             accion={
-              avisoDatos.conReintentar
-                ? { etiqueta: 'Reintentar', onPress: () => void reportesQuery.refetch() }
-                : avisoDatos.accion
-                  ? { etiqueta: avisoDatos.accion.texto, onPress: ampliarPeriodo }
+              avisoMapa.conReintentar
+                ? { etiqueta: 'Reintentar', onPress: reintentarDatos }
+                : avisoMapa.accion
+                  ? { etiqueta: avisoMapa.accion.texto, onPress: ampliarPeriodo }
                   : undefined
             }
           />
         </View>
       )}
 
-      {selectedReporte ? (
+      {selectedRefugio ? (
+        <>
+          {/* Desvanecimiento del mapa: tocarlo cierra la tarjeta. */}
+          <Pressable
+            style={styles.scrim}
+            onPress={() => setSelectedRefugioId(null)}
+            accessibilityLabel="Cerrar refugio"
+          />
+          <RefugioDetalle refugio={selectedRefugio} bottom={fabBottom} onClose={() => setSelectedRefugioId(null)} />
+        </>
+      ) : selectedReporte ? (
         <>
           {/* Desvanecimiento del mapa: tocarlo cierra la tarjeta. */}
           <Pressable
@@ -378,6 +464,7 @@ export default function MainMap() {
                 <Text style={styles.avisoTexto}>{aviso}</Text>
               </View>
             )}
+            <BotonRefugios capas={capas} onPress={alternarCapas} />
             <CapasFab onPress={() => setHojaFiltrosAbierta(true)} />
             <UbicacionFab onPress={() => void irAMiUbicacion()} cargando={buscandoUbicacion} />
           </View>

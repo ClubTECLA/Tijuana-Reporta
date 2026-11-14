@@ -16,7 +16,7 @@ import type { LugaresApi } from './port';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 // Debe ser puro ASCII: OkHttp (Android) rechaza headers con tildes/eñes con
 // un IllegalArgumentException que revienta el fetch antes de salir a la red.
-const USER_AGENT = 'TijuanaReporta/1.0 (mobile app; contact: equipo-el-nino)';
+export const USER_AGENT = 'TijuanaReporta/1.0 (mobile app; contact: equipo-el-nino)';
 
 // Bounding box que cubre Tijuana y sus delegaciones (La Presa, Otay, Playas…)
 // para sesgar resultados sin descartar direcciones fuera de la ciudad.
