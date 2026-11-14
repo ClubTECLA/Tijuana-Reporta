@@ -5,6 +5,7 @@ import ColSection from "@/components/layout/ColSection";
 import CategoryCard from "@/features/reportes/components/CategoryCard";
 import PhotoDropzone from "@/features/reportes/components/PhotoDropzone";
 import Button from "@/components/ui/Button";
+import CategoryChip from "@/components/ui/CategoryChip";
 import SearchField from "@/components/ui/SearchField";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
@@ -16,13 +17,15 @@ import { prepararFoto, type PreparedPhoto } from "@/features/reportes/prepararFo
 const VISIBLE_CATEGORIES = 6;
 // Límite del backend para un comentario (crear_comentario_request.yaml).
 const DESCRIPTION_MAX_LENGTH = 500;
+// Límite del backend para las etiquetas de un reporte (actualizar_tags_reporte_request.yaml).
+const MAX_TAGS = 20;
 
 const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
 // "21. Incidente - NuevoIncidente" del Figma. Publica un reporte oficial con la categoría, la ubicación del marcador,
-// su dirección, la descripción y la foto; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
-// Etiquetas y borrador esperan soporte del backend.
+// su dirección, las etiquetas, la descripción y la foto; la publicación (llamadas y fallos parciales) la hace
+// ReportesContext.publicar. El borrador espera soporte del backend.
 function NewIncidentForm() {
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
@@ -36,6 +39,7 @@ function NewIncidentForm() {
     );
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [tagIds, setTagIds] = useState<number[]>([]);
     const [description, setDescription] = useState("");
     const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
     const [preparingPhoto, setPreparingPhoto] = useState(false);
@@ -57,6 +61,22 @@ function NewIncidentForm() {
     useEffect(() => {
         reset();
     }, [reset]);
+
+    // Las etiquetas son del catálogo de cada categoría: al cambiarla, el backend rechazaría las elegidas antes.
+    const selectCategory = (id: number) => {
+        if (id !== categoryId) setTagIds([]);
+        setCategoryId(id);
+    };
+
+    const toggleTag = (id: number) => {
+        if (tagIds.includes(id)) {
+            setTagIds(tagIds.filter((tagId) => tagId !== id));
+        } else if (tagIds.length >= MAX_TAGS) {
+            showMessage(`Puedes elegir hasta ${MAX_TAGS} etiquetas.`, { color: "yellow", type: "float", title: "Etiquetas" });
+        } else {
+            setTagIds([...tagIds, id]);
+        }
+    };
 
     const handleSearchAddress = async (query: string) => {
         try {
@@ -128,6 +148,7 @@ function NewIncidentForm() {
                 longitude: position.longitude,
                 direccion: address,
                 descripcion: description,
+                tagIds,
                 foto: photo?.blob,
             });
             if (falloFoto?.reintentable) {
@@ -163,7 +184,7 @@ function NewIncidentForm() {
                                 key={category.id}
                                 incidente={category}
                                 selected={category.id === categoryId}
-                                onClick={() => setCategoryId(category.id)}
+                                onClick={() => selectCategory(category.id)}
                             />
                         )}
                     </div>
@@ -207,21 +228,18 @@ function NewIncidentForm() {
 
                 <div className="flex flex-col gap-2">
                     <span className={sectionTitleStyle}>Etiquetas</span>
-                    {/* El backend aún no permite asociar etiquetas al crear el reporte: se muestran las del catálogo. */}
                     {selectedCategory?.tags.length
-                        ? <div className="flex flex-wrap gap-2">
+                        // Desactivadas al publicar y al reintentar la foto: ya se enviaron y cambiarlas no tendría efecto.
+                        ? <fieldset disabled={publishing || !!photoRetry} className="flex min-w-0 flex-wrap gap-2 disabled:opacity-60">
                             {selectedCategory.tags.map((tag) =>
-                                <button
+                                <CategoryChip
                                     key={tag.id}
-                                    type="button"
-                                    disabled
-                                    title="Próximamente"
-                                    className="cursor-not-allowed rounded-full border border-line bg-white py-2.5 pl-3.5 pr-4 text-sm font-semibold text-ink opacity-60"
-                                >
-                                    {tag.nombre}
-                                </button>
+                                    label={tag.nombre}
+                                    isSelected={tagIds.includes(tag.id)}
+                                    onPress={() => toggleTag(tag.id)}
+                                />
                             )}
-                        </div>
+                        </fieldset>
                         : <span className={pendingNoteStyle}>
                             {selectedCategory ? "Esta categoría no tiene etiquetas." : "Elige una categoría para ver sus etiquetas."}
                         </span>
