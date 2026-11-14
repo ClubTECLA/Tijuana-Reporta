@@ -5,6 +5,7 @@ import ColSection from "@/components/layout/ColSection";
 import CategoryCard from "@/features/reportes/components/CategoryCard";
 import PhotoDropzone from "@/features/reportes/components/PhotoDropzone";
 import Button from "@/components/ui/Button";
+import CategoryChip from "@/components/ui/CategoryChip";
 import SearchField from "@/components/ui/SearchField";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
@@ -21,8 +22,8 @@ const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 
 // "21. Incidente - NuevoIncidente" del Figma. Publica un reporte oficial con la categoría, la ubicación del marcador,
-// su dirección, la descripción y la foto; la publicación (llamadas y fallos parciales) la hace ReportesContext.publicar.
-// Etiquetas y borrador esperan soporte del backend.
+// su dirección, las etiquetas, la descripción y la foto; la publicación (llamadas y fallos parciales) la hace
+// ReportesContext.publicar. El borrador espera soporte del backend.
 function NewIncidentForm() {
     const { openPanel } = useCommonPanel();
     const { showMessage } = useSysMessage();
@@ -36,6 +37,7 @@ function NewIncidentForm() {
     );
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [tagIds, setTagIds] = useState<number[]>([]);
     const [description, setDescription] = useState("");
     const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
     const [preparingPhoto, setPreparingPhoto] = useState(false);
@@ -57,6 +59,15 @@ function NewIncidentForm() {
     useEffect(() => {
         reset();
     }, [reset]);
+
+    // Las etiquetas son del catálogo de cada categoría: al cambiarla, el backend rechazaría las elegidas antes.
+    const selectCategory = (id: number) => {
+        if (id !== categoryId) setTagIds([]);
+        setCategoryId(id);
+    };
+
+    const toggleTag = (id: number) =>
+        setTagIds((prev) => prev.includes(id) ? prev.filter((tagId) => tagId !== id) : [...prev, id]);
 
     const handleSearchAddress = async (query: string) => {
         try {
@@ -128,6 +139,7 @@ function NewIncidentForm() {
                 longitude: position.longitude,
                 direccion: address,
                 descripcion: description,
+                tagIds,
                 foto: photo?.blob,
             });
             if (falloFoto?.reintentable) {
@@ -163,7 +175,7 @@ function NewIncidentForm() {
                                 key={category.id}
                                 incidente={category}
                                 selected={category.id === categoryId}
-                                onClick={() => setCategoryId(category.id)}
+                                onClick={() => selectCategory(category.id)}
                             />
                         )}
                     </div>
@@ -207,19 +219,15 @@ function NewIncidentForm() {
 
                 <div className="flex flex-col gap-2">
                     <span className={sectionTitleStyle}>Etiquetas</span>
-                    {/* El backend aún no permite asociar etiquetas al crear el reporte: se muestran las del catálogo. */}
                     {selectedCategory?.tags.length
                         ? <div className="flex flex-wrap gap-2">
                             {selectedCategory.tags.map((tag) =>
-                                <button
+                                <CategoryChip
                                     key={tag.id}
-                                    type="button"
-                                    disabled
-                                    title="Próximamente"
-                                    className="cursor-not-allowed rounded-full border border-line bg-white py-2.5 pl-3.5 pr-4 text-sm font-semibold text-ink opacity-60"
-                                >
-                                    {tag.nombre}
-                                </button>
+                                    label={tag.nombre}
+                                    isSelected={tagIds.includes(tag.id)}
+                                    onPress={() => toggleTag(tag.id)}
+                                />
                             )}
                         </div>
                         : <span className={pendingNoteStyle}>
