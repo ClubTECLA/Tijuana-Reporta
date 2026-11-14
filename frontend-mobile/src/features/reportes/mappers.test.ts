@@ -87,6 +87,11 @@ describe('esRolOficial / autorDeComentario', () => {
     expect(autorDeComentario('inspector')).toBe('inspector');
   });
 
+  it('un rol que coincide con una propiedad heredada de Object sigue siendo texto', () => {
+    expect(autorDeComentario('constructor')).toBe('constructor');
+    expect(autorDeComentario('toString')).toBe('toString');
+  });
+
   it('ciudadano y rol ausente son "Anónimo"', () => {
     expect(esRolOficial('ciudadano')).toBe(false);
     expect(esRolOficial(undefined)).toBe(false);
