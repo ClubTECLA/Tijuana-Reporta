@@ -6,12 +6,16 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
 	AddAvistamientoById(ctx context.Context, id uuid.UUID) (AddAvistamientoByIdRow, error)
+	AddPINAttemptByPINID(ctx context.Context, id uuid.UUID) (int, error)
+	CancelPINByUserID(ctx context.Context, userID uuid.UUID) error
+	CountPINsLastHourByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Cuántos de los tag_ids pedidos son del catálogo del incidente: si no son
 	// todos, alguno es de otro incidente o no existe.
 	CountTagsByIncidenteId(ctx context.Context, arg CountTagsByIncidenteIdParams) (int, error)
@@ -25,6 +29,7 @@ type Querier interface {
 	CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID) error
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateMultimedia(ctx context.Context, arg CreateMultimediaParams) (Multimedia, error)
+	CreatePIN(ctx context.Context, arg CreatePINParams) error
 	CreateReporte(ctx context.Context, arg CreateReporteParams) (Reporte, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	// Agrega los tags que el usuario aún no tenía; los que ya tenía los salta el
@@ -42,6 +47,7 @@ type Querier interface {
 	// vienen en tag_ids. Con un arreglo vacío quita todos los suyos (no uno NULL:
 	// con NULL no borraría nada). El trigger trg_update_tag_counts descuenta.
 	DeleteTagsUsuarioNotIn(ctx context.Context, arg DeleteTagsUsuarioNotInParams) ([]int, error)
+	DeleteUsedOrExpiredPINByUserID(ctx context.Context, userID uuid.UUID) error
 	// users_reports solo se llena al crear el reporte, así que hoy equivale al creador.
 	EsCreadorDeReporte(ctx context.Context, arg EsCreadorDeReporteParams) (bool, error)
 	GetCentroById(ctx context.Context, id uuid.UUID) (GetCentroByIdRow, error)
@@ -50,6 +56,8 @@ type Querier interface {
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteByIdForUpdate(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error)
+	GetLatestActivePINByUserID(ctx context.Context, userID uuid.UUID) (RecoveryPin, error)
+	GetPasswordChangedAtByUserID(ctx context.Context, id uuid.UUID) (*time.Time, error)
 	GetPuntoOrigenByReporteId(ctx context.Context, reporteID uuid.UUID) (GetPuntoOrigenByReporteIdRow, error)
 	// La etiqueta del incidente se trae para armar el título (reporte.Titulo).
 	GetReporteById(ctx context.Context, id uuid.UUID) (GetReporteByIdRow, error)
@@ -86,6 +94,8 @@ type Querier interface {
 	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
 	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
+	SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error
+	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }

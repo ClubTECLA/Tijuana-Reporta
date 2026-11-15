@@ -57,6 +57,8 @@ services:
       MULTIMEDIA_URL: http://multimedia:8081
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
+      RECOVERY_SECRET: ${RECOVERY_SECRET}
+      MAIL_DRIVER: ${MAIL_DRIVER:-}
     logging:
       driver: json-file
       options:

@@ -7,6 +7,8 @@ func entornoMinimo(t *testing.T) {
 	t.Helper()
 	t.Setenv("DATABASE_URL", "postgres://u:p@localhost:5432/db")
 	t.Setenv("JWT_SECRET", "un-secreto-de-al-menos-32-bytes!!!")
+	t.Setenv("RECOVERY_SECRET", "otro-secreto-de-al-menos-32-bytes!")
+	t.Setenv("MAIL_DRIVER", "")
 	t.Setenv("MULTIMEDIA_URL", "")
 	t.Setenv("MAX_MULTIMEDIA_BYTES", "")
 	for _, v := range variablesFoto {
@@ -99,5 +101,39 @@ func TestLoad_FotoInvalida(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestLoad_RecoverySecretInvalido(t *testing.T) {
+	for nombre, valor := range map[string]string{"vacío": "", "corto": "menos-de-32-bytes"} {
+		t.Run(nombre, func(t *testing.T) {
+			entornoMinimo(t)
+			t.Setenv("RECOVERY_SECRET", valor)
+
+			if _, err := Load(); err == nil {
+				t.Fatalf("Load() con RECOVERY_SECRET %s: error = nil, se esperaba error", nombre)
+			}
+		})
+	}
+}
+
+func TestLoad_MailDriver(t *testing.T) {
+	for _, driver := range []string{"", "log"} {
+		entornoMinimo(t)
+		t.Setenv("MAIL_DRIVER", driver)
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("Load() con MAIL_DRIVER=%q: error = %v", driver, err)
+		}
+		if cfg.MailDriver != driver {
+			t.Errorf("MailDriver = %q, se esperaba %q", cfg.MailDriver, driver)
+		}
+	}
+
+	entornoMinimo(t)
+	t.Setenv("MAIL_DRIVER", "smtp")
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() con MAIL_DRIVER desconocido: error = nil, se esperaba error")
 	}
 }

@@ -2,6 +2,7 @@ package usuario
 
 import (
 	"context"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
@@ -43,4 +44,42 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg sqlc.Create
 	}
 
 	return user, nil
+}
+
+// CreatePinRecuperacion, en una transacción, borra los PIN expirados o
+// usados del usuario, cancela los activos e inserta el nuevo.
+func (s *Store) CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams) error {
+	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		if err := q.DeleteUsedOrExpiredPINByUserID(ctx, arg.UserID); err != nil {
+			return err
+		}
+		if err := q.CancelPINByUserID(ctx, arg.UserID); err != nil {
+			return err
+		}
+		return q.CreatePIN(ctx, sqlc.CreatePINParams{
+			UserID:    arg.UserID,
+			PinHash:   arg.PinHash,
+			ExpiresAt: arg.ExpiresAt,
+		})
+	})
+}
+
+// ResetPasswordTx, en una transacción, guarda el nuevo password_hash, pone
+// password_changed_at a la hora actual de la API y marca el PIN como usado.
+func (s *Store) ResetPasswordTx(ctx context.Context, arg ResetPasswordTxParams) error {
+	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		changedAt := time.Now()
+		if err := q.SetNewPasswordByUserID(ctx, sqlc.SetNewPasswordByUserIDParams{
+			PasswordHash:      &arg.PasswordHash,
+			PasswordChangedAt: &changedAt,
+			ID:                arg.UserID,
+		}); err != nil {
+			return err
+		}
+		if err := q.SetPinAsUsedByID(ctx, arg.PinID); err != nil {
+			return err
+		}
+		// El actor es el propio usuario: demostró con el PIN que controla su email.
+		return historial.Registrar(ctx, q, arg.UserID, "usuario.recuperar_password", "usuario", arg.UserID.String(), nil)
+	})
 }

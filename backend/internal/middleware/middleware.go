@@ -8,15 +8,19 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/time/rate"
 )
 
 type contextKey int
@@ -67,7 +71,10 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 // porque api ya importa middleware, y ese import aquí crearía un ciclo.
 // Rutas sin ese requisito (p. ej. /auth/login) no la setean, así que el
 // middleware las deja pasar sin exigir token.
-func Auth(secret string, scopesKey string) func(c *gin.Context) {
+//
+// passwordChangedAt se consulta en cada petición autenticada para rechazar
+// los tokens emitidos antes del último cambio de contraseña.
+func Auth(secret string, scopesKey string, passwordChangedAt PasswordChangedAtFunc) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if _, protected := c.Get(scopesKey); !protected {
 			c.Next()
@@ -105,6 +112,25 @@ func Auth(secret string, scopesKey string) func(c *gin.Context) {
 		sub, _ := claims["sub"].(string)
 		userID, err := uuid.Parse(sub)
 		if err != nil {
+			httperr.Responder(c, httperr.ErrTokenInvalido)
+			return
+		}
+
+		changedAt, err := passwordChangedAt(c.Request.Context(), userID)
+		if db.IsNotFound(err) {
+			httperr.Responder(c, httperr.ErrTokenInvalido)
+			return
+		}
+		if err != nil {
+			httperr.Responder(c, err)
+			return
+		}
+		// Sin "iat", GetIssuedAt devuelve nil y el token cuenta como anterior a cualquier cambio.
+		var iat time.Time
+		if issued, _ := claims.GetIssuedAt(); issued != nil {
+			iat = issued.Time
+		}
+		if tokenAnteriorAlCambio(iat, changedAt) {
 			httperr.Responder(c, httperr.ErrTokenInvalido)
 			return
 		}
@@ -211,5 +237,65 @@ func RequestLogger() gin.HandlerFunc {
 			level = slog.LevelWarn
 		}
 		slog.Log(c.Request.Context(), level, "request", attrs...)
+	}
+}
+
+// PasswordChangedAtFunc devuelve users.password_changed_at del usuario (nil si nunca cambió).
+// Auth la usará para rechazar los JWT emitidos antes de un reset.
+type PasswordChangedAtFunc func(ctx context.Context, userID uuid.UUID) (*time.Time, error)
+
+// tokenAnteriorAlCambio dice si un token con este iat se emitió antes del
+// cambio de contraseña. Trunca changedAt a segundos (precisión del iat) y
+// rechaza solo si iat < changedAt.
+func tokenAnteriorAlCambio(iat time.Time, changedAt *time.Time) bool {
+	return changedAt != nil && iat.Before(changedAt.Truncate(time.Second))
+}
+
+// Límite por IP de las rutas de recuperación: ráfaga de 10 peticiones y
+// después una cada 6 segundos (10 por minuto sostenido).
+const (
+	rateLimitRafaga    = 10
+	rateLimitIntervalo = 6 * time.Second
+)
+
+// claveRateLimit agrupa las IPv6 por su /64, porque una sola conexión suele
+// controlar el bloque entero y podría cambiar de dirección en cada petición.
+// Las IPv4 (y las IPv4 mapeadas en IPv6) quedan tal cual.
+func claveRateLimit(ip string) string {
+	addr, err := netip.ParseAddr(ip)
+	if err != nil || addr.Unmap().Is4() {
+		return ip
+	}
+	return netip.PrefixFrom(addr, 64).Masked().String()
+}
+
+// RateLimitPorIP limita las peticiones por IP del cliente con un token bucket
+// en memoria (golang.org/x/time/rate), solo en las rutas dadas (con el /v1, tal
+// como las da c.FullPath()). Responde 429. Cada llamada crea su propio estado,
+// así que cada router (y cada cliente de test) tiene el suyo.
+// shortcut: en memoria, solo sirve con una instancia de la API; mover a Redis o Postgres al escalar.
+// shortcut: el mapa no se limpia y crece con cada IP distinta; agregar expiración si el tráfico lo pide.
+func RateLimitPorIP(rutas ...string) func(c *gin.Context) {
+	var (
+		mu    sync.Mutex
+		porIP = map[string]*rate.Limiter{}
+	)
+	return func(c *gin.Context) {
+		if !slices.Contains(rutas, c.FullPath()) {
+			return
+		}
+
+		clave := claveRateLimit(c.ClientIP())
+		mu.Lock()
+		lim, ok := porIP[clave]
+		if !ok {
+			lim = rate.NewLimiter(rate.Every(rateLimitIntervalo), rateLimitRafaga)
+			porIP[clave] = lim
+		}
+		mu.Unlock()
+
+		if !lim.Allow() {
+			httperr.ResponderConStatus(c, http.StatusTooManyRequests, "demasiadas solicitudes")
+		}
 	}
 }

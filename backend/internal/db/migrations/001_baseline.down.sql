@@ -22,7 +22,8 @@ DROP TABLE
     tags,
     tipos_centro,
     users,
-    users_reports;
+    users_reports,
+    recovery_pins;
 
 DROP FUNCTION update_puntos_origen();
 DROP FUNCTION update_tag_counts();

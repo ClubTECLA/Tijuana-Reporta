@@ -91,7 +91,10 @@ var _ httpapi.StrictServerInterface = api{}
 //
 // New lo usa con los servicios de producción y los tests de integración con
 // los suyos, así que ambos levantan exactamente el mismo router.
-func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
+//
+// passwordChangedAt deja que middleware.Auth rechace los tokens emitidos
+// antes del último cambio de contraseña del usuario.
+func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.PasswordChangedAtFunc, opts ...RouterOption) *gin.Engine {
 	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -104,6 +107,17 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
 	r := gin.New()
+
+	// c.ClientIP() (que usa el límite por IP) solo cree en X-Real-IP, que nginx
+	// siempre sobrescribe, y solo si la conexión viene de una red privada (nginx
+	// en Docker). X-Forwarded-For llega tal cual lo manda el cliente, así que no
+	// se usa.
+	r.RemoteIPHeaders = []string{"X-Real-IP"}
+	if err := r.SetTrustedProxies([]string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8"}); err != nil {
+		slog.Error("error setting trusted proxies", "error", err)
+		os.Exit(1)
+	}
+
 	r.Use(
 		middleware.RequestLogger(),
 		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, rec any) {
@@ -170,8 +184,10 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 			httperr.ResponderConStatus(c, status, err.Error())
 		},
 		Middlewares: []httpapi.MiddlewareFunc{
-			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes)),
+			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes), passwordChangedAt),
 			middleware.RequireRole(string(httpapi.BearerAuthScopes)),
+			// Solo en las rutas de recuperación, para frenar la fuerza bruta de PINs entre cuentas.
+			middleware.RateLimitPorIP("/v1/auth/recovery", "/v1/auth/recovery/verify"),
 			// Antes del validador, que lee el body completo para validarlo.
 			middleware.BodyLimitFunc(func(c *gin.Context) int64 {
 				if c.FullPath() == rutaMultimedia {

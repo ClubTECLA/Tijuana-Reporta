@@ -37,6 +37,10 @@ paths:
     $ref: './paths/auth.yaml#/me'
   /auth/logout:
     $ref: './paths/auth.yaml#/logout'
+  /auth/recovery:
+    $ref: './paths/auth.yaml#/recovery'
+  /auth/recovery/verify:
+    $ref: './paths/auth.yaml#/verifyRecovery'
   /incidentes:
     $ref: './paths/incidentes.yaml#/crearIncidente'
   /incidentes/{incidenteId}:
@@ -102,6 +106,10 @@ components:
       $ref: './schemas/auth/usuario.yaml'
     UsuarioMeResponse:
       $ref: './schemas/auth/usuario_me_response.yaml'
+    RecoveryRequest:
+      $ref: './schemas/auth/recovery_request.yaml'
+    VerifyRecoveryRequest:
+      $ref: './schemas/auth/verify_recovery_request.yaml'
     Incidente:
       $ref: './schemas/incidentes/incidente.yaml'
     CrearIncidenteRequest:

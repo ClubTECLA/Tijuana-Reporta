@@ -9,5 +9,4 @@ properties:
     minLength: 1
     maxLength: 100
   password:
-    type: string
-    minLength: 8
+    $ref: './password.yaml'

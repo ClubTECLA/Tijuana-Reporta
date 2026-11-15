@@ -338,6 +338,18 @@ CREATE TABLE public.puntos_origen (
     ) STORED
 );
 
+-- Name: recovery_pins; Type: TABLE; Schema: public; Owner: -
+-- PINs de recuperación de contraseña. pin_hash = HMAC-SHA256(RECOVERY_SECRET, pin).
+CREATE TABLE public.recovery_pins (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    pin_hash bytea NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    expires_at timestamptz NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    used_at timestamptz
+);
+
 -- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: -
 CREATE TABLE public.refresh_tokens (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -431,6 +443,7 @@ CREATE TABLE public.users (
     password_hash text,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL,
+    password_changed_at timestamptz,
     state public.user_state
 );
 
@@ -551,6 +564,10 @@ ALTER TABLE ONLY public.notificaciones
 ALTER TABLE ONLY public.puntos_origen
     ADD CONSTRAINT puntos_origen_pkey PRIMARY KEY (reporte_id);
 
+-- Name: recovery_pins recovery_pins_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.recovery_pins
+    ADD CONSTRAINT recovery_pins_pkey PRIMARY KEY (id);
+
 -- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.refresh_tokens
     ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
@@ -630,6 +647,9 @@ CREATE INDEX idx_location_reporte_id ON public.location USING btree (reporte_id)
 
 -- Name: idx_refresh_tokens_user_id; Type: INDEX; Schema: public; Owner: -
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
+
+-- Name: idx_recovery_pins_user_created; Type: INDEX; Schema: public; Owner: -
+CREATE INDEX idx_recovery_pins_user_created ON public.recovery_pins USING btree (user_id, created_at DESC);
 
 -- Name: idx_reporte_estado_actual; Type: INDEX; Schema: public; Owner: -
 CREATE INDEX idx_reporte_estado_actual ON public.reporte USING btree (estado_actual);
@@ -718,6 +738,10 @@ ALTER TABLE ONLY public.notificaciones
 -- Name: puntos_origen puntos_origen_reporte_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.puntos_origen
     ADD CONSTRAINT puntos_origen_reporte_id_fkey FOREIGN KEY (reporte_id) REFERENCES public.reporte(id) ON DELETE CASCADE;
+
+-- Name: recovery_pins recovery_pins_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+ALTER TABLE ONLY public.recovery_pins
+    ADD CONSTRAINT recovery_pins_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 -- Name: refresh_tokens refresh_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 ALTER TABLE ONLY public.refresh_tokens
