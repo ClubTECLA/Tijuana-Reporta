@@ -33,7 +33,7 @@ func responder(w http.ResponseWriter, status int, body string) {
 }
 
 func TestCliente_Subir(t *testing.T) {
-	var gotCarpeta, gotArchivo, gotMetodo, gotRuta string
+	var gotCarpeta, gotExtension, gotArchivo, gotMetodo, gotRuta string
 	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMetodo, gotRuta = r.Method, r.URL.Path
 
@@ -52,6 +52,8 @@ func TestCliente_Subir(t *testing.T) {
 			switch parte.FormName() {
 			case "carpeta":
 				gotCarpeta = string(contenido)
+			case "extension":
+				gotExtension = string(contenido)
 			case "file":
 				gotArchivo = string(contenido)
 			}
@@ -59,7 +61,7 @@ func TestCliente_Subir(t *testing.T) {
 		responder(w, http.StatusCreated, `{"path":"reportes/abc/0123.jpg"}`)
 	})
 
-	path, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("contenido de la foto"))
+	path, err := c.Subir(context.Background(), "reportes/abc", "mp4", strings.NewReader("contenido de la foto"))
 	if err != nil {
 		t.Fatalf("Subir() error = %v, want nil", err)
 	}
@@ -72,6 +74,9 @@ func TestCliente_Subir(t *testing.T) {
 	}
 	if gotCarpeta != "reportes/abc" {
 		t.Errorf("carpeta enviada = %q, want %q", gotCarpeta, "reportes/abc")
+	}
+	if gotExtension != "mp4" {
+		t.Errorf("extensión enviada = %q, want %q", gotExtension, "mp4")
 	}
 	if gotArchivo != "contenido de la foto" {
 		t.Errorf("archivo enviado = %q, want %q", gotArchivo, "contenido de la foto")
@@ -100,7 +105,7 @@ func TestCliente_Subir_TraduceLosErroresDeMultimedia(t *testing.T) {
 				responder(w, tt.status, tt.body)
 			})
 
-			_, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto"))
+			_, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto"))
 
 			if err == nil {
 				t.Fatal("Subir() error = nil, want error")
@@ -120,7 +125,7 @@ func TestCliente_Subir_RespuestaInvalida(t *testing.T) {
 				responder(w, http.StatusCreated, body)
 			})
 
-			if _, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto")); err == nil {
+			if _, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto")); err == nil {
 				t.Errorf("Subir() con respuesta %q error = nil, want error", body)
 			}
 		})
@@ -137,7 +142,7 @@ func TestCliente_Subir_MultimediaRespondeSinLeerElArchivo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := c.Subir(ctx, "reportes/abc", grande)
+	_, err := c.Subir(ctx, "reportes/abc", "jpg", grande)
 
 	if err == nil || !strings.Contains(err.Error(), "413") {
 		t.Errorf("Subir() error = %v, want el error 413 de multimedia", err)
@@ -158,7 +163,7 @@ func TestCliente_Subir_FallaLaLecturaDelArchivo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := c.Subir(ctx, "reportes/abc", lectorQueFalla{}); err == nil {
+	if _, err := c.Subir(ctx, "reportes/abc", "jpg", lectorQueFalla{}); err == nil {
 		t.Error("Subir() con un archivo que no se puede leer error = nil, want error")
 	}
 }
@@ -173,7 +178,7 @@ func TestCliente_Subir_ContextoCancelado(t *testing.T) {
 	defer cancel()
 
 	inicio := time.Now()
-	_, err := c.Subir(ctx, "reportes/abc", strings.NewReader("foto"))
+	_, err := c.Subir(ctx, "reportes/abc", "jpg", strings.NewReader("foto"))
 
 	if err == nil {
 		t.Fatal("Subir() error = nil, want error por contexto cancelado")
@@ -189,7 +194,7 @@ func TestCliente_Subir_MultimediaCaido(t *testing.T) {
 	srv.Close()
 	c := NewCliente(url, time.Second)
 
-	_, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto"))
+	_, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto"))
 
 	if !errors.Is(err, ErrNoDisponible) {
 		t.Errorf("Subir() con multimedia caído error = %v, want %v", err, ErrNoDisponible)

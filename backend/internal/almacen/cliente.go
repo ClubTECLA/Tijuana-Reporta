@@ -47,16 +47,16 @@ type respuestaError struct {
 	Message string `json:"message"`
 }
 
-// Subir envía archivo (ya procesado) a multimedia para que lo guarde en carpeta, y
-// devuelve la ruta con la que quedó guardado. El archivo se manda mientras se
-// lee, sin cargarlo completo en memoria.
-func (c *Cliente) Subir(ctx context.Context, carpeta string, archivo io.Reader) (string, error) {
+// Subir envía archivo (ya procesado) a multimedia para que lo guarde en carpeta
+// con la extensión dada (jpg o mp4), y devuelve la ruta con la que quedó
+// guardado. El archivo se manda mientras se lee, sin cargarlo completo en memoria.
+func (c *Cliente) Subir(ctx context.Context, carpeta, extension string, archivo io.Reader) (string, error) {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 
 	cuerpo := multipart.NewWriter(pw)
 	go func() {
-		pw.CloseWithError(escribirMultipart(cuerpo, carpeta, archivo))
+		pw.CloseWithError(escribirMultipart(cuerpo, carpeta, extension, archivo))
 	}()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/upload", pr)
@@ -82,9 +82,12 @@ func (c *Cliente) Subir(ctx context.Context, carpeta string, archivo io.Reader) 
 	return subida.Path, nil
 }
 
-// escribirMultipart arma el body de POST /upload: el campo carpeta y el archivo.
-func escribirMultipart(cuerpo *multipart.Writer, carpeta string, archivo io.Reader) error {
+// escribirMultipart arma el body de POST /upload: los campos carpeta y extension, y el archivo.
+func escribirMultipart(cuerpo *multipart.Writer, carpeta, extension string, archivo io.Reader) error {
 	if err := cuerpo.WriteField("carpeta", carpeta); err != nil {
+		return err
+	}
+	if err := cuerpo.WriteField("extension", extension); err != nil {
 		return err
 	}
 	parte, err := cuerpo.CreateFormFile("file", "archivo")

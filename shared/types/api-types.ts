@@ -117,7 +117,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Adjunta una imagen JPEG ya reducida al reporte indicado. Solo el creador del reporte puede subirla y se permite una imagen por usuario y reporte. El backend valida el formato y las dimensiones, elimina los metadatos EXIF y devuelve la ruta pública del archivo. */
+        /** @description Sube la foto o el video del reporte. Solo lo puede subir su creador, y un solo archivo (foto o video, no los dos) por usuario por reporte. La foto debe ser un JPEG ya reducido por la app. El video debe ser un MP4 (H.264) ya comprimido por la app, de unos 5 segundos (el servidor acepta hasta 6); los .mov de QuickTime se rechazan. El backend detecta el tipo por el contenido, no por el nombre ni el Content-Type, valida el tamaño y las dimensiones de la foto o la duración del video, y le quita los metadatos, incluida la ubicación (el EXIF de la foto; las cajas udta, meta y uuid del video). El servicio multimedia lo guarda; el path de la respuesta se sirve en /multimedia/{path} y termina en .jpg o .mp4. */
         post: operations["subirMultimedia"];
         delete?: never;
         options?: never;
@@ -542,7 +542,7 @@ export interface components {
         crear_comentario_request: {
             comentario: string;
         };
-        /** @description Foto que el creador de un reporte sube a su reporte. */
+        /** @description Foto (JPEG) o video (MP4) que el creador de un reporte sube a su reporte. */
         subir_multimedia_request: {
             /** Format: binary */
             file: string;
@@ -1086,7 +1086,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Foto guardada */
+            /** @description Foto o video guardado */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1095,7 +1095,7 @@ export interface operations {
                     "application/json": components["schemas"]["multimedia"];
                 };
             };
-            /** @description Archivo faltante, multipart inválido o formato de imagen no soportado */
+            /** @description Archivo faltante, multipart inválido o formato no soportado (solo JPEG o MP4) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1131,7 +1131,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description El archivo es demasiado grande */
+            /** @description El archivo es demasiado grande para su tipo (la foto, 3 MiB; el video, 8 MiB por defecto) */
             413: {
                 headers: {
                     [name: string]: unknown;
@@ -1140,7 +1140,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description La imagen excede las dimensiones permitidas */
+            /** @description La imagen excede las dimensiones permitidas, o el video dura más de lo permitido */
             422: {
                 headers: {
                     [name: string]: unknown;

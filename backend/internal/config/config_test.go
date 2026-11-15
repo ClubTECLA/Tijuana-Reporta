@@ -19,7 +19,7 @@ func entornoMinimo(t *testing.T) {
 
 var variablesMantenimiento = []string{"MANTENIMIENTO_HORA", "MANTENIMIENTO_MAX_ACCIONES", "CUARENTENA_DIAS"}
 
-var variablesFoto = []string{"MAX_FOTO_BYTES", "MAX_FOTO_PIXELES"}
+var variablesFoto = []string{"MAX_FOTO_BYTES", "MAX_FOTO_PIXELES", "MAX_VIDEO_BYTES", "MAX_VIDEO_SEGUNDOS"}
 
 func TestLoad_MultimediaPorDefecto(t *testing.T) {
 	entornoMinimo(t)
@@ -76,12 +76,17 @@ func TestLoad_FotoPorDefecto(t *testing.T) {
 	if cfg.MaxFotoBytes != defaultMaxFotoBytes || cfg.MaxFotoPixeles != defaultMaxFotoPixeles {
 		t.Errorf("límites de foto = %d/%d, want los valores por defecto", cfg.MaxFotoBytes, cfg.MaxFotoPixeles)
 	}
+	if cfg.MaxVideoBytes != defaultMaxVideoBytes || cfg.MaxVideoSegundos != defaultMaxVideoSegundos {
+		t.Errorf("límites de video = %d/%d, want los valores por defecto", cfg.MaxVideoBytes, cfg.MaxVideoSegundos)
+	}
 }
 
 func TestLoad_FotoDelEntorno(t *testing.T) {
 	entornoMinimo(t)
 	t.Setenv("MAX_FOTO_BYTES", "500000")
 	t.Setenv("MAX_FOTO_PIXELES", "1000000")
+	t.Setenv("MAX_VIDEO_BYTES", "700000")
+	t.Setenv("MAX_VIDEO_SEGUNDOS", "9")
 
 	cfg, err := Load()
 	if err != nil {
@@ -89,6 +94,9 @@ func TestLoad_FotoDelEntorno(t *testing.T) {
 	}
 	if cfg.MaxFotoBytes != 500000 || cfg.MaxFotoPixeles != 1000000 {
 		t.Errorf("límites de foto = %d/%d, want 500000/1000000", cfg.MaxFotoBytes, cfg.MaxFotoPixeles)
+	}
+	if cfg.MaxVideoBytes != 700000 || cfg.MaxVideoSegundos != 9 {
+		t.Errorf("límites de video = %d/%d, want 700000/9", cfg.MaxVideoBytes, cfg.MaxVideoSegundos)
 	}
 }
 

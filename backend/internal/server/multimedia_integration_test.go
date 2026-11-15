@@ -7,6 +7,7 @@ package server_test
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"image"
@@ -37,7 +38,7 @@ type archivoSubido struct {
 	contenido []byte
 }
 
-func (m *multimediaFalso) Subir(_ context.Context, carpeta string, archivo io.Reader) (string, error) {
+func (m *multimediaFalso) Subir(_ context.Context, carpeta, extension string, archivo io.Reader) (string, error) {
 	if m.subirErr != nil {
 		return "", m.subirErr
 	}
@@ -45,7 +46,7 @@ func (m *multimediaFalso) Subir(_ context.Context, carpeta string, archivo io.Re
 	if err != nil {
 		return "", err
 	}
-	path := fmt.Sprintf("%s/falso%d.jpg", carpeta, len(m.subidas)+1)
+	path := fmt.Sprintf("%s/falso%d.%s", carpeta, len(m.subidas)+1, extension)
 	m.subidas = append(m.subidas, archivoSubido{carpeta: carpeta, path: path, contenido: contenido})
 	return path, nil
 }
@@ -346,6 +347,83 @@ func TestSubirMultimedia_ErroresDeMultimedia(t *testing.T) {
 			}
 			if bytes.Contains(rec.Body.Bytes(), []byte("10.0.0.5")) || bytes.Contains(rec.Body.Bytes(), []byte("refused")) {
 				t.Errorf("la respuesta filtra el detalle interno: %s", rec.Body)
+			}
+		})
+	}
+}
+
+// mp4De arma un MP4 mínimo de segundos segundos con la ubicación dentro de udta.
+func mp4De(segundos uint32, ubicacion string) []byte {
+	caja := func(tipo string, partes ...[]byte) []byte {
+		cuerpo := bytes.Join(partes, nil)
+		b := binary.BigEndian.AppendUint32(nil, uint32(8+len(cuerpo)))
+		return append(append(b, tipo...), cuerpo...)
+	}
+	u32 := func(n uint32) []byte { return binary.BigEndian.AppendUint32(nil, n) }
+
+	mvhd := caja("mvhd", []byte{0, 0, 0, 0}, u32(0), u32(0), u32(1000), u32(segundos*1000), make([]byte, 80))
+	moov := caja("moov", mvhd, caja("trak", caja("tkhd", make([]byte, 84))), caja("udta", caja("\xa9xyz", []byte(ubicacion))))
+	return bytes.Join([][]byte{caja("ftyp", []byte("mp42"), u32(0), []byte("isom")), moov, caja("mdat", bytesDe(2048))}, nil)
+}
+
+func TestSubirMultimedia_Video(t *testing.T) {
+	c := newTestClient(t)
+	c.login()
+	reporte := c.crearReporte()
+	video := mp4De(5, "+32.5149-117.0382/")
+
+	rec := c.subir(reporte.Id.String(), "file", video)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, quería %d; body: %s", rec.Code, http.StatusCreated, rec.Body)
+	}
+	m := decode[httpapi.Multimedia](t, rec)
+	wantPath := "reportes/" + reporte.Id.String() + "/falso1.mp4"
+	if m.Path != wantPath {
+		t.Errorf("path = %q, quería %q", m.Path, wantPath)
+	}
+	if len(c.multimedia.subidas) != 1 {
+		t.Fatalf("multimedia recibió %d archivo(s), quería 1", len(c.multimedia.subidas))
+	}
+	recibido := c.multimedia.subidas[0].contenido
+	if len(recibido) != len(video) {
+		t.Errorf("multimedia recibió %d bytes, quería %d (mismo tamaño)", len(recibido), len(video))
+	}
+	if bytes.Contains(recibido, []byte("+32.5149-117.0382")) {
+		t.Error("multimedia recibió el video con la ubicación")
+	}
+
+	rec = c.expect(http.StatusOK, http.MethodGet, "/v1/reportes/"+reporte.Id.String(), nil)
+	obtenido := decode[httpapi.Reporte](t, rec)
+	if len(obtenido.Multimedia) != 1 || obtenido.Multimedia[0].Path != wantPath {
+		t.Errorf("multimedia del reporte = %+v, quería un archivo con path %q", obtenido.Multimedia, wantPath)
+	}
+}
+
+func TestSubirMultimedia_VideoRechazado(t *testing.T) {
+	tests := []struct {
+		name    string
+		archivo []byte
+		want    int
+	}{
+		{name: "dura más del máximo", archivo: mp4De(30, "x"), want: http.StatusUnprocessableEntity},
+		// Pasa el límite del body (12 MiB) pero no el del video (8 MiB).
+		{name: "pesa más del máximo", archivo: append(mp4De(5, "x"), make([]byte, 9<<20)...), want: http.StatusRequestEntityTooLarge},
+		{name: "MP4 cortado", archivo: mp4De(5, "x")[:60], want: http.StatusBadRequest},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newTestClient(t)
+			c.login()
+			reporte := c.crearReporte()
+
+			rec := c.subir(reporte.Id.String(), "file", tt.archivo)
+
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, quería %d; body: %s", rec.Code, tt.want, rec.Body)
+			}
+			if len(c.multimedia.subidas) != 0 {
+				t.Errorf("multimedia recibió %d archivo(s), quería 0", len(c.multimedia.subidas))
 			}
 		})
 	}

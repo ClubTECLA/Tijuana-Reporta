@@ -37,6 +37,12 @@ const (
 	defaultMaxFotoPixeles = 16_000_000 // 4000x4000
 )
 
+// Valores por defecto de la validación de videos.
+const (
+	defaultMaxVideoBytes    = 8 << 20 // tamaño máximo del video; la app lo comprime antes de subirlo
+	defaultMaxVideoSegundos = 6       // los videos de la app duran 5 s; 1 s de margen
+)
+
 type Config struct {
 	DatabaseURL string
 	APIPort     string
@@ -48,6 +54,9 @@ type Config struct {
 
 	MaxFotoBytes   int64
 	MaxFotoPixeles int64
+
+	MaxVideoBytes    int64
+	MaxVideoSegundos int64
 
 	// Mantenimiento diario de multimedia (ver internal/mantenimiento).
 	MantenimientoHora        int
@@ -125,6 +134,13 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.MaxFotoPixeles, err = enteroPositivo("MAX_FOTO_PIXELES", defaultMaxFotoPixeles); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxVideoBytes, err = enteroPositivo("MAX_VIDEO_BYTES", defaultMaxVideoBytes); err != nil {
+		return Config{}, err
+	}
+	if cfg.MaxVideoSegundos, err = enteroPositivo("MAX_VIDEO_SEGUNDOS", defaultMaxVideoSegundos); err != nil {
 		return Config{}, err
 	}
 
