@@ -138,7 +138,8 @@ SET
     used_at = now()
 WHERE   
     id = $1
-    AND used_at IS NULL;
+    AND used_at IS NULL
+    AND expires_at > now();
 
 -- name: GetPasswordChangedAtByUserID :one
 SELECT
