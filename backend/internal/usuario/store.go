@@ -86,6 +86,10 @@ func (s *Store) CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams
 // password_changed_at a la hora actual de la API y marca el PIN como usado.
 func (s *Store) ResetPasswordTx(ctx context.Context, arg ResetPasswordTxParams) error {
 	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		// Mismo orden de bloqueo que CreatePinRecuperacion (usuario, luego PIN) para no causar deadlock.
+		if err := q.LockUserByID(ctx, arg.UserID); err != nil {
+			return err
+		}
 		filas, err := q.SetPinAsUsedByID(ctx, arg.PinID)
 		if err != nil {
 			return err
