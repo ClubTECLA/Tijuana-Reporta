@@ -95,7 +95,7 @@ type Querier interface {
 	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
 	SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error
-	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) error
+	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }

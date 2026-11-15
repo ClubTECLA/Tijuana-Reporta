@@ -68,15 +68,19 @@ func (s *Store) CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams
 // password_changed_at a la hora actual de la API y marca el PIN como usado.
 func (s *Store) ResetPasswordTx(ctx context.Context, arg ResetPasswordTxParams) error {
 	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		filas, err := q.SetPinAsUsedByID(ctx, arg.PinID)
+		if err != nil {
+			return err
+		}
+		if filas == 0 {
+			return ErrCodigoInvalido
+		}
 		changedAt := time.Now()
 		if err := q.SetNewPasswordByUserID(ctx, sqlc.SetNewPasswordByUserIDParams{
 			PasswordHash:      &arg.PasswordHash,
 			PasswordChangedAt: &changedAt,
 			ID:                arg.UserID,
 		}); err != nil {
-			return err
-		}
-		if err := q.SetPinAsUsedByID(ctx, arg.PinID); err != nil {
 			return err
 		}
 		// El actor es el propio usuario: demostró con el PIN que controla su email.

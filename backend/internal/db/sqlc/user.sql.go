@@ -361,16 +361,20 @@ func (q *Queries) SetNewPasswordByUserID(ctx context.Context, arg SetNewPassword
 	return err
 }
 
-const setPinAsUsedByID = `-- name: SetPinAsUsedByID :exec
+const setPinAsUsedByID = `-- name: SetPinAsUsedByID :execrows
 UPDATE
     recovery_pins
 SET
     used_at = now()
 WHERE   
     id = $1
+    AND used_at IS NULL
 `
 
-func (q *Queries) SetPinAsUsedByID(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, setPinAsUsedByID, id)
-	return err
+func (q *Queries) SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, setPinAsUsedByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

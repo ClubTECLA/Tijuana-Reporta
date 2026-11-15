@@ -121,13 +121,14 @@ SET
 WHERE
     id = $3;
 
--- name: SetPinAsUsedByID :exec
+-- name: SetPinAsUsedByID :execrows
 UPDATE
     recovery_pins
 SET
     used_at = now()
 WHERE   
-    id = $1;
+    id = $1
+    AND used_at IS NULL;
 
 -- name: GetPasswordChangedAtByUserID :one
 SELECT
