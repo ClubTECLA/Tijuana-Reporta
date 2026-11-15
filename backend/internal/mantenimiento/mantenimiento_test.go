@@ -3,6 +3,7 @@ package mantenimiento
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -35,6 +36,14 @@ type mundo struct {
 	errArchivos   error
 	errBorrarFila error
 	errCuarentena map[string]error
+}
+
+// inicioVentanaTest es el corte que se guarda en la primera pasada, antes de revisar nada.
+var inicioVentanaTest = ahoraTest.Add(-antiguedadMinima - ventanaInicial)
+
+// sinAvanzar dice si el corte sigue donde empezó la primera pasada.
+func (m *mundo) sinAvanzar() bool {
+	return m.corte == nil || m.corte.Equal(inicioVentanaTest)
 }
 
 func nuevoMundo() *mundo {
@@ -295,8 +304,8 @@ func TestPasar_FrenoPorDemasiadasAcciones(t *testing.T) {
 	if len(m.cuarentena) != 0 || len(m.filas) != 3 {
 		t.Errorf("cuarentena = %v, filas = %d, want nada tocado", m.cuarentena, len(m.filas))
 	}
-	if m.corte != nil {
-		t.Errorf("corte = %v, want sin avanzar", m.corte)
+	if !m.sinAvanzar() {
+		t.Errorf("corte = %v, want sin avanzar de %v", m.corte, inicioVentanaTest)
 	}
 }
 
@@ -340,8 +349,8 @@ func TestPasar_ErrorAlMandarACuarentenaNoAvanzaElCorte(t *testing.T) {
 	if err == nil {
 		t.Fatal("Pasar() = nil, want error")
 	}
-	if m.corte != nil {
-		t.Errorf("corte = %v, want sin avanzar", m.corte)
+	if !m.sinAvanzar() {
+		t.Errorf("corte = %v, want sin avanzar de %v", m.corte, inicioVentanaTest)
 	}
 	if _, ok := m.filas[rutaDe("falla")]; !ok {
 		t.Error("la fila del archivo que no se pudo apartar se borró")
@@ -359,8 +368,8 @@ func TestPasar_SiFallaBorrarLaFilaLaSiguientePasadaLaLimpia(t *testing.T) {
 	if err := j.Pasar(context.Background()); err == nil {
 		t.Fatal("Pasar() = nil, want error")
 	}
-	if m.corte != nil {
-		t.Fatalf("corte = %v, want sin avanzar", m.corte)
+	if !m.sinAvanzar() {
+		t.Fatalf("corte = %v, want sin avanzar de %v", m.corte, inicioVentanaTest)
 	}
 
 	// La base vuelve: el archivo ya está en cuarentena y su fila quedó sin archivo.
@@ -393,7 +402,7 @@ func TestPasar_ErrorDeMultimediaDevuelveError(t *testing.T) {
 	if err := j.Pasar(context.Background()); err == nil {
 		t.Fatal("Pasar() = nil, want error")
 	}
-	if m.corte != nil || m.purgas != 0 {
+	if !m.sinAvanzar() || m.purgas != 0 {
 		t.Errorf("corte = %v, purgas = %d, want nada avanzado", m.corte, m.purgas)
 	}
 }
@@ -493,5 +502,40 @@ func TestEjecutar_EsperaALaHoraYCorre(t *testing.T) {
 	}
 	if m.purgas != 1 {
 		t.Errorf("purgas = %d, want 1: tras esperar debía correr una pasada", m.purgas)
+	}
+}
+
+func TestPasar_ElCorteInicialNoSeMueveSiLaPrimeraPasadaFalla(t *testing.T) {
+	j, m := nuevoJob()
+	m.errArchivos = errors.New("multimedia caído")
+	m.subir(rutaDe("huerfano"), 25*time.Hour, "", false)
+
+	if err := j.Pasar(context.Background()); err == nil {
+		t.Fatal("Pasar() = nil, want error")
+	}
+	// Una hora después el reintento debe seguir revisando desde el mismo inicio.
+	j.ahora = func() time.Time { return ahoraTest.Add(time.Hour) }
+	m.errArchivos = nil
+	if err := j.Pasar(context.Background()); err != nil {
+		t.Fatalf("segunda Pasar() = %v, want nil", err)
+	}
+
+	if !slices.Equal(m.cuarentena, []string{rutaDe("huerfano")}) {
+		t.Errorf("cuarentena = %v, want el huérfano de hace 25 h", m.cuarentena)
+	}
+}
+
+func TestPasar_ElFrenoCuentaLaFilaDeCadaArchivoInvalido(t *testing.T) {
+	j, m := nuevoJob()
+	j.op.MaxAcciones = 10
+	for i := 0; i < 6; i++ { // 6 archivos + 6 filas = 12 acciones
+		m.subir(rutaDe(fmt.Sprint("mal", i)), 5*time.Hour, "no es JPEG", true)
+	}
+
+	if err := j.Pasar(context.Background()); !errors.Is(err, ErrFreno) {
+		t.Fatalf("Pasar() = %v, want ErrFreno", err)
+	}
+	if len(m.cuarentena) != 0 {
+		t.Errorf("cuarentena = %v, want nada tocado", m.cuarentena)
 	}
 }

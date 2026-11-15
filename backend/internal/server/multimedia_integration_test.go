@@ -362,7 +362,9 @@ func mp4De(segundos uint32, ubicacion string) []byte {
 	u32 := func(n uint32) []byte { return binary.BigEndian.AppendUint32(nil, n) }
 
 	mvhd := caja("mvhd", []byte{0, 0, 0, 0}, u32(0), u32(0), u32(1000), u32(segundos*1000), make([]byte, 80))
-	moov := caja("moov", mvhd, caja("trak", caja("tkhd", make([]byte, 84))), caja("udta", caja("\xa9xyz", []byte(ubicacion))))
+	moov := caja("moov", mvhd, caja("trak", caja("tkhd", make([]byte, 84)), caja("mdia",
+		caja("hdlr", []byte{0, 0, 0, 0}, u32(0), []byte("vide"), make([]byte, 13)),
+		caja("mdhd", []byte{0, 0, 0, 0}, u32(0), u32(0), u32(1000), u32(segundos*1000), make([]byte, 4)))), caja("udta", caja("\xa9xyz", []byte(ubicacion))))
 	return bytes.Join([][]byte{caja("ftyp", []byte("mp42"), u32(0), []byte("isom")), moov, caja("mdat", bytesDe(2048))}, nil)
 }
 

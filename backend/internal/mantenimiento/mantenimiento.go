@@ -118,7 +118,8 @@ func (j *Job) correrConReintentos(ctx context.Context) {
 
 // Pasar hace una pasada completa: revisa lo nuevo desde el último corte y vacía
 // la cuarentena vieja. Solo avanza el corte si todo salió bien, así una pasada
-// fallida se repite sobre la misma ventana.
+// fallida se repite sobre la misma ventana (la primera vez, el corte es el inicio
+// de la ventana inicial).
 func (j *Job) Pasar(ctx context.Context) error {
 	ahora := j.ahora()
 	if err := j.revisar(ctx, ahora); err != nil {
@@ -131,6 +132,8 @@ func (j *Job) Pasar(ctx context.Context) error {
 type plan struct {
 	// invalidos son archivos que no cumplen las reglas; van a cuarentena y se borra su fila.
 	invalidos []string
+	// filasInvalidas es cuántos de los invalidos tienen fila, que también se borra.
+	filasInvalidas int
 	// sinFila son archivos válidos que no tienen fila; van a cuarentena.
 	sinFila []string
 	// filasSinArchivo son filas cuyo archivo ya no existe; se borran.
@@ -139,9 +142,10 @@ type plan struct {
 	archivos, filas int
 }
 
-// acciones es cuántos archivos y filas va a tocar el plan.
+// acciones es cuántos archivos y filas va a tocar el plan: un archivo inválido
+// con fila cuenta dos, porque se aparta el archivo y se borra la fila.
 func (p plan) acciones() int {
-	return len(p.invalidos) + len(p.sinFila) + len(p.filasSinArchivo)
+	return len(p.invalidos) + p.filasInvalidas + len(p.sinFila) + len(p.filasSinArchivo)
 }
 
 // revisar aplica las reglas a lo creado entre el último corte y una hora antes de ahora.
@@ -150,7 +154,12 @@ func (j *Job) revisar(ctx context.Context, ahora time.Time) error {
 	desde, err := j.store.GetCorteMantenimiento(ctx, nombreTarea)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
+		// Se guarda el inicio de la ventana: si la pasada falla, el reintento (con
+		// otra hora) debe revisar desde el mismo punto y no dejar fuera lo más viejo.
 		desde = hasta.Add(-ventanaInicial)
+		if err := j.store.SetCorteMantenimiento(ctx, sqlc.SetCorteMantenimientoParams{Nombre: nombreTarea, UltimoCorte: desde}); err != nil {
+			return fmt.Errorf("guardar el inicio de la ventana: %w", err)
+		}
 	case err != nil:
 		return fmt.Errorf("leer el último corte: %w", err)
 	}
@@ -213,6 +222,9 @@ func (j *Job) planear(ctx context.Context, desde, hasta time.Time) (plan, error)
 		switch {
 		case a.Motivo != "":
 			p.invalidos = append(p.invalidos, a.Path)
+			if conFila[a.Path] {
+				p.filasInvalidas++
+			}
 		case !conFila[a.Path]:
 			p.sinFila = append(p.sinFila, a.Path)
 		}

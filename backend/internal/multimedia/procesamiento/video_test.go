@@ -46,10 +46,30 @@ func mp4De(moov []byte) []byte {
 	return bytes.Join([][]byte{ftyp("mp42"), moov, armarCaja("mdat", mdatDePrueba)}, nil)
 }
 
-func moovValido(mvhd []byte) []byte {
-	trak := armarCaja("trak", armarCaja("tkhd", make([]byte, 84)), armarCaja("udta", armarCaja("\xa9xyz", ubicacion)))
+// mdhdV0 arma un mdhd de versión 0, que tiene el mismo formato que mvhd en lo que se lee.
+func mdhdV0(timescale, duracion uint32) []byte {
+	return armarCaja("mdhd", []byte{0, 0, 0, 0}, uint32BE(0), uint32BE(0), uint32BE(timescale), uint32BE(duracion), make([]byte, 4))
+}
+
+// hdlr arma la caja que dice de qué tipo es una pista (vide, soun, meta...).
+func hdlr(tipo string) []byte {
+	return armarCaja("hdlr", []byte{0, 0, 0, 0}, uint32BE(0), []byte(tipo), make([]byte, 12), []byte{0})
+}
+
+// trakDe arma una pista del tipo dado, de cinco segundos, con la ubicación a nivel
+// de trak; mdiaExtra son cajas que se agregan dentro de su mdia.
+func trakDe(tipo string, mdhd []byte, mdiaExtra ...[]byte) []byte {
+	mdia := armarCaja("mdia", append([][]byte{hdlr(tipo), mdhd}, mdiaExtra...)...)
+	return armarCaja("trak", armarCaja("tkhd", make([]byte, 84)), armarCaja("udta", armarCaja("\xa9xyz", ubicacion)), mdia)
+}
+
+func trakValido() []byte { return trakDe("vide", mdhdV0(1000, 5000)) }
+
+func moovCon(mvhd []byte, trak []byte) []byte {
 	return armarCaja("moov", mvhd, trak, armarCaja("udta", armarCaja("\xa9xyz", ubicacion)), armarCaja("meta", []byte{0, 0, 0, 0}, ubicacion))
 }
+
+func moovValido(mvhd []byte) []byte { return moovCon(mvhd, trakValido()) }
 
 func mp4Valido() []byte { return mp4De(moovValido(mvhdV0(1000, 5000))) }
 
@@ -148,8 +168,41 @@ func TestProcesarVideo_Duracion(t *testing.T) {
 	}
 }
 
+func TestProcesarVideo_Pistas(t *testing.T) {
+	gps := []byte("GPS+32.5149-117.0382")
+	metaEnMdia := armarCaja("meta", []byte{0, 0, 0, 0}, gps)
+	tests := []struct {
+		name string
+		trak []byte
+		err  error
+	}{
+		{name: "pista de audio", trak: trakDe("soun", mdhdV0(44100, 220500))},
+		{name: "pista de metadatos con tiempo (GPS)", trak: trakDe("meta", mdhdV0(1000, 5000)), err: ErrFormatoNoSoportado},
+		{name: "pista de texto", trak: trakDe("text", mdhdV0(1000, 5000)), err: ErrFormatoNoSoportado},
+		{name: "pista más larga que mvhd", trak: trakDe("vide", mdhdV0(1000, 30000)), err: ErrVideoMuyLargo},
+		{name: "pista justo en el límite", trak: trakDe("vide", mdhdV0(1000, 6000))},
+		{name: "mdhd sin duración", trak: trakDe("vide", mdhdV0(1000, 0)), err: ErrFormatoNoSoportado},
+		{name: "sin mdia", trak: armarCaja("trak", armarCaja("tkhd", make([]byte, 84))), err: ErrFormatoNoSoportado},
+		{name: "mdia sin hdlr", trak: armarCaja("trak", armarCaja("mdia", mdhdV0(1000, 5000))), err: ErrFormatoNoSoportado},
+		{name: "mdia sin mdhd", trak: armarCaja("trak", armarCaja("mdia", hdlr("vide"))), err: ErrFormatoNoSoportado},
+		{name: "hdlr truncada", trak: armarCaja("trak", armarCaja("mdia", armarCaja("hdlr", []byte{0, 0, 0, 0}), mdhdV0(1000, 5000))), err: ErrFormatoNoSoportado},
+		{name: "ubicación dentro de mdia", trak: trakDe("vide", mdhdV0(1000, 5000), metaEnMdia)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			salida, err := ProcesarVideo(mp4De(moovCon(mvhdV0(1000, 5000), tt.trak)), maxDuracionTest)
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("ProcesarVideo() = %v, want %v", err, tt.err)
+			}
+			if err == nil && bytes.Contains(salida, gps) {
+				t.Error("la ubicación de la pista sigue en el archivo")
+			}
+		})
+	}
+}
+
 func TestProcesarVideo_Estructura(t *testing.T) {
-	trak := armarCaja("trak", armarCaja("tkhd", make([]byte, 84)))
+	trak := trakValido()
 	tests := []struct {
 		name  string
 		datos []byte

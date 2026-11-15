@@ -28,10 +28,12 @@ func estructura(motivo string) error {
 
 // ProcesarVideo comprueba que datos sea un MP4 bien formado de a lo más
 // maxDuracion y devuelve una copia sin la ubicación ni otros metadatos. No
-// decodifica el video ni revisa sus pistas: lee solo la estructura de cajas.
+// decodifica el video: lee solo la estructura de cajas. Solo acepta pistas de
+// video y de audio, porque una pista de metadatos con tiempo puede llevar el GPS
+// dentro de mdat, y que cada pista dure a lo más maxDuracion.
 //
-// Los metadatos (cajas udta, meta y uuid, a nivel de archivo, de moov y de cada
-// trak) no se quitan sino que se convierten en cajas free del mismo tamaño y con
+// Los metadatos (cajas udta, meta y uuid, a nivel de archivo, de moov, de cada
+// trak y de cada mdia) no se quitan sino que se convierten en cajas free del mismo tamaño y con
 // el contenido en ceros, así ningún offset del video se mueve.
 func ProcesarVideo(datos []byte, maxDuracion time.Duration) ([]byte, error) {
 	salida := bytes.Clone(datos)
@@ -91,15 +93,10 @@ func procesarMoov(b []byte, moov caja, maxDuracion time.Duration) error {
 				return estructura("más de un mvhd")
 			}
 			hayMvhd = true
-			return revisarDuracion(b, c, maxDuracion)
+			return revisarDuracion(b, c, "mvhd", maxDuracion)
 		case "trak":
 			hayTrak = true
-			return recorrer(b, c.cuerpo, c.fin, func(h caja) error {
-				if esMetadato(h.tipo) {
-					borrarCaja(b, h)
-				}
-				return nil
-			})
+			return procesarTrak(b, c, maxDuracion)
 		}
 		if esMetadato(c.tipo) {
 			borrarCaja(b, c)
@@ -117,16 +114,90 @@ func procesarMoov(b []byte, moov caja, maxDuracion time.Duration) error {
 	return nil
 }
 
+// procesarTrak borra los metadatos de la pista y de su mdia, y comprueba que sea
+// de video o de audio y que dure a lo más maxDuracion.
+func procesarTrak(b []byte, trak caja, maxDuracion time.Duration) error {
+	var hayMdia bool
+	err := recorrer(b, trak.cuerpo, trak.fin, func(c caja) error {
+		switch {
+		case c.tipo == "mdia":
+			if hayMdia {
+				return estructura("más de un mdia")
+			}
+			hayMdia = true
+			return procesarMdia(b, c, maxDuracion)
+		case esMetadato(c.tipo):
+			borrarCaja(b, c)
+		}
+		return nil
+	})
+	switch {
+	case err != nil:
+		return err
+	case !hayMdia:
+		return estructura("falta mdia")
+	}
+	return nil
+}
+
+// procesarMdia revisa el tipo y la duración de la pista y borra los metadatos de mdia.
+func procesarMdia(b []byte, mdia caja, maxDuracion time.Duration) error {
+	var hayHdlr, hayMdhd bool
+	err := recorrer(b, mdia.cuerpo, mdia.fin, func(c caja) error {
+		switch {
+		case c.tipo == "hdlr":
+			if hayHdlr {
+				return estructura("más de un hdlr")
+			}
+			hayHdlr = true
+			return revisarTipoDePista(b, c)
+		case c.tipo == "mdhd":
+			if hayMdhd {
+				return estructura("más de un mdhd")
+			}
+			hayMdhd = true
+			return revisarDuracion(b, c, "mdhd", maxDuracion)
+		case esMetadato(c.tipo):
+			borrarCaja(b, c)
+		}
+		return nil
+	})
+	switch {
+	case err != nil:
+		return err
+	case !hayHdlr:
+		return estructura("falta hdlr")
+	case !hayMdhd:
+		return estructura("falta mdhd")
+	}
+	return nil
+}
+
+// revisarTipoDePista acepta solo pistas de video ("vide") y de audio ("soun").
+func revisarTipoDePista(b []byte, hdlr caja) error {
+	cuerpo := b[hdlr.cuerpo:hdlr.fin]
+	if len(cuerpo) < 12 {
+		return estructura("hdlr truncada")
+	}
+	switch tipo := string(cuerpo[8:12]); tipo {
+	case "vide", "soun":
+		return nil
+	default:
+		return estructura(fmt.Sprintf("pista de tipo %q no soportada", tipo))
+	}
+}
+
 func esMetadato(tipo string) bool {
 	return tipo == "udta" || tipo == "meta" || tipo == "uuid"
 }
 
-// revisarDuracion lee la duración de mvhd. Una duración cero (como la de un MP4
-// fragmentado) tampoco se acepta, porque no se puede comprobar.
-func revisarDuracion(b []byte, mvhd caja, maxDuracion time.Duration) error {
-	cuerpo := b[mvhd.cuerpo:mvhd.fin]
+// revisarDuracion lee la duración de una caja mvhd o mdhd (nombre), que tienen el
+// mismo formato. Una duración cero (como la de un MP4 fragmentado) tampoco se
+// acepta, porque no se puede comprobar.
+func revisarDuracion(b []byte, medida caja, nombre string, maxDuracion time.Duration) error {
+	cuerpo := b[medida.cuerpo:medida.fin]
 	if len(cuerpo) < 1 {
-		return estructura("mvhd truncada")
+		return estructura(nombre + " truncada")
 	}
 
 	var escala uint32
@@ -134,18 +205,18 @@ func revisarDuracion(b []byte, mvhd caja, maxDuracion time.Duration) error {
 	switch cuerpo[0] {
 	case 0:
 		if len(cuerpo) < 20 {
-			return estructura("mvhd truncada")
+			return estructura(nombre + " truncada")
 		}
 		escala = binary.BigEndian.Uint32(cuerpo[12:])
 		duracion = uint64(binary.BigEndian.Uint32(cuerpo[16:]))
 	case 1:
 		if len(cuerpo) < 32 {
-			return estructura("mvhd truncada")
+			return estructura(nombre + " truncada")
 		}
 		escala = binary.BigEndian.Uint32(cuerpo[20:])
 		duracion = binary.BigEndian.Uint64(cuerpo[24:])
 	default:
-		return estructura("versión de mvhd desconocida")
+		return estructura("versión de " + nombre + " desconocida")
 	}
 	if escala == 0 || duracion == 0 {
 		return estructura("duración no declarada")
