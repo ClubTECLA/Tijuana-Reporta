@@ -58,7 +58,7 @@ func TestGuardar_EscribeElContenido(t *testing.T) {
 	a, dir := nuevoAlmacen(t)
 	contenido := []byte("contenido de prueba")
 
-	ruta, err := a.Guardar("reportes/abc", contenido)
+	ruta, err := a.Guardar("reportes/abc", ExtensionJPG, contenido)
 	if err != nil {
 		t.Fatalf("Guardar() = %v, want nil", err)
 	}
@@ -80,7 +80,7 @@ func TestGuardar_NombresDistintos(t *testing.T) {
 
 	vistos := map[string]bool{}
 	for i := 0; i < 50; i++ {
-		ruta, err := a.Guardar("reportes", []byte("x"))
+		ruta, err := a.Guardar("reportes", ExtensionJPG, []byte("x"))
 		if err != nil {
 			t.Fatalf("Guardar() = %v, want nil", err)
 		}
@@ -94,7 +94,7 @@ func TestGuardar_NombresDistintos(t *testing.T) {
 func TestGuardar_NoUsaNombreDelCliente(t *testing.T) {
 	a, _ := nuevoAlmacen(t)
 
-	ruta, err := a.Guardar("reportes", []byte("x"))
+	ruta, err := a.Guardar("reportes", ExtensionJPG, []byte("x"))
 	if err != nil {
 		t.Fatalf("Guardar() = %v, want nil", err)
 	}
@@ -110,7 +110,7 @@ func TestGuardar_CarpetaInvalida(t *testing.T) {
 
 	for _, carpeta := range []string{"", "..", "../x", "/etc", "a/../b", "a b"} {
 		t.Run(carpeta, func(t *testing.T) {
-			_, err := a.Guardar(carpeta, []byte("x"))
+			_, err := a.Guardar(carpeta, ExtensionJPG, []byte("x"))
 
 			if !errors.Is(err, ErrCarpetaInvalida) {
 				t.Errorf("Guardar(%q) = %v, want %v", carpeta, err, ErrCarpetaInvalida)
@@ -136,7 +136,7 @@ func TestGuardar_NoSaleDelDirectorioPorEnlaceSimbolico(t *testing.T) {
 		t.Skipf("no se pudo crear el enlace simbólico: %v", err)
 	}
 
-	if _, err := a.Guardar("enlace", []byte("x")); err == nil {
+	if _, err := a.Guardar("enlace", ExtensionJPG, []byte("x")); err == nil {
 		t.Error("Guardar() por un enlace hacia afuera = nil, want error")
 	}
 
@@ -152,7 +152,7 @@ func TestGuardar_NoSaleDelDirectorioPorEnlaceSimbolico(t *testing.T) {
 func TestGuardar_PermisosDelArchivo(t *testing.T) {
 	a, dir := nuevoAlmacen(t)
 
-	ruta, err := a.Guardar("reportes", []byte("x"))
+	ruta, err := a.Guardar("reportes", ExtensionJPG, []byte("x"))
 	if err != nil {
 		t.Fatalf("Guardar() = %v, want nil", err)
 	}
@@ -182,7 +182,7 @@ func TestAbrir_CreaElDirectorio(t *testing.T) {
 
 func TestBorrar_EliminaElArchivo(t *testing.T) {
 	a, dir := nuevoAlmacen(t)
-	ruta, err := a.Guardar("reportes/abc", []byte("x"))
+	ruta, err := a.Guardar("reportes/abc", ExtensionJPG, []byte("x"))
 	if err != nil {
 		t.Fatalf("Guardar() = %v, want nil", err)
 	}
@@ -198,7 +198,7 @@ func TestBorrar_EliminaElArchivo(t *testing.T) {
 
 func TestBorrar_YaNoExisteNoEsError(t *testing.T) {
 	a, _ := nuevoAlmacen(t)
-	ruta, err := a.Guardar("reportes/abc", []byte("x"))
+	ruta, err := a.Guardar("reportes/abc", ExtensionJPG, []byte("x"))
 	if err != nil {
 		t.Fatalf("Guardar() = %v, want nil", err)
 	}
@@ -246,8 +246,8 @@ func TestBorrar_RutaInvalida(t *testing.T) {
 
 func TestBorrar_NoBorraOtrosArchivos(t *testing.T) {
 	a, dir := nuevoAlmacen(t)
-	rutaA, _ := a.Guardar("reportes/abc", []byte("a"))
-	rutaB, _ := a.Guardar("reportes/abc", []byte("b"))
+	rutaA, _ := a.Guardar("reportes/abc", ExtensionJPG, []byte("a"))
+	rutaB, _ := a.Guardar("reportes/abc", ExtensionJPG, []byte("b"))
 
 	if err := a.Borrar(rutaA); err != nil {
 		t.Fatalf("Borrar() = %v, want nil", err)

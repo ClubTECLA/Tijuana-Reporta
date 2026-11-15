@@ -20,11 +20,14 @@ const (
 	limiteTest = 1024
 	// limiteFoto es el tamaño a partir del cual un archivo es demasiado grande al revisarlo.
 	limiteFoto = 512
+	// limiteVideo es lo mismo para un video.
+	limiteVideo = 768
 )
 
 // almacenFalso guarda en memoria lo que recibe.
 type almacenFalso struct {
 	carpeta   string
+	extension string
 	contenido []byte
 	llamadas  int
 	err       error
@@ -35,7 +38,7 @@ type almacenFalso struct {
 
 	archivos      []almacenamiento.Archivo
 	desde, hasta  time.Time
-	maxBytes      int64
+	limites       almacenamiento.Limites
 	faltan        []string
 	consultadas   []string
 	cuarentena    string
@@ -45,14 +48,15 @@ type almacenFalso struct {
 	errListar     error
 }
 
-func (a *almacenFalso) Guardar(carpeta string, contenido []byte) (string, error) {
+func (a *almacenFalso) Guardar(carpeta, extension string, contenido []byte) (string, error) {
 	a.llamadas++
 	if a.err != nil {
 		return "", a.err
 	}
 	a.carpeta = carpeta
+	a.extension = extension
 	a.contenido = contenido
-	return carpeta + "/falso.jpg", nil
+	return carpeta + "/falso." + extension, nil
 }
 
 func (a *almacenFalso) Borrar(ruta string) error {
@@ -61,8 +65,8 @@ func (a *almacenFalso) Borrar(ruta string) error {
 	return a.errBorrado
 }
 
-func (a *almacenFalso) Listar(desde, hasta time.Time, maxBytes int64) ([]almacenamiento.Archivo, error) {
-	a.desde, a.hasta, a.maxBytes = desde, hasta, maxBytes
+func (a *almacenFalso) Listar(desde, hasta time.Time, limites almacenamiento.Limites) ([]almacenamiento.Archivo, error) {
+	a.desde, a.hasta, a.limites = desde, hasta, limites
 	return a.archivos, a.errListar
 }
 
@@ -88,6 +92,7 @@ func nuevoRouterTest() (*gin.Engine, *almacenFalso) {
 	return NewRouter(Opciones{
 		MaxArchivoBytes: limiteTest,
 		MaxFotoBytes:    limiteFoto,
+		MaxVideoBytes:   limiteVideo,
 		Almacen:         almacen,
 	}), almacen
 }
@@ -127,7 +132,7 @@ func multipartConArchivo(t *testing.T, campo string, contenido []byte, texto cam
 // subirArchivo hace POST /upload con el archivo en el campo "file" y la carpeta "reportes/abc".
 func subirArchivo(t *testing.T, r *gin.Engine, contenido []byte) *httptest.ResponseRecorder {
 	t.Helper()
-	return subirConCampos(t, r, "file", contenido, campos{"carpeta": "reportes/abc"})
+	return subirConCampos(t, r, "file", contenido, campos{"carpeta": "reportes/abc", "extension": "jpg"})
 }
 
 func subirConCampos(t *testing.T, r *gin.Engine, campo string, contenido []byte, texto campos) *httptest.ResponseRecorder {
@@ -213,12 +218,12 @@ func TestSubir_Campos(t *testing.T) {
 		texto campos
 		want  int
 	}{
-		{name: "falta el campo file", campo: "otro", texto: campos{"carpeta": "reportes/abc"}, want: http.StatusBadRequest},
-		{name: "falta la carpeta", campo: "file", texto: campos{}, want: http.StatusBadRequest},
-		{name: "carpeta vacía", campo: "file", texto: campos{"carpeta": ""}, want: http.StatusBadRequest},
-		{name: "carpeta con ..", campo: "file", texto: campos{"carpeta": "../fuera"}, want: http.StatusBadRequest},
-		{name: "carpeta absoluta", campo: "file", texto: campos{"carpeta": "/etc"}, want: http.StatusBadRequest},
-		{name: "carpeta con espacios", campo: "file", texto: campos{"carpeta": "a b"}, want: http.StatusBadRequest},
+		{name: "falta el campo file", campo: "otro", texto: campos{"carpeta": "reportes/abc", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "falta la carpeta", campo: "file", texto: campos{"extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta vacía", campo: "file", texto: campos{"carpeta": "", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta con ..", campo: "file", texto: campos{"carpeta": "../fuera", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta absoluta", campo: "file", texto: campos{"carpeta": "/etc", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta con espacios", campo: "file", texto: campos{"carpeta": "a b", "extension": "jpg"}, want: http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
@@ -235,6 +240,55 @@ func TestSubir_Campos(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSubir_Extension(t *testing.T) {
+	validas := []struct{ extension, path string }{
+		{"jpg", "reportes/abc/falso.jpg"},
+		{"mp4", "reportes/abc/falso.mp4"},
+	}
+	for _, tt := range validas {
+		t.Run(tt.extension, func(t *testing.T) {
+			r, almacen := nuevoRouterTest()
+
+			rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc", "extension": tt.extension})
+
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("POST /upload status = %d, want %d (body: %s)", rec.Code, http.StatusCreated, rec.Body.String())
+			}
+			if almacen.extension != tt.extension {
+				t.Errorf("extensión guardada = %q, want %q", almacen.extension, tt.extension)
+			}
+			if !strings.Contains(rec.Body.String(), tt.path) {
+				t.Errorf("body = %s, want el path %q", rec.Body.String(), tt.path)
+			}
+		})
+	}
+
+	for _, extension := range []string{"", "png", "mov", "JPG", ".mp4", "mp4 "} {
+		t.Run("rechaza "+extension, func(t *testing.T) {
+			r, almacen := nuevoRouterTest()
+
+			rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc", "extension": extension})
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("POST /upload status = %d, want %d (body: %s)", rec.Code, http.StatusBadRequest, rec.Body.String())
+			}
+			if almacen.llamadas != 0 {
+				t.Errorf("Guardar se llamó %d veces, want 0", almacen.llamadas)
+			}
+		})
+	}
+
+	t.Run("falta el campo", func(t *testing.T) {
+		r, almacen := nuevoRouterTest()
+
+		rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc"})
+
+		if rec.Code != http.StatusBadRequest || almacen.llamadas != 0 {
+			t.Errorf("POST /upload status = %d con %d llamadas, want %d y 0", rec.Code, almacen.llamadas, http.StatusBadRequest)
+		}
+	})
 }
 
 func TestSubir_BodyNoMultipart(t *testing.T) {
@@ -361,8 +415,8 @@ func TestListar_PasaLaVentanaYDevuelveLosArchivos(t *testing.T) {
 	if !almacen.desde.Equal(desde) || !almacen.hasta.Equal(hasta) {
 		t.Errorf("ventana = %v a %v, want %v a %v", almacen.desde, almacen.hasta, desde, hasta)
 	}
-	if almacen.maxBytes != limiteFoto {
-		t.Errorf("maxBytes = %d, want %d", almacen.maxBytes, limiteFoto)
+	if want := (almacenamiento.Limites{FotoBytes: limiteFoto, VideoBytes: limiteVideo}); almacen.limites != want {
+		t.Errorf("limites = %+v, want %+v", almacen.limites, want)
 	}
 }
 

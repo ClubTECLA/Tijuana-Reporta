@@ -13,6 +13,15 @@ import (
 // ErrCarpetaInvalida se devuelve cuando la carpeta pedida no es una ruta relativa segura.
 var ErrCarpetaInvalida = errors.New("carpeta inválida")
 
+// ErrExtensionInvalida se devuelve cuando la extensión pedida no es una de las permitidas.
+var ErrExtensionInvalida = errors.New("extensión inválida")
+
+// Extensiones con las que Guardar acepta guardar un archivo.
+const (
+	ExtensionJPG = "jpg"
+	ExtensionMP4 = "mp4"
+)
+
 // ErrRutaInvalida se devuelve cuando la ruta a borrar no tiene la forma de un archivo guardado por Guardar.
 var ErrRutaInvalida = errors.New("ruta inválida")
 
@@ -20,7 +29,7 @@ var ErrRutaInvalida = errors.New("ruta inválida")
 var carpetaValida = regexp.MustCompile(`^[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*$`)
 
 // rutaValida acepta una carpeta válida seguida de un nombre generado por Guardar.
-var rutaValida = regexp.MustCompile(`^[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*/[0-9a-f]{32}\.jpg$`)
+var rutaValida = regexp.MustCompile(`^[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*/[0-9a-f]{32}\.(jpg|mp4)$`)
 
 // CarpetaValida indica si carpeta es una ruta relativa permitida.
 func CarpetaValida(carpeta string) bool {
@@ -66,9 +75,13 @@ func (a *Almacen) Cerrar() error {
 	return errors.Join(a.raiz.Close(), a.cuarentena.Close())
 }
 
-// Guardar escribe contenido como un JPEG nuevo dentro de carpeta y devuelve su
-// ruta relativa, con "/" como separador.
-func (a *Almacen) Guardar(carpeta string, contenido []byte) (string, error) {
+// Guardar escribe contenido como un archivo nuevo con la extensión dada (jpg o
+// mp4) dentro de carpeta y devuelve su ruta relativa, con "/" como separador.
+// No mira el contenido: eso lo valida quien lo manda.
+func (a *Almacen) Guardar(carpeta, extension string, contenido []byte) (string, error) {
+	if extension != ExtensionJPG && extension != ExtensionMP4 {
+		return "", ErrExtensionInvalida
+	}
 	if !CarpetaValida(carpeta) {
 		return "", ErrCarpetaInvalida
 	}
@@ -77,7 +90,7 @@ func (a *Almacen) Guardar(carpeta string, contenido []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ruta := path.Join(carpeta, nombre+".jpg")
+	ruta := path.Join(carpeta, nombre+"."+extension)
 
 	if err := a.raiz.MkdirAll(carpeta, 0o755); err != nil {
 		return "", fmt.Errorf("crear carpeta: %w", err)

@@ -14,6 +14,9 @@ const defaultMaxArchivoBytes = 12 << 20
 // considera demasiado grande al revisarla (3 MiB, igual que MAX_FOTO_BYTES del backend).
 const defaultMaxFotoBytes = 3 << 20
 
+// defaultMaxVideoBytes es lo mismo para un video (8 MiB, igual que MAX_VIDEO_BYTES del backend).
+const defaultMaxVideoBytes = 8 << 20
+
 // defaultUploadsDir es el directorio donde se guardan los archivos.
 const defaultUploadsDir = "uploads"
 
@@ -28,6 +31,7 @@ type Config struct {
 	CuarentenaDir   string
 	MaxArchivoBytes int64
 	MaxFotoBytes    int64
+	MaxVideoBytes   int64
 }
 
 // Load lee la configuración del entorno.
@@ -53,6 +57,10 @@ func Load() (Config, error) {
 	}
 
 	if cfg.MaxFotoBytes, err = enteroPositivo("MAX_FOTO_BYTES", defaultMaxFotoBytes); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.MaxVideoBytes, err = enteroPositivo("MAX_VIDEO_BYTES", defaultMaxVideoBytes); err != nil {
 		return Config{}, err
 	}
 

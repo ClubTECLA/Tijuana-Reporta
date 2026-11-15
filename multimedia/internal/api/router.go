@@ -19,9 +19,9 @@ const maxExistenBytes = 1 << 20
 
 // Almacen guarda, borra y revisa archivos.
 type Almacen interface {
-	Guardar(carpeta string, contenido []byte) (string, error)
+	Guardar(carpeta, extension string, contenido []byte) (string, error)
 	Borrar(ruta string) error
-	Listar(desde, hasta time.Time, maxBytes int64) ([]almacenamiento.Archivo, error)
+	Listar(desde, hasta time.Time, limites almacenamiento.Limites) ([]almacenamiento.Archivo, error)
 	Faltan(rutas []string) ([]string, error)
 	Cuarentena(ruta string) error
 	PurgarCuarentena(antes time.Time) (int, error)
@@ -30,10 +30,11 @@ type Almacen interface {
 // Opciones reúne los límites y dependencias del router.
 type Opciones struct {
 	MaxArchivoBytes int64
-	// MaxFotoBytes es el tamaño a partir del cual un archivo guardado se
-	// considera demasiado grande al revisarlo (GET /archivos).
-	MaxFotoBytes int64
-	Almacen      Almacen
+	// MaxFotoBytes y MaxVideoBytes son el tamaño a partir del cual una foto o un
+	// video guardado se considera demasiado grande al revisarlo (GET /archivos).
+	MaxFotoBytes  int64
+	MaxVideoBytes int64
+	Almacen       Almacen
 }
 
 // NewRouter arma el router del servicio.
@@ -78,7 +79,7 @@ func listar(op Opciones) gin.HandlerFunc {
 			return
 		}
 
-		archivos, err := op.Almacen.Listar(desde, hasta, op.MaxFotoBytes)
+		archivos, err := op.Almacen.Listar(desde, hasta, almacenamiento.Limites{FotoBytes: op.MaxFotoBytes, VideoBytes: op.MaxVideoBytes})
 		if err != nil {
 			c.Error(err)
 			responderError(c, http.StatusInternalServerError, "error al revisar los archivos")
@@ -191,8 +192,9 @@ func borrar(almacen Almacen) gin.HandlerFunc {
 	}
 }
 
-// subir guarda tal cual el archivo del campo "file" en la "carpeta" indicada.
-// No lo valida ni lo transforma: eso lo hace el backend antes de enviarlo.
+// subir guarda tal cual el archivo del campo "file" en la "carpeta" indicada,
+// con la "extension" pedida (jpg o mp4). No lo valida ni lo transforma: eso lo
+// hace el backend antes de enviarlo.
 func subir(op Opciones) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, op.MaxArchivoBytes+overheadMultipartBytes)
@@ -226,6 +228,12 @@ func subir(op Opciones) gin.HandlerFunc {
 			return
 		}
 
+		extension := c.PostForm("extension")
+		if extension != almacenamiento.ExtensionJPG && extension != almacenamiento.ExtensionMP4 {
+			responderError(c, http.StatusBadRequest, "extensión inválida")
+			return
+		}
+
 		archivo, err := header.Open()
 		if err != nil {
 			c.Error(err)
@@ -241,7 +249,7 @@ func subir(op Opciones) gin.HandlerFunc {
 			return
 		}
 
-		ruta, err := op.Almacen.Guardar(carpeta, contenido)
+		ruta, err := op.Almacen.Guardar(carpeta, extension, contenido)
 		if err != nil {
 			c.Error(err)
 			responderError(c, http.StatusInternalServerError, "error al guardar el archivo")

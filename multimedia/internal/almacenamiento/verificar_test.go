@@ -11,6 +11,7 @@ import (
 const (
 	nombreValido = "reportes/abc/0123456789abcdef0123456789abcdef.jpg"
 	limiteBytes  = 100
+	limiteVideo  = 400
 )
 
 // jpegMinimo es lo justo para que empiece como un JPEG.
@@ -69,7 +70,7 @@ func TestListar_MotivoPorArchivo(t *testing.T) {
 			a, dir, _ := almacenConCuarentena(t)
 			escribir(t, dir, tt.ruta, tt.contenido, ahora)
 
-			got, err := a.Listar(desde, hasta, limiteBytes)
+			got, err := a.Listar(desde, hasta, limitesTest)
 			if err != nil {
 				t.Fatalf("Listar() = %v, want nil", err)
 			}
@@ -94,7 +95,7 @@ func TestListar_RespetaLaVentana(t *testing.T) {
 	escribir(t, dir, nombre("3"), jpegMinimo, hasta.Add(-time.Second)) // dentro
 	escribir(t, dir, nombre("4"), jpegMinimo, hasta)                   // en el límite superior: no entra
 
-	got, err := a.Listar(desde, hasta, limiteBytes)
+	got, err := a.Listar(desde, hasta, limitesTest)
 	if err != nil {
 		t.Fatalf("Listar() = %v, want nil", err)
 	}
@@ -110,7 +111,7 @@ func TestListar_RespetaLaVentana(t *testing.T) {
 func TestListar_VolumenVacio(t *testing.T) {
 	a, _, _ := almacenConCuarentena(t)
 
-	got, err := a.Listar(time.Now().Add(-time.Hour), time.Now(), limiteBytes)
+	got, err := a.Listar(time.Now().Add(-time.Hour), time.Now(), limitesTest)
 	if err != nil {
 		t.Fatalf("Listar() = %v, want nil", err)
 	}
@@ -254,3 +255,6 @@ func TestPurgarCuarentena(t *testing.T) {
 		t.Errorf("el archivo reciente debía quedarse: Stat() = %v", err)
 	}
 }
+
+// limitesTest son los límites de tamaño con los que se revisa en los tests.
+var limitesTest = Limites{FotoBytes: limiteBytes, VideoBytes: limiteVideo}

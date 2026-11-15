@@ -1,9 +1,9 @@
 # multimedia
 
-Contenedor de **almacenamiento** de archivos multimedia (hoy, fotos de reportes).
+Contenedor de **almacenamiento** de archivos multimedia (fotos y videos de reportes).
 Solo guarda, borra y deja los archivos en un volumen; no valida ni transforma
 nada. Existe aparte del backend para que, si este contenedor falla, no arrastre
-al backend: la API sigue funcionando y solo la subida de fotos responde `503`.
+al backend: la API sigue funcionando y solo la subida de fotos y videos responde `503`.
 
 ## Visión general
 
@@ -18,7 +18,7 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
 | Pieza | Qué hace | Qué NO hace |
 |---|---|---|
 | **backend** | Expone el endpoint público, autentica, comprueba que el usuario sea el creador del reporte, valida y convierte la imagen, registra la fila en `multimedia`. | No guarda archivos en disco. |
-| **multimedia** (este servicio) | Guarda el JPEG que le manda el backend con nombre aleatorio, lo puede borrar, revisa lo guardado y aparta en cuarentena lo que el backend le pida. | No autentica, no valida lo que recibe, no convierte, no conoce la base de datos. |
+| **multimedia** (este servicio) | Guarda el JPEG o MP4 que le manda el backend con nombre aleatorio, lo puede borrar, revisa lo guardado y aparta en cuarentena lo que el backend le pida. | No autentica, no valida lo que recibe, no convierte, no conoce la base de datos. |
 | **nginx** | Enruta `/api/` al backend y sirve `/multimedia/<path>` leyendo el volumen. | No escribe en el volumen ni enruta nada hacia `multimedia`. |
 
 ## Flujo de una subida
@@ -29,9 +29,11 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
 4. **backend** (`internal/multimedia/service.go`), en este orden:
    1. Valida el JWT y que el usuario sea el **creador** del reporte (si no, `404`).
    2. Lee el archivo (máx. `MAX_FOTO_BYTES`).
-   3. Comprueba por **contenido** que sea JPEG (PNG, HEIC y demás se rechazan) y que no pase de `MAX_FOTO_PIXELES`.
-   4. Le quita los metadatos (EXIF, incluido el GPS, XMP, IPTC y comentarios) sin tocar los píxeles. **No** reduce ni recomprime la foto: eso lo hace la app antes de subirla.
-   5. Envía el JPEG a `multimedia` (`POST /upload`, carpeta `reportes/<id>`).
+   3. Detecta el tipo por **contenido**: JPEG (`FF D8 FF`) o MP4 (caja `ftyp`). Cualquier otra cosa (PNG, HEIC, `.mov`…) se rechaza.
+      - **Foto:** comprueba que sea un JPEG válido y que no pase de `MAX_FOTO_BYTES` ni de `MAX_FOTO_PIXELES`.
+      - **Video:** comprueba que sea un MP4 bien formado (`ftyp`, `moov` con `mvhd` y `trak`, y `mdat`), que no pase de `MAX_VIDEO_BYTES` y que dure a lo más `MAX_VIDEO_SEGUNDOS`. Rechaza los `.mov` de QuickTime y los MP4 fragmentados (duración 0).
+   4. Le quita los metadatos. **Foto:** EXIF (incluido el GPS), XMP, IPTC y comentarios, sin tocar los píxeles. **Video:** las cajas `udta`, `meta` y `uuid` (a nivel de archivo, de `moov` y de cada `trak`) se convierten en cajas `free` del mismo tamaño y con el contenido en ceros, así ningún offset se mueve y la ubicación no queda en el archivo. **No** reduce ni recomprime nada: eso lo hace la app antes de subirlo.
+   5. Envía el archivo a `multimedia` (`POST /upload`, carpeta `reportes/<id>` y `extension` `jpg` o `mp4`).
    6. Inserta la fila en `multimedia`. Si falla (por ejemplo `409` por el `UNIQUE`), pide a `multimedia` borrar el archivo (`DELETE /upload/{path}`) para no dejar huérfanos.
 5. **multimedia** guarda el archivo y responde su `path`; el backend lo devuelve al cliente.
 6. Para verlo, el cliente pide `GET /multimedia/<path>` y **nginx** lo sirve directo del volumen.
@@ -53,24 +55,24 @@ Authorization: Bearer <token>   (en ambas)
 - La app también debe dejar la **orientación corregida**: como el servidor descarta el EXIF, una foto con orientación sin corregir se verá girada.
 - El paso 2 solo corre si el 1 salió bien. **Si la foto falla, el reporte ya existe**: muestra "reporte enviado, pero la foto no se pudo subir" y reintenta solo la foto con el mismo `id`. Nunca recrees el reporte (se duplicaría).
 
-**Reglas de negocio**: solo el creador del reporte puede subir; una foto por usuario por reporte.
+**Reglas de negocio**: solo el creador del reporte puede subir; **una foto o un video** (uno u otro) por usuario por reporte.
 
 **Errores de la subida:**
 
 | Código | Significado | Qué hacer |
 |---|---|---|
 | `201` | Guardada | Mostrar la foto con el `path` devuelto |
-| `400` | Formato no soportado (solo JPEG), falta `file` o multipart mal armado | Avisar al usuario |
+| `400` | Formato no soportado (solo JPEG o MP4), `.mov`, falta `file` o multipart mal armado | Avisar al usuario |
 | `401` | Sin sesión o token inválido | Volver a iniciar sesión |
 | `404` | El reporte no existe o el usuario no es su creador | No ofrecer subir foto a reportes ajenos |
-| `409` | Ese usuario ya subió una foto a ese reporte | Informar; no reintentar |
-| `413` | Foto demasiado grande (máx. 3 MiB) | Reducirla antes de subir |
+| `409` | Ese usuario ya subió una foto o un video a ese reporte | Informar; no reintentar |
+| `413` | Foto demasiado grande (máx. 3 MiB) o video demasiado grande (máx. 8 MiB) | Reducirlo antes de subir |
 | `422` | Demasiados píxeles (máx. 16 MP) | Reducirla antes de subir |
 | `503` | Almacenamiento caído | Reintentar solo la foto, con espera |
 
 **Mostrar** — `GET /api/v1/reportes/{id}` trae `multimedia: [{ id, path, user_id, created_at }]`.
 La URL pública es **`<origen>/multimedia/<path>`, sin `/api`**; por ejemplo
-`http://localhost/multimedia/reportes/<id>/<32 hex>.jpg`. Los archivos son inmutables
+`http://localhost/multimedia/reportes/<id>/<32 hex>.jpg` (o `.mp4` si es video). Los archivos son inmutables
 (nombre aleatorio que no se reutiliza), así que se pueden cachear sin límite
 (`Cache-Control: immutable`). El listado del mapa (`GET /reportes`) **no** trae fotos.
 
@@ -138,10 +140,11 @@ permisos los aplica el backend antes de llamarlo.
 
 | Campo | Descripción |
 |---|---|
-| `file` | El JPEG ya validado y sin metadatos por el backend. Se guarda tal cual. |
+| `file` | El JPEG o MP4 ya validado y sin metadatos por el backend. Se guarda tal cual. |
+| `extension` | `jpg` o `mp4`: la extensión con la que se guarda. Cualquier otro valor, o si falta, responde `400`. |
 | `carpeta` | Carpeta destino dentro de `UPLOADS_DIR`, p. ej. `reportes/<reporteId>`. Solo letras, números, `-` y `_`, separados por `/`. |
 
-El archivo se guarda con un nombre aleatorio (128 bits en hexadecimal) y extensión `.jpg`.
+El archivo se guarda con un nombre aleatorio (128 bits en hexadecimal) y la extensión pedida (`.jpg` o `.mp4`).
 
 `201`:
 
@@ -179,7 +182,7 @@ y `hasta` (no incluido), y dice cuáles incumplen las reglas. Solo lee.
 ```
 
 `motivo` solo aparece si incumple, y es el primero de: `nombre no generado por el servicio`,
-`no es JPEG` (no empieza con la firma `FF D8 FF`) o `excede el tamaño máximo` (`MAX_FOTO_BYTES`).
+`no es JPEG` (un `.jpg` que no empieza con la firma `FF D8 FF`), `no es MP4` (un `.mp4` sin caja `ftyp` en los bytes 4 a 8) o `excede el tamaño máximo` (`MAX_FOTO_BYTES` para un `.jpg`, `MAX_VIDEO_BYTES` para un `.mp4`).
 
 | Código | Cuándo |
 |---|---|
@@ -226,11 +229,12 @@ Todos los errores salen como `{"message": "..."}`, igual que el backend.
 | `UPLOADS_DIR` | `uploads` (`/data/uploads` en la imagen) | Directorio donde se guardan los archivos. |
 | `CUARENTENA_DIR` | `cuarentena` (`/data/cuarentena` en la imagen) | Directorio donde se aparta lo que no cumple las reglas. Debe quedar **fuera** de `UPLOADS_DIR`, que es lo que sirve nginx. |
 | `MAX_ARCHIVO_BYTES` | `12582912` (12 MiB) | Tamaño máximo del archivo a guardar. |
-| `MAX_FOTO_BYTES` | `3145728` (3 MiB) | A partir de este tamaño, `GET /archivos` marca un archivo como demasiado grande. Debe coincidir con el del backend. |
+| `MAX_FOTO_BYTES` | `3145728` (3 MiB) | A partir de este tamaño, `GET /archivos` marca una foto (`.jpg`) como demasiado grande. Debe coincidir con el del backend. |
+| `MAX_VIDEO_BYTES` | `8388608` (8 MiB) | Lo mismo para un video (`.mp4`). Debe coincidir con el del backend. |
 
 Un valor inválido (no numérico, cero o negativo) impide que el servicio arranque.
 
-### Backend (límites de la foto)
+### Backend (límites de la foto y del video)
 
 | Variable | Por defecto | Descripción |
 |---|---|---|
@@ -238,9 +242,12 @@ Un valor inválido (no numérico, cero o negativo) impide que el servicio arranq
 | `MAX_MULTIMEDIA_BYTES` | `12582912` (12 MiB) | Tope del body de la ruta de subida. Debe coincidir con `client_max_body_size` de nginx. |
 | `MAX_FOTO_BYTES` | `3145728` (3 MiB) | Tamaño máximo de la foto recibida. |
 | `MAX_FOTO_PIXELES` | `16000000` | Píxeles máximos (ancho × alto). |
+| `MAX_VIDEO_BYTES` | `8388608` (8 MiB) | Tamaño máximo del video recibido. Debe ser menor que `MAX_MULTIMEDIA_BYTES`. |
+| `MAX_VIDEO_SEGUNDOS` | `6` | Duración máxima del video, leída de la cabecera `mvhd`. La app graba 5 s; el segundo extra es margen. |
 
-El backend no decodifica la foto completa, solo su cabecera, así que no hace
-falta limitar cuántas se validan a la vez.
+El backend no decodifica la foto completa, solo su cabecera, ni el video, de
+el que solo lee la estructura de cajas, así que no hace falta limitar cuántos se
+validan a la vez.
 
 ## Archivos guardados
 
@@ -262,7 +269,7 @@ revisa las últimas 24 horas.
 
 | Caso | Qué hace |
 |---|---|
-| Archivo que no es JPEG, pasa de `MAX_FOTO_BYTES` o tiene nombre ajeno | Lo manda a cuarentena y borra su fila de `multimedia`. |
+| Archivo que no corresponde a su extensión (JPEG o MP4), pasa de su límite de tamaño o tiene nombre ajeno | Lo manda a cuarentena y borra su fila de `multimedia`. |
 | Archivo válido sin fila | Lo manda a cuarentena. |
 | Fila sin archivo | Borra la fila. |
 | Archivo en cuarentena con más de `CUARENTENA_DIAS` días | Lo borra. |
@@ -323,9 +330,14 @@ presentes**.
 - **La cuarentena no tiene rastro en `historial`**: solo queda en el log del backend
   (`invalid file moved to quarantine`, `file without row moved to quarantine`,
   `row without file deleted`).
-- **Los videos** (cuando existan) necesitarán otras reglas de validación y de tamaño, y que
-  `multimedia` acepte otra extensión además de `.jpg`: el nombre válido y la firma que se
-  revisan hoy son solo de JPEG.
+- **El video no se decodifica ni se revisa su códec.** Solo se valida la estructura de cajas
+  MP4, la duración declarada en `mvhd` y el tamaño. Un MP4 con la estructura correcta pero
+  datos corruptos, con un códec que los reproductores no soportan (HEVC en un `.mp4`) o cuya
+  duración real no coincide con la declarada, pasa. La app es quien debe entregar H.264.
+  Cerrarlo requiere decodificar (por ejemplo con ffmpeg) o revisar la caja `stsd`.
+- **Los `.mov` se rechazan por la marca `qt  `**, aunque su contenido fuera H.264.
+- **La ubicación se borra solo de las cajas `udta`, `meta` y `uuid`.** La fecha de
+  creación que declara `mvhd` y los demás datos técnicos del video se conservan.
 
 ## Desarrollo
 
@@ -336,7 +348,7 @@ go run ./cmd/multimedia          # levanta en :8081, guarda en ./uploads
 go vet ./...
 go test ./...
 
-curl -F file=@foto.jpg -F carpeta=reportes/prueba localhost:8081/upload
+curl -F file=@foto.jpg -F carpeta=reportes/prueba -F extension=jpg localhost:8081/upload
 ```
 
 Estructura:
@@ -354,6 +366,6 @@ La validación de imágenes y la limpieza de metadatos **no** están aquí: vive
 
 ## Pendiente
 
-- Video: el backend lo procesará y lo enviará aquí; hará falta que `multimedia` acepte otra extensión además de `.jpg`.
+- App y web: subir y reproducir video (el backend y este servicio ya lo aceptan).
 - HEIC y PNG: se rechazan con `400` en el backend; la app debe exportar a JPEG.
 - Ver [Limitaciones conocidas](#limitaciones-conocidas).

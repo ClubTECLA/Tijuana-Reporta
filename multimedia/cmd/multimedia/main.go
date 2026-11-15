@@ -23,6 +23,7 @@ func main() {
 	r := api.NewRouter(api.Opciones{
 		MaxArchivoBytes: cfg.MaxArchivoBytes,
 		MaxFotoBytes:    cfg.MaxFotoBytes,
+		MaxVideoBytes:   cfg.MaxVideoBytes,
 		Almacen:         almacen,
 	})
 
