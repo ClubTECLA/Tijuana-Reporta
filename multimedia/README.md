@@ -32,7 +32,7 @@ App / Web ──► nginx :80 ──► backend :8080 ──► multimedia :8081
    3. Detecta el tipo por **contenido**: JPEG (`FF D8 FF`) o MP4 (caja `ftyp`). Cualquier otra cosa (PNG, HEIC, `.mov`…) se rechaza.
       - **Foto:** comprueba que sea un JPEG válido y que no pase de `MAX_FOTO_BYTES` ni de `MAX_FOTO_PIXELES`.
       - **Video:** comprueba que sea un MP4 bien formado (`ftyp`, `moov` con `mvhd` y `trak`, y `mdat`), que no pase de `MAX_VIDEO_BYTES` y que dure a lo más `MAX_VIDEO_SEGUNDOS`. Rechaza los `.mov` de QuickTime y los MP4 fragmentados (duración 0).
-   4. Le quita los metadatos. **Foto:** EXIF (incluido el GPS), XMP, IPTC y comentarios, sin tocar los píxeles. **Video:** las cajas `udta`, `meta` y `uuid` (a nivel de archivo, de `moov` y de cada `trak`) se convierten en cajas `free` del mismo tamaño y con el contenido en ceros, así ningún offset se mueve y la ubicación no queda en el archivo. **No** reduce ni recomprime nada: eso lo hace la app antes de subirlo.
+   4. Le quita los metadatos. **Foto:** EXIF (incluido el GPS), XMP, IPTC y comentarios, sin tocar los píxeles. **Video:** las cajas `udta`, `meta` y `uuid` (a nivel de archivo, de `moov`, de cada `trak` y de cada `mdia`) se convierten en cajas `free` del mismo tamaño y con el contenido en ceros, así ningún offset se mueve y la ubicación no queda en el archivo. **No** reduce ni recomprime nada: eso lo hace la app antes de subirlo.
    5. Envía el archivo a `multimedia` (`POST /upload`, carpeta `reportes/<id>` y `extension` `jpg` o `mp4`).
    6. Inserta la fila en `multimedia`. Si falla (por ejemplo `409` por el `UNIQUE`), pide a `multimedia` borrar el archivo (`DELETE /upload/{path}`) para no dejar huérfanos.
 5. **multimedia** guarda el archivo y responde su `path`; el backend lo devuelve al cliente.
@@ -336,8 +336,15 @@ presentes**.
   duración real no coincide con la declarada, pasa. La app es quien debe entregar H.264.
   Cerrarlo requiere decodificar (por ejemplo con ffmpeg) o revisar la caja `stsd`.
 - **Los `.mov` se rechazan por la marca `qt  `**, aunque su contenido fuera H.264.
-- **La ubicación se borra solo de las cajas `udta`, `meta` y `uuid`.** La fecha de
-  creación que declara `mvhd` y los demás datos técnicos del video se conservan.
+- **La ubicación se borra solo de las cajas `udta`, `meta` y `uuid`** (de archivo, `moov`,
+  `trak` y `mdia`). La fecha de creación que declara `mvhd` y los demás datos técnicos del
+  video se conservan, y lo que el códec lleve dentro de las muestras (por ejemplo mensajes
+  SEI de H.264) no se toca: eso exigiría analizar el H.264.
+- **Solo se aceptan pistas de video y de audio**, y cada una debe durar a lo más
+  `MAX_VIDEO_SEGUNDOS` según su `mdhd`. No se revisa que haya tablas de muestras (`stbl`):
+  se valida la estructura, no que el video se pueda decodificar.
+- **`UPLOADS_DIR` y `CUARENTENA_DIR` no pueden ser el mismo ni estar uno dentro del otro**:
+  el servicio no arranca, porque la purga de la cuarentena borraría archivos vivos.
 
 ## Desarrollo
 

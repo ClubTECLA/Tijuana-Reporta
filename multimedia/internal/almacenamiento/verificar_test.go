@@ -258,3 +258,19 @@ func TestPurgarCuarentena(t *testing.T) {
 
 // limitesTest son los límites de tamaño con los que se revisa en los tests.
 var limitesTest = Limites{FotoBytes: limiteBytes, VideoBytes: limiteVideo}
+
+func TestFaltan_UnaCarpetaConNombreDeArchivoCuentaComoFaltante(t *testing.T) {
+	a, dir := nuevoAlmacen(t)
+	ruta := "reportes/abc/0123456789abcdef0123456789abcdef.jpg"
+	if err := os.MkdirAll(filepath.Join(dir, ruta), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	faltan, err := a.Faltan([]string{ruta})
+	if err != nil {
+		t.Fatalf("Faltan() = %v, want nil", err)
+	}
+	if len(faltan) != 1 || faltan[0] != ruta {
+		t.Errorf("Faltan() = %v, want [%s]", faltan, ruta)
+	}
+}

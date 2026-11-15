@@ -5,9 +5,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // ErrCarpetaInvalida se devuelve cuando la carpeta pedida no es una ruta relativa segura.
@@ -46,6 +49,9 @@ type Almacen struct {
 // Abrir crea los directorios dir y dirCuarentena si no existen y devuelve un
 // Almacen sobre ellos.
 func Abrir(dir, dirCuarentena string) (*Almacen, error) {
+	if err := comprobarSeparados(dir, dirCuarentena); err != nil {
+		return nil, err
+	}
 	raiz, err := abrirRaiz(dir)
 	if err != nil {
 		return nil, err
@@ -56,6 +62,50 @@ func Abrir(dir, dirCuarentena string) (*Almacen, error) {
 		return nil, err
 	}
 	return &Almacen{raiz: raiz, cuarentena: cuarentena}, nil
+}
+
+// comprobarSeparados devuelve error si los directorios son el mismo o uno está
+// dentro del otro: la purga de la cuarentena borraría archivos vivos. Resuelve
+// los enlaces simbólicos, aunque los directorios aún no existan.
+func comprobarSeparados(dir, dirCuarentena string) error {
+	a, err := rutaReal(dir)
+	if err != nil {
+		return err
+	}
+	b, err := rutaReal(dirCuarentena)
+	if err != nil {
+		return err
+	}
+	if dentroDe(a, b) || dentroDe(b, a) {
+		return fmt.Errorf("el directorio de uploads (%s) y el de cuarentena (%s) no pueden ser el mismo ni estar uno dentro del otro", dir, dirCuarentena)
+	}
+	return nil
+}
+
+// dentroDe dice si hijo es padre o está dentro de padre.
+func dentroDe(hijo, padre string) bool {
+	rel, err := filepath.Rel(padre, hijo)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+// rutaReal devuelve la ruta absoluta de dir con los enlaces simbólicos resueltos.
+// Si dir no existe, resuelve su carpeta existente más cercana y le agrega el resto.
+func rutaReal(dir string) (string, error) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf("resolver directorio: %w", err)
+	}
+	resto := ""
+	for actual := abs; ; actual = filepath.Dir(actual) {
+		real, err := filepath.EvalSymlinks(actual)
+		if err == nil {
+			return filepath.Join(real, resto), nil
+		}
+		if !errors.Is(err, fs.ErrNotExist) || actual == filepath.Dir(actual) {
+			return "", fmt.Errorf("resolver directorio: %w", err)
+		}
+		resto = filepath.Join(filepath.Base(actual), resto)
+	}
 }
 
 // abrirRaiz crea el directorio dir si no existe y lo abre como raíz.

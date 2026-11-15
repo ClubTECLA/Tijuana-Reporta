@@ -132,7 +132,8 @@ func leerCabecera(sistema fs.FS, ruta string, n int) ([]byte, error) {
 }
 
 // Faltan devuelve las rutas de rutas que no existen como archivo guardado.
-// Una ruta que no tiene la forma de un archivo guardado cuenta como faltante.
+// Una ruta que no tiene la forma de un archivo guardado, o que no es un archivo
+// regular, cuenta como faltante.
 func (a *Almacen) Faltan(rutas []string) ([]string, error) {
 	faltan := []string{}
 	for _, ruta := range rutas {
@@ -140,11 +141,14 @@ func (a *Almacen) Faltan(rutas []string) ([]string, error) {
 			faltan = append(faltan, ruta)
 			continue
 		}
-		if _, err := a.raiz.Stat(ruta); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return nil, fmt.Errorf("consultar archivo: %w", err)
-			}
+		info, err := a.raiz.Stat(ruta)
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
 			faltan = append(faltan, ruta)
+		case err != nil:
+			return nil, fmt.Errorf("consultar archivo: %w", err)
+		case !info.Mode().IsRegular():
+			faltan = append(faltan, ruta) // una carpeta con ese nombre no es el archivo
 		}
 	}
 	return faltan, nil

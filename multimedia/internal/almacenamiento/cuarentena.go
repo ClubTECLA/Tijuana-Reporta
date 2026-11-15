@@ -38,17 +38,17 @@ func (a *Almacen) Cuarentena(ruta string) error {
 		}
 	}
 
-	destino, err := a.crearEnCuarentena(ruta)
+	destino, rutaDestino, err := a.crearEnCuarentena(ruta)
 	if err != nil {
 		return err
 	}
 	if _, err := io.Copy(destino, origen); err != nil {
 		destino.Close()
-		a.cuarentena.Remove(destino.Name())
+		a.cuarentena.Remove(rutaDestino)
 		return fmt.Errorf("copiar a cuarentena: %w", err)
 	}
 	if err := destino.Close(); err != nil {
-		a.cuarentena.Remove(destino.Name())
+		a.cuarentena.Remove(rutaDestino)
 		return fmt.Errorf("cerrar archivo de cuarentena: %w", err)
 	}
 
@@ -59,20 +59,22 @@ func (a *Almacen) Cuarentena(ruta string) error {
 }
 
 // crearEnCuarentena crea el archivo de destino sin pisar uno que ya esté ahí:
-// si la ruta existe, le agrega un sufijo con la hora.
-func (a *Almacen) crearEnCuarentena(ruta string) (*os.File, error) {
+// si la ruta existe, le agrega un sufijo con la hora. Devuelve también la ruta
+// relativa a la cuarentena que quedó, porque File.Name trae la de la raíz y no
+// sirve para borrarlo con Root.Remove.
+func (a *Almacen) crearEnCuarentena(ruta string) (*os.File, string, error) {
 	destino := ruta
 	for intento := 0; intento < 3; intento++ {
 		f, err := a.cuarentena.OpenFile(destino, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if err == nil {
-			return f, nil
+			return f, destino, nil
 		}
 		if !errors.Is(err, fs.ErrExist) {
-			return nil, fmt.Errorf("crear archivo de cuarentena: %w", err)
+			return nil, "", fmt.Errorf("crear archivo de cuarentena: %w", err)
 		}
 		destino = ruta + "." + strconv.FormatInt(time.Now().UnixNano(), 36)
 	}
-	return nil, errors.New("crear archivo de cuarentena: nombre ocupado")
+	return nil, "", errors.New("crear archivo de cuarentena: nombre ocupado")
 }
 
 // PurgarCuarentena borra de la cuarentena los archivos que llevan en ella desde
