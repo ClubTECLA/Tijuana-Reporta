@@ -1,31 +1,35 @@
-import { useRef, useState, useEffect, type ChangeEvent, type FocusEvent } from 'react';
+import { useRef, useState, type FocusEvent } from 'react';
 import { LuSearch, LuX } from 'react-icons/lu';
 
 interface SearchBarProps {
     onChangeQuery?: (query: string) => void;
     onSubmit?: (query: string) => void;
     placeholder?: string;
-    value?: string
+    value?: string,
+    onFocus?: () => void;
+    onBlur?: () => void;
 }
 
-export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = ''}: SearchBarProps) {
+export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = '', onFocus, onBlur}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [query, setQuery] = useState(value);
+    const [prevValue, setPrevValue] = useState(value);
     const [focused, setFocused] = useState(false);
 
     const isActive = focused;
 
-    useEffect(() => {
+    if (prevValue !== value) {
+        setPrevValue(value);
         setQuery(value);
-    }, [value]);
+    }
 
     const handleBlur = (e: FocusEvent<HTMLFormElement>) => {
         // Pasar el foco del input a los botones de la barra no la saca del estado Enfoque.
         if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
     };
 
-    const handleChangeQuery = (e: ChangeEvent<HTMLInputElement>) => {
-        const newQuery = e.target.value;
+    const handleChangeQuery = (query: string) => {
+        const newQuery = query;
         setQuery(newQuery);
         onChangeQuery?.(newQuery);
     };
@@ -70,13 +74,15 @@ export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Busca
                 aria-label={placeholder}
                 placeholder={placeholder}
                 value={query}
-                onChange={handleChangeQuery}
+                onChange={(e) => handleChangeQuery(e.target.value)}
                 className="
                     min-w-0 flex-1 bg-transparent
                     text-body text-ink placeholder:text-ink-muted
                     outline-none
                     [&::-webkit-search-cancel-button]:appearance-none
                 "
+                onFocus={onFocus}
+                onBlur={onBlur}
             />
 
             <button type="submit" aria-label="Buscar" onMouseDown={(e) => e.preventDefault()} className={`${sideButtonStyle} -mr-3 transition-colors duration-200 hover:bg-subtle`}>

@@ -10,6 +10,7 @@ import IncidentDetailView from "@/features/reportes/views/IncidentDetailView";
 import SummaryView from "@/features/resumen/views/SummaryView";
 import UsersView from "@/features/usuarios/views/UsersView";
 import type { PanelViewKey, PanelViewPropsMap } from "./panelTypes";
+import SearchView from "@/features/busqueda/views/SearchView";
 
 // Punto de composición visual: los tipos y el router no importan este registro.
 type PanelRegistry = {
@@ -27,4 +28,5 @@ export const panelRegistry = {
     "Detalle Incidente": IncidentDetailView,
     "Usuarios": UsersView,
     "Capas y filtros": MapFiltersView,
+    "Busqueda": SearchView,
 } satisfies PanelRegistry;

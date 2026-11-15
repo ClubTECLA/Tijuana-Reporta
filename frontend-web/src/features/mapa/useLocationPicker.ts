@@ -125,10 +125,10 @@ function useLocationPickerState(): LocationPickerContextValue {
     };
 
     // Escribir en el buscador cancela la búsqueda pendiente: lo escrito no se sustituye por una respuesta vieja.
-    const editAddress = (text: string) => {
+    const editAddress = useCallback((text: string) => {
         lookupRef.current?.abort();
         setAddress(text);
-    };
+    }, []);
 
     const reset = useCallback(() => {
         hasBeenResetRef.current = true;

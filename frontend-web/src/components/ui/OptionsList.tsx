@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const colorWrapped = {
     'white' : {
         iconStyle: 'text-brand bg-brand-subtle',
-        wrappedStyle: 'bg-white',
+        wrappedStyle: 'bg-surface',
         textStyle: 'text-ink',
         descriptionStyle: 'text-ink-muted',
         badgeStyle: "text-brand-text"
@@ -85,8 +85,8 @@ export function ListTile(
             <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-xl ${tone.iconStyle}`}>{icon}</span>
         }
         <span className="flex min-w-0 flex-1 flex-col items-start justify-center">
-            <span className={`text-base font-semibold ${tone.textStyle}`}>{tileName}</span>
-            {tileDescription && <span className={`w-full max-w-xs break-words text-sm ${tone.descriptionStyle}`}>{tileDescription}</span>}
+            <span className={`text-body font-semibold ${tone.textStyle}`}>{tileName}</span>
+            {tileDescription && <span className={`w-full max-w-xs break-words text-caption ${tone.descriptionStyle}`}>{tileDescription}</span>}
         </span>
     </>;
 
@@ -125,7 +125,7 @@ export function ListTile(
             {content}
             {onClick &&
                 <span className="flex h-10 shrink-0 items-center gap-1 text-2xl text-ink-secondary">
-                    {valueBadge !== undefined && <span className={`text-lg font-bold ${tone.badgeStyle}`}>{valueBadge}</span>}
+                    {valueBadge !== undefined && <span className={`text-body font-bold ${tone.badgeStyle}`}>{valueBadge}</span>}
                     <IoIosArrowForward aria-hidden />
                 </span>
             }
@@ -148,7 +148,7 @@ export function OptionList({ debug, format, title, children} : optionsListProps)
             format={format}
             className="flex flex-col mt-2"
         >
-            {title && <span className="text-base text-ink-muted font-semibold">{title}</span>}
+            {title && <span className="text-body text-ink-muted font-semibold">{title}</span>}
             <div className="outline-1 outline-line mt-2 rounded-2xl p-2">
                 {/* validateChildren ya garantiza que todos los hijos son ListTile. */}
                 {Children.map(children, (child) =>
