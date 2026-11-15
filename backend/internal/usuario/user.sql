@@ -74,6 +74,16 @@ ORDER BY
     created_at DESC
 LIMIT 1;
 
+-- name: LockUserByID :exec
+-- Serializa por cuenta la emisión de PIN: la segunda petición espera aquí hasta que la primera termine.
+SELECT
+    id
+FROM
+    users
+WHERE
+    id = $1
+FOR UPDATE;
+
 -- name: CountPINsLastHourByUserID :one
 SELECT
     count(*)

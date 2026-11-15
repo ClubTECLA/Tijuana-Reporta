@@ -46,22 +46,40 @@ func (s *Store) CreateUserWithLocalProvider(ctx context.Context, arg sqlc.Create
 	return user, nil
 }
 
-// CreatePinRecuperacion, en una transacción, borra los PIN expirados o
-// usados del usuario, cancela los activos e inserta el nuevo.
-func (s *Store) CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams) error {
-	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+// CreatePinRecuperacion, en una transacción que bloquea la fila del usuario,
+// revisa el límite por hora, borra los PIN expirados o usados del usuario,
+// cancela los activos e inserta el nuevo. Devuelve false, sin crear nada, si
+// el usuario ya llegó a arg.MaxPorHora.
+func (s *Store) CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams) (bool, error) {
+	creado := false
+	err := db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		if err := q.LockUserByID(ctx, arg.UserID); err != nil {
+			return err
+		}
+		n, err := q.CountPINsLastHourByUserID(ctx, arg.UserID)
+		if err != nil {
+			return err
+		}
+		if n >= arg.MaxPorHora {
+			return nil
+		}
 		if err := q.DeleteUsedOrExpiredPINByUserID(ctx, arg.UserID); err != nil {
 			return err
 		}
 		if err := q.CancelPINByUserID(ctx, arg.UserID); err != nil {
 			return err
 		}
-		return q.CreatePIN(ctx, sqlc.CreatePINParams{
+		if err := q.CreatePIN(ctx, sqlc.CreatePINParams{
 			UserID:    arg.UserID,
 			PinHash:   arg.PinHash,
 			ExpiresAt: arg.ExpiresAt,
-		})
+		}); err != nil {
+			return err
+		}
+		creado = true
+		return nil
 	})
+	return creado, err
 }
 
 // ResetPasswordTx, en una transacción, guarda el nuevo password_hash, pone

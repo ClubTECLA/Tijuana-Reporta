@@ -338,6 +338,22 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
 	return items, nil
 }
 
+const lockUserByID = `-- name: LockUserByID :exec
+SELECT
+    id
+FROM
+    users
+WHERE
+    id = $1
+FOR UPDATE
+`
+
+// Serializa por cuenta la emisión de PIN: la segunda petición espera aquí hasta que la primera termine.
+func (q *Queries) LockUserByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockUserByID, id)
+	return err
+}
+
 const setNewPasswordByUserID = `-- name: SetNewPasswordByUserID :exec
 UPDATE
     users

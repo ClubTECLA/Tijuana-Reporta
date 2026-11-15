@@ -29,9 +29,8 @@ const (
 type recoveryStore interface {
 	GetUserByEmail(ctx context.Context, email *string) (sqlc.User, error)
 	GetLatestActivePINByUserID(ctx context.Context, userID uuid.UUID) (sqlc.RecoveryPin, error)
-	CountPINsLastHourByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
 	AddPINAttemptByPINID(ctx context.Context, id uuid.UUID) (int, error)
-	CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams) error
+	CreatePinRecuperacion(ctx context.Context, arg CreatePinTxParams) (bool, error)
 	ResetPasswordTx(ctx context.Context, arg ResetPasswordTxParams) error
 }
 
@@ -69,24 +68,17 @@ func (r *Recuperacion) Solicitar(ctx context.Context, email string) error {
 	}
 
 	enviarEnSegundoPlano(ctx, user.ID, func(ctx context.Context) error {
-		// shortcut: contar y luego insertar no es atómico; peticiones simultáneas pueden pasar el límite por 1-2. El límite por IP las frena.
-		n, err := r.store.CountPINsLastHourByUserID(ctx, user.ID)
-		if err != nil {
-			return err
-		}
-		if n >= maxSolicitudesPorHr {
-			return nil
-		}
-
 		pin, err := generarPin()
 		if err != nil {
 			return err
 		}
-		if err := r.store.CreatePinRecuperacion(ctx, CreatePinTxParams{
-			UserID:    user.ID,
-			PinHash:   r.hashPin(pin),
-			ExpiresAt: time.Now().Add(pinTTLMinutos * time.Minute),
-		}); err != nil {
+		creado, err := r.store.CreatePinRecuperacion(ctx, CreatePinTxParams{
+			UserID:     user.ID,
+			PinHash:    r.hashPin(pin),
+			ExpiresAt:  time.Now().Add(pinTTLMinutos * time.Minute),
+			MaxPorHora: maxSolicitudesPorHr,
+		})
+		if err != nil || !creado {
 			return err
 		}
 		return r.mailer.EnviarPinRecuperacion(ctx, user.ID, email, pin)

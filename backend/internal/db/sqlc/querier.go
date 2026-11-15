@@ -94,6 +94,8 @@ type Querier interface {
 	// Es un lock de transacción (se suelta en el commit o rollback) y no bloquea
 	// a otros usuarios ni al reporte. Una colisión del hash solo serializa de más.
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
+	// Serializa por cuenta la emisión de PIN: la segunda petición espera aquí hasta que la primera termine.
+	LockUserByID(ctx context.Context, id uuid.UUID) error
 	SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error
 	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
