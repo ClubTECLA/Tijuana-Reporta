@@ -21,6 +21,8 @@ interface RefugioDetalleProps {
   /** Separación entre la tarjeta y el borde inferior de la pantalla. */
   bottom: number;
   onClose: () => void;
+  /** Alto real de la tarjeta ya maquetada, para que el mapa centre el marcador en lo que ella deja libre. */
+  onMedirAlto?: (alto: number) => void;
 }
 
 /** Ruta en la app de mapas del dispositivo hacia el refugio (el Figma lo resuelve con Google Maps). */
@@ -36,7 +38,7 @@ function fraccionDisponible(disponibles: number, capacidad: number): number | nu
  * Tarjeta "Modal - Refugio" (Figma): foto, nombre, dirección, descripción, espacios disponibles y "Ir a Refugio".
  * Se abre al tocar un marcador de refugio del mapa.
  */
-export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps) {
+export function RefugioDetalle({ refugio, bottom, onClose, onMedirAlto }: RefugioDetalleProps) {
   const { height: pantallaAlto } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Con descripción larga, texto grande o una pantalla baja la tarjeta no debe salirse por arriba: se acota al
@@ -53,7 +55,10 @@ export function RefugioDetalle({ refugio, bottom, onClose }: RefugioDetalleProps
   };
 
   return (
-    <View style={[styles.tarjeta, { bottom, maxHeight: alturaMaxima }]}>
+    <View
+      style={[styles.tarjeta, { bottom, maxHeight: alturaMaxima }]}
+      onLayout={(e) => onMedirAlto?.(e.nativeEvent.layout.height)}
+    >
       <View style={styles.cabecera}>
         {refugio.imagenUrl ? (
           <Image source={{ uri: refugio.imagenUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />

@@ -95,6 +95,9 @@ describe('esRolOficial / autorDeComentario', () => {
   it('ciudadano y rol ausente son "Anónimo"', () => {
     expect(esRolOficial('ciudadano')).toBe(false);
     expect(esRolOficial(undefined)).toBe(false);
+    expect(esRolOficial('')).toBe(false);
+    expect(autorDeComentario('')).toBe('Anónimo');
+    expect(autorDeComentario('  ')).toBe('Anónimo');
     expect(autorDeComentario('ciudadano')).toBe('Anónimo');
     expect(autorDeComentario(undefined)).toBe('Anónimo');
   });

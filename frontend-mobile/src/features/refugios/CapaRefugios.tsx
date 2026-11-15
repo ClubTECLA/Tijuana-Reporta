@@ -54,6 +54,8 @@ export function CapaRefugios({ refugios, seleccionadoId, onSeleccionar }: CapaRe
             'icon-size': ['case', ['get', 'seleccionado'], ESCALA_SELECCIONADO, ESCALA_ICONO],
             'icon-allow-overlap': true,
             'icon-ignore-placement': true,
+            // El seleccionado se dibuja encima aunque se solape con otro marcador (el orden del GeoJSON no basta).
+            'symbol-sort-key': ['case', ['get', 'seleccionado'], 1, 0],
           }}
         />
       </MapLibreGL.GeoJSONSource>

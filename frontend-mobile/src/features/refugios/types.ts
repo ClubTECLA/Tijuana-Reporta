@@ -1,4 +1,4 @@
-/** `GET /centros` (schema `Centro`). */
+/** `GET /centro` (schema `Centro`). */
 export interface CentroApi {
   id: string;
   tipo_centro: number;

@@ -85,7 +85,7 @@ const ETIQUETAS_ROL = new Map<string, string>([
 ]);
 
 export const esRolOficial = (rolName: string | undefined): rolName is string =>
-  rolName !== undefined && rolName !== ROL_CIUDADANO;
+  rolName !== undefined && rolName.trim() !== '' && rolName !== ROL_CIUDADANO;
 
 /** Cómo se firma un comentario: un ciudadano (o sin rol) es "Anónimo"; un rol oficial aparece solo con el nombre del rol. */
 export const autorDeComentario = (rolName: string | undefined): string =>

@@ -59,7 +59,7 @@ const FAB_ALTO = 60;
 const SEPARACION_FAB = 31;
 // Separación entre el botón de ubicación y el de reportar (Figma 10): alto del botón + 21.
 const UBICACION_SOBRE_FAB = FAB_ALTO + 21;
-// La tarjeta del refugio (Modal - Refugio) mide ~500 dp y se ancla abajo: el marcador se centra en lo que queda libre.
+// Alto estimado de la tarjeta del refugio (Modal - Refugio, ~500 dp) hasta que se mide de verdad.
 const TARJETA_REFUGIO_ALTO = 480;
 
 /** Muestra reportes en el mapa, sus detalles y los controles de búsqueda y ubicación. */
@@ -73,6 +73,8 @@ export default function MainMap() {
   const verRefugios = muestraRefugios(capas);
   // Solo se guarda el id: el refugio se deriva de la lista vigente, así la tarjeta se actualiza con cada recarga.
   const [selectedRefugioId, setSelectedRefugioId] = useState<string | null>(null);
+  // Alto real de la tarjeta del refugio abierta (se mide al maquetarla): define la franja libre donde se centra el marcador.
+  const [altoTarjetaRefugio, setAltoTarjetaRefugio] = useState<number | null>(null);
   const refugiosQuery = useRefugios(verRefugios);
   const reportesQuery = useReportes();
   const categorias = useCategorias();
@@ -171,20 +173,30 @@ export default function MainMap() {
     [pantallaAlto, tarjetaBottom],
   );
 
-  /** Abre la tarjeta del refugio (anclada abajo) y centra el mapa en el marcador, en la franja que ella deja libre. */
-  const seleccionarRefugio = useCallback(
-    (refugio: Refugio) => {
-      huboGesto.current = true;
-      setSelectedReporte(null);
-      setSelectedRefugioId(refugio.id);
-      cameraRef.current?.flyTo({
-        center: [refugio.lng, refugio.lat],
-        duration: 700,
-        padding: { ...SIN_PADDING, bottom: Math.min(TARJETA_REFUGIO_ALTO, pantallaAlto * 0.6) },
-      });
-    },
-    [pantallaAlto],
-  );
+  /** Abre la tarjeta del refugio (anclada abajo); el efecto de abajo centra el mapa en su marcador. */
+  const seleccionarRefugio = useCallback((refugio: Refugio) => {
+    huboGesto.current = true;
+    setSelectedReporte(null);
+    setSelectedRefugioId(refugio.id);
+  }, []);
+
+  // Centra el marcador del refugio abierto en la franja que deja libre su tarjeta (alto medido + separación
+  // inferior). Se repite si cambia el alto medido o el de la pantalla; depende de las coordenadas y no del
+  // objeto, que se renueva en cada recarga.
+  const refugioLat = selectedRefugio?.lat;
+  const refugioLng = selectedRefugio?.lng;
+  useEffect(() => {
+    if (selectedRefugioId === null) {
+      setAltoTarjetaRefugio(null);
+      return;
+    }
+    if (refugioLat === undefined || refugioLng === undefined) return;
+    cameraRef.current?.flyTo({
+      center: [refugioLng, refugioLat],
+      duration: 700,
+      padding: { ...SIN_PADDING, bottom: (altoTarjetaRefugio ?? TARJETA_REFUGIO_ALTO) + fabBottom },
+    });
+  }, [selectedRefugioId, refugioLat, refugioLng, altoTarjetaRefugio, fabBottom, pantallaAlto]);
 
   /** Tocar un grupo de pins: acerca la cámara al zoom en que el grupo se separa. */
   const acercarAGrupo = useCallback((centro: [number, number], zoom: number) => {
@@ -438,7 +450,12 @@ export default function MainMap() {
             onPress={() => setSelectedRefugioId(null)}
             accessibilityLabel="Cerrar refugio"
           />
-          <RefugioDetalle refugio={selectedRefugio} bottom={fabBottom} onClose={() => setSelectedRefugioId(null)} />
+          <RefugioDetalle
+            refugio={selectedRefugio}
+            bottom={fabBottom}
+            onClose={() => setSelectedRefugioId(null)}
+            onMedirAlto={setAltoTarjetaRefugio}
+          />
         </>
       ) : selectedReporte ? (
         <>

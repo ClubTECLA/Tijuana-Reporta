@@ -1,8 +1,9 @@
 import { USER_AGENT } from '@/features/lugares/nominatim';
 import { fetchConRed } from '@/lib/http';
+import { esperarTurnoNominatim } from '@/lib/turnoNominatim';
 
 // Geocodificación inversa de Nominatim: el backend de centros no guarda dirección y el Figma la muestra
-// bajo el nombre del refugio. Misma política de uso que la búsqueda (~1 req/s, User-Agent propio); aquí
+// bajo el nombre del refugio. Misma política de uso que la búsqueda (~1 req/s compartido con ella, User-Agent propio); aquí
 // solo se pide al abrir la tarjeta de un refugio, y la respuesta se cachea para siempre.
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 
@@ -37,6 +38,7 @@ export async function direccionDeCoordenadas(lat: number, lng: number): Promise<
     addressdetails: '1',
     'accept-language': 'es',
   });
+  await esperarTurnoNominatim();
   const response = await fetchConRed(`${NOMINATIM_REVERSE_URL}?${params.toString()}`, {
     headers: { 'User-Agent': USER_AGENT },
   });

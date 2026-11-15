@@ -2,6 +2,7 @@ import { reportesApi } from '@/features/reportes/api';
 import { reportesKeys } from '@/features/reportes/hooks';
 import { distanciaMetros } from '@/lib/geo';
 import { fetchConRed } from '@/lib/http';
+import { esperarTurnoNominatim } from '@/lib/turnoNominatim';
 import { queryClient } from '@/lib/query-client';
 import type { Reporte } from '@/types/api';
 import type { LugarResultado, TonoLugar } from './types';
@@ -92,6 +93,7 @@ export const lugaresNominatim: LugaresApi = {
       'accept-language': 'es',
     });
 
+    await esperarTurnoNominatim();
     const response = await fetchConRed(`${NOMINATIM_URL}?${params.toString()}`, {
       headers: { 'User-Agent': USER_AGENT },
     });

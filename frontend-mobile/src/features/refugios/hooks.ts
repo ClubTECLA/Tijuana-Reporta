@@ -5,13 +5,13 @@ import type { Refugio } from './types';
 
 export const refugiosKeys = {
   all: ['refugios'] as const,
-  direccion: (id: string) => ['refugios', 'direccion', id] as const,
+  direccion: (id: string, lat: number, lng: number) => ['refugios', 'direccion', id, lat, lng] as const,
 };
 
 const REFUGIOS_STALE_MS = 60_000;
 
 /** Refugios del mapa. Solo se piden con la capa de refugios encendida (`habilitado`): mientras esté
- * apagada no hace falta tocar `/centros`. */
+ * apagada no hace falta tocar `/centro`. */
 export function useRefugios(habilitado: boolean) {
   return useQuery({
     queryKey: refugiosKeys.all,
@@ -25,7 +25,7 @@ export function useRefugios(habilitado: boolean) {
  * coordenadas. Devuelve `undefined` mientras carga y `null` si no se pudo resolver (se muestran las coordenadas). */
 export function useDireccionRefugio(refugio: Refugio): string | null | undefined {
   const { data, isError } = useQuery({
-    queryKey: refugiosKeys.direccion(refugio.id),
+    queryKey: refugiosKeys.direccion(refugio.id, refugio.lat, refugio.lng),
     queryFn: () => direccionDeCoordenadas(refugio.lat, refugio.lng),
     enabled: refugio.direccion === null,
     staleTime: Infinity,
