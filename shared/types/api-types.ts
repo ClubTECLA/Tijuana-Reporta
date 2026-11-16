@@ -227,6 +227,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicitud de recuperación de contraseña
+         * @description Envía un correo electrónico con un código de verificación para recuperar la contraseña del usuario.
+         */
+        post: operations["solicitarRecuperacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/recovery/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verificación de recuperación de contraseña
+         * @description Verifica el código de recuperación y permite al usuario establecer una nueva contraseña.
+         */
+        post: operations["verificarRecuperacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/incidentes": {
         parameters: {
             query?: never;
@@ -1310,7 +1350,7 @@ export interface operations {
             };
         };
     };
-    registrarUsuario: {
+    register: {
         parameters: {
             query?: never;
             header?: never;
@@ -1352,7 +1392,7 @@ export interface operations {
             };
         };
     };
-    inicioDeSesion: {
+    login: {
         parameters: {
             query?: never;
             header?: never;
@@ -1423,7 +1463,7 @@ export interface operations {
             };
         };
     };
-    cerrarSesion: {
+    logout: {
         parameters: {
             query?: never;
             header?: never;
