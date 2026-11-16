@@ -31,4 +31,24 @@ describe("traducirTipoPhoton", () => {
 
         expect(setSearchStorage).toHaveBeenCalledOnce();
     });
+
+    it("conserva la búsqueda nueva y limita el historial a diez elementos", () => {
+        const storage: SearchStorageType = {
+            recent_searches: Array.from({ length: 10 }, (_, index) => `Búsqueda ${index + 1}`),
+            current_location_suggestions: [],
+            selected_recent_search: "",
+            current_query: "",
+        };
+        const setSearchStorage = vi.fn<Dispatch<SetStateAction<SearchStorageType>>>((update) => {
+            const next = typeof update === "function" ? update(storage) : update;
+            expect(next.recent_searches).toEqual([
+                "Nueva búsqueda",
+                ...storage.recent_searches.slice(0, 9),
+            ]);
+        });
+
+        addRecentSearch("Nueva búsqueda", setSearchStorage);
+
+        expect(setSearchStorage).toHaveBeenCalledOnce();
+    });
 });

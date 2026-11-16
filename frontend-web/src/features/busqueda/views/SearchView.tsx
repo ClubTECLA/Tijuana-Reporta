@@ -44,8 +44,8 @@ export default function SearchView () {
     const hasLocationQuery = searchStorage.current_query.trim().length > 0;
 
     const handleSelectLocation = (query: string, latitude: number, longitude: number) => {
-        const result = searchCoordinates({ latitude, longitude });
-        if (result !== "ignored") addRecentSearch(query, setSearchStorage);
+        addRecentSearch(query, setSearchStorage);
+        searchCoordinates({ latitude, longitude });
     };
 
     useEffect(() => {
@@ -105,6 +105,7 @@ export default function SearchView () {
         <ColSection
             arrangementSubsections="between"
             className="h-full min-h-0 gap-7 p-2"
+            title="Busqueda"
         >
             <SegmentedTabs format='row'>
                 <TabItem

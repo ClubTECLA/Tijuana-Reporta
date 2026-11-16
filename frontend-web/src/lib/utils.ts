@@ -60,7 +60,7 @@ export const addRecentSearch = (
 
         return {
             ...previous,
-            recent_searches: [normalizedQuery, ...recentSearches].slice(-10),
+            recent_searches: [normalizedQuery, ...recentSearches].slice(0, 10),
         };
     });
 }

@@ -19,15 +19,32 @@ export default function NavigationWrapper() {
     const { openModal, closeModal, currentModal} = useModals()
     const { currentPanelView, openPanel } = useCommonPanel();
     const { pathname } = useRouter();
-    const { search, editAddress, address } = useLocationPicker();
+    const { search, editAddress, cancelSearch, address, locationFlightVersion } = useLocationPicker();
     const { showMessage } = useSysMessage();
     // La preferencia muestra la dirección fuera de la búsqueda; al abrir Busqueda se muestra siempre.
     const shouldShowLocation =
         currentPanelView !== "Nuevo Incidente" &&
         (generalPreferences.show_location_in_searchBar || currentPanelView === "Busqueda");
-    // Texto elegido por el usuario (escrito o una búsqueda reciente) para cuando la preferencia no muestra la dirección.
+    // Consulta escrita o elegida mientras se edita, y texto alternativo cuando no se muestra la dirección.
     const [ searchQuery, setSearchQuery ] = useState("");
+    const [ hasFocusedSearchBar, setHasFocusedSearchBar ] = useState(false);
+    const [ focusedAtLocationFlightVersion, setFocusedAtLocationFlightVersion ] = useState(locationFlightVersion);
+    const [ previousPanelView, setPreviousPanelView ] = useState(currentPanelView);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isEditingSearchQuery =
+        currentPanelView === "Busqueda" &&
+        hasFocusedSearchBar &&
+        focusedAtLocationFlightVersion === locationFlightVersion;
+    const shouldShowMapAddress =
+        shouldShowLocation ||
+        (currentPanelView !== "Nuevo Incidente" && locationFlightVersion > 0);
+
+    if (previousPanelView !== currentPanelView) {
+        setPreviousPanelView(currentPanelView);
+        if (previousPanelView === "Busqueda" && currentPanelView !== "Busqueda") {
+            setHasFocusedSearchBar(false);
+        }
+    }
 
     useEffect(() => () => {
         if (searchDebounceRef.current !== null) clearTimeout(searchDebounceRef.current);
@@ -39,10 +56,10 @@ export default function NavigationWrapper() {
             searchDebounceRef.current = null;
         }
         setSearchStorage((prev) => ({ ...prev, current_query: query }));
+        addRecentSearch(query, setSearchStorage);
 
         try {
             const result = await search(query);
-            if (result !== "ignored") addRecentSearch(query, setSearchStorage);
 
             if (result === "not-found") {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
@@ -68,7 +85,7 @@ export default function NavigationWrapper() {
                 setSearchStorage((prev) => ({ ...prev, current_query: query }));
             }, SEARCH_DEBOUNCE_MS);
         }
-        editAddress(query);
+        cancelSearch();
     }
 
     const selectedRecentSearch = searchStorage.selected_recent_search;
@@ -88,18 +105,33 @@ export default function NavigationWrapper() {
     }, [selectedRecentSearch, editAddress, setSearchStorage])
 
     useEffect(() => {
-        if(currentModal) return;
+        if (currentPanelView) return;
 
         setSearchQuery("");
+        if (searchDebounceRef.current !== null) {
+            clearTimeout(searchDebounceRef.current);
+            searchDebounceRef.current = null;
+        }
+        cancelSearch();
 
         setSearchStorage((prev) => ({
             ...prev,
             'selected_recent_search': "",
             'current_query': "",
         }));        
-    }, [currentModal])
+    }, [currentPanelView, cancelSearch, setSearchStorage])
 
     const handleOnFocusSearchBar = () => {
+        if (!isEditingSearchQuery) {
+            setSearchQuery("");
+            if (searchDebounceRef.current !== null) {
+                clearTimeout(searchDebounceRef.current);
+                searchDebounceRef.current = null;
+            }
+            setSearchStorage((prev) => ({ ...prev, current_query: "" }));
+        }
+        setHasFocusedSearchBar(true);
+        setFocusedAtLocationFlightVersion(locationFlightVersion);
         openPanel('Busqueda');
     }
 
@@ -115,7 +147,7 @@ export default function NavigationWrapper() {
                         <SearchBar
                             onSubmit={handleSearchAddress}
                             onChangeQuery={handleChangeQuery}
-                            value={shouldShowLocation ? address : searchQuery}
+                            value={shouldShowMapAddress && !isEditingSearchQuery ? address : searchQuery}
                             onFocus={handleOnFocusSearchBar}
                         />
                     </div> 
