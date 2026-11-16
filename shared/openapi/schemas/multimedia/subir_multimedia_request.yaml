@@ -1,5 +1,5 @@
 type: object
-description: Foto que el creador de un reporte sube a su reporte.
+description: Foto (JPEG) o video (MP4) que el creador de un reporte sube a su reporte.
 required: [file]
 properties:
   file:
