@@ -27,6 +27,7 @@ export default function SearchView () {
     const [ incidentLookup, setIncidentLookup ] = useState<{
         suggestions: typeof suggestions;
         reportsBySuggestion: ApiListarReportesCercanosResponse[];
+        failedBySuggestion: boolean[];
         error: Error | null;
     } | null>(null);
     const { searchCoordinates } = useLocationPicker();
@@ -54,7 +55,7 @@ export default function SearchView () {
         let isCurrentLookup = true;
         const firstSuggestions = suggestions.slice(0, 3);
 
-        Promise.all(firstSuggestions.map((suggestion) => {
+        Promise.allSettled(firstSuggestions.map((suggestion) => {
             const [longitude, latitude] = suggestion.geometry.coordinates;
             return listarReportesCercanos({
                 lat: latitude,
@@ -63,18 +64,26 @@ export default function SearchView () {
                 estado: OPEN_STATUSES,
             });
         }))
-        .then((reportsBySuggestion) => {
-            if (isCurrentLookup) setIncidentLookup({ suggestions, reportsBySuggestion, error: null });
-        })
-        .catch((cause: unknown) => {
+        .then((results) => {
             if (!isCurrentLookup) return;
 
-            const lookupError = cause instanceof Error
-                ? cause
-                : new Error("No se pudieron cargar los incidentes cercanos.", { cause });
+            const failedResult = results.find(
+                (result): result is PromiseRejectedResult => result.status === "rejected",
+            );
+            const reportsBySuggestion = results.map((result) =>
+                result.status === "fulfilled" ? result.value : [],
+            );
+            const failedBySuggestion = results.map((result) => result.status === "rejected");
+            const lookupError = failedResult
+                ? failedResult.reason instanceof Error
+                    ? failedResult.reason
+                    : new Error("No se pudieron cargar los incidentes cercanos.", { cause: failedResult.reason })
+                : null;
+
             setIncidentLookup({
                 suggestions,
-                reportsBySuggestion: firstSuggestions.map(() => []),
+                reportsBySuggestion,
+                failedBySuggestion,
                 error: lookupError,
             });
         });
@@ -133,19 +142,31 @@ export default function SearchView () {
                         title="LUGARES"
                     >
                         {(tab === 'locations' ? suggestions : suggestions.slice(0, 3)).map((s, index) => {
-                            const incidentCount = currentIncidentLookup?.reportsBySuggestion[index]?.length;
                             const valueBadge = index >= 3
                                 ? undefined
-                                : currentIncidentLookup?.error
+                                : currentIncidentLookup === null
+                                    ? "…"
+                                    : currentIncidentLookup.failedBySuggestion[index]
                                     ? "—"
-                                    : incidentCount ?? "…";
+                                    : currentIncidentLookup.reportsBySuggestion[index]?.length ?? 0;
+
+                            const placeName = typeof s.properties.name === "string" ? s.properties.name : "";
 
                             return (
                                 <ListTile
                                     key={`${s.geometry.coordinates.join(',')}-${index}`}
-                                    tileName={(s.properties.name as string)}
-                                    tileDescription={`${traducirTipoPhoton(s.properties.type)} · ${s.properties.county}`}
-                                    valueBadge={valueBadge ? `${valueBadge} activos` : undefined}
+                                    tileName={placeName || "Lugar sin nombre"}
+                                    tileDescription={
+                                        [
+                                            traducirTipoPhoton(s.properties.type), 
+                                            s.properties.county
+                                        ]
+                                            .filter(
+                                                (part): 
+                                                part is string => typeof part === "string" && part !== ""
+                                            ).join(" · ")
+                                    }
+                                    valueBadge={valueBadge !== undefined ? `${valueBadge} activos` : undefined}
                                     onClick={() => handleSelectLocation(
                                         s.properties.name as string,
                                         s.geometry.coordinates[1],

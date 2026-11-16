@@ -128,6 +128,7 @@ export default function NavigationWrapper() {
                 clearTimeout(searchDebounceRef.current);
                 searchDebounceRef.current = null;
             }
+            cancelSearch();
             setSearchStorage((prev) => ({ ...prev, current_query: "" }));
         }
         setHasFocusedSearchBar(true);

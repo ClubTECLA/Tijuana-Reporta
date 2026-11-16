@@ -38,6 +38,11 @@ function normalizePlaceName(value: unknown): string {
         : ''
 }
 
+function getErrorName(cause: unknown): string | undefined {
+    if (typeof cause !== 'object' || cause === null || !('name' in cause)) return undefined
+    return typeof cause.name === 'string' ? cause.name : undefined
+}
+
 function areNearby(first: PhotonFeature, second: PhotonFeature): boolean {
     const [firstLongitude, firstLatitude] = first.geometry.coordinates
     const [secondLongitude, secondLatitude] = second.geometry.coordinates
@@ -118,7 +123,9 @@ export function usePhotonSearch() {
         setSearchStorage((storage) => ({ ...storage, current_location_suggestions: [] }))
         setError(null)
         setIsLoading(true)
-        const timeout = window.setTimeout(() => controller.abort(), PHOTON_SEARCH_TIMEOUT_MS)
+        const timeout = window.setTimeout(() => {
+            controller.abort(new DOMException('La búsqueda de lugares excedió el tiempo límite.', 'TimeoutError'))
+        }, PHOTON_SEARCH_TIMEOUT_MS)
 
         // Photon solo acepta lang: default, de, en, fr. Se omite para usar
         // "default", que devuelve los nombres locales (en español para Tijuana).
@@ -151,7 +158,24 @@ export function usePhotonSearch() {
             }
             return results
         } catch (cause) {
-            if (controller.signal.aborted) return []
+            const causeName = getErrorName(cause)
+            const abortReasonName = getErrorName(controller.signal.reason)
+            const isTimeoutError = causeName === 'TimeoutError' ||
+                (causeName === 'AbortError' && abortReasonName === 'TimeoutError')
+            const isAbortError = causeName === 'AbortError' && !isTimeoutError
+
+            if (isTimeoutError) {
+                const timeoutError = cause instanceof Error
+                    ? cause
+                    : new Error('La búsqueda de lugares excedió el tiempo límite.', { cause })
+                timeoutError.name = 'TimeoutError'
+                if (controllerRef.current === controller) {
+                    setError(timeoutError)
+                }
+                throw timeoutError
+            }
+
+            if (isAbortError) return []
 
             const searchError = cause instanceof Error
                 ? cause
