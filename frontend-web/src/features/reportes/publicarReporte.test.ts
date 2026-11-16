@@ -8,6 +8,7 @@ const nuevo: NuevoReporte = {
     longitude: -117.0,
     direccion: "  Calle Cañón Zacatecas · México  ",
     descripcion: "  Calle inundada  ",
+    tagIds: [],
 };
 const creado = { id: "r1" } as ApiCrearReporteResponse;
 const foto = new Blob(["jpeg"], { type: "image/jpeg" });
@@ -15,7 +16,7 @@ const foto = new Blob(["jpeg"], { type: "image/jpeg" });
 const httpError = (status: number) => Object.assign(new Error("fallo"), { status });
 
 // API falsa: cada llamada se puede hacer fallar por separado; `multimedia` puede ser un código HTTP.
-function fakeApi({ crear = true, comentario = true, estado = true, multimedia = true as boolean | number } = {}) {
+function fakeApi({ crear = true, comentario = true, estado = true, tags = true, multimedia = true as boolean | number } = {}) {
     const step = (works: boolean | number) => vi.fn(async () => {
         if (works === false) throw new Error("fallo");
         if (typeof works === "number") throw httpError(works);
@@ -28,15 +29,16 @@ function fakeApi({ crear = true, comentario = true, estado = true, multimedia = 
         }),
         crearComentario: step(comentario),
         cambiarEstadoReporte: step(estado),
+        actualizarTagsReporte: step(tags),
         subirMultimedia: step(multimedia),
     };
 }
 
 describe("publicarReporte", () => {
-    it("crea el reporte oficial con su dirección, guarda la descripción recortada, lo verifica y sube la foto", async () => {
+    it("crea el reporte oficial con su dirección, guarda la descripción recortada, lo verifica, guarda sus etiquetas y sube la foto", async () => {
         const api = fakeApi();
 
-        const result = await publicarReporte({ ...nuevo, foto }, api);
+        const result = await publicarReporte({ ...nuevo, tagIds: [7, 9], foto }, api);
 
         expect(result).toEqual({ reporte: creado, pendientes: [], falloFoto: null });
         expect(api.crearReporte).toHaveBeenCalledWith({
@@ -44,16 +46,18 @@ describe("publicarReporte", () => {
         });
         expect(api.crearComentario).toHaveBeenCalledWith("r1", "Calle inundada");
         expect(api.cambiarEstadoReporte).toHaveBeenCalledWith("r1", "Verificado");
+        expect(api.actualizarTagsReporte).toHaveBeenCalledWith("r1", [7, 9]);
         expect(api.subirMultimedia).toHaveBeenCalledWith("r1", foto);
     });
 
-    it("sin descripción, dirección ni foto no las envía", async () => {
+    it("sin descripción, dirección, etiquetas ni foto no las envía", async () => {
         const api = fakeApi();
 
         await publicarReporte({ ...nuevo, descripcion: "   ", direccion: " " }, api);
 
         expect(api.crearReporte).toHaveBeenCalledWith(expect.objectContaining({ direccion: undefined }));
         expect(api.crearComentario).not.toHaveBeenCalled();
+        expect(api.actualizarTagsReporte).not.toHaveBeenCalled();
         expect(api.subirMultimedia).not.toHaveBeenCalled();
         expect(api.cambiarEstadoReporte).toHaveBeenCalledOnce();
     });
@@ -67,12 +71,14 @@ describe("publicarReporte", () => {
     });
 
     it("si falla un paso posterior, el reporte queda publicado y el paso se devuelve como pendiente", async () => {
-        const api = fakeApi({ comentario: false, estado: false, multimedia: 503 });
+        const api = fakeApi({ comentario: false, estado: false, tags: false, multimedia: 503 });
 
-        const result = await publicarReporte({ ...nuevo, foto }, api);
+        const result = await publicarReporte({ ...nuevo, tagIds: [7], foto }, api);
 
         expect(result.reporte).toBe(creado);
-        expect(result.pendientes).toEqual(["la descripción no se pudo guardar", "no se pudo marcar como verificado"]);
+        expect(result.pendientes).toEqual([
+            "la descripción no se pudo guardar", "no se pudo marcar como verificado", "las etiquetas no se pudieron guardar",
+        ]);
         expect(result.falloFoto).toEqual({ motivo: "el almacenamiento de fotos no está disponible", reintentable: true });
     });
 
@@ -83,6 +89,7 @@ describe("publicarReporte", () => {
 
         expect(api.crearComentario).not.toHaveBeenCalled();
         expect(api.cambiarEstadoReporte).not.toHaveBeenCalled();
+        expect(api.actualizarTagsReporte).not.toHaveBeenCalled();
         expect(api.subirMultimedia).not.toHaveBeenCalled();
     });
 });

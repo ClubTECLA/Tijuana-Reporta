@@ -11,10 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Reportes activos para el mapa. Si se manda el área visible, filtra por ella. */
+        /** @description Lista los reportes activos para mostrarlos en el mapa. Puede limitar los resultados al área visible enviando sus coordenadas mínimas y máximas. */
         get: operations["listarReportes"];
         put?: never;
-        /** @description Crea un reporte en la ubicación indicada. La foto se sube después con `subirMultimedia`. Solo los roles distintos de ciudadano pueden mandar `es_oficial: true` (403 si no). */
+        /** @description Crea un reporte con su tipo de incidente y ubicación. La foto se adjunta después en la ruta de multimedia; solo los roles distintos de ciudadano pueden marcarlo como oficial. */
         post: operations["crearReporte"];
         delete?: never;
         options?: never;
@@ -29,7 +29,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano. */
+        /** @description Lista los reportes activos dentro del radio indicado alrededor de un punto, ordenados del más cercano al más lejano. Puede filtrar por tipo de incidente, estado y fecha. */
         get: operations["listarReportesCercanos"];
         put?: never;
         post?: never;
@@ -46,7 +46,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Reportes creados por el usuario autenticado (todos los estados), del más reciente al más antiguo. */
+        /** @description Lista los reportes creados por el usuario autenticado, de cualquier estado, limitados por el parámetro limite (200 por defecto y hasta 500), del más reciente al más antiguo. */
         get: operations["listarMisReportes"];
         put?: never;
         post?: never;
@@ -63,11 +63,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Devuelve un reporte por su id. 404 si no existe. */
+        /** @description Devuelve el detalle de un reporte identificado por su UUID. */
         get: operations["obtenerReporte"];
         put?: never;
         post?: never;
-        /** @description Elimina el reporte junto con todo lo que depende de él (comentarios, multimedia, tags, ubicaciones) y borra sus archivos del servicio multimedia. Lo puede eliminar cualquier rol menos ciudadano, aunque no sea quien lo creó; un ciudadano no puede eliminar ni los suyos. */
+        /** @description Elimina el reporte y sus datos asociados, incluidos comentarios, multimedia, etiquetas y ubicaciones. Los usuarios ciudadanos no pueden eliminar reportes; los demás roles pueden hacerlo aunque no sean sus creadores. */
         delete: operations["eliminarReporte"];
         options?: never;
         head?: never;
@@ -87,7 +87,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Suma un avistamiento (alguien más vio el mismo problema) al reporte y devuelve el reporte actualizado. */
+        /** @description Registra un avistamiento adicional para el reporte y devuelve el reporte actualizado. */
         patch: operations["agregarAvistamiento"];
         trace?: never;
     };
@@ -100,7 +100,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Agrega un comentario del usuario autenticado a un reporte. */
+        /** @description Agrega al reporte indicado un comentario escrito por el usuario autenticado. */
         post: operations["crearComentario"];
         delete?: never;
         options?: never;
@@ -117,7 +117,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sube la foto del reporte. Solo la puede subir su creador, y una sola por usuario por reporte. Debe ser un JPEG ya reducido por la app. El backend valida el tipo y las dimensiones y le quita los metadatos (EXIF), y el servicio multimedia la guarda; el path de la respuesta se sirve en /multimedia/{path}. */
+        /** @description Adjunta una imagen JPEG ya reducida al reporte indicado. Solo el creador del reporte puede subirla y se permite una imagen por usuario y reporte. El backend valida el formato y las dimensiones, elimina los metadatos EXIF y devuelve la ruta pública del archivo. */
         post: operations["subirMultimedia"];
         delete?: never;
         options?: never;
@@ -138,7 +138,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no con scopes) para que un rol nuevo quede permitido sin tocar el contrato. Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto, pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no final. Resuelto y Descartado son finales; cualquier otro cambio es 409. */
+        /** @description Cambia el estado del reporte. Solo pueden hacerlo los roles distintos de ciudadano. Los estados avanzan de Pendiente a Probable, Verificado y Resuelto (se pueden saltar pasos); Descartado puede alcanzarse desde un estado no final. Resuelto y Descartado son finales. Los cambios que no respetan estas transiciones responden 409. */
         patch: operations["cambiarEstadoReporte"];
         trace?: never;
     };
@@ -150,7 +150,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** @description Reemplaza los tags que el usuario autenticado confirmó en el reporte por los de `tag_ids`: agrega los nuevos y quita los que ya no vengan. Es idempotente y una lista vacía quita todos los del usuario. Los conteos y el score del reporte se recalculan solos. 400 si algún tag no es del tipo de incidente del reporte. */
+        /** @description Actualiza las etiquetas confirmadas por el usuario autenticado en el reporte. La lista enviada reemplaza las etiquetas anteriores; una lista vacía las elimina. Los conteos y el puntaje se recalculan automáticamente. La operación es idempotente y cada etiqueta debe pertenecer al tipo de incidente del reporte; si no, responde 400. */
         put: operations["actualizarTagsReporte"];
         post?: never;
         delete?: never;
@@ -168,8 +168,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Crea una cuenta con email y contraseña (8 a 72 bytes) y devuelve un token de acceso. 409 si el email ya está registrado. */
-        post: operations["registrarUsuario"];
+        /** @description Registra una cuenta con correo electrónico y contraseña y devuelve los datos de sesión junto con un token de acceso. La contraseña debe tener entre 8 y 72 bytes. Responde 409 si el correo ya está registrado. */
+        post: operations["register"];
         delete?: never;
         options?: never;
         head?: never;
@@ -185,8 +185,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Valida email y contraseña y devuelve un token de acceso. Usa ese token como `Authorization: Bearer <token>` en el resto de rutas. */
-        post: operations["inicioDeSesion"];
+        /** @description Inicia sesión con correo electrónico y contraseña y devuelve un token de acceso para autenticar las demás rutas. */
+        post: operations["login"];
         delete?: never;
         options?: never;
         head?: never;
@@ -200,7 +200,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Devuelve el usuario dueño del token, con el nombre de su rol. */
+        /** @description Devuelve los datos de la cuenta asociada al token de acceso y el nombre de su rol. */
         get: operations["me"];
         put?: never;
         post?: never;
@@ -219,48 +219,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Cierra la sesión. El token no se guarda en el servidor, así que solo responde 204; el cliente debe descartarlo. */
-        post: operations["cerrarSesion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/recovery": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Solicitud de recuperación de contraseña
-         * @description Envía un correo electrónico con un código de verificación para recuperar la contraseña del usuario.
-         */
-        post: operations["solicitarRecuperacion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/recovery/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verificación de recuperación de contraseña
-         * @description Verifica el código de recuperación y permite al usuario establecer una nueva contraseña.
-         */
-        post: operations["verificarRecuperacion"];
+        /** @description Confirma el cierre de sesión. Como el servidor no conserva los tokens, el cliente debe descartar el token de acceso. */
+        post: operations["logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -274,10 +234,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Tipos de incidente con los tags de su catálogo, ordenados por nombre. Por defecto solo los activos. */
+        /** @description Lista los tipos de incidente y las etiquetas de su catálogo, ordenados por nombre. Por defecto incluye solo los activos; use incluir_inactivos para incluir los demás. */
         get: operations["listarIncidentes"];
         put?: never;
-        /** @description Crea un nuevo tipo de incidente. Solo para administradores. */
+        /** @description Crea un tipo de incidente con su configuración y etiquetas iniciales. Solo los administradores pueden crear tipos de incidente. */
         post: operations["crearIncidente"];
         delete?: never;
         options?: never;
@@ -292,9 +252,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Un tipo de incidente con los tags de su catálogo, esté activo o no. */
+        /** @description Devuelve un tipo de incidente y las etiquetas de su catálogo por ID, esté activo o no. */
         get: operations["obtenerIncidente"];
-        /** @description Actualiza un tipo de incidente existente. Solo administradores. */
+        /** @description Actualiza la configuración de un tipo de incidente existente. Solo los administradores pueden modificarlo. */
         put: operations["actualizarIncidente"];
         post?: never;
         delete?: never;
@@ -312,7 +272,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Agrega tags al catálogo de un incidente existente. Solo para administradores. */
+        /** @description Agrega etiquetas al catálogo de un tipo de incidente existente. Solo los administradores pueden modificar el catálogo. */
         post: operations["agregarTags"];
         delete?: never;
         options?: never;
@@ -327,7 +287,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Obtiene la lista de usuarios del sistema. */
+        /** @description Lista los usuarios del sistema con su rol y resumen de reportes. Solo los administradores pueden consultar esta lista. */
         get: operations["listarUsuarios"];
         put?: never;
         post?: never;
@@ -344,7 +304,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Obtiene el catálogo de roles del sistema. */
+        /** @description Lista los roles disponibles en el sistema. Solo los administradores pueden consultar el catálogo. */
         get: operations["listarRoles"];
         put?: never;
         post?: never;
@@ -361,10 +321,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Tipos de centro ordenados por nombre */
+        /** @description Lista el catálogo de tipos de centro, ordenado por nombre. */
         get: operations["listarTiposCentro"];
         put?: never;
-        /** @description Crea un nuevo tipo de centro. Solo para administradores. */
+        /** @description Agrega una categoría al catálogo de tipos de centro. Solo los administradores pueden crear categorías. */
         post: operations["crearTipoCentro"];
         delete?: never;
         options?: never;
@@ -379,7 +339,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Un tipo de centro */
+        /** @description Devuelve un tipo de centro por su identificador. */
         get: operations["obtenerTipoCentro"];
         put?: never;
         post?: never;
@@ -396,10 +356,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Centros para el mapa. Por defecto solo los activos. */
+        /** @description Lista los centros disponibles para el mapa. Por defecto incluye solo los activos; use incluir_inactivos para consultar también los inactivos. */
         get: operations["listarCentros"];
         put?: never;
-        /** @description Crea un centro en la ubicacion indicada. */
+        /** @description Registra un centro con su tipo, nombre y ubicación. Solo los administradores pueden crear centros. */
         post: operations["crearCentro"];
         delete?: never;
         options?: never;
@@ -414,7 +374,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Se obtiene un centro con su descripción, ubicación y foto (si la tiene) */
+        /** @description Devuelve un centro por su UUID, con su tipo, descripción, imagen, ubicación, capacidad, cantidad y estado. */
         get: operations["obtenerCentro"];
         put?: never;
         post?: never;
@@ -1015,7 +975,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description El usuario no es el creador del reporte y es ciudadano */
+            /** @description El usuario tiene rol ciudadano */
             403: {
                 headers: {
                     [name: string]: unknown;
