@@ -1,7 +1,8 @@
 crearIncidente:
   get:
     operationId: listarIncidentes
-    description: Tipos de incidente con los tags de su catálogo, ordenados por nombre. Por defecto solo los activos.
+    description: Lista los tipos de incidente y las etiquetas de su catálogo, ordenados por nombre. Por defecto incluye solo los activos; use incluir_inactivos para incluir los demás.
+    tags: [Incidentes]
     parameters:
       - name: incluir_inactivos
         in: query
@@ -26,7 +27,8 @@ crearIncidente:
 
   post:
     operationId: crearIncidente
-    description: Crea un nuevo tipo de incidente. Solo para administradores.
+    description: Crea un tipo de incidente con su configuración y etiquetas iniciales. Solo los administradores pueden crear tipos de incidente.
+    tags: [Incidentes]
     security:
       - bearerAuth: [admin]
     requestBody:
@@ -77,7 +79,8 @@ crearIncidente:
 obtenerIncidente:
   get:
     operationId: obtenerIncidente
-    description: Un tipo de incidente con los tags de su catálogo, esté activo o no.
+    description: Devuelve un tipo de incidente y las etiquetas de su catálogo por ID, esté activo o no.
+    tags: [Incidentes]
     parameters:
       - name: incidenteId
         in: path
@@ -105,7 +108,8 @@ obtenerIncidente:
               $ref: '#/components/schemas/ErrorResponse'
   put:
     operationId: actualizarIncidente
-    description: Actualiza un tipo de incidente existente. Solo administradores.
+    description: Actualiza la configuración de un tipo de incidente existente. Solo los administradores pueden modificarlo.
+    tags: [Incidentes]
     security:
       - bearerAuth: [admin]
     parameters:
@@ -161,7 +165,8 @@ obtenerIncidente:
 agregarTags:
   post:
     operationId: agregarTags
-    description: Agrega tags al catálogo de un incidente existente. Solo para administradores.
+    description: Agrega etiquetas al catálogo de un tipo de incidente existente. Solo los administradores pueden modificar el catálogo.
+    tags: [Incidentes]
     security:
       - bearerAuth: [admin]
     parameters:

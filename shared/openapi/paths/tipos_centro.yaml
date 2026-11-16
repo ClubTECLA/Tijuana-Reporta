@@ -1,7 +1,7 @@
 coleccionTiposCentro:
   get:
     operationId: listarTiposCentro
-    description: Tipos de centro ordenados por nombre
+    description: Lista el catálogo de tipos de centro, ordenado por nombre.
     tags: [Tipos de centro]
     security:
       - bearerAuth: []
@@ -29,7 +29,7 @@ coleccionTiposCentro:
   
   post:
     operationId: crearTipoCentro
-    description: Crea un nuevo tipo de centro. Solo para administradores.
+    description: Agrega una categoría al catálogo de tipos de centro. Solo los administradores pueden crear categorías.
     tags: [Tipos de centro]
     security:
       - bearerAuth: [admin]
@@ -80,7 +80,7 @@ coleccionTiposCentro:
 tiposCentroPorId:
   get:
     operationId: obtenerTipoCentro
-    description: Un tipo de centro
+    description: Devuelve un tipo de centro por su identificador.
     tags: [Tipos de centro]
     security:
       - bearerAuth: []

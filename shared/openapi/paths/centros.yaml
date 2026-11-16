@@ -1,7 +1,7 @@
 coleccionCentros:
   get:
     operationId: listarCentros
-    description: Centros para el mapa. Por defecto solo los activos.
+    description: Lista los centros disponibles para el mapa. Por defecto incluye solo los activos; use incluir_inactivos para consultar también los inactivos.
     tags: [Centros]
     parameters:
       - name: incluir_inactivos
@@ -33,7 +33,7 @@ coleccionCentros:
   
   post:
     operationId: crearCentro
-    description: Crea un centro en la ubicacion indicada.
+    description: Registra un centro con su tipo, nombre y ubicación. Solo los administradores pueden crear centros.
     tags: [Centros]
     security:
       - bearerAuth: [admin]
@@ -78,7 +78,7 @@ coleccionCentros:
 centrosPorId:
   get:
     operationId: obtenerCentro
-    description: Se obtiene un centro con su descripción, ubicación y foto (si la tiene)
+    description: Devuelve un centro por su UUID, con su tipo, descripción, imagen, ubicación, capacidad, cantidad y estado.
     tags: [Centros]
     parameters:
       - name: centroId

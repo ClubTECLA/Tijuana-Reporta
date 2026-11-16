@@ -1,7 +1,8 @@
 crearComentario:
   post:
     operationId: crearComentario
-    description: "Agrega un comentario del usuario autenticado a un reporte."
+    description: Agrega al reporte indicado un comentario escrito por el usuario autenticado.
+    tags: [Comentarios]
     parameters:
       - name: reporteId
         in: path

@@ -7,6 +7,26 @@ info:
 
     Esta página se genera del contrato (`shared/openapi`): para que aparezca una ruta nueva, agrégala ahí y corre `task generate` en `backend/`.
 
+tags:
+  - name: Autenticación
+    description: Registro, inicio y cierre de sesión, y consulta de la cuenta autenticada.
+  - name: Reportes
+    description: Creación, consulta y seguimiento de reportes de incidencias.
+  - name: Incidentes
+    description: Catálogo de tipos de incidente y sus etiquetas.
+  - name: Comentarios
+    description: Comentarios asociados a reportes.
+  - name: Multimedia
+    description: Archivos adjuntos de reportes.
+  - name: Usuarios
+    description: Consulta y administración de usuarios.
+  - name: Roles
+    description: Catálogo de roles del sistema.
+  - name: Centros
+    description: Consulta y administración de centros y su ubicación.
+  - name: Tipos de centro
+    description: Catálogo de categorías de centros.
+
 security:
   - bearerAuth: []
 
