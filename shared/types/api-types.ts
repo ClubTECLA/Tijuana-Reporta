@@ -46,7 +46,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Lista todos los reportes creados por el usuario autenticado, de cualquier estado, del más reciente al más antiguo. */
+        /** @description Lista los reportes creados por el usuario autenticado, de cualquier estado, limitados por el parámetro limite (200 por defecto y hasta 500), del más reciente al más antiguo. */
         get: operations["listarMisReportes"];
         put?: never;
         post?: never;
@@ -958,7 +958,7 @@ export interface operations {
                     "application/json": components["schemas"]["error_response"];
                 };
             };
-            /** @description El usuario no es el creador del reporte y es ciudadano */
+            /** @description El usuario tiene rol ciudadano */
             403: {
                 headers: {
                     [name: string]: unknown;

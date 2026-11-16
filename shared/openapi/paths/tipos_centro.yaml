@@ -77,7 +77,7 @@ coleccionTiposCentro:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-tiposCentroPorId:
+tipoCentroPorId:
   get:
     operationId: obtenerTipoCentro
     description: Devuelve un tipo de centro por su identificador.

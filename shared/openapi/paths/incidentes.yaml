@@ -1,4 +1,4 @@
-crearIncidente:
+coleccionIncidentes:
   get:
     operationId: listarIncidentes
     description: Lista los tipos de incidente y las etiquetas de su catálogo, ordenados por nombre. Por defecto incluye solo los activos; use incluir_inactivos para incluir los demás.
@@ -76,7 +76,7 @@ crearIncidente:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-obtenerIncidente:
+incidentePorId:
   get:
     operationId: obtenerIncidente
     description: Devuelve un tipo de incidente y las etiquetas de su catálogo por ID, esté activo o no.
@@ -162,7 +162,7 @@ obtenerIncidente:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-agregarTags:
+tagsIncidente:
   post:
     operationId: agregarTags
     description: Agrega etiquetas al catálogo de un tipo de incidente existente. Solo los administradores pueden modificar el catálogo.

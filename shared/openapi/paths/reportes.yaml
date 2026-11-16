@@ -1,4 +1,4 @@
-crearReporte:
+coleccionReportes:
   get:
     operationId: listarReportes
     description: Lista los reportes activos para mostrarlos en el mapa. Puede limitar los resultados al área visible enviando sus coordenadas mínimas y máximas.
@@ -75,7 +75,7 @@ crearReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-obtenerReporte:
+reportePorId:
   get:
     operationId: obtenerReporte
     description: Devuelve el detalle de un reporte identificado por su UUID.
@@ -140,7 +140,7 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '403':
-        description: El usuario no es el creador del reporte y es ciudadano
+        description: El usuario tiene rol ciudadano
         content:
           application/json:
             schema:
@@ -152,7 +152,7 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-agregarAvistamiento:
+avistamientosReporte:
   patch:
     operationId: agregarAvistamiento
     description: Registra un avistamiento adicional para el reporte y devuelve el reporte actualizado.
@@ -192,7 +192,7 @@ agregarAvistamiento:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-cambiarEstadoReporte:
+estadoReporte:
   patch:
     operationId: cambiarEstadoReporte
     description: >-
@@ -264,7 +264,7 @@ cambiarEstadoReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-actualizarTagsReporte:
+tagsReporte:
   put:
     operationId: actualizarTagsReporte
     description: >-
@@ -354,7 +354,7 @@ listarReportesCercanos:
 listarMisReportes:
   get:
     operationId: listarMisReportes
-    description: Lista todos los reportes creados por el usuario autenticado, de cualquier estado, del más reciente al más antiguo.
+    description: Lista los reportes creados por el usuario autenticado, de cualquier estado, limitados por el parámetro limite (200 por defecto y hasta 500), del más reciente al más antiguo.
     tags: [Reportes]
     parameters:
       - { name: limite, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
