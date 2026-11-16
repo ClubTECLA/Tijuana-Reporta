@@ -2,10 +2,11 @@ subirMultimedia:
   post:
     operationId: subirMultimedia
     description: >
-      Sube la foto del reporte. Solo la puede subir su creador, y una sola por
-      usuario por reporte. Debe ser un JPEG ya reducido por la app. El backend valida el
-      tipo y las dimensiones y le quita los metadatos (EXIF), y el servicio
-      multimedia la guarda; el path de la respuesta se sirve en /multimedia/{path}.
+      Adjunta una imagen JPEG ya reducida al reporte indicado. Solo el creador
+      del reporte puede subirla y se permite una imagen por usuario y reporte.
+      El backend valida el formato y las dimensiones, elimina los metadatos EXIF
+      y devuelve la ruta pública del archivo.
+    tags: [Multimedia]
     parameters:
       - name: reporteId
         in: path
