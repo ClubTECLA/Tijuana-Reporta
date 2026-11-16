@@ -254,7 +254,7 @@ func tokenAnteriorAlCambio(iat time.Time, changedAt *time.Time) bool {
 // Límite por IP de las rutas de recuperación: ráfaga de 10 peticiones y
 // después una cada 6 segundos (10 por minuto sostenido).
 const (
-	rateLimitRafaga    = 10
+	rateLimitRafaga    = 3
 	rateLimitIntervalo = 6 * time.Second
 )
 

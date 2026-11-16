@@ -385,7 +385,7 @@ SET
 WHERE   
     id = $1
     AND used_at IS NULL
-    AND expires_at > now()
+    AND expires_at > clock_timestamp()
 `
 
 func (q *Queries) SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error) {

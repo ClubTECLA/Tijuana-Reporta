@@ -139,7 +139,7 @@ SET
 WHERE   
     id = $1
     AND used_at IS NULL
-    AND expires_at > now();
+    AND expires_at > clock_timestamp();
 
 -- name: GetPasswordChangedAtByUserID :one
 SELECT
