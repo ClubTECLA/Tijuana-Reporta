@@ -1,5 +1,5 @@
 import type { ApiCrearReporteResponse } from '@/types/api-types'
-import { cambiarEstadoReporte, crearComentario, crearReporte, subirMultimedia } from './reportes.services'
+import { actualizarTagsReporte, cambiarEstadoReporte, crearComentario, crearReporte, subirMultimedia } from './reportes.services'
 
 // Límite del backend para la dirección del reporte (crear_reporte_request.yaml).
 const DIRECCION_MAX_LENGTH = 255
@@ -13,6 +13,8 @@ export interface NuevoReporte {
     direccion: string
     /** Texto libre; vacío no se guarda. */
     descripcion: string
+    /** Etiquetas elegidas, del catálogo de la categoría; sin ninguna no se envían. */
+    tagIds: number[]
     /** Foto ya preparada con prepararFoto. */
     foto?: Blob
 }
@@ -34,7 +36,7 @@ export interface Publicacion {
 }
 
 // Llamadas a la API que usa la publicación; los tests pasan unas falsas.
-export const publicacionApi = { crearReporte, crearComentario, cambiarEstadoReporte, subirMultimedia }
+export const publicacionApi = { crearReporte, crearComentario, cambiarEstadoReporte, actualizarTagsReporte, subirMultimedia }
 
 const ok = () => true
 const failed = () => false
@@ -76,7 +78,7 @@ export async function subirFoto(reporteId: string, foto: Blob, api = publicacion
 
 /**
  * Publica un reporte oficial desde el web: lo crea con su dirección y luego, a la vez, guarda la descripción como
- * primer comentario, lo marca como verificado y sube la foto.
+ * primer comentario, lo marca como verificado, guarda sus etiquetas y sube la foto.
  * Si falla crearlo, lanza el error y no queda nada. Si falla un paso posterior, el reporte ya existe y no se reintenta
  * para no duplicarlo: el paso fallido se devuelve en `pendientes`, y la foto en `falloFoto` para poder reintentarla sola.
  */
@@ -90,19 +92,21 @@ export async function publicarReporte(nuevo: NuevoReporte, api = publicacionApi)
         direccion: nuevo.direccion.trim().slice(0, DIRECCION_MAX_LENGTH) || undefined,
     })
 
-    // shortcut: llamadas no atómicas tras crear el reporte. Juntar descripción y estado en crearReporte cuando el
-    // backend acepte "comentario" y "estado" al crear (la foto siempre va aparte: es multipart).
+    // shortcut: llamadas no atómicas tras crear el reporte. Juntar descripción, estado y etiquetas en crearReporte
+    // cuando el backend los acepte al crear (la foto siempre va aparte: es multipart).
     const descripcion = nuevo.descripcion.trim()
-    const [descripcionGuardada, verificado, fallo] = await Promise.all([
+    const [descripcionGuardada, verificado, etiquetasGuardadas, fallo] = await Promise.all([
         descripcion ? api.crearComentario(reporte.id, descripcion).then(ok, failed) : true,
         // Los reportes oficiales siempre nacen verificados.
         api.cambiarEstadoReporte(reporte.id, 'Verificado').then(ok, failed),
+        nuevo.tagIds.length ? api.actualizarTagsReporte(reporte.id, nuevo.tagIds).then(ok, failed) : true,
         nuevo.foto ? subirFoto(reporte.id, nuevo.foto, api) : null,
     ])
 
     const pendientes = [
         !descripcionGuardada && 'la descripción no se pudo guardar',
         !verificado && 'no se pudo marcar como verificado',
+        !etiquetasGuardadas && 'las etiquetas no se pudieron guardar',
     ].filter((paso) => paso !== false)
 
     return { reporte, pendientes, falloFoto: fallo }

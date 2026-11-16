@@ -52,6 +52,11 @@ export async function cambiarEstadoReporte(
     return apiRequest(`${reportePath(reporteId)}/estado`, { method: 'PATCH', json: { estado } })
 }
 
+// PUT /reportes/{reporteId}/tags: reemplaza las etiquetas que el usuario confirmó; deben ser del catálogo de su categoría.
+export async function actualizarTagsReporte(reporteId: string, tagIds: number[]): Promise<ApiReporte> {
+    return apiRequest(`${reportePath(reporteId)}/tags`, { method: 'PUT', json: { tag_ids: tagIds } })
+}
+
 // POST /reportes/{reporteId}/comentarios
 export async function crearComentario(
     reporteId: string,

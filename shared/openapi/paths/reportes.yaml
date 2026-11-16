@@ -1,7 +1,8 @@
-crearReporte:
+coleccionReportes:
   get:
     operationId: listarReportes
-    description: Reportes activos para el mapa. Si se manda el área visible, filtra por ella.
+    description: Lista los reportes activos para mostrarlos en el mapa. Puede limitar los resultados al área visible enviando sus coordenadas mínimas y máximas.
+    tags: [Reportes]
     parameters:
       - name: min_lat
         in: query
@@ -39,7 +40,8 @@ crearReporte:
 
   post:
     operationId: crearReporte
-    description: "Crea un reporte en la ubicación indicada. La foto se sube después con `subirMultimedia`. Solo los roles distintos de ciudadano pueden mandar `es_oficial: true` (403 si no)."
+    description: Crea un reporte con su tipo de incidente y ubicación. La foto se adjunta después en la ruta de multimedia; solo los roles distintos de ciudadano pueden marcarlo como oficial.
+    tags: [Reportes]
     requestBody:
       required: true
       content:
@@ -73,10 +75,11 @@ crearReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-obtenerReporte:
+reportePorId:
   get:
     operationId: obtenerReporte
-    description: "Devuelve un reporte por su id. 404 si no existe."
+    description: Devuelve el detalle de un reporte identificado por su UUID.
+    tags: [Reportes]
     parameters:
       - name: reporteId
         in: path
@@ -109,10 +112,11 @@ obtenerReporte:
   delete:
     operationId: eliminarReporte
     description: >-
-      Elimina el reporte junto con todo lo que depende de él (comentarios,
-      multimedia, tags, ubicaciones) y borra sus archivos del servicio
-      multimedia. Lo puede eliminar cualquier rol menos ciudadano, aunque no
-      sea quien lo creó; un ciudadano no puede eliminar ni los suyos.
+      Elimina el reporte y sus datos asociados, incluidos comentarios,
+      multimedia, etiquetas y ubicaciones. Los usuarios ciudadanos no pueden
+      eliminar reportes; los demás roles pueden hacerlo aunque no sean sus
+      creadores.
+    tags: [Reportes]
     parameters:
       - name: reporteId
         in: path
@@ -136,7 +140,7 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '403':
-        description: El usuario no es el creador del reporte y es ciudadano
+        description: El usuario tiene rol ciudadano
         content:
           application/json:
             schema:
@@ -148,10 +152,11 @@ obtenerReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-agregarAvistamiento:
+avistamientosReporte:
   patch:
     operationId: agregarAvistamiento
-    description: "Suma un avistamiento (alguien más vio el mismo problema) al reporte y devuelve el reporte actualizado."
+    description: Registra un avistamiento adicional para el reporte y devuelve el reporte actualizado.
+    tags: [Reportes]
     parameters:
       - name: reporteId
         in: path
@@ -187,15 +192,16 @@ agregarAvistamiento:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-cambiarEstadoReporte:
+estadoReporte:
   patch:
     operationId: cambiarEstadoReporte
     description: >-
-      Lo puede usar cualquier rol menos ciudadano. Se valida en el servicio (y no
-      con scopes) para que un rol nuevo quede permitido sin tocar el contrato.
-      Los estados solo avanzan (Pendiente → Probable → Verificado → Resuelto,
-      pudiendo saltar pasos) y Descartado se alcanza desde cualquier estado no
-      final. Resuelto y Descartado son finales; cualquier otro cambio es 409.
+      Cambia el estado del reporte. Solo pueden hacerlo los roles distintos de
+      ciudadano. Los estados avanzan de Pendiente a Probable, Verificado y
+      Resuelto (se pueden saltar pasos); Descartado puede alcanzarse desde un
+      estado no final. Resuelto y Descartado son finales. Los cambios que no
+      respetan estas transiciones responden 409.
+    tags: [Reportes]
     security:
     - bearerAuth: []
     parameters:
@@ -258,15 +264,16 @@ cambiarEstadoReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-actualizarTagsReporte:
+tagsReporte:
   put:
     operationId: actualizarTagsReporte
     description: >-
-      Reemplaza los tags que el usuario autenticado confirmó en el reporte por
-      los de `tag_ids`: agrega los nuevos y quita los que ya no vengan. Es
-      idempotente y una lista vacía quita todos los del usuario. Los conteos y
-      el score del reporte se recalculan solos. 400 si algún tag no es del
-      tipo de incidente del reporte.
+      Actualiza las etiquetas confirmadas por el usuario autenticado en el
+      reporte. La lista enviada reemplaza las etiquetas anteriores; una lista
+      vacía las elimina. Los conteos y el puntaje se recalculan automáticamente.
+      La operación es idempotente y cada etiqueta debe pertenecer al tipo de
+      incidente del reporte; si no, responde 400.
+    tags: [Reportes]
     parameters:
       - name: reporteId
         in: path
@@ -309,7 +316,8 @@ actualizarTagsReporte:
 listarReportesCercanos:
   get:
     operationId: listarReportesCercanos
-    description: Reportes activos dentro de un radio (metros) alrededor de un punto, del más cercano al más lejano.
+    description: Lista los reportes activos dentro del radio indicado alrededor de un punto, ordenados del más cercano al más lejano. Puede filtrar por tipo de incidente, estado y fecha.
+    tags: [Reportes]
     # ?lat=..&lng=..&radio=..&incidente_id=1&incidente_id=4&estado=Verificado
     parameters:
       - { name: lat,   in: query, required: true, schema: { type: number, format: double, minimum: -90,  maximum: 90 } }
@@ -346,7 +354,8 @@ listarReportesCercanos:
 listarMisReportes:
   get:
     operationId: listarMisReportes
-    description: Reportes creados por el usuario autenticado (todos los estados), del más reciente al más antiguo.
+    description: Lista los reportes creados por el usuario autenticado, de cualquier estado, limitados por el parámetro limite (200 por defecto y hasta 500), del más reciente al más antiguo.
+    tags: [Reportes]
     parameters:
       - { name: limite, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
     responses:

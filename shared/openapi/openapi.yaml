@@ -7,28 +7,48 @@ info:
 
     Esta página se genera del contrato (`shared/openapi`): para que aparezca una ruta nueva, agrégala ahí y corre `task generate` en `backend/`.
 
+tags:
+  - name: Autenticación
+    description: Registro de cuentas, inicio y cierre de sesión, y consulta de la cuenta autenticada.
+  - name: Reportes
+    description: Consulta, creación, actualización y eliminación de reportes de incidencias.
+  - name: Incidentes
+    description: Consulta y administración de tipos de incidente y sus etiquetas.
+  - name: Comentarios
+    description: Creación de comentarios asociados a reportes.
+  - name: Multimedia
+    description: Carga de imágenes adjuntas a reportes.
+  - name: Usuarios
+    description: Consulta administrativa de usuarios y sus resúmenes de reportes. El registro de cuentas está en Autenticación.
+  - name: Roles
+    description: Consulta administrativa del catálogo de roles del sistema.
+  - name: Centros
+    description: Consulta de centros y registro de nuevos centros con su ubicación.
+  - name: Tipos de centro
+    description: Consulta y registro de categorías del catálogo de tipos de centro.
+
 security:
   - bearerAuth: []
 
 paths:
   /reportes:
-    $ref: './paths/reportes.yaml#/crearReporte'
+    $ref: './paths/reportes.yaml#/coleccionReportes'
   /reportes/cercanos:
     $ref: './paths/reportes.yaml#/listarReportesCercanos'
   /reportes/me:
     $ref: './paths/reportes.yaml#/listarMisReportes'
   /reportes/{reporteId}:
-    $ref: './paths/reportes.yaml#/obtenerReporte'
+    $ref: './paths/reportes.yaml#/reportePorId'
   /reportes/{reporteId}/avistamientos:
-    $ref: './paths/reportes.yaml#/agregarAvistamiento'
+    $ref: './paths/reportes.yaml#/avistamientosReporte'
   /reportes/{reporteId}/comentarios:
     $ref: './paths/comentarios.yaml#/crearComentario'
   /reportes/{reporteId}/multimedia:
     $ref: './paths/multimedia.yaml#/subirMultimedia'
   /reportes/{reporteId}/estado:
-    $ref: './paths/reportes.yaml#/cambiarEstadoReporte'
+    $ref: './paths/reportes.yaml#/estadoReporte'
   /reportes/{reporteId}/tags:
-    $ref: './paths/reportes.yaml#/actualizarTagsReporte'
+    $ref: './paths/reportes.yaml#/tagsReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:
@@ -38,19 +58,19 @@ paths:
   /auth/logout:
     $ref: './paths/auth.yaml#/logout'
   /incidentes:
-    $ref: './paths/incidentes.yaml#/crearIncidente'
+    $ref: './paths/incidentes.yaml#/coleccionIncidentes'
   /incidentes/{incidenteId}:
-    $ref: './paths/incidentes.yaml#/obtenerIncidente'
+    $ref: './paths/incidentes.yaml#/incidentePorId'
   /incidentes/{incidenteId}/tags:
-    $ref: './paths/incidentes.yaml#/agregarTags'
+    $ref: './paths/incidentes.yaml#/tagsIncidente'
   /users:
-    $ref: './paths/usuarios.yaml#/listarUsuarios'
+    $ref: './paths/usuarios.yaml#/coleccionUsuarios'
   /roles:
-    $ref: './paths/usuarios.yaml#/listarRoles'
+    $ref: './paths/usuarios.yaml#/coleccionRoles'
   /tipos-centro:
     $ref: './paths/tipos_centro.yaml#/coleccionTiposCentro'
   /tipos-centro/{tipoCentroId}:
-    $ref: './paths/tipos_centro.yaml#/tiposCentroPorId'
+    $ref: './paths/tipos_centro.yaml#/tipoCentroPorId'
   /centro:
     $ref: './paths/centros.yaml#/coleccionCentros'
   /centro/{centroId}:

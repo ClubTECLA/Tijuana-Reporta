@@ -1,7 +1,8 @@
-listarUsuarios:
+coleccionUsuarios:
   get:
     operationId: listarUsuarios
-    description: Obtiene la lista de usuarios del sistema.
+    description: Lista los usuarios del sistema con su rol y resumen de reportes. Solo los administradores pueden consultar esta lista.
+    tags: [Usuarios]
     security:
       - bearerAuth: [admin]
     responses:
@@ -26,10 +27,11 @@ listarUsuarios:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-listarRoles:
+coleccionRoles:
   get:
     operationId: listarRoles
-    description: Obtiene el catálogo de roles del sistema.
+    description: Lista los roles disponibles en el sistema. Solo los administradores pueden consultar el catálogo.
+    tags: [Roles]
     security:
       - bearerAuth: [admin]
     responses:
