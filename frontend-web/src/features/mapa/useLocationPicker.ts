@@ -14,6 +14,7 @@ interface LocationPickerContextValue {
     address: string;
     editAddress: (text: string) => void;
     search: (query: string) => Promise<SearchResult>;
+    searchCoordinates: (position: Position) => SearchResult;
     reset: () => void;
 }
 
@@ -124,6 +125,38 @@ function useLocationPickerState(): LocationPickerContextValue {
         }
     };
 
+    /** Lleva el marcador y el mapa a unas coordenadas sin geocodificar una dirección de entrada. */
+    const searchCoordinates = (nextPosition: Position): SearchResult => {
+        const { latitude, longitude } = nextPosition;
+        if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180 ||
+            !markerRef.current
+        ) {
+            return "ignored";
+        }
+
+        const signal = restartLookup(lookupRef);
+        markerRef.current.setLngLat([longitude, latitude]);
+        map?.flyTo({ center: [longitude, latitude], zoom: 16 });
+        setPosition({ latitude, longitude });
+        setAddress("");
+
+        direccionDe(latitude, longitude, signal)
+            .then((found) => {
+                if (!signal.aborted) setAddress(found ?? "");
+            })
+            .catch(() => {
+                if (!signal.aborted) setAddress("");
+            });
+
+        return "found";
+    };
+
     // Escribir en el buscador cancela la búsqueda pendiente: lo escrito no se sustituye por una respuesta vieja.
     const editAddress = useCallback((text: string) => {
         lookupRef.current?.abort();
@@ -145,7 +178,7 @@ function useLocationPickerState(): LocationPickerContextValue {
         setAddress("");
     }, [map]);
 
-    return { markerElement, position, address, editAddress, search, reset };
+    return { markerElement, position, address, editAddress, search, searchCoordinates, reset };
 }
 
 export function LocationPickerProvider({ children }: { children: ReactNode }) {

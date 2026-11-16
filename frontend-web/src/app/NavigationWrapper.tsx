@@ -8,8 +8,10 @@ import { useCommonPanel } from '@/panels/useCommonPanel';
 import { useLocationPicker } from '@/features/mapa/useLocationPicker';
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 import { useLocalStorage } from '@/lib/useLocalStorage';
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addRecentSearch } from '@/lib/utils';
+
+const SEARCH_DEBOUNCE_MS = 400;
 
 export default function NavigationWrapper() {
     const [ generalPreferences ] = useLocalStorage('Preferencias generales');
@@ -19,17 +21,28 @@ export default function NavigationWrapper() {
     const { pathname } = useRouter();
     const { search, editAddress, address } = useLocationPicker();
     const { showMessage } = useSysMessage();
-    // Con la preferencia activa la barra muestra directamente la dirección del selector (clic en el mapa, arrastre o
-    // búsqueda). Al escribir se actualiza esa misma dirección con editAddress, así que no hace falta copiarla.
+    // La preferencia muestra la dirección fuera de la búsqueda; al abrir Busqueda se muestra siempre.
     const shouldShowLocation =
-        generalPreferences.show_location_in_searchBar && currentPanelView !== "Nuevo Incidente";
+        currentPanelView !== "Nuevo Incidente" &&
+        (generalPreferences.show_location_in_searchBar || currentPanelView === "Busqueda");
     // Texto elegido por el usuario (escrito o una búsqueda reciente) para cuando la preferencia no muestra la dirección.
     const [ searchQuery, setSearchQuery ] = useState("");
+    const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => () => {
+        if (searchDebounceRef.current !== null) clearTimeout(searchDebounceRef.current);
+    }, []);
 
     const handleSearchAddress = async (query: string) => {
+        if (searchDebounceRef.current !== null) {
+            clearTimeout(searchDebounceRef.current);
+            searchDebounceRef.current = null;
+        }
+        setSearchStorage((prev) => ({ ...prev, current_query: query }));
+
         try {
             const result = await search(query);
-            if (result !== "ignored") addRecentSearch(query);
+            if (result !== "ignored") addRecentSearch(query, setSearchStorage);
 
             if (result === "not-found") {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
@@ -42,7 +55,19 @@ export default function NavigationWrapper() {
 
     const handleChangeQuery = (query: string) => {
         setSearchQuery(query);
-        setSearchStorage((prev) => ({...prev, 'current_query': query}));
+        if (searchDebounceRef.current !== null) {
+            clearTimeout(searchDebounceRef.current);
+            searchDebounceRef.current = null;
+        }
+        if (searchStorage.current_query) {
+            setSearchStorage((prev) => ({ ...prev, current_query: "" }));
+        }
+        if (query.trim()) {
+            searchDebounceRef.current = setTimeout(() => {
+                searchDebounceRef.current = null;
+                setSearchStorage((prev) => ({ ...prev, current_query: query }));
+            }, SEARCH_DEBOUNCE_MS);
+        }
         editAddress(query);
     }
 
@@ -58,7 +83,21 @@ export default function NavigationWrapper() {
             'selected_recent_search': "",
             'current_query': selectedRecentSearch,
         }));
+
+        handleSearchAddress(selectedRecentSearch);
     }, [selectedRecentSearch, editAddress, setSearchStorage])
+
+    useEffect(() => {
+        if(currentModal) return;
+
+        setSearchQuery("");
+
+        setSearchStorage((prev) => ({
+            ...prev,
+            'selected_recent_search': "",
+            'current_query': "",
+        }));        
+    }, [currentModal])
 
     const handleOnFocusSearchBar = () => {
         openPanel('Busqueda');

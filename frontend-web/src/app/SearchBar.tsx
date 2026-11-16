@@ -54,6 +54,7 @@ export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Busca
     return (
         <form 
             role="search"
+            autoComplete="off"
             onFocus={() => setFocused(true)}
             onBlur={handleBlur}
             className={`
@@ -71,6 +72,7 @@ export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Busca
                 id="searchInput"
                 name="search"
                 type="search"
+                autoComplete="off"
                 aria-label={placeholder}
                 placeholder={placeholder}
                 value={query}
