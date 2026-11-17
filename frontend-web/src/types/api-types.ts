@@ -71,6 +71,8 @@ export type ApiListarIncidentesResponse =
     operations['listarIncidentes']['responses'][200]['content']['application/json']
 export type ApiListarUsuariosResponse =
     operations['listarUsuarios']['responses'][200]['content']['application/json']
+export type ApiListarRolesResponse =
+    operations['listarRoles']['responses'][200]['content']['application/json']
 export type ApiCrearIncidenteResponse =
     operations['crearIncidente']['responses'][201]['content']['application/json']
 export type ApiObtenerIncidenteParams =
