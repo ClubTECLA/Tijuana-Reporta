@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { IoChevronDown } from "react-icons/io5";
 import SubSection from "@/components/layout/SubSection";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export default function FilterSelected({
     const menuId = useId();
     const wrapperRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const selectedId = value !== undefined ? value : internalId;
     const selectedOption =
@@ -37,7 +39,11 @@ export default function FilterSelected({
         if (!dropdownOpen) return;
 
         const closeOnOutsideClick = (event: PointerEvent) => {
-            if (!wrapperRef.current?.contains(event.target as Node)) {
+            const target = event.target as Node;
+            if (
+                !wrapperRef.current?.contains(target) &&
+                !menuRef.current?.contains(target)
+            ) {
                 setDropdownOpen(false);
             }
         };
@@ -45,6 +51,52 @@ export default function FilterSelected({
         document.addEventListener("pointerdown", closeOnOutsideClick);
         return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
     }, [dropdownOpen]);
+
+    useLayoutEffect(() => {
+        if (!dropdownOpen) return;
+
+        const updatePosition = () => {
+            const button = buttonRef.current?.getBoundingClientRect();
+            const menu = menuRef.current;
+            if (!button || !menu) return;
+
+            const gutter = 8;
+            const gap = 8;
+            const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+            const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+            const maxWidth = Math.max(0, viewportWidth - gutter * 2);
+            menu.style.maxWidth = `${maxWidth}px`;
+            const menuHeight = menu.scrollHeight;
+            const menuWidth = Math.min(menu.scrollWidth, maxWidth);
+            const spaceBelow = Math.max(0, viewportHeight - button.bottom - gap - gutter);
+            const spaceAbove = Math.max(0, button.top - gap - gutter);
+            const openAbove = menuHeight > spaceBelow && spaceAbove > spaceBelow;
+            const maxHeight = openAbove ? spaceAbove : spaceBelow;
+            const visibleHeight = Math.min(menuHeight, maxHeight);
+            const preferredTop = openAbove
+                ? button.top - gap - visibleHeight
+                : button.bottom + gap;
+            const top = Math.max(
+                gutter,
+                Math.min(preferredTop, viewportHeight - gutter - visibleHeight),
+            );
+            const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
+            const left = Math.min(Math.max(gutter, button.left), maxLeft);
+
+            menu.style.maxHeight = `${maxHeight}px`;
+            menu.style.top = `${top}px`;
+            menu.style.left = `${left}px`;
+            menu.style.visibility = "visible";
+        };
+
+        updatePosition();
+        window.addEventListener("resize", updatePosition);
+        window.addEventListener("scroll", updatePosition, true);
+        return () => {
+            window.removeEventListener("resize", updatePosition);
+            window.removeEventListener("scroll", updatePosition, true);
+        };
+    }, [dropdownOpen, options.length]);
 
     const closeMenu = () => {
         setDropdownOpen(false);
@@ -95,14 +147,26 @@ export default function FilterSelected({
                 />
             </SubSection>
 
-            {dropdownOpen && (
-                <SubSection debug={debug} className="absolute left-0 top-full z-50 mt-2">
+            {dropdownOpen && createPortal(
+                <div
+                    ref={menuRef}
+                    className="fixed z-[1000] overflow-x-hidden overflow-y-auto"
+                    style={{
+                        top: 0,
+                        left: 0,
+                        width: "max-content",
+                        maxWidth: "calc(100vw - 1rem)",
+                        maxHeight: "calc(100vh - 1rem)",
+                        visibility: "hidden",
+                    }}
+                >
                     <OptionsMenu
                         id={menuId}
                         ariaLabel={label}
                         onChangeOption={handleChangeOption}
                         onClose={closeMenu}
                         debug={debug}
+                        className="w-max min-w-[min(12.5rem,calc(100vw-1rem))] max-w-full"
                     >
                         {options.map((option) => (
                             <OptionsTile
@@ -113,7 +177,8 @@ export default function FilterSelected({
                             />
                         ))}
                     </OptionsMenu>
-                </SubSection>
+                </div>,
+                document.body,
             )}
         </SubSection>
     );
