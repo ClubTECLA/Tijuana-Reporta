@@ -67,11 +67,16 @@ export default function FilterSelected({
             const maxWidth = Math.max(0, viewportWidth - gutter * 2);
             menu.style.maxWidth = `${maxWidth}px`;
             const menuHeight = menu.scrollHeight;
-            const menuWidth = Math.min(menu.scrollWidth, maxWidth);
             const spaceBelow = Math.max(0, viewportHeight - button.bottom - gap - gutter);
             const spaceAbove = Math.max(0, button.top - gap - gutter);
             const openAbove = menuHeight > spaceBelow && spaceAbove > spaceBelow;
-            const maxHeight = openAbove ? spaceAbove : spaceBelow;
+            const availableHeight = openAbove ? spaceAbove : spaceBelow;
+            const maxHeight = Math.min(
+                Math.max(0, availableHeight),
+                Math.max(0, viewportHeight - gutter * 2),
+            );
+            menu.style.maxHeight = `${maxHeight}px`;
+            const menuWidth = menu.getBoundingClientRect().width;
             const visibleHeight = Math.min(menuHeight, maxHeight);
             const preferredTop = openAbove
                 ? button.top - gap - visibleHeight
@@ -83,7 +88,6 @@ export default function FilterSelected({
             const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
             const left = Math.min(Math.max(gutter, button.left), maxLeft);
 
-            menu.style.maxHeight = `${maxHeight}px`;
             menu.style.top = `${top}px`;
             menu.style.left = `${left}px`;
             menu.style.visibility = "visible";
