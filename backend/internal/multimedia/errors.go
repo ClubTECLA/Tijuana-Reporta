@@ -13,6 +13,7 @@ var (
 	ErrArchivoInvalido  = errors.New("archivo inválido")
 	ErrArchivoMuyGrande = errors.New("archivo demasiado grande")
 	ErrImagenMuyGrande  = errors.New("la imagen excede las dimensiones permitidas")
+	ErrVideoMuyLargo    = errors.New("el video dura más de lo permitido")
 	ErrYaExiste         = errors.New("el usuario ya subió un archivo a este reporte")
 )
 
@@ -25,5 +26,6 @@ var ReglasHTTP = []httperr.Regla{
 	{Err: ErrArchivoInvalido, Status: http.StatusBadRequest, Message: "archivo invalido"},
 	{Err: ErrArchivoMuyGrande, Status: http.StatusRequestEntityTooLarge, Message: "archivo muy grande"},
 	{Err: ErrImagenMuyGrande, Status: http.StatusUnprocessableEntity, Message: "imagen muy grande"},
+	{Err: ErrVideoMuyLargo, Status: http.StatusUnprocessableEntity, Message: "video muy largo"},
 	{Err: almacen.ErrNoDisponible, Status: http.StatusServiceUnavailable, Message: "almacenamiento no disponible, intenta más tarde"},
 }

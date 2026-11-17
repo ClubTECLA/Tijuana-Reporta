@@ -5,14 +5,22 @@ import (
 	"log/slog"
 	"os"
 	"time"
+	_ "time/tzdata" // zonas horarias dentro del binario: la imagen no las trae y TZ las necesita
 
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/mantenimiento"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/gin-gonic/gin"
 )
+
+// mantenimientoTimeout es lo que se espera a cada llamada del mantenimiento a
+// multimedia; es más que el de una subida porque listar una ventana grande tarda.
+const mantenimientoTimeout = 2 * time.Minute
 
 func main() {
 	cfg, err := config.Load()
@@ -53,6 +61,21 @@ func main() {
 		slog.Error("failed to initialize server", "error", err)
 		os.Exit(1)
 	}
+
+	// Mantenimiento diario de multimedia. Usa su propio contexto: el de arriba
+	// tiene un plazo de 10 segundos solo para el arranque.
+	tareas, detener := context.WithCancel(context.Background())
+	defer detener()
+	go mantenimiento.New(
+		sqlc.New(pool),
+		almacen.NewCliente(cfg.MultimediaURL, mantenimientoTimeout),
+		mantenimiento.Opciones{
+			Hora:           cfg.MantenimientoHora,
+			Minuto:         cfg.MantenimientoMinuto,
+			MaxAcciones:    cfg.MantenimientoMaxAcciones,
+			CuarentenaDias: cfg.CuarentenaDias,
+		},
+	).Ejecutar(tareas)
 
 	slog.Info("server listening", "port", cfg.APIPort)
 	if err := r.Run(":" + cfg.APIPort); err != nil {
