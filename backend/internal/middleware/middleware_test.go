@@ -164,7 +164,7 @@ func TestRateLimitPorIP_LimitaSoloLasRutasDadasPorIP(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	limite := RateLimitPorIP("/limitada")
+	limite := RateLimitPorIP(RateLimitRafaga, "/limitada")
 	manejador := func(c *gin.Context) { c.Status(http.StatusOK) }
 	r.POST("/limitada", limite, manejador)
 	r.POST("/libre", limite, manejador)
@@ -177,7 +177,7 @@ func TestRateLimitPorIP_LimitaSoloLasRutasDadasPorIP(t *testing.T) {
 		return rec.Code
 	}
 
-	for i := range rateLimitRafaga {
+	for i := range RateLimitRafaga {
 		if got := post("/limitada", "10.0.0.1"); got != http.StatusOK {
 			t.Fatalf("petición %d dentro de la ráfaga: status = %d, want 200", i+1, got)
 		}

@@ -59,6 +59,11 @@ type testClient struct {
 	mailer     *mailerFalso
 }
 
+// testRateLimitRafaga es la ráfaga por IP de los tests: el caso más largo
+// ("PIN bloqueado") hace 7 peticiones de recuperación con el mismo cliente, más
+// que la ráfaga de producción.
+const testRateLimitRafaga = 10
+
 // newTestClient arma el router con los servicios reales sobre la base de los
 // tests, igual que cmd/api.
 func newTestClient(t *testing.T) *testClient {
@@ -87,7 +92,7 @@ func newTestClient(t *testing.T) *testClient {
 			MaxDuracion: 6 * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
-	}, testJWTSecret, usuarios.GetPasswordChangedAtByUserID)
+	}, testJWTSecret, usuarios.GetPasswordChangedAtByUserID, server.WithRateLimitRafaga(testRateLimitRafaga))
 
 	return &testClient{t: t, router: router, multimedia: almacen, mailer: mailer}
 }

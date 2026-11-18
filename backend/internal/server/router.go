@@ -37,6 +37,7 @@ const rutaMultimedia = "/v1/reportes/:reporteId/multimedia"
 
 type routerConfig struct {
 	maxMultimediaBytes int64
+	rateLimitRafaga    int
 }
 
 // RouterOption ajusta NewRouter.
@@ -45,6 +46,13 @@ type RouterOption func(*routerConfig)
 // WithMaxMultimediaBytes cambia el tamaño máximo del body al subir un archivo.
 func WithMaxMultimediaBytes(n int64) RouterOption {
 	return func(c *routerConfig) { c.maxMultimediaBytes = n }
+}
+
+// WithRateLimitRafaga cambia la ráfaga del límite por IP de las rutas de
+// recuperación (por defecto middleware.RateLimitRafaga). Los tests de
+// integración la suben porque cada uno hace varias peticiones desde la misma IP.
+func WithRateLimitRafaga(n int) RouterOption {
+	return func(c *routerConfig) { c.rateLimitRafaga = n }
 }
 
 // Handlers son los handlers de cada funcionalidad que sirve el router.
@@ -95,7 +103,7 @@ var _ httpapi.StrictServerInterface = api{}
 // passwordChangedAt deja que middleware.Auth rechace los tokens emitidos
 // antes del último cambio de contraseña del usuario.
 func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.PasswordChangedAtFunc, opts ...RouterOption) *gin.Engine {
-	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
+	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes, rateLimitRafaga: middleware.RateLimitRafaga}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -187,7 +195,7 @@ func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.Passwo
 			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes), passwordChangedAt),
 			middleware.RequireRole(string(httpapi.BearerAuthScopes)),
 			// Solo en las rutas de recuperación, para frenar la fuerza bruta de PINs entre cuentas.
-			middleware.RateLimitPorIP("/v1/auth/recovery", "/v1/auth/recovery/verify"),
+			middleware.RateLimitPorIP(cfg.rateLimitRafaga, "/v1/auth/recovery", "/v1/auth/recovery/verify"),
 			// Antes del validador, que lee el body completo para validarlo.
 			middleware.BodyLimitFunc(func(c *gin.Context) int64 {
 				if c.FullPath() == rutaMultimedia {
