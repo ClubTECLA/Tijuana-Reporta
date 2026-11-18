@@ -11,6 +11,9 @@ interface IncidentMoreActionsProps {
 // a la fila de acciones del detalle para dejar más espacio a la información.
 export default function IncidentMoreActions({ actions, className }: IncidentMoreActionsProps) {
     const [open, setOpen] = useState(false);
+    // Dónde cabe al abrir: debajo del botón, o encima si abajo no cabe y arriba hay más sitio (pantalla baja), con el
+    // alto limitado al espacio disponible y scroll; así ninguna acción queda fuera de la pantalla.
+    const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number }>({ up: false, maxHeight: 0 });
     const menuId = useId();
     const wrapperRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -40,13 +43,25 @@ export default function IncidentMoreActions({ actions, className }: IncidentMore
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-controls={open ? menuId : undefined}
-                onClick={() => setOpen((value) => !value)}
+                onClick={() => {
+                    const button = buttonRef.current?.getBoundingClientRect();
+                    // 8 px de separación con el botón y 8 de margen con el borde de la pantalla.
+                    const below = window.innerHeight - (button?.bottom ?? 0) - 16;
+                    const above = (button?.top ?? 0) - 16;
+                    // 240 px: el alto del menú con sus cinco acciones.
+                    const up = below < 240 && above > below;
+                    setPlacement({ up, maxHeight: up ? above : below });
+                    setOpen((value) => !value);
+                }}
                 className="flex size-11 items-center justify-center rounded-full bg-subtle text-xl text-icon transition hover:brightness-95"
             >
                 <LuEllipsis aria-hidden />
             </button>
             {open &&
-                <div className="absolute right-0 top-full z-20 mt-2 w-70">
+                <div
+                    className={`absolute right-0 z-20 w-70 overflow-y-auto rounded-2xl ${placement.up ? "bottom-full mb-2" : "top-full mt-2"}`}
+                    style={{ maxHeight: placement.maxHeight }}
+                >
                     <OptionsMenu id={menuId} ariaLabel="Más acciones" onChangeOption={close} onClose={close}>
                         {actions.map((action) => <OptionsTile key={action.id} {...action} />)}
                     </OptionsMenu>
