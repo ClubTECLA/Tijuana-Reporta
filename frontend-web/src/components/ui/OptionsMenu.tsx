@@ -87,6 +87,7 @@ interface OptionsMenuProps {
     onChangeOption?: (optionId: string) => void;
     onClose?: () => void;
     debug?: boolean;
+    className?: string;
 }
 
 const ITEM_SELECTOR = '[role^="menuitem"]';
@@ -98,6 +99,7 @@ export function OptionsMenu({
     onChangeOption,
     onClose,
     debug,
+    className,
 }: OptionsMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +163,7 @@ export function OptionsMenu({
             role="menu"
             aria-label={ariaLabel}
             onKeyDown={handleKeyDown}
-            className="flex min-w-50 flex-col rounded-2xl bg-surface p-2 shadow-float"
+            className={cn("flex min-w-50 flex-col rounded-2xl bg-surface p-2 shadow-float", className)}
         >
             {Children.map(children, (child) => {
                 if (child == null || typeof child === "boolean") return null;

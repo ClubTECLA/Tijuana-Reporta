@@ -3,6 +3,7 @@ import {
     useEffect,
     useMemo,
     useCallback,
+    useId,
     type Dispatch,
     type SetStateAction,
 } from 'react';
@@ -18,6 +19,8 @@ type LocalStorageChangeDetail = {
     key: string;
     /** Valor serializado nuevo, o `null` si la clave se eliminó. */
     value: string | null;
+    /** Identificador de la instancia que emitió el evento para ignorar auto-notificaciones. */
+    sourceId: string;
 };
 
 /**
@@ -75,6 +78,7 @@ function isStateUpdater<T>(value: SetStateAction<T>): value is (previousValue: T
  * borrarPreferencias();
  */
 export function useLocalStorage<K extends localStorageKeys>(key: K) {
+    const sourceId = useId();
     const [valueForKey, setValueForKey] = useState(() => ({
       key,
       value: readValue(key),
@@ -95,12 +99,12 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
         localStorage.setItem(key, serializedValue);
         // El evento nativo `storage` no se dispara en la pestaña que hizo el cambio.
         window.dispatchEvent(new CustomEvent<LocalStorageChangeDetail>(localStorageChangeEvent, {
-          detail: { key, value: serializedValue },
+          detail: { key, value: serializedValue, sourceId },
         }));
       } catch (error) {
         console.error(`Error saving the key "${key}" in localStorage :`, error);
       }
-    }, [key, storedValue, valueForKey.shouldPersist]);
+    }, [key, storedValue, valueForKey.shouldPersist, sourceId]);
 
     // Sincroniza instancias del hook en esta pestaña y cambios originados en otras pestañas.
     useEffect(() => {
@@ -113,7 +117,7 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
       };
       const handleLocalStorageChange = (event: Event) => {
         const detail = (event as CustomEvent<LocalStorageChangeDetail>).detail;
-        if (detail?.key === key) updateValue(detail.value);
+        if (detail?.key === key && detail.sourceId !== sourceId) updateValue(detail.value);
       };
       const handleStorage = (event: StorageEvent) => {
         if (event.key === key) updateValue(event.newValue);
@@ -125,7 +129,7 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
         window.removeEventListener(localStorageChangeEvent, handleLocalStorageChange);
         window.removeEventListener('storage', handleStorage);
       };
-    }, [key]);
+    }, [key, sourceId]);
 
     const setStoredValue: Dispatch<SetStateAction<localStorageValues<K>>> = useCallback(
       (action) => {
@@ -133,11 +137,11 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
           key,
           shouldPersist: true,
           value: isStateUpdater(action)
-            ? action(current.key === key ? current.value : storedValue)
+            ? action(current.key === key ? current.value : readValue(key))
             : action,
         }));
       },
-      [key, storedValue],
+      [key],
     );
 
     /** Elimina la clave y actualiza las instancias al valor predeterminado sin volver a guardarlo. */
@@ -150,14 +154,14 @@ export function useLocalStorage<K extends localStorageKeys>(key: K) {
       }
 
       window.dispatchEvent(new CustomEvent<LocalStorageChangeDetail>(localStorageChangeEvent, {
-        detail: { key, value: null },
+        detail: { key, value: null, sourceId },
       }));
       setValueForKey({
         key,
         value: localStorageBaseRegistry[key],
         shouldPersist: false,
       });
-    }, [key]);
+    }, [key, sourceId]);
 
     return [storedValue, setStoredValue, removeStoredValue] as const;
 }

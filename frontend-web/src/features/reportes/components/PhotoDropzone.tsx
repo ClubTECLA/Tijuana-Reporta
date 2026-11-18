@@ -1,7 +1,8 @@
 import { useState, type DragEvent } from "react";
-import { LuImage, LuLoaderCircle, LuX } from "react-icons/lu";
+import { LuImage, LuX } from "react-icons/lu";
 import { ACCEPT_ATTRIBUTE } from "@/features/reportes/prepararFoto";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
+import LoadingIcon from "@/components/ui/LoadingIcon";
 
 interface PhotoDropzoneProps {
     /** Vista previa de la foto ya preparada (data URL); sin ella se muestra la zona para elegir. */
@@ -76,7 +77,7 @@ export default function PhotoDropzone({ preview, busy = false, disabled = false,
                 }}
             />
             {busy
-                ? <LuLoaderCircle className="size-6 animate-spin text-brand-text" />
+                ? <LoadingIcon label="Preparando foto" />
                 : <LuImage className="size-6 text-brand-text" />}
             <span className="text-sm font-semibold text-brand-text">
                 {busy ? "Preparando foto…" : "Arrastra una foto o haz clic para subir"}
