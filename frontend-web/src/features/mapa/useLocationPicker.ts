@@ -1,6 +1,7 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Marker, type MapMouseEvent } from "maplibre-gl";
 import { useMap } from "./useMap";
+import { freeMapCenter } from "./freeMapCenter";
 import { buscarDireccion, direccionDe } from "./geocoding.services";
 
 export type Position = { latitude: number; longitude: number };
@@ -133,7 +134,8 @@ function useLocationPickerState(): LocationPickerContextValue {
     const reset = useCallback(() => {
         hasBeenResetRef.current = true;
         lookupRef.current?.abort();
-        const center = map?.getCenter();
+        // En el centro del mapa libre: el del mapa entero puede quedar debajo del panel de "Nuevo incidente".
+        const center = map?.unproject(freeMapCenter(map));
         if (!center) {
             setPosition(null);
             setAddress("");

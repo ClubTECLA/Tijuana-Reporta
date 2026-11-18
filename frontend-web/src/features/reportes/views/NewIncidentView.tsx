@@ -312,7 +312,8 @@ function NewIncidentForm() {
                     >
                         <LuMapPin className="size-6" />
                     </span>
-                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white">
+                    {/* En tablet el mapa libre es más estrecho que el aviso en una línea: se parte en dos. */}
+                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex w-max -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white max-lg:max-w-44 max-lg:whitespace-normal max-lg:rounded-2xl">
                         <LuMapPin className="size-3.5" />
                         Arrastra el marcador o haz clic en el mapa
                     </span>
