@@ -70,7 +70,8 @@ function useLocationPickerState(): LocationPickerContextValue {
             lookupAddress(latitude, longitude);
         };
 
-        const center = map.getCenter();
+        // Si el mapa se recrea con "Nuevo incidente" ya abierto (tras reset), el mismo centro que reset: el del mapa libre.
+        const center = hasBeenResetRef.current ? map.unproject(freeMapCenter(map)) : map.getCenter();
         const marker = new Marker({ element: markerElement, draggable: true, anchor: "center" })
             .setLngLat(center)
             .addTo(map);
