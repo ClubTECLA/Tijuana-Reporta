@@ -1,3 +1,4 @@
+import SubSection from "@/components/layout/SubSection";
 import Pagination from "@/components/ui/Pagination";
 
 interface FooterUsersViewProps {
@@ -14,16 +15,16 @@ export default function FooterUsersView({ userLenght, onChangePage, currentPage,
     const lastUser = Math.min(page * pageSize, userLenght);
     
     return(
-        <section className="flex flex-row justify-between items-center w-full px-3">
-            <span className="text-ink-secondary text-caption">
+        <SubSection as='div' className="flex flex-row justify-between items-center w-full px-3">
+            <SubSection as='span' className="text-ink-secondary text-caption">
                 {`Mostrando ${firstUser}-${lastUser} de ${userLenght}`}
-            </span>
+            </SubSection>
 
             <Pagination
                 currentPage={page}
                 totalPages={totalPages}
                 onPageChange={onChangePage}
             />
-        </section>
+        </SubSection>
     )
 }

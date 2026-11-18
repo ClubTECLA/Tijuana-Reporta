@@ -150,6 +150,7 @@ export default function NavigationWrapper() {
                             onChangeQuery={handleChangeQuery}
                             value={shouldShowMapAddress && !isEditingSearchQuery ? address : searchQuery}
                             onFocus={handleOnFocusSearchBar}
+                            shadow
                         />
                     </div> 
                     <div className="hidden min-w-0 sm:flex sm:flex-2/3">
