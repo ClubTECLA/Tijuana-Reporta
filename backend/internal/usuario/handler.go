@@ -13,10 +13,11 @@ import (
 type Handler struct {
 	auth *Auth
 	svc  *Service
+	rec  *Recuperacion
 }
 
-func NewHandler(auth *Auth, svc *Service) *Handler {
-	return &Handler{auth: auth, svc: svc}
+func NewHandler(auth *Auth, svc *Service, rec *Recuperacion) *Handler {
+	return &Handler{auth: auth, svc: svc, rec: rec}
 }
 
 // toUsuarioResumen converts a stored user summary to the API representation,

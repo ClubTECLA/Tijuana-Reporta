@@ -46,8 +46,8 @@ export type ApiSubirMultimediaResponse =
     operations['subirMultimedia']['responses'][201]['content']['application/json']
 
 // Authentication endpoint request and response types
-export type LoginResponse = operations['login']['responses'][200]['content']['application/json']
-export type RegisterResponse = operations['register']['responses'][201]['content']['application/json']
+export type LoginResponse = operations['inicioDeSesion']['responses'][200]['content']['application/json']
+export type RegisterResponse = operations['registrarUsuario']['responses'][201]['content']['application/json']
 export type MeResponse = operations['me']['responses'][200]['content']['application/json']
 export type AuthResponse = LoginResponse | RegisterResponse
 export type AuthEndpoint = 'login' | 'register'
@@ -62,7 +62,7 @@ export type ApiErrorResponse = components['schemas']['error_response']
 export type ApiLoginResponse = LoginResponse
 export type ApiRegisterResponse = RegisterResponse
 export type ApiMeResponse = MeResponse
-export type ApiLogoutResponse = operations['logout']['responses'][204]
+export type ApiLogoutResponse = operations['cerrarSesion']['responses'][204]
 
 // Incident endpoint query, path, and response types
 export type ApiListarIncidentesQuery =

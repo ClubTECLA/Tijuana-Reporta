@@ -99,6 +99,7 @@ func TestResolver_TodosLosErroresDeDominio(t *testing.T) {
 		usuario.ErrEmailTaken,
 		usuario.ErrInvalidCredentials,
 		usuario.ErrUserNotFound,
+		usuario.ErrCodigoInvalido,
 		multimedia.ErrReporteNotFound,
 		incidente.ErrNotFound,
 		incidente.ErrInvalido,

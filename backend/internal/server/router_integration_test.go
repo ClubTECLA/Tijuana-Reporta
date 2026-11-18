@@ -56,7 +56,13 @@ type testClient struct {
 	router     http.Handler
 	token      string
 	multimedia *multimediaFalso
+	mailer     *mailerFalso
 }
+
+// testRateLimitRafaga es la ráfaga por IP de los tests: el caso más largo
+// ("PIN bloqueado") hace 7 peticiones de recuperación con el mismo cliente, más
+// que la ráfaga de producción.
+const testRateLimitRafaga = 10
 
 // newTestClient arma el router con los servicios reales sobre la base de los
 // tests, igual que cmd/api.
@@ -70,13 +76,14 @@ func newTestClient(t *testing.T) *testClient {
 	}
 
 	almacen := &multimediaFalso{}
+	mailer := &mailerFalso{}
 
 	gin.SetMode(gin.TestMode)
 	router := server.NewRouter(server.Handlers{
 		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(testPool(t)), almacen)),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(testPool(t)))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(testPool(t)))),
-		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
+		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios), usuario.NewRecuperacion(usuarios, mailer, []byte(testJWTSecret))),
 		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(testPool(t)), almacen, multimedia.OpcionesFoto{
 			MaxBytes:   3 << 20,
 			MaxPixeles: 16_000_000,
@@ -85,9 +92,9 @@ func newTestClient(t *testing.T) *testClient {
 			MaxDuracion: 6 * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
-	}, testJWTSecret)
+	}, testJWTSecret, usuarios.GetPasswordChangedAtByUserID, server.WithRateLimitRafaga(testRateLimitRafaga))
 
-	return &testClient{t: t, router: router, multimedia: almacen}
+	return &testClient{t: t, router: router, multimedia: almacen, mailer: mailer}
 }
 
 // do manda la petición y devuelve la respuesta grabada. body se serializa a

@@ -29,6 +29,12 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 		return nil, err
 	}
 
+	mailer, err := usuario.NewMailer(cfg.MailDriver)
+	if err != nil {
+		return nil, err
+	}
+	rec := usuario.NewRecuperacion(usuarios, mailer, []byte(cfg.RecoverySecret))
+
 	// Un solo cliente de multimedia: multimedia sube y borra archivos, y
 	// reporte borra los de un reporte eliminado.
 	archivos := almacen.NewCliente(cfg.MultimediaURL, multimediaTimeout)
@@ -37,7 +43,7 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 		Reportes:    reporte.NewHandler(reporte.NewService(reporte.NewStore(pool), archivos)),
 		Incidentes:  incidente.NewHandler(incidente.NewService(incidente.NewStore(pool))),
 		Comentarios: comentario.NewHandler(comentario.NewService(comentario.NewStore(pool))),
-		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios)),
+		Usuarios:    usuario.NewHandler(auth, usuario.NewService(usuarios), rec),
 		// multimedia no tiene operaciones de varias sentencias: le basta con
 		// las consultas que genera sqlc.
 		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(pool), archivos, multimedia.OpcionesFoto{
@@ -48,5 +54,5 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 			MaxDuracion: time.Duration(cfg.MaxVideoSegundos) * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(pool))),
-	}, cfg.JWTSecret, WithMaxMultimediaBytes(cfg.MaxMultimediaBytes)), nil
+	}, cfg.JWTSecret, usuarios.GetPasswordChangedAtByUserID, WithMaxMultimediaBytes(cfg.MaxMultimediaBytes)), nil
 }

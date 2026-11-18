@@ -12,6 +12,56 @@ import (
 	"github.com/google/uuid"
 )
 
+const addPINAttemptByPINID = `-- name: AddPINAttemptByPINID :one
+UPDATE
+    recovery_pins
+SET
+    attempts = attempts + 1
+WHERE
+    id = $1
+RETURNING attempts
+`
+
+func (q *Queries) AddPINAttemptByPINID(ctx context.Context, id uuid.UUID) (int, error) {
+	row := q.db.QueryRow(ctx, addPINAttemptByPINID, id)
+	var attempts int
+	err := row.Scan(&attempts)
+	return attempts, err
+}
+
+const cancelPINByUserID = `-- name: CancelPINByUserID :exec
+UPDATE
+    recovery_pins
+SET
+    used_at = now()
+WHERE
+    user_id = $1
+    AND used_at IS NULL
+    AND expires_at > now()
+`
+
+func (q *Queries) CancelPINByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, cancelPINByUserID, userID)
+	return err
+}
+
+const countPINsLastHourByUserID = `-- name: CountPINsLastHourByUserID :one
+SELECT
+    count(*)
+FROM
+    recovery_pins
+WHERE
+    user_id = $1
+    AND created_at > now() - interval '1 hour'
+`
+
+func (q *Queries) CountPINsLastHourByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPINsLastHourByUserID, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createLocalAuthProvider = `-- name: CreateLocalAuthProvider :exec
 INSERT INTO
     auth_providers (user_id, provider)
@@ -27,11 +77,29 @@ func (q *Queries) CreateLocalAuthProvider(ctx context.Context, userID uuid.UUID)
 	return err
 }
 
+const createPIN = `-- name: CreatePIN :exec
+INSERT INTO
+    recovery_pins (user_id, pin_hash, expires_at)
+VALUES
+    ($1, $2, $3)
+`
+
+type CreatePINParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	PinHash   []byte    `json:"pin_hash"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreatePIN(ctx context.Context, arg CreatePINParams) error {
+	_, err := q.db.Exec(ctx, createPIN, arg.UserID, arg.PinHash, arg.ExpiresAt)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO
     users (email, username, rol_id, password_hash)
 VALUES
-    ($1, $2, $3, $4) RETURNING id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+    ($1, $2, $3, $4) RETURNING id, email, phone, username, rol_id, password_hash, created_at, updated_at, password_changed_at, state
 `
 
 type CreateUserParams struct {
@@ -58,14 +126,74 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordChangedAt,
 		&i.State,
 	)
 	return i, err
 }
 
+const deleteUsedOrExpiredPINByUserID = `-- name: DeleteUsedOrExpiredPINByUserID :exec
+DELETE FROM
+    recovery_pins
+WHERE
+    user_id = $1
+    AND created_at < now() - interval '1 hour'
+    AND (used_at IS NOT NULL OR expires_at < now())
+`
+
+func (q *Queries) DeleteUsedOrExpiredPINByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUsedOrExpiredPINByUserID, userID)
+	return err
+}
+
+const getLatestActivePINByUserID = `-- name: GetLatestActivePINByUserID :one
+SELECT
+    id, user_id, pin_hash, created_at, expires_at, attempts, used_at
+FROM
+    recovery_pins
+WHERE
+    user_id = $1
+    AND expires_at > now()
+    AND used_at IS NULL
+ORDER BY
+    created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetLatestActivePINByUserID(ctx context.Context, userID uuid.UUID) (RecoveryPin, error) {
+	row := q.db.QueryRow(ctx, getLatestActivePINByUserID, userID)
+	var i RecoveryPin
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PinHash,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.Attempts,
+		&i.UsedAt,
+	)
+	return i, err
+}
+
+const getPasswordChangedAtByUserID = `-- name: GetPasswordChangedAtByUserID :one
+SELECT
+    password_changed_at
+FROM
+    users
+WHERE
+    id = $1
+`
+
+func (q *Queries) GetPasswordChangedAtByUserID(ctx context.Context, id uuid.UUID) (*time.Time, error) {
+	row := q.db.QueryRow(ctx, getPasswordChangedAtByUserID, id)
+	var password_changed_at *time.Time
+	err := row.Scan(&password_changed_at)
+	return password_changed_at, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-    id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+    id, email, phone, username, rol_id, password_hash, created_at, updated_at, password_changed_at, state
 FROM
     users
 WHERE
@@ -84,6 +212,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (User, erro
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordChangedAt,
 		&i.State,
 	)
 	return i, err
@@ -91,7 +220,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (User, erro
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT
-    id, email, phone, username, rol_id, password_hash, created_at, updated_at, state
+    id, email, phone, username, rol_id, password_hash, created_at, updated_at, password_changed_at, state
 FROM
     users
 WHERE
@@ -110,6 +239,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordChangedAt,
 		&i.State,
 	)
 	return i, err
@@ -117,7 +247,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 
 const getUserWithRolByID = `-- name: GetUserWithRolByID :one
 SELECT
-    u.id, u.email, u.phone, u.username, u.rol_id, u.password_hash, u.created_at, u.updated_at, u.state,
+    u.id, u.email, u.phone, u.username, u.rol_id, u.password_hash, u.created_at, u.updated_at, u.password_changed_at, u.state,
     r.nombre AS rol_name
 FROM
     users u
@@ -127,16 +257,17 @@ WHERE
 `
 
 type GetUserWithRolByIDRow struct {
-	ID           uuid.UUID     `json:"id"`
-	Email        *string       `json:"email"`
-	Phone        *string       `json:"phone"`
-	Username     string        `json:"username"`
-	RolID        int           `json:"rol_id"`
-	PasswordHash *string       `json:"password_hash"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
-	State        NullUserState `json:"state"`
-	RolName      string        `json:"rol_name"`
+	ID                uuid.UUID     `json:"id"`
+	Email             *string       `json:"email"`
+	Phone             *string       `json:"phone"`
+	Username          string        `json:"username"`
+	RolID             int           `json:"rol_id"`
+	PasswordHash      *string       `json:"password_hash"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	PasswordChangedAt *time.Time    `json:"password_changed_at"`
+	State             NullUserState `json:"state"`
+	RolName           string        `json:"rol_name"`
 }
 
 func (q *Queries) GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUserWithRolByIDRow, error) {
@@ -151,6 +282,7 @@ func (q *Queries) GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUser
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordChangedAt,
 		&i.State,
 		&i.RolName,
 	)
@@ -204,4 +336,62 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockUserByID = `-- name: LockUserByID :exec
+SELECT
+    id
+FROM
+    users
+WHERE
+    id = $1
+FOR UPDATE
+`
+
+// Serializa por cuenta la emisión de PIN: la segunda petición espera aquí hasta que la primera termine.
+func (q *Queries) LockUserByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockUserByID, id)
+	return err
+}
+
+const setNewPasswordByUserID = `-- name: SetNewPasswordByUserID :exec
+UPDATE
+    users
+SET
+    password_hash = $1,
+    -- Viene de la API, no de now(): se compara contra el iat del JWT, que
+    -- firma la API con su reloj.
+    password_changed_at = $2
+WHERE
+    id = $3
+`
+
+type SetNewPasswordByUserIDParams struct {
+	PasswordHash      *string    `json:"password_hash"`
+	PasswordChangedAt *time.Time `json:"password_changed_at"`
+	ID                uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error {
+	_, err := q.db.Exec(ctx, setNewPasswordByUserID, arg.PasswordHash, arg.PasswordChangedAt, arg.ID)
+	return err
+}
+
+const setPinAsUsedByID = `-- name: SetPinAsUsedByID :execrows
+UPDATE
+    recovery_pins
+SET
+    used_at = now()
+WHERE   
+    id = $1
+    AND used_at IS NULL
+    AND expires_at > clock_timestamp()
+`
+
+func (q *Queries) SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, setPinAsUsedByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

@@ -70,6 +70,9 @@ type Config struct {
 
 	LogLevel  string
 	LogFormat string
+
+	RecoverySecret string
+	MailDriver     string
 }
 
 func Load() (Config, error) {
@@ -80,14 +83,16 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		APIPort:       os.Getenv("API_PORT"),
-		JWTSecret:     os.Getenv("JWT_SECRET"),
-		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
-		AdminUsername: getEnvOrDefault("ADMIN_USERNAME", "Administrador"),
-		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
-		LogLevel:      getEnvOrDefault("LOG_LEVEL", "info"),
-		LogFormat:     getEnvOrDefault("LOG_FORMAT", "json"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		APIPort:        os.Getenv("API_PORT"),
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		AdminEmail:     os.Getenv("ADMIN_EMAIL"),
+		AdminUsername:  getEnvOrDefault("ADMIN_USERNAME", "Administrador"),
+		AdminPassword:  os.Getenv("ADMIN_PASSWORD"),
+		LogLevel:       getEnvOrDefault("LOG_LEVEL", "info"),
+		LogFormat:      getEnvOrDefault("LOG_FORMAT", "json"),
+		RecoverySecret: os.Getenv("RECOVERY_SECRET"),
+		MailDriver:     os.Getenv("MAIL_DRIVER"),
 	}
 	var missing []string
 	if cfg.DatabaseURL == "" {
@@ -108,6 +113,9 @@ func Load() (Config, error) {
 	}
 	if len(cfg.JWTSecret) < minJWTSecretLen {
 		return Config{}, fmt.Errorf("JWT_SECRET must be at least %d bytes long, got %d", minJWTSecretLen, len(cfg.JWTSecret))
+	}
+	if err := validarRecuperacion(cfg.RecoverySecret, cfg.MailDriver); err != nil {
+		return Config{}, err
 	}
 
 	cfg.JWTTTL = defaultJWTTTL
@@ -197,4 +205,19 @@ func getEnvOrDefault(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+// validarRecuperacion revisa RECOVERY_SECRET (requerido, mínimo
+// minJWTSecretLen bytes, igual que JWT_SECRET) y MAIL_DRIVER ("log" o vacío).
+func validarRecuperacion(recoverySecret, mailDriver string) error {
+	if recoverySecret == "" {
+		return fmt.Errorf("missing environment vars: [RECOVERY_SECRET]")
+	}
+	if len(recoverySecret) < minJWTSecretLen {
+		return fmt.Errorf("RECOVERY_SECRET must be at least %d bytes long, got %d", minJWTSecretLen, len(recoverySecret))
+	}
+	if mailDriver != "" && mailDriver != "log" {
+		return fmt.Errorf("invalid MAIL_DRIVER %q: must be \"log\" or empty", mailDriver)
+	}
+	return nil
 }
