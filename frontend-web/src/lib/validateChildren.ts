@@ -1,7 +1,7 @@
 import { Children, isValidElement, type ElementType, type ReactNode } from "react";
 
 export function validateChildren(
-    children: ReactNode,
+    children: ReactNode | null | undefined,
     componentName: string,
     allowedChildType?: ElementType[],
     allowedChildName?: string,

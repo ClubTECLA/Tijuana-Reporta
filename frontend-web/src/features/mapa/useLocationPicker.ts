@@ -12,8 +12,11 @@ interface LocationPickerContextValue {
     markerElement: HTMLDivElement;
     position: Position | null;
     address: string;
+    locationFlightVersion: number;
     editAddress: (text: string) => void;
+    cancelSearch: () => void;
     search: (query: string) => Promise<SearchResult>;
+    searchCoordinates: (position: Position, zoom?: number) => SearchResult;
     reset: () => void;
 }
 
@@ -40,6 +43,7 @@ function useLocationPickerState(): LocationPickerContextValue {
         return center ? { latitude: center.lat, longitude: center.lng } : null;
     });
     const [address, setAddress] = useState("");
+    const [locationFlightVersion, setLocationFlightVersion] = useState(0);
 
     // El marcador es un elemento propio de MapLibre; su contenido se pinta con React mediante un portal.
     const [markerElement] = useState(() => document.createElement("div"));
@@ -117,6 +121,7 @@ function useLocationPickerState(): LocationPickerContextValue {
             map?.flyTo({ center: [found.longitude, found.latitude], zoom: 16 });
             setPosition({ latitude: found.latitude, longitude: found.longitude });
             setAddress(found.address);
+            setLocationFlightVersion((version) => version + 1);
             return "found";
         } catch (error) {
             if (!isCurrent()) return "ignored";
@@ -124,11 +129,48 @@ function useLocationPickerState(): LocationPickerContextValue {
         }
     };
 
-    // Escribir en el buscador cancela la búsqueda pendiente: lo escrito no se sustituye por una respuesta vieja.
-    const editAddress = (text: string) => {
+    /** Lleva el marcador y el mapa a unas coordenadas sin geocodificar una dirección de entrada. */
+    const searchCoordinates = useCallback((nextPosition: Position, zoom = 16): SearchResult => {
+        const { latitude, longitude } = nextPosition;
+        if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180 ||
+            !map
+        ) {
+            return "ignored";
+        }
+
+        const signal = restartLookup(lookupRef);
+        markerRef.current?.setLngLat([longitude, latitude]);
+        map.flyTo({ center: [longitude, latitude], zoom });
+        setPosition({ latitude, longitude });
+        setAddress("");
+        setLocationFlightVersion((version) => version + 1);
+
+        direccionDe(latitude, longitude, signal)
+            .then((found) => {
+                if (!signal.aborted) setAddress(found ?? "");
+            })
+            .catch(() => {
+                if (!signal.aborted) setAddress("");
+            });
+
+        return "found";
+    }, [map]);
+
+    const cancelSearch = useCallback(() => {
+        lookupRef.current?.abort();
+    }, []);
+
+    // Editar la dirección cancela la búsqueda pendiente para que una respuesta vieja no la sustituya.
+    const editAddress = useCallback((text: string) => {
         lookupRef.current?.abort();
         setAddress(text);
-    };
+    }, []);
 
     const reset = useCallback(() => {
         hasBeenResetRef.current = true;
@@ -145,7 +187,17 @@ function useLocationPickerState(): LocationPickerContextValue {
         setAddress("");
     }, [map]);
 
-    return { markerElement, position, address, editAddress, search, reset };
+    return {
+        markerElement,
+        position,
+        address,
+        locationFlightVersion,
+        editAddress,
+        cancelSearch,
+        search,
+        searchCoordinates,
+        reset,
+    };
 }
 
 export function LocationPickerProvider({ children }: { children: ReactNode }) {

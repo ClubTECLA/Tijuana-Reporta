@@ -26,7 +26,7 @@ export function TabItem({
                 gap-1.5 whitespace-nowrap rounded-full px-4
                 text-body transition-colors duration-200
                 ${isActive
-                    ? "bg-white font-semibold text-ink drop-shadow-card"
+                    ? "bg-surface font-semibold text-ink drop-shadow-card"
                     : "bg-transparent font-medium text-ink-muted hover:text-icon"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
                 sm:min-w-0 sm:flex-auto
@@ -35,7 +35,7 @@ export function TabItem({
             {tabIcon}
             {tabTitle}
             {tabBadge !== undefined && (
-                <span className="min-w-5 rounded-full bg-subtle px-1.5 py-px text-center text-xs font-semibold">
+                <span className="min-w-5 rounded-full bg-subtle px-1.5 py-px text-center text-2xs font-semibold">
                     {tabBadge}
                 </span>
             )}

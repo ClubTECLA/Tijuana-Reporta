@@ -5,6 +5,7 @@ import ClusterPin from "./ClusterPin";
 import { CLUSTER_MAX_ZOOM, useIncidentMarkers } from "./useIncidentMarkers";
 import { useOpenIncident } from "./useOpenIncident";
 import { useMap } from "./useMap";
+import { useLocationPicker } from "./useLocationPicker";
 import { useReportes } from "@/features/reportes/useReportes";
 import { useCommonPanel } from "@/panels/useCommonPanel";
 
@@ -13,6 +14,7 @@ import { useCommonPanel } from "@/panels/useCommonPanel";
 // incidente recién publicado.
 export default function IncidentsLayer() {
     const { map } = useMap();
+    const { searchCoordinates } = useLocationPicker();
     const { reportes, filteredReportes, categories, createdId } = useReportes();
     const { openPanel, currentPanel } = useCommonPanel();
     const flownToRef = useRef<string | null>(null);
@@ -37,9 +39,12 @@ export default function IncidentsLayer() {
         if (!map || !createdId || flownToRef.current === createdId) return;
         const reporte = reportesById.get(createdId);
         if (!reporte) return;
-        flownToRef.current = createdId;
-        map.flyTo({ center: [reporte.longitude, reporte.latitude], zoom: Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1) });
-    }, [map, createdId, reportesById]);
+        const result = searchCoordinates(
+            { latitude: reporte.latitude, longitude: reporte.longitude },
+            Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1),
+        );
+        if (result !== "ignored") flownToRef.current = createdId;
+    }, [map, createdId, reportesById, searchCoordinates]);
 
     return (
         <>
