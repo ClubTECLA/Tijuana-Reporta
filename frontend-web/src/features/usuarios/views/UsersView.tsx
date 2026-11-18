@@ -44,6 +44,9 @@ export default function UserView() {
         ],
         [roles],
     );
+
+    const roleColor = (role: string): ColorBadgeColor =>
+        Object.hasOwn(roleColors, role) ? roleColors[role] : "gray";
     const { showMessage } = useSysMessage();
     const [ currentPage, setCurrentPage ] = useState(1);
     const pageSize = 8;
@@ -148,7 +151,7 @@ export default function UserView() {
                                 </TCell>
                                 <TCell>
                                     <ColorBadge
-                                        color={roleColors[user.rol_name] || "gray"}
+                                        color={roleColor(user.rol_name)}
                                         text={roleLabel(user.rol_name)}
                                     />
                                 </TCell>
