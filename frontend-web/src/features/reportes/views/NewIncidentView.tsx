@@ -269,14 +269,15 @@ function NewIncidentForm() {
                     <p role="alert" className="rounded-2xl bg-warning-subtle px-4 py-3 text-caption text-warning">
                         El incidente se publicó, pero {photoRetry.motivo}. Puedes reintentar solo la foto; el incidente no se duplica.
                     </p>
-                    <div className="flex gap-2.5">
+                    {/* Igual que el pie de publicar: caben en una fila en el panel y en teléfono cada uno pasa a la suya. */}
+                    <div className="flex flex-wrap gap-2.5">
                         <Button
                             variant="subtle"
                             size="lg"
                             title="Continuar sin foto"
                             onClick={() => finish([...photoRetry.pendientes, photoRetry.motivo])}
                             disabled={publishing}
-                            className="flex-1"
+                            className="flex-1 px-4"
                         />
                         <Button
                             variant="report"
@@ -285,7 +286,7 @@ function NewIncidentForm() {
                             title={publishing ? "Subiendo foto…" : "Reintentar foto"}
                             onClick={handleRetryPhoto}
                             disabled={publishing}
-                            className="flex-1"
+                            className="flex-1 px-4"
                         />
                     </div>
                 </div>
