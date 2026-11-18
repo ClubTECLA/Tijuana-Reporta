@@ -15,8 +15,12 @@ export interface OptionTileProps {
     title: string;
     icon?: ReactNode;
     onClick?: () => void;
+    /** Opción elegible (radio); sin él, la opción es una acción (p. ej. "Más acciones" del detalle). */
     isSelected?: boolean;
     variant?: "default" | "danger";
+    /** aria-disabled y no disabled: así sigue recibiendo el foco de las flechas y se lee su tooltip. */
+    disabled?: boolean;
+    tooltip?: string;
     debug?: boolean;
 }
 
@@ -24,27 +28,32 @@ export function OptionsTile({
     title,
     icon,
     onClick,
-    isSelected = false,
+    isSelected,
     variant = "default",
+    disabled = false,
+    tooltip,
     debug,
 }: OptionTileProps) {
     const isDanger = variant === "danger";
     const hasIcon = icon != null && icon !== false && icon !== true;
+    const isRadio = isSelected !== undefined;
 
     return (
         <SubSection
             as="button"
             debug={debug}
             type="button"
-            role="menuitemradio"
-            aria-checked={isSelected}
+            role={isRadio ? "menuitemradio" : "menuitem"}
+            aria-checked={isRadio ? isSelected : undefined}
+            aria-disabled={disabled || undefined}
+            title={tooltip}
             tabIndex={-1} // el foco se mueve por código (flechas), no con Tab
-            onClick={onClick}
+            onClick={disabled ? undefined : onClick}
             className={cn(
                 "flex items-center gap-4 rounded-xl px-3 py-2",
                 "text-left font-ui text-body font-medium transition-colors",
                 "focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-[-2px]",
-                !isSelected && "hover:bg-subtle",
+                disabled ? "cursor-not-allowed opacity-50" : !isSelected && "hover:bg-subtle",
                 isDanger
                     ? "text-danger"
                     : isSelected
