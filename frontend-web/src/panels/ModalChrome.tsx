@@ -47,12 +47,14 @@ export default function ModalChrome() {
     if (!modal) return null;
 
     return createPortal(
+        // El ancho lo da cada menú (el de notificaciones, 460 px como en el Figma), sin pasar del de la pantalla. Por
+        // debajo de 1024 px, debajo de las dos filas de la cabecera.
         <section
             style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
             className="
-                fixed right-3 top-[6.5rem] z-[60]
-                sm:right-5 sm:top-20
-                w-fit max-w-1/2
+                fixed right-3 top-34 z-[60]
+                sm:right-5 lg:top-20
+                w-fit max-w-[calc(100vw-1.5rem)] sm:max-w-[calc(100vw-2.5rem)]
                 pointer-events-auto
                 flex flex-col items-center justify-center
                 rounded-xl bg-white shadow-float
