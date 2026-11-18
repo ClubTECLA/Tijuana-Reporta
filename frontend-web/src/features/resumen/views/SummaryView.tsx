@@ -51,7 +51,7 @@ export default function SummaryView() {
     };
 
     return (
-        <ColSection title={saludo(user?.username, now)} subtitle={fechaDeHoy(now)} arrangementSubsections="toUp" className="min-h-0">
+        <ColSection title={saludo(user?.username, now)} subtitle={fechaDeHoy(now)} arrangementSubsections="toUp" className="min-h-0 overflow-visible">
             {/* Mismo ancho fijo que los demás paneles de incidentes. */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-4 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
                 <div className="flex gap-2.5 p-0.5">
@@ -64,7 +64,8 @@ export default function SummaryView() {
                     <TabItem tabTitle="Oficiales" tabBadge={reportes ? oficiales.length : undefined} />
                 </SegmentedTabs>
 
-                {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. */}
+                {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. Por eso
+                    ColSection va con overflow-visible: con scroll propio, ese sobrante le daría una barra horizontal. */}
                 <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-0.5 pr-3.5 sm:-mr-4 sm:pr-4.5">
                     {error && <span className={noteStyle}>{error}</span>}
                     {!error && !reportes && <span className={noteStyle}>Cargando incidentes…</span>}

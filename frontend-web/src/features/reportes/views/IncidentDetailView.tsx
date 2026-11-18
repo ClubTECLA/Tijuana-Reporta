@@ -2,6 +2,7 @@ import { createElement, useState, type SubmitEvent } from "react";
 import { LuBell, LuCheck, LuClock, LuDownload, LuImage, LuInfo, LuMapPin, LuPencil, LuSend, LuShare, LuTrash2, LuUser, LuUsers } from "react-icons/lu";
 import DetailHero from "@/features/reportes/components/DetailHero";
 import IncidentAction from "@/features/reportes/components/IncidentAction";
+import IncidentMoreActions from "@/features/reportes/components/IncidentMoreActions";
 import DetailRow from "@/features/reportes/components/DetailRow";
 import CommentItem, { type CommentAuthor } from "@/features/reportes/components/CommentItem";
 import Button from "@/components/ui/Button";
@@ -56,6 +57,12 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     // Mismas transiciones que el backend: solo se ofrecen los cambios que va a aceptar.
     const nextStates = reporte ? estadosSiguientes(reporte.estado_actual) : [];
     const isFinal = !!reporte && esEstadoFinal(reporte.estado_actual);
+    // Las mismas reglas para la fila de acciones y para "Más acciones" (teléfono).
+    const stateDisabled = !reporte || !canChangeState || isFinal;
+    const stateTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined;
+    const discardDisabled = !reporte || !canChangeState || changingState || !nextStates.includes("Descartado");
+    const discardTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)";
+    const toggleStateMenu = () => { setConfirming(null); setStateMenuOpen((open) => !open) };
 
     const handleChangeState = async (estado: ApiEstadoReporte) => {
         if (changingState) return;
@@ -137,7 +144,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         {icon}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <h2 className="text-title font-bold text-ink">{category?.etiqueta ?? "Incidente"}</h2>
+                        <h2 className="truncate text-title font-bold text-ink max-sm:text-lg">{category?.etiqueta ?? "Incidente"}</h2>
                         {base &&
                             <span className="flex items-center gap-1 text-caption text-ink-muted">
                                 <LuMapPin className="size-3.5 shrink-0" aria-hidden />
@@ -146,22 +153,40 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             </span>
                         }
                     </div>
+                    {/* En teléfono, el estado y el folio junto al título y las acciones en "Más acciones": deja más alto
+                        para la información de abajo. */}
+                    {base &&
+                        <div className="flex shrink-0 flex-col items-end gap-1 sm:hidden">
+                            <StatusBadge estado={base.estado_actual} />
+                            <span className="font-mono text-xs font-medium text-ink-muted">{folio(base.id)}</span>
+                        </div>
+                    }
+                    <IncidentMoreActions
+                        className="sm:hidden"
+                        actions={[
+                            { id: "estado", title: "Cambiar estado", icon: <LuCheck />, onClick: toggleStateMenu, disabled: stateDisabled, tooltip: stateTooltip },
+                            { id: "editar", title: "Editar incidente", icon: <LuPencil />, disabled: true, tooltip: SOON },
+                            { id: "compartir", title: "Compartir enlace", icon: <LuShare />, disabled: true, tooltip: SOON },
+                            { id: "exportar", title: "Exportar ficha (PDF)", icon: <LuDownload />, disabled: true, tooltip: SOON },
+                            { id: "descartar", title: "Descartar incidente", icon: <LuTrash2 />, variant: "danger", onClick: () => requestState("Descartado"), disabled: discardDisabled, tooltip: discardTooltip },
+                        ]}
+                    />
                 </div>
                 {base &&
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
                         <StatusBadge estado={base.estado_actual} />
                         <span className="font-mono text-xs font-medium text-ink-muted">{folio(base.id)}</span>
                     </div>
                 }
-                <div className="flex justify-between pt-1">
+                <div className="flex justify-between pt-1 max-sm:hidden">
                     <IncidentAction
                         icon={<LuCheck />}
                         label="Estado"
                         tone="primary"
                         expanded={stateMenuOpen}
-                        onClick={() => { setConfirming(null); setStateMenuOpen((open) => !open) }}
-                        disabled={!reporte || !canChangeState || isFinal}
-                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined}
+                        onClick={toggleStateMenu}
+                        disabled={stateDisabled}
+                        tooltip={stateTooltip}
                     />
                     <IncidentAction icon={<LuPencil />} label="Editar" disabled tooltip={SOON} />
                     <IncidentAction icon={<LuShare />} label="Compartir" disabled tooltip={SOON} />
@@ -171,8 +196,8 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         label="Descartar"
                         tone="danger"
                         onClick={() => requestState("Descartado")}
-                        disabled={!reporte || !canChangeState || changingState || !nextStates.includes("Descartado")}
-                        tooltip={!canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)"}
+                        disabled={discardDisabled}
+                        tooltip={discardTooltip}
                     />
                 </div>
                 {confirming

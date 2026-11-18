@@ -126,7 +126,8 @@ export function NotificationList({format = 'both-fit', debug, children} : Notifi
         <SubSection
             format={format}
             debug={debug}
-            className=" overflow-auto max-w-full max-h-60 flex-col"
+            // Alto según la pantalla: en teléfono el menú no debe tapar el dock ni salirse por abajo.
+            className="w-full max-h-[min(26rem,calc(100dvh-25rem))] min-h-24 flex-col gap-1 overflow-auto"
         >
             {Children.map(children, (child) => {
                 if(!isValidElement<NotificationTileProps>(child)){

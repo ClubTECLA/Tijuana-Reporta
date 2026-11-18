@@ -6,8 +6,9 @@ import { useReportes } from "@/features/reportes/useReportes";
 import { activeFilterLabels } from "@/features/reportes/reportFilters";
 
 // Aviso sobre el mapa de que los pines están filtrados: el filtro sigue aplicándose al cerrar los paneles. Con el estilo
-// de "Capas activas" del Figma, centrado encima del dock y en su mismo eje (el mapa libre a la derecha del panel). Por
-// debajo de 1680 px la píldora de capas ocupa la fila de encima del dock, así que el aviso sube una más.
+// de "Capas activas" del Figma, justo encima del dock y en su mismo eje (el mapa libre a la derecha del panel); la
+// píldora de capas, si se muestra, va en la fila del dock. Por debajo de 1024 px, con un panel abierto, no cabe en el
+// mapa libre: se oculta.
 // No se muestra sin filtros ni con los paneles que ya enseñan el filtro ("Incidentes" y "Capas y filtros").
 const PANELS_SHOWING_FILTERS = ["Incidentes", "Capas y filtros"];
 
@@ -22,12 +23,12 @@ export default function ActiveFiltersBadge() {
     return (
         <div
             style={{ "--panel-right": `${panelRight}px` } as CSSProperties}
-            className="
-                absolute bottom-40 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1
+            className={`
+                absolute bottom-24 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1
+                ${panelRight ? "max-lg:hidden" : ""}
                 sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)] sm:max-w-[calc(100%-var(--panel-right)-2rem)]
-                min-[1680px]:bottom-24
                 rounded-full border border-glass-line bg-glass p-1.5 font-ui backdrop-blur-glass drop-shadow-floating
-            "
+            `}
         >
             <button
                 type="button"

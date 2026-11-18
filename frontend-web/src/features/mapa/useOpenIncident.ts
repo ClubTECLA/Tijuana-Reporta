@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection, Polygon } from "geojson";
 import { circlePolygon } from "./circlePolygon";
+import { freeMapCenter } from "./freeMapCenter";
 import { setupMapLayers } from "./mapLayers";
 import { CLUSTER_MAX_ZOOM } from "./useIncidentMarkers";
 import { useMap } from "./useMap";
@@ -45,10 +46,8 @@ export function useOpenIncident(activeId: string | null, active: ApiReporteResum
         }
         if (!map || !active || focusedRef.current === activeId) return;
         focusedRef.current = activeId;
-        // Desde sm (40rem, el mismo corte que PanelChrome) el panel tapa la izquierda del mapa: se centra en el espacio
-        // libre a su derecha. Por debajo lo tapa entero y no se desplaza (al cerrarlo el incidente queda en el centro).
-        const panelRight = document.querySelector("[data-common-panel]")?.getBoundingClientRect().right ?? 0;
-        const offsetX = window.matchMedia("(min-width: 40rem)").matches ? panelRight / 2 : 0;
+        // Se centra en el espacio libre entre el panel y los controles, para que su pin y su halo no queden debajo.
+        const offsetX = freeMapCenter(map)[0] - map.getContainer().getBoundingClientRect().width / 2;
         // easeTo y no flyTo: en MapLibre 6 flyTo deja el punto en el centro del mapa e ignora el offset.
         map.easeTo({
             center: [active.longitude, active.latitude],

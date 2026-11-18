@@ -3,10 +3,11 @@ import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import { type NotiType } from "@/types/utils-types";
 import { FiSun } from "react-icons/fi";
 import {NotificationTile, NotificationList} from "@/features/notificaciones/components/NotificationList";
+import { IoIosClose } from "react-icons/io";
 import TextButton from "@/components/ui/TextButton";
-import RowSection from "@/components/layout/RowSection";
+import Button from "@/components/ui/Button";
 import SubsectionTitle from "@/components/ui/SubsectionTitle";
-import ColSection from "@/components/layout/ColSection";
+import useModals from "@/panels/useModals";
 
 interface NotiProps {
     title: string;
@@ -37,6 +38,7 @@ export default function NotificationsMenu() {
     ]); 
 
     const [ typeFilter, setTypeFilter] = useState<NotiType | null>(null);
+    const { closeModal } = useModals();
 
     const handleClickNoti = (notiKey: number) => {
         setNotifications((prev) => prev.map((noti) => noti.id === notiKey ? {...noti, read: true} : noti))
@@ -49,25 +51,29 @@ export default function NotificationsMenu() {
     }
    
     return (
-        <ColSection
-            className="px-4"
-        >
-            <RowSection
-                className="px-2 pt-1"
-                arrangementSubsections='between'
-            >
-                <SubsectionTitle 
+        // "Menú emergente" de notificaciones del Figma: 460 px de ancho con 15 de relleno; en teléfono ocupa el ancho
+        // disponible. La X no está en el Figma: en teléfono el menú tapa la campana, que es la otra forma de cerrarlo.
+        <div className="flex w-115 max-w-full flex-col gap-2 px-2 pb-2 font-ui sm:px-3.75 sm:pb-3.75">
+            <div className="flex items-center justify-between gap-3 pl-1.5">
+                <SubsectionTitle
                     title="Notificaciones"
                 />
-                <TextButton
-                    title="Marcar leídas"
-                    onClick={markAllReaded}
-                    className="text-sm text-brand hover:underline underline-offset-4"
-                />
-            </RowSection>
+                <div className="flex shrink-0 items-center gap-1">
+                    <TextButton
+                        title="Marcar leídas"
+                        onClick={markAllReaded}
+                        className="text-sm text-brand hover:underline underline-offset-4"
+                    />
+                    <Button
+                        icon={<IoIosClose />}
+                        ariaLabel="Cerrar menú"
+                        variant="subtle"
+                        onClick={closeModal}
+                    />
+                </div>
+            </div>
             <SegmentedTabs
                 format="row"
-                className="mb-3"
             >
                 <TabItem
                     tabTitle="Todas"
@@ -113,8 +119,8 @@ export default function NotificationsMenu() {
                 title="Preferencias de Notificaciones"
                 icon={<FiSun />}
                 format="col"
-                className="mt-4 w-full text-brand hover:underline underline-offset-2 mb-4"
+                className="mt-1 w-full text-brand hover:underline underline-offset-2"
             />
-        </ColSection>
+        </div>
     )
 }

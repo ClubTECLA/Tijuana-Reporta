@@ -170,7 +170,8 @@ function NewIncidentForm() {
         // Ancho fijo de 25vw (el mínimo del panel común) menos su relleno de 16 px. Fijo y no mínimo porque el panel
         // común es w-fit: con un mínimo, una fila larga de etiquetas lo ensancharía antes de que flex-wrap las baje.
         // El scroll se extiende sobre el relleno para quedar pegado al borde, y el contenido llena el alto del panel:
-        // los botones quedan abajo del todo, como en el Figma.
+        // los botones quedan abajo del todo, como en el Figma. Por eso NewIncidentView pasa overflow-visible a ColSection:
+        // con scroll propio, lo que el scroll ocupa del relleno le daría una barra horizontal.
         <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
@@ -268,14 +269,15 @@ function NewIncidentForm() {
                     <p role="alert" className="rounded-2xl bg-warning-subtle px-4 py-3 text-caption text-warning">
                         El incidente se publicó, pero {photoRetry.motivo}. Puedes reintentar solo la foto; el incidente no se duplica.
                     </p>
-                    <div className="flex gap-2.5">
+                    {/* Igual que el pie de publicar: caben en una fila en el panel y en teléfono cada uno pasa a la suya. */}
+                    <div className="flex flex-wrap gap-2.5">
                         <Button
                             variant="subtle"
                             size="lg"
                             title="Continuar sin foto"
                             onClick={() => finish([...photoRetry.pendientes, photoRetry.motivo])}
                             disabled={publishing}
-                            className="flex-1"
+                            className="flex-1 px-4"
                         />
                         <Button
                             variant="report"
@@ -284,12 +286,13 @@ function NewIncidentForm() {
                             title={publishing ? "Subiendo foto…" : "Reintentar foto"}
                             onClick={handleRetryPhoto}
                             disabled={publishing}
-                            className="flex-1"
+                            className="flex-1 px-4"
                         />
                     </div>
                 </div>
-                : <div className="flex gap-2.5 border-t border-line pt-3.5">
-                    <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1" />
+                // px-4: así caben en una fila en el panel de 400 px; flex-wrap: en teléfono no caben y cada uno pasa a la suya.
+                : <div className="flex flex-wrap gap-2.5 border-t border-line pt-3.5">
+                    <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1 px-4" />
                     <Button
                         variant="report"
                         size="lg"
@@ -297,7 +300,7 @@ function NewIncidentForm() {
                         title={publishing ? "Publicando…" : "Publicar incidente"}
                         onClick={handlePublish}
                         disabled={publishing || preparingPhoto}
-                        className="flex-1"
+                        className="flex-1 px-4"
                     />
                 </div>
             }
@@ -310,7 +313,8 @@ function NewIncidentForm() {
                     >
                         <LuMapPin className="size-6" />
                     </span>
-                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white">
+                    {/* En tablet el mapa libre es más estrecho que el aviso en una línea: se parte en dos. */}
+                    <span className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] flex w-max -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 font-ui text-xs font-semibold text-white max-lg:max-w-44 max-lg:whitespace-normal max-lg:rounded-2xl">
                         <LuMapPin className="size-3.5" />
                         Arrastra el marcador o haz clic en el mapa
                     </span>
@@ -327,7 +331,7 @@ export default function NewIncidentView() {
             title="Nuevo incidente"
             subtitle="Se publica en la app en cuanto lo guardes"
             arrangementSubsections="toUp"
-            className="min-h-0"
+            className="min-h-0 overflow-visible"
         >
             <NewIncidentForm />
         </ColSection>

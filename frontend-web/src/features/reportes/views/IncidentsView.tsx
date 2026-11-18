@@ -59,7 +59,7 @@ export default function IncidentsView() {
             subtitle={reportes ? `${activeCount} activos · ${resolvedCount} resueltos` : "Cargando…"}
             headerActions={newButton}
             arrangementSubsections="toUp"
-            className="min-h-0"
+            className="min-h-0 overflow-visible"
         >
             {/* Mismo ancho fijo que "Nuevo incidente" y el detalle: con solo un mínimo, el panel (w-fit) crecía hasta
                 el título más largo en vez de recortarlo con "…". */}
@@ -86,7 +86,8 @@ export default function IncidentsView() {
                     <CategoryChip label="Solo oficiales" isSelected={filters.onlyOfficial} onPress={toggleOfficial} />
                 </div>
 
-                {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. */}
+                {/* El scroll se extiende sobre el relleno del panel para quedar pegado a su borde derecho. Por eso
+                    ColSection va con overflow-visible: con scroll propio, ese sobrante le daría una barra horizontal. */}
                 <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-0.5 pr-3.5 sm:-mr-4 sm:pr-4.5">
                     {error && <span className={noteStyle}>{error}</span>}
                     {!error && !reportes && <span className={noteStyle}>Cargando incidentes…</span>}
