@@ -6,9 +6,10 @@ interface SearchBarProps {
     onSubmit?: (query: string) => void;
     placeholder?: string;
     value?: string
+    className?: string
 }
 
-export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = ''}: SearchBarProps) {
+export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Buscar folio, dirección o colonia", value = '', className}: SearchBarProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [query, setQuery] = useState(value);
     const [focused, setFocused] = useState(false);
@@ -59,6 +60,7 @@ export default function SearchBar({onChangeQuery, onSubmit, placeholder = "Busca
                 shadow-float
                 transition-colors duration-200
                 ${isActive ? 'border-brand px-2' : 'border-transparent px-7.5'}
+                ${className ?? ''}
             `}
             onSubmit={handleSubmit}
         >
