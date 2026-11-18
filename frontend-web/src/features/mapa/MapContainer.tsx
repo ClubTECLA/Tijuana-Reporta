@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  AttributionControl,
   Map as MapLibreMap,
   setWorkerUrl,
   type StyleSpecification,
@@ -64,19 +65,16 @@ export default function MapContainer() {
       style: mapStyle,
       center: [-117.0382, 32.5149],
       zoom: 11,
-      // Compact: an "i" button that expands the attribution.
-      attributionControl: { compact: true },
+      // Added below in the top-right corner instead of the default bottom-right.
+      attributionControl: false,
     });
   mapRef.current = map;
     // Shares the map with the panels (MapContext).
     setMap(map);
 
-    // Starts collapsed to the "i" button, as after a drag: expanded, its text ran under the action dock.
-    map.once('load', () => {
-      const attribution = mapContainerRef.current?.querySelector('.maplibregl-ctrl-attrib');
-      attribution?.classList.remove('maplibregl-compact-show');
-      attribution?.removeAttribute('open');
-    });
+    // Compact, as MapLibre's default: starts expanded (OpenStreetMap requires it visible) and collapses to an "i" button
+    // when the map is dragged. Top-right, below the header: at the bottom-right its text ran under the action dock.
+    map.addControl(new AttributionControl({ compact: true }), 'top-right');
 
     map.on('zoom', () => {
       setAtMinZoom(map.getZoom() <= map.getMinZoom());
@@ -99,7 +97,9 @@ export default function MapContainer() {
   return (
     // Fixed to the viewport, not h-screen: on phones 100vh is taller than the visible area (browser bars), so the page
     // scrolled under the fixed header. overflow-hidden: a floating control that doesn't fit is clipped, not scrolled.
-    <div className="fixed inset-0 overflow-hidden">
+    // The top-right corner (attribution) starts below the header: two rows below 1024 px, one from there. Important
+    // because MapLibre's stylesheet is unlayered and would win over a Tailwind utility.
+    <div className="fixed inset-0 overflow-hidden [&_.maplibregl-ctrl-top-right]:top-34! lg:[&_.maplibregl-ctrl-top-right]:top-20!">
       <div ref={mapContainerRef} className="h-full w-full" />
 
       {/* Map controls from the Figma ("Controles de mapa"), replacing MapLibre's NavigationControl. On phones the bell
