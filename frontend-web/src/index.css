@@ -102,3 +102,22 @@ body,
 body {
   overflow-x: clip;
 }
+
+@keyframes filter-selected-marquee {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  85%, 100% {
+    transform: translateX(var(--filter-selected-distance));
+  }
+}
+
+.filter-selected-marquee {
+  animation: filter-selected-marquee 4s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-selected-marquee {
+    animation: none;
+  }
+}
