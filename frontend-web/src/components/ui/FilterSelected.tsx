@@ -163,7 +163,7 @@ export default function FilterSelected({
                     as="span"
                     debug={debug}
                     ref={selectedTrackRef}
-                    className="w-10 shrink-0 overflow-hidden whitespace-nowrap"
+                    className="w-24 shrink-0 overflow-hidden whitespace-nowrap"
                 >
                     <span
                         ref={selectedTextRef}
