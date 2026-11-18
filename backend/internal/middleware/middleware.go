@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -125,12 +126,10 @@ func Auth(secret string, scopesKey string, passwordChangedAt PasswordChangedAtFu
 			httperr.Responder(c, err)
 			return
 		}
-		// Sin "iat", GetIssuedAt devuelve nil y el token cuenta como anterior a cualquier cambio.
-		var iat time.Time
-		if issued, _ := claims.GetIssuedAt(); issued != nil {
-			iat = issued.Time
-		}
-		if tokenAnteriorAlCambio(iat, changedAt) {
+		// Sin "pwd_at" (tokens viejos o de usuarios que nunca cambiaron la
+		// contraseña) el claim vale "" y solo pasa si password_changed_at es nil.
+		pwdAt, _ := claims[ClaimVersionCredencial].(string)
+		if tokenAnteriorAlCambio(pwdAt, changedAt) {
 			httperr.Responder(c, httperr.ErrTokenInvalido)
 			return
 		}
@@ -244,11 +243,27 @@ func RequestLogger() gin.HandlerFunc {
 // Auth la usará para rechazar los JWT emitidos antes de un reset.
 type PasswordChangedAtFunc func(ctx context.Context, userID uuid.UUID) (*time.Time, error)
 
-// tokenAnteriorAlCambio dice si un token con este iat se emitió antes del
-// cambio de contraseña. Trunca changedAt a segundos (precisión del iat) y
-// rechaza solo si iat < changedAt.
-func tokenAnteriorAlCambio(iat time.Time, changedAt *time.Time) bool {
-	return changedAt != nil && iat.Before(changedAt.Truncate(time.Second))
+// ClaimVersionCredencial es el claim del JWT con la versión de la contraseña
+// (password_changed_at) contra la que se validó el login.
+const ClaimVersionCredencial = "pwd_at"
+
+// VersionCredencial convierte password_changed_at en el valor del claim
+// "pwd_at": microsegundos Unix (la precisión de timestamptz) como string, o ""
+// si nunca cambió. Lo usan issueToken al firmar y Auth al validar.
+func VersionCredencial(changedAt *time.Time) string {
+	if changedAt == nil {
+		return ""
+	}
+	return strconv.FormatInt(changedAt.UnixMicro(), 10)
+}
+
+// tokenAnteriorAlCambio dice si el token se firmó con una versión de la
+// contraseña distinta de la actual. No compara contra el iat: un Login que
+// leyó el hash viejo y firmó después de un ResetPasswordTx concurrente lleva
+// el pwd_at viejo y se rechaza, aunque su iat sea posterior o del mismo
+// segundo que el cambio.
+func tokenAnteriorAlCambio(pwdAt string, changedAt *time.Time) bool {
+	return pwdAt != VersionCredencial(changedAt)
 }
 
 // Límite por IP de las rutas de recuperación: ráfaga de 10 peticiones y

@@ -132,24 +132,28 @@ func TestBodyLimitFunc_ElLimiteDependeDeLaRuta(t *testing.T) {
 }
 
 func TestTokenAnteriorAlCambio(t *testing.T) {
+	anterior := time.Date(2026, 11, 14, 9, 0, 0, 123_456_000, time.UTC)
 	cambio := time.Date(2026, 11, 14, 10, 0, 5, 700_000_000, time.UTC) // 10:00:05.7
 	tests := []struct {
 		name      string
-		iat       time.Time
+		pwdAt     string
 		changedAt *time.Time
 		want      bool
 	}{
-		{"nunca cambió", cambio.Add(-time.Hour), nil, false},
-		{"emitido antes del cambio", cambio.Add(-2 * time.Second), &cambio, true},
-		// El iat tiene precisión de segundos: un login justo después del
-		// cambio, en el mismo segundo, debe seguir valiendo.
-		{"mismo segundo", time.Date(2026, 11, 14, 10, 0, 5, 0, time.UTC), &cambio, false},
-		{"emitido después", cambio.Add(time.Minute), &cambio, false},
-		{"sin iat", time.Time{}, &cambio, true},
+		{"nunca cambió, token sin claim", "", nil, false},
+		// Login posterior al reset: leyó el password_changed_at nuevo.
+		{"firmado con la versión actual", VersionCredencial(&cambio), &cambio, false},
+		// Token sin claim (o de un Login que leyó el hash antes del primer
+		// reset) después de un cambio.
+		{"sin claim tras un cambio", "", &cambio, true},
+		// Login que validó el hash viejo y firmó después de un reset
+		// concurrente: su iat sería posterior, pero la versión es la vieja.
+		{"firmado con la versión anterior", VersionCredencial(&anterior), &cambio, true},
+		{"claim con usuario que nunca cambió", VersionCredencial(&cambio), nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tokenAnteriorAlCambio(tt.iat, tt.changedAt); got != tt.want {
+			if got := tokenAnteriorAlCambio(tt.pwdAt, tt.changedAt); got != tt.want {
 				t.Errorf("tokenAnteriorAlCambio() = %v, se esperaba %v", got, tt.want)
 			}
 		})

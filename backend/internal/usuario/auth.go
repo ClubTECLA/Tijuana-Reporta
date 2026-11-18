@@ -8,6 +8,7 @@ import (
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -140,15 +141,19 @@ func (s *Auth) GetUser(ctx context.Context, id uuid.UUID) (ConRol, error) {
 // "rol"; si cambias un nombre aquí, cámbialo allá también.
 type tokenClaims struct {
 	Rol string `json:"rol"`
+	// PwdAt es middleware.VersionCredencial(user.PasswordChangedAt), leído en
+	// la misma fila que el hash validado; Auth exige que siga igual al actual.
+	PwdAt string `json:"pwd_at,omitempty"`
 	jwt.RegisteredClaims
 }
 
-// issueToken genera un JWT firmado con el id del usuario, su rol y la fecha
-// de expiración.
+// issueToken genera un JWT firmado con el id del usuario, su rol, la versión
+// de su contraseña y la fecha de expiración.
 func (s *Auth) issueToken(user sqlc.User, rol string) (string, error) {
 	now := time.Now()
 	claims := tokenClaims{
-		Rol: rol,
+		Rol:   rol,
+		PwdAt: middleware.VersionCredencial(user.PasswordChangedAt),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),

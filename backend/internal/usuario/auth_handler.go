@@ -16,19 +16,19 @@ import (
 // así que una contraseña más larga debe rechazarse antes de llegar a bcrypt.
 const maxBcryptPasswordBytes = 72
 
-// RegistrarUsuario crea un usuario con password local y devuelve un token de acceso
-func (h *Handler) RegistrarUsuario(ctx context.Context, request httpapi.RegistrarUsuarioRequestObject) (httpapi.RegistrarUsuarioResponseObject, error) {
+// Register crea un usuario con password local y devuelve un token de acceso
+func (h *Handler) Register(ctx context.Context, request httpapi.RegisterRequestObject) (httpapi.RegisterResponseObject, error) {
 	username := request.Body.Username
 	password := request.Body.Password
 
 	if username == "" || password == "" {
-		return httpapi.RegistrarUsuario400JSONResponse{Message: "username y password son requeridos"}, nil
+		return httpapi.Register400JSONResponse{Message: "username y password son requeridos"}, nil
 	}
 	if utf8.RuneCountInString(username) > 100 {
-		return httpapi.RegistrarUsuario400JSONResponse{Message: "username debe tener entre 1 y 100 caracteres"}, nil
+		return httpapi.Register400JSONResponse{Message: "username debe tener entre 1 y 100 caracteres"}, nil
 	}
 	if len(password) < 8 || len(password) > maxBcryptPasswordBytes {
-		return httpapi.RegistrarUsuario400JSONResponse{Message: "password debe tener entre 8 y 72 bytes"}, nil
+		return httpapi.Register400JSONResponse{Message: "password debe tener entre 8 y 72 bytes"}, nil
 	}
 
 	user, token, ttl, err := h.auth.Register(ctx, string(request.Body.Email), username, password)
@@ -36,17 +36,17 @@ func (h *Handler) RegistrarUsuario(ctx context.Context, request httpapi.Registra
 		return nil, err
 	}
 
-	return httpapi.RegistrarUsuario201JSONResponse(toAuthResponse(user, token, ttl)), nil
+	return httpapi.Register201JSONResponse(toAuthResponse(user, token, ttl)), nil
 }
 
-// InicioDeSesion valida el email y password, y devuelve un token de acceso firmado.
-func (h *Handler) InicioDeSesion(ctx context.Context, request httpapi.InicioDeSesionRequestObject) (httpapi.InicioDeSesionResponseObject, error) {
+// Login valida el email y password, y devuelve un token de acceso firmado.
+func (h *Handler) Login(ctx context.Context, request httpapi.LoginRequestObject) (httpapi.LoginResponseObject, error) {
 	user, token, ttl, err := h.auth.Login(ctx, string(request.Body.Email), request.Body.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return httpapi.InicioDeSesion200JSONResponse(toAuthResponse(user, token, ttl)), nil
+	return httpapi.Login200JSONResponse(toAuthResponse(user, token, ttl)), nil
 }
 
 // Retorna el usuario autenticado según el token de la cabecera Authorization.
@@ -64,9 +64,9 @@ func (h *Handler) Me(ctx context.Context, request httpapi.MeRequestObject) (http
 	return httpapi.Me200JSONResponse(toUsuarioMeResponse(user)), nil
 }
 
-// CerrarSesion cierra la sesión. El token no se guarda en el servidor, así que solo responde 204.
-func (h *Handler) CerrarSesion(ctx context.Context, request httpapi.CerrarSesionRequestObject) (httpapi.CerrarSesionResponseObject, error) {
-	return httpapi.CerrarSesion204Response{}, nil
+// Logout cierra la sesión. El token no se guarda en el servidor, así que solo responde 204.
+func (h *Handler) Logout(ctx context.Context, request httpapi.LogoutRequestObject) (httpapi.LogoutResponseObject, error) {
+	return httpapi.Logout204Response{}, nil
 }
 
 // SolicitarRecuperacion pide un PIN de recuperación. Siempre responde el mismo 202.
