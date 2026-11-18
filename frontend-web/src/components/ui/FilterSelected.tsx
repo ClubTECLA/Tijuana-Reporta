@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { IoChevronDown } from "react-icons/io5";
 import SubSection from "@/components/layout/SubSection";
 import { cn } from "@/lib/utils";
@@ -29,10 +29,30 @@ export default function FilterSelected({
     const wrapperRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const selectedTrackRef = useRef<HTMLSpanElement>(null);
+    const selectedTextRef = useRef<HTMLSpanElement>(null);
+    const [marqueeDistance, setMarqueeDistance] = useState(0);
 
     const selectedId = value !== undefined ? value : internalId;
     const selectedOption =
         options.find((option) => option.id === selectedId) ?? options[0];
+
+    useLayoutEffect(() => {
+        const track = selectedTrackRef.current;
+        const text = selectedTextRef.current;
+        if (!track || !text) return;
+
+        const updateMarqueeDistance = () => {
+            const distance = Math.max(0, text.scrollWidth - track.clientWidth);
+            setMarqueeDistance((current) => current === distance ? current : distance);
+        };
+
+        updateMarqueeDistance();
+        const observer = new ResizeObserver(updateMarqueeDistance);
+        observer.observe(track);
+        observer.observe(text);
+        return () => observer.disconnect();
+    }, [label, selectedOption?.title]);
 
     // Cerrar al hacer click fuera
     useEffect(() => {
@@ -126,7 +146,7 @@ export default function FilterSelected({
                 aria-controls={dropdownOpen ? menuId : undefined}
                 onClick={() => setDropdownOpen((open) => !open)}
                 className={cn(
-                    "flex h-[50px] items-center gap-2 rounded-full border-2 border-line",
+                    "flex h-[50px] max-w-full items-center gap-2 rounded-full border-2 border-line",
                     "bg-surface px-5 font-ui transition-colors hover:border-line-strong",
                     "focus-visible:outline-2 focus-visible:outline-brand",
                     "disabled:cursor-not-allowed disabled:opacity-50",
@@ -135,12 +155,28 @@ export default function FilterSelected({
                 <SubSection
                     as="span"
                     debug={debug}
-                    className="text-caption font-medium tracking-[0.12em] text-ink-muted"
+                    className="shrink-0 whitespace-nowrap text-caption font-medium tracking-[0.12em] text-ink-muted"
                 >
                     {label}
                 </SubSection>
-                <SubSection as="span" debug={debug} className="text-caption font-bold text-ink">
-                    {selectedOption?.title ?? "Seleccionar"}
+                <SubSection
+                    as="span"
+                    debug={debug}
+                    ref={selectedTrackRef}
+                    className="w-10 shrink-0 overflow-hidden whitespace-nowrap"
+                >
+                    <span
+                        ref={selectedTextRef}
+                        className={cn(
+                            "block w-max shrink-0 whitespace-nowrap text-caption font-bold text-ink",
+                            marqueeDistance > 0 && "filter-selected-marquee",
+                        )}
+                        style={{
+                            "--filter-selected-distance": `-${marqueeDistance}px`,
+                        } as CSSProperties & { "--filter-selected-distance": string }}
+                    >
+                        {selectedOption?.title ?? "Seleccionar"}
+                    </span>
                 </SubSection>
                 <IoChevronDown
                     aria-hidden="true"
