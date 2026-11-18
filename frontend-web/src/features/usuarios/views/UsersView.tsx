@@ -40,7 +40,7 @@ type UserState = "Pendiente" | "En revisión" | "Verificado" | "Suspendido";
 type UserWithState = ApiListarUsuariosResponse[number] & { state?: UserState | null };
 
 const userStateOptions: OptionTileProps[] = [
-    { id: "all", title: "todos", isSelected: true },
+    { id: "all", title: "Todos", isSelected: true },
     { id: "Pendiente", title: "Pendiente" },
     { id: "En revisión", title: "En revisión" },
     { id: "Verificado", title: "Verificado" },
