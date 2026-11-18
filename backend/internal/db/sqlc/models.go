@@ -217,6 +217,16 @@ type PuntosOrigen struct {
 	Geom        interface{} `json:"geom"`
 }
 
+type RecoveryPin struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	PinHash   []byte     `json:"pin_hash"`
+	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	Attempts  int        `json:"attempts"`
+	UsedAt    *time.Time `json:"used_at"`
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"user_id"`
@@ -267,15 +277,16 @@ type TiposCentro struct {
 }
 
 type User struct {
-	ID           uuid.UUID     `json:"id"`
-	Email        *string       `json:"email"`
-	Phone        *string       `json:"phone"`
-	Username     string        `json:"username"`
-	RolID        int           `json:"rol_id"`
-	PasswordHash *string       `json:"password_hash"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
-	State        NullUserState `json:"state"`
+	ID                uuid.UUID     `json:"id"`
+	Email             *string       `json:"email"`
+	Phone             *string       `json:"phone"`
+	Username          string        `json:"username"`
+	RolID             int           `json:"rol_id"`
+	PasswordHash      *string       `json:"password_hash"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	PasswordChangedAt *time.Time    `json:"password_changed_at"`
+	State             NullUserState `json:"state"`
 }
 
 type UsersReport struct {

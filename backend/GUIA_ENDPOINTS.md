@@ -353,7 +353,7 @@ Reglas del handler:
 - El código generado rechaza con `400` los bodies con JSON inválido y los parámetros mal
   formados (p. ej. un `reporteId` que no es uuid) antes de llegar al handler. Pon en el
   handler las validaciones que el schema no expresa (longitudes en bytes, reglas
-  cruzadas) y devuelve el `400` del contrato (ver `Register` en
+  cruzadas) y devuelve el `400` del contrato (ver `RegistrarUsuario` en
   `internal/usuario/auth_handler.go`).
 - Convierte aquí los tipos de la funcionalidad al tipo del contrato con un helper `toX`
   (como `toReporte`).

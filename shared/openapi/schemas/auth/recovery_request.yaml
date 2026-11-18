@@ -1,0 +1,7 @@
+type: object
+description: Solicitud para recuperar la contraseña de un usuario.
+required: [email]
+properties:
+  email:
+    type: string
+    format: email

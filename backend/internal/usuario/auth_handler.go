@@ -69,6 +69,29 @@ func (h *Handler) Logout(ctx context.Context, request httpapi.LogoutRequestObjec
 	return httpapi.Logout204Response{}, nil
 }
 
+// SolicitarRecuperacion pide un PIN de recuperación. Siempre responde el mismo 202.
+func (h *Handler) SolicitarRecuperacion(ctx context.Context, request httpapi.SolicitarRecuperacionRequestObject) (httpapi.SolicitarRecuperacionResponseObject, error) {
+	if err := h.rec.Solicitar(ctx, string(request.Body.Email)); err != nil {
+		return nil, err
+	}
+
+	return httpapi.SolicitarRecuperacion202Response{}, nil
+}
+
+// VerificarRecuperacion valida el PIN y cambia la contraseña; responde 204 sin token.
+func (h *Handler) VerificarRecuperacion(ctx context.Context, request httpapi.VerificarRecuperacionRequestObject) (httpapi.VerificarRecuperacionResponseObject, error) {
+	// El contrato solo pone el mínimo; el máximo es el de bcrypt, igual que en el registro.
+	if len(request.Body.NewPassword) > maxBcryptPasswordBytes {
+		return httpapi.VerificarRecuperacion400JSONResponse{Message: "password debe tener entre 8 y 72 bytes"}, nil
+	}
+
+	if err := h.rec.Verificar(ctx, string(request.Body.Email), request.Body.Pin, request.Body.NewPassword); err != nil {
+		return nil, err
+	}
+
+	return httpapi.VerificarRecuperacion204Response{}, nil
+}
+
 // toAuthResponse convierte un sqlc.User y un token en la respuesta de login/register.
 func toAuthResponse(user sqlc.User, token string, ttl time.Duration) httpapi.AuthResponse {
 	return httpapi.AuthResponse{

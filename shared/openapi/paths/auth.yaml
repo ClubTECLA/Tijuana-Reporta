@@ -91,6 +91,62 @@ logout:
       '204':
         description: Sesión cerrada
 
+recovery:
+  post:
+    operationId: solicitarRecuperacion
+    security: []
+    summary: Solicitud de recuperación de contraseña
+    description: Envía un correo electrónico con un código de verificación para recuperar la contraseña del usuario.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth/recovery_request.yaml'
+    responses:
+      '202':
+        description: Correo de recuperación aceptado.
+      '400':
+        description: Solicitud inválida.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '429':
+        description: Demasiadas solicitudes.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+verifyRecovery:
+  post:
+    operationId: verificarRecuperacion
+    security: []
+    summary: Verificación de recuperación de contraseña
+    description: Verifica el código de recuperación y permite al usuario establecer una nueva contraseña.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth/verify_recovery_request.yaml'
+    responses:
+      '204':
+        description: Contraseña cambiada exitosamente. Sin contenido.
+      '400':
+        description: Solicitud inválida o código de verificación incorrecto.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '429':
+        description: Demasiadas solicitudes.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     RegisterRequest:
@@ -103,5 +159,9 @@ components:
       $ref: '../schemas/auth/usuario.yaml'
     UsuarioMeResponse:
       $ref: '../schemas/auth/usuario_me_response.yaml'
+    RecoveryRequest:
+      $ref: '../schemas/auth/recovery_request.yaml'
+    VerifyRecoveryRequest:
+      $ref: '../schemas/auth/verify_recovery_request.yaml'
     ErrorResponse:
       $ref: '../schemas/error_response.yaml'

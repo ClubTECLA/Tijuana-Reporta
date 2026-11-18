@@ -227,6 +227,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicitud de recuperación de contraseña
+         * @description Envía un correo electrónico con un código de verificación para recuperar la contraseña del usuario.
+         */
+        post: operations["solicitarRecuperacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/recovery/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verificación de recuperación de contraseña
+         * @description Verifica el código de recuperación y permite al usuario establecer una nueva contraseña.
+         */
+        post: operations["verificarRecuperacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/incidentes": {
         parameters: {
             query?: never;
@@ -410,6 +450,8 @@ export interface components {
         AuthResponse: components["schemas"]["auth_response"];
         Usuario: components["schemas"]["usuario"];
         UsuarioMeResponse: components["schemas"]["usuario_me_response"];
+        RecoveryRequest: components["schemas"]["recovery_request"];
+        VerifyRecoveryRequest: components["schemas"]["verify_recovery_request"];
         Incidente: components["schemas"]["incidente"];
         CrearIncidenteRequest: components["schemas"]["crear_incidente_request"];
         ActualizarIncidenteRequest: components["schemas"]["actualizar_incidente_request"];
@@ -554,11 +596,13 @@ export interface components {
         actualizar_tags_reporte_request: {
             tag_ids: number[];
         };
+        /** @description Contraseña local. Registro y recuperación comparten esta regla. */
+        password: string;
         register_request: {
             /** Format: email */
             email: string;
             username: string;
-            password: string;
+            password: components["schemas"]["password"];
         };
         usuario: {
             /** Format: uuid */
@@ -588,6 +632,19 @@ export interface components {
             email: string;
             username: string;
             rol_name: string;
+        };
+        /** @description Solicitud para recuperar la contraseña de un usuario. */
+        recovery_request: {
+            /** Format: email */
+            email: string;
+        };
+        /** @description Solicitud para verificar y recuperar la contraseña de un usuario. */
+        verify_recovery_request: {
+            /** Format: email */
+            email: string;
+            /** @description Código de verificación enviado al correo del usuario. */
+            pin: string;
+            new_password: components["schemas"]["password"];
         };
         /** @description Tag del catálogo de un tipo de incidente (tabla tags), sin conteos por reporte. */
         tag_catalogo: {
@@ -1421,6 +1478,86 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    solicitarRecuperacion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["recovery_request"];
+            };
+        };
+        responses: {
+            /** @description Correo de recuperación aceptado. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solicitud inválida. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Demasiadas solicitudes. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    verificarRecuperacion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["verify_recovery_request"];
+            };
+        };
+        responses: {
+            /** @description Contraseña cambiada exitosamente. Sin contenido. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solicitud inválida o código de verificación incorrecto. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description Demasiadas solicitudes. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
             };
         };
     };

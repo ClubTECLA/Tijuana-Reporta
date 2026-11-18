@@ -2,6 +2,7 @@ import { reportesApi } from '@/features/reportes/api';
 import { reportesKeys } from '@/features/reportes/hooks';
 import { distanciaMetros } from '@/lib/geo';
 import { fetchConRed } from '@/lib/http';
+import { esperarTurnoNominatim } from '@/lib/turnoNominatim';
 import { queryClient } from '@/lib/query-client';
 import type { Reporte } from '@/types/api';
 import type { LugarResultado, TonoLugar } from './types';
@@ -16,7 +17,7 @@ import type { LugaresApi } from './port';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 // Debe ser puro ASCII: OkHttp (Android) rechaza headers con tildes/eñes con
 // un IllegalArgumentException que revienta el fetch antes de salir a la red.
-const USER_AGENT = 'TijuanaReporta/1.0 (mobile app; contact: equipo-el-nino)';
+export const USER_AGENT = 'TijuanaReporta/1.0 (mobile app; contact: equipo-el-nino)';
 
 // Bounding box que cubre Tijuana y sus delegaciones (La Presa, Otay, Playas…)
 // para sesgar resultados sin descartar direcciones fuera de la ciudad.
@@ -92,6 +93,7 @@ export const lugaresNominatim: LugaresApi = {
       'accept-language': 'es',
     });
 
+    await esperarTurnoNominatim();
     const response = await fetchConRed(`${NOMINATIM_URL}?${params.toString()}`, {
       headers: { 'User-Agent': USER_AGENT },
     });

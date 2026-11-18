@@ -46,9 +46,9 @@ const RECORRIDO_COLAPSO = ALTURA_FOTO - ALTURA_FOTO_MIN;
 /** Extrae la primera letra del autor en mayúscula, o una cadena vacía si no hay nombre. */
 const inicial = (autor: string) => autor.trim().charAt(0).toUpperCase();
 
-/** Muestra autor, antigüedad y texto de un comentario, destacando a los rescatistas. */
+/** Muestra autor, antigüedad y texto de un comentario, destacando a los roles oficiales. */
 function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
-  const rescatista = comentario.es_rescatista === true;
+  const rescatista = comentario.es_oficial === true;
   return (
     <View style={styles.comentario}>
       <View style={[styles.avatar, rescatista && styles.avatarRescatista]}>
@@ -57,7 +57,6 @@ function Comentario({ comentario }: { comentario: ComentarioConAutor }) {
       <View style={styles.comentarioCuerpo}>
         <Text style={styles.comentarioMeta}>
           <Text style={[styles.comentarioAutor, rescatista && styles.rescatista]}>{comentario.autor}</Text>
-          {rescatista && <Text style={styles.rescatista}> · Rescatista</Text>}
           <Text style={styles.comentarioHace}> · {hace(comentario.created_at).toLowerCase()}</Text>
         </Text>
         <Text style={styles.comentarioTexto}>{comentario.comentario}</Text>

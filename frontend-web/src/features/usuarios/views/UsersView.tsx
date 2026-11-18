@@ -3,7 +3,7 @@ import ColSection from "@/components/layout/ColSection";
 import RowSection from "@/components/layout/RowSection";
 import FilterSelected from "@/components/ui/FilterSelected";
 import type { OptionTileProps } from "@/components/ui/OptionsMenu";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { listarRoles, listarUsuarios } from "../usuarios.services";
 import type { ApiListarRolesResponse, ApiListarUsuariosResponse } from "@/types/api-types";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
@@ -14,9 +14,10 @@ import { IoIosMore } from "react-icons/io";
 import Button from "@/components/ui/Button";
 import { BiPlus } from "react-icons/bi";
 import FooterUsersView from "../components/FooterUsersView";
-import {  SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
-import { FaUserEdit, FaUserMinus } from "react-icons/fa";
+import { roleLabel } from '@/lib/roles';
+import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import SubSection from "@/components/layout/SubSection";
+import { FaUserEdit, FaUserMinus } from "react-icons/fa";
 
 const roleColors: Record<string, ColorBadgeColor> = {
     admin: "blue",
@@ -49,11 +50,10 @@ const userStateOptions: OptionTileProps[] = [
 
 function getRoleOptions(roleNames: string[]): OptionTileProps[] {
     return [
-        { id: "all", title: "todos", isSelected: true },
-        ...Array.from(new Set(roleNames), role => ({
+        { id: "all", title: "Todos" },
+        ...Array.from(new Set(roleNames), (role) => ({
             id: role,
-            title: role,
-            isSelected: false,
+            title: roleLabel(role),
         })),
     ];
 }
@@ -77,17 +77,17 @@ export default function UserView() {
             user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const [ roles, setRoles ] = useState<ApiListarRolesResponse | null>(null);
-    const rolesOptions = roles
-        ? [
-            { id: "all", title: "todos", isSelected: true },
-            ...roles.map(role => ({
-                id: role.nombre,
-                title: role.nombre,
-                isSelected: false,
-            })),
-        ]
-        : getRoleOptions(users.map(user => user.rol_name));
+    const [roles, setRoles] = useState<ApiListarRolesResponse | null>(null);
+    const rolesOptions = useMemo<OptionTileProps[]>(
+        () =>
+            roles
+                ? getRoleOptions(roles.map((role) => role.nombre)) // catálogo completo
+                : getRoleOptions(users.map((user) => user.rol_name)), // respaldo si /roles falla o aún no llega
+        [roles, users],
+    );
+
+    const roleColor = (role: string): ColorBadgeColor =>
+        Object.hasOwn(roleColors, role) ? roleColors[role] : "gray";
     const { showMessage } = useSysMessage();
     const [ currentPage, setCurrentPage ] = useState(1);
     const pageSize = 8;
@@ -191,6 +191,7 @@ export default function UserView() {
                 <FilterSelected
                     label="Rol"
                     options={rolesOptions}
+                    value={roleFilter}
                     onChangeOption={handleRoleChange}
                 />
                 <FilterSelected
@@ -235,8 +236,8 @@ export default function UserView() {
                                 </TCell>
                                 <TCell>
                                     <ColorBadge
-                                        color={roleColors[user.rol_name] || "gray"}
-                                        text={user.rol_name}
+                                        color={roleColor(user.rol_name)}
+                                        text={roleLabel(user.rol_name)}
                                     />
                                 </TCell>
                                 <TCell>

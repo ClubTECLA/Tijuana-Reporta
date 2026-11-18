@@ -37,6 +37,7 @@ const rutaMultimedia = "/v1/reportes/:reporteId/multimedia"
 
 type routerConfig struct {
 	maxMultimediaBytes int64
+	rateLimitRafaga    int
 }
 
 // RouterOption ajusta NewRouter.
@@ -45,6 +46,13 @@ type RouterOption func(*routerConfig)
 // WithMaxMultimediaBytes cambia el tamaño máximo del body al subir un archivo.
 func WithMaxMultimediaBytes(n int64) RouterOption {
 	return func(c *routerConfig) { c.maxMultimediaBytes = n }
+}
+
+// WithRateLimitRafaga cambia la ráfaga del límite por IP de las rutas de
+// recuperación (por defecto middleware.RateLimitRafaga). Los tests de
+// integración la suben porque cada uno hace varias peticiones desde la misma IP.
+func WithRateLimitRafaga(n int) RouterOption {
+	return func(c *routerConfig) { c.rateLimitRafaga = n }
 }
 
 // Handlers son los handlers de cada funcionalidad que sirve el router.
@@ -91,8 +99,11 @@ var _ httpapi.StrictServerInterface = api{}
 //
 // New lo usa con los servicios de producción y los tests de integración con
 // los suyos, así que ambos levantan exactamente el mismo router.
-func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
-	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes}
+//
+// passwordChangedAt deja que middleware.Auth rechace los tokens emitidos
+// antes del último cambio de contraseña del usuario.
+func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.PasswordChangedAtFunc, opts ...RouterOption) *gin.Engine {
+	cfg := routerConfig{maxMultimediaBytes: defaultMaxMultimediaBytes, rateLimitRafaga: middleware.RateLimitRafaga}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -104,6 +115,17 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
 	r := gin.New()
+
+	// c.ClientIP() (que usa el límite por IP) solo cree en X-Real-IP, que nginx
+	// siempre sobrescribe, y solo si la conexión viene de una red privada (nginx
+	// en Docker). X-Forwarded-For llega tal cual lo manda el cliente, así que no
+	// se usa.
+	r.RemoteIPHeaders = []string{"X-Real-IP"}
+	if err := r.SetTrustedProxies([]string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8"}); err != nil {
+		slog.Error("error setting trusted proxies", "error", err)
+		os.Exit(1)
+	}
+
 	r.Use(
 		middleware.RequestLogger(),
 		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, rec any) {
@@ -170,8 +192,10 @@ func NewRouter(h Handlers, jwtSecret string, opts ...RouterOption) *gin.Engine {
 			httperr.ResponderConStatus(c, status, err.Error())
 		},
 		Middlewares: []httpapi.MiddlewareFunc{
-			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes)),
+			middleware.Auth(jwtSecret, string(httpapi.BearerAuthScopes), passwordChangedAt),
 			middleware.RequireRole(string(httpapi.BearerAuthScopes)),
+			// Solo en las rutas de recuperación, para frenar la fuerza bruta de PINs entre cuentas.
+			middleware.RateLimitPorIP(cfg.rateLimitRafaga, "/v1/auth/recovery", "/v1/auth/recovery/verify"),
 			// Antes del validador, que lee el body completo para validarlo.
 			middleware.BodyLimitFunc(func(c *gin.Context) int64 {
 				if c.FullPath() == rutaMultimedia {

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -127,5 +128,85 @@ func TestBodyLimitFunc_ElLimiteDependeDeLaRuta(t *testing.T) {
 				t.Errorf("POST %s con %d bytes status = %d, want %d", tt.path, len(tt.body), rec.Code, tt.want)
 			}
 		})
+	}
+}
+
+func TestTokenAnteriorAlCambio(t *testing.T) {
+	anterior := time.Date(2026, 11, 14, 9, 0, 0, 123_456_000, time.UTC)
+	cambio := time.Date(2026, 11, 14, 10, 0, 5, 700_000_000, time.UTC) // 10:00:05.7
+	tests := []struct {
+		name      string
+		pwdAt     string
+		changedAt *time.Time
+		want      bool
+	}{
+		{"nunca cambió, token sin claim", "", nil, false},
+		// Login posterior al reset: leyó el password_changed_at nuevo.
+		{"firmado con la versión actual", VersionCredencial(&cambio), &cambio, false},
+		// Token sin claim (o de un Login que leyó el hash antes del primer
+		// reset) después de un cambio.
+		{"sin claim tras un cambio", "", &cambio, true},
+		// Login que validó el hash viejo y firmó después de un reset
+		// concurrente: su iat sería posterior, pero la versión es la vieja.
+		{"firmado con la versión anterior", VersionCredencial(&anterior), &cambio, true},
+		{"claim con usuario que nunca cambió", VersionCredencial(&cambio), nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tokenAnteriorAlCambio(tt.pwdAt, tt.changedAt); got != tt.want {
+				t.Errorf("tokenAnteriorAlCambio() = %v, se esperaba %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRateLimitPorIP_LimitaSoloLasRutasDadasPorIP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	limite := RateLimitPorIP(RateLimitRafaga, "/limitada")
+	manejador := func(c *gin.Context) { c.Status(http.StatusOK) }
+	r.POST("/limitada", limite, manejador)
+	r.POST("/libre", limite, manejador)
+
+	post := func(path, ip string) int {
+		req := httptest.NewRequest(http.MethodPost, path, nil)
+		req.RemoteAddr = ip + ":1234"
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	for i := range RateLimitRafaga {
+		if got := post("/limitada", "10.0.0.1"); got != http.StatusOK {
+			t.Fatalf("petición %d dentro de la ráfaga: status = %d, want 200", i+1, got)
+		}
+	}
+	if got := post("/limitada", "10.0.0.1"); got != http.StatusTooManyRequests {
+		t.Errorf("petición después de la ráfaga: status = %d, want 429", got)
+	}
+	if got := post("/limitada", "10.0.0.2"); got != http.StatusOK {
+		t.Errorf("otra IP: status = %d, want 200", got)
+	}
+	if got := post("/libre", "10.0.0.1"); got != http.StatusOK {
+		t.Errorf("ruta sin límite: status = %d, want 200", got)
+	}
+}
+
+func TestClaveRateLimit(t *testing.T) {
+	tests := []struct {
+		ip   string
+		want string
+	}{
+		{"203.0.113.7", "203.0.113.7"},
+		{"::ffff:203.0.113.7", "::ffff:203.0.113.7"},
+		{"2001:db8:1:2:aaaa::1", "2001:db8:1:2::/64"},
+		{"2001:db8:1:2:bbbb::9", "2001:db8:1:2::/64"}, // mismo /64, mismo bucket
+		{"2001:db8:1:3::1", "2001:db8:1:3::/64"},
+	}
+	for _, tt := range tests {
+		if got := claveRateLimit(tt.ip); got != tt.want {
+			t.Errorf("claveRateLimit(%q) = %q, se esperaba %q", tt.ip, got, tt.want)
+		}
 	}
 }
