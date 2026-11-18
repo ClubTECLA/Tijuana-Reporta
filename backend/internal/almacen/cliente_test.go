@@ -3,12 +3,14 @@ package almacen
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -31,7 +33,7 @@ func responder(w http.ResponseWriter, status int, body string) {
 }
 
 func TestCliente_Subir(t *testing.T) {
-	var gotCarpeta, gotArchivo, gotMetodo, gotRuta string
+	var gotCarpeta, gotExtension, gotArchivo, gotMetodo, gotRuta string
 	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMetodo, gotRuta = r.Method, r.URL.Path
 
@@ -50,6 +52,8 @@ func TestCliente_Subir(t *testing.T) {
 			switch parte.FormName() {
 			case "carpeta":
 				gotCarpeta = string(contenido)
+			case "extension":
+				gotExtension = string(contenido)
 			case "file":
 				gotArchivo = string(contenido)
 			}
@@ -57,7 +61,7 @@ func TestCliente_Subir(t *testing.T) {
 		responder(w, http.StatusCreated, `{"path":"reportes/abc/0123.jpg"}`)
 	})
 
-	path, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("contenido de la foto"))
+	path, err := c.Subir(context.Background(), "reportes/abc", "mp4", strings.NewReader("contenido de la foto"))
 	if err != nil {
 		t.Fatalf("Subir() error = %v, want nil", err)
 	}
@@ -70,6 +74,9 @@ func TestCliente_Subir(t *testing.T) {
 	}
 	if gotCarpeta != "reportes/abc" {
 		t.Errorf("carpeta enviada = %q, want %q", gotCarpeta, "reportes/abc")
+	}
+	if gotExtension != "mp4" {
+		t.Errorf("extensión enviada = %q, want %q", gotExtension, "mp4")
 	}
 	if gotArchivo != "contenido de la foto" {
 		t.Errorf("archivo enviado = %q, want %q", gotArchivo, "contenido de la foto")
@@ -98,7 +105,7 @@ func TestCliente_Subir_TraduceLosErroresDeMultimedia(t *testing.T) {
 				responder(w, tt.status, tt.body)
 			})
 
-			_, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto"))
+			_, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto"))
 
 			if err == nil {
 				t.Fatal("Subir() error = nil, want error")
@@ -118,7 +125,7 @@ func TestCliente_Subir_RespuestaInvalida(t *testing.T) {
 				responder(w, http.StatusCreated, body)
 			})
 
-			if _, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto")); err == nil {
+			if _, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto")); err == nil {
 				t.Errorf("Subir() con respuesta %q error = nil, want error", body)
 			}
 		})
@@ -135,7 +142,7 @@ func TestCliente_Subir_MultimediaRespondeSinLeerElArchivo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := c.Subir(ctx, "reportes/abc", grande)
+	_, err := c.Subir(ctx, "reportes/abc", "jpg", grande)
 
 	if err == nil || !strings.Contains(err.Error(), "413") {
 		t.Errorf("Subir() error = %v, want el error 413 de multimedia", err)
@@ -156,7 +163,7 @@ func TestCliente_Subir_FallaLaLecturaDelArchivo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := c.Subir(ctx, "reportes/abc", lectorQueFalla{}); err == nil {
+	if _, err := c.Subir(ctx, "reportes/abc", "jpg", lectorQueFalla{}); err == nil {
 		t.Error("Subir() con un archivo que no se puede leer error = nil, want error")
 	}
 }
@@ -171,7 +178,7 @@ func TestCliente_Subir_ContextoCancelado(t *testing.T) {
 	defer cancel()
 
 	inicio := time.Now()
-	_, err := c.Subir(ctx, "reportes/abc", strings.NewReader("foto"))
+	_, err := c.Subir(ctx, "reportes/abc", "jpg", strings.NewReader("foto"))
 
 	if err == nil {
 		t.Fatal("Subir() error = nil, want error por contexto cancelado")
@@ -187,7 +194,7 @@ func TestCliente_Subir_MultimediaCaido(t *testing.T) {
 	srv.Close()
 	c := NewCliente(url, time.Second)
 
-	_, err := c.Subir(context.Background(), "reportes/abc", strings.NewReader("foto"))
+	_, err := c.Subir(context.Background(), "reportes/abc", "jpg", strings.NewReader("foto"))
 
 	if !errors.Is(err, ErrNoDisponible) {
 		t.Errorf("Subir() con multimedia caído error = %v, want %v", err, ErrNoDisponible)
@@ -244,5 +251,156 @@ func TestCliente_Borrar(t *testing.T) {
 				t.Errorf("petición = %s %s, want DELETE /upload/reportes/abc/0123.jpg", gotMetodo, gotRuta)
 			}
 		})
+	}
+}
+
+func TestCliente_Archivos(t *testing.T) {
+	desde := time.Date(2026, 11, 4, 3, 0, 0, 0, time.UTC)
+	hasta := desde.Add(24 * time.Hour)
+	var gotMetodo, gotRuta, gotDesde, gotHasta string
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMetodo, gotRuta = r.Method, r.URL.Path
+		gotDesde, gotHasta = r.URL.Query().Get("desde"), r.URL.Query().Get("hasta")
+		responder(w, http.StatusOK, `{"archivos":[{"path":"reportes/a/ok.jpg","bytes":10},{"path":"reportes/a/mal.jpg","bytes":20,"motivo":"no es JPEG"}]}`)
+	})
+
+	got, err := c.Archivos(context.Background(), desde, hasta)
+	if err != nil {
+		t.Fatalf("Archivos() error = %v, want nil", err)
+	}
+
+	if gotMetodo != http.MethodGet || gotRuta != "/archivos" {
+		t.Errorf("petición = %s %s, want GET /archivos", gotMetodo, gotRuta)
+	}
+	if gotDesde != "2026-11-04T03:00:00Z" || gotHasta != "2026-11-05T03:00:00Z" {
+		t.Errorf("ventana = %q a %q, want 2026-11-04T03:00:00Z a 2026-11-05T03:00:00Z", gotDesde, gotHasta)
+	}
+	if len(got) != 2 || got[0].Motivo != "" || got[1].Motivo != "no es JPEG" || got[1].Path != "reportes/a/mal.jpg" {
+		t.Errorf("Archivos() = %+v, want el válido sin motivo y el inválido con motivo", got)
+	}
+}
+
+func TestCliente_Faltan(t *testing.T) {
+	var gotMetodo, gotRuta string
+	var gotPaths []string
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMetodo, gotRuta = r.Method, r.URL.Path
+		var body struct {
+			Paths []string `json:"paths"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		gotPaths = body.Paths
+		responder(w, http.StatusOK, `{"faltan":["b.jpg"]}`)
+	})
+
+	got, err := c.Faltan(context.Background(), []string{"a.jpg", "b.jpg"})
+	if err != nil {
+		t.Fatalf("Faltan() error = %v, want nil", err)
+	}
+
+	if gotMetodo != http.MethodPost || gotRuta != "/existen" {
+		t.Errorf("petición = %s %s, want POST /existen", gotMetodo, gotRuta)
+	}
+	if len(gotPaths) != 2 {
+		t.Errorf("rutas enviadas = %v, want 2", gotPaths)
+	}
+	if len(got) != 1 || got[0] != "b.jpg" {
+		t.Errorf("Faltan() = %v, want [b.jpg]", got)
+	}
+}
+
+func TestCliente_Faltan_SinRutasNoLlamaAMultimedia(t *testing.T) {
+	llamadas := 0
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		llamadas++
+		responder(w, http.StatusOK, `{"faltan":[]}`)
+	})
+
+	got, err := c.Faltan(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Faltan() error = %v, want nil", err)
+	}
+	if llamadas != 0 || len(got) != 0 {
+		t.Errorf("llamadas = %d, faltan = %v, want 0 y vacío", llamadas, got)
+	}
+}
+
+func TestCliente_Faltan_PartePeticionesGrandes(t *testing.T) {
+	var tamanos []int
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Paths []string `json:"paths"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		tamanos = append(tamanos, len(body.Paths))
+		responder(w, http.StatusOK, `{"faltan":[]}`)
+	})
+	paths := make([]string, maxRutasPorConsulta+10)
+	for i := range paths {
+		paths[i] = strconv.Itoa(i) + ".jpg"
+	}
+
+	if _, err := c.Faltan(context.Background(), paths); err != nil {
+		t.Fatalf("Faltan() error = %v, want nil", err)
+	}
+	if len(tamanos) != 2 || tamanos[0] != maxRutasPorConsulta || tamanos[1] != 10 {
+		t.Errorf("tamaños de las peticiones = %v, want [%d 10]", tamanos, maxRutasPorConsulta)
+	}
+}
+
+func TestCliente_Cuarentena(t *testing.T) {
+	var gotMetodo, gotRuta string
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMetodo, gotRuta = r.Method, r.URL.EscapedPath()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	if err := c.Cuarentena(context.Background(), "reportes/abc/mi foto.jpg"); err != nil {
+		t.Fatalf("Cuarentena() error = %v, want nil", err)
+	}
+
+	if gotMetodo != http.MethodPost || gotRuta != "/cuarentena/reportes/abc/mi%20foto.jpg" {
+		t.Errorf("petición = %s %s, want POST /cuarentena/reportes/abc/mi%%20foto.jpg", gotMetodo, gotRuta)
+	}
+}
+
+func TestCliente_PurgarCuarentena(t *testing.T) {
+	antes := time.Date(2026, 10, 20, 3, 0, 0, 0, time.UTC)
+	var gotMetodo, gotRuta, gotAntes string
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMetodo, gotRuta, gotAntes = r.Method, r.URL.Path, r.URL.Query().Get("antes")
+		responder(w, http.StatusOK, `{"borrados":4}`)
+	})
+
+	got, err := c.PurgarCuarentena(context.Background(), antes)
+	if err != nil {
+		t.Fatalf("PurgarCuarentena() error = %v, want nil", err)
+	}
+
+	if gotMetodo != http.MethodDelete || gotRuta != "/cuarentena" || gotAntes != "2026-10-20T03:00:00Z" {
+		t.Errorf("petición = %s %s antes=%q, want DELETE /cuarentena antes=2026-10-20T03:00:00Z", gotMetodo, gotRuta, gotAntes)
+	}
+	if got != 4 {
+		t.Errorf("PurgarCuarentena() = %d, want 4", got)
+	}
+}
+
+func TestCliente_Revision_TraduceLosErrores(t *testing.T) {
+	c := servidorMultimedia(t, func(w http.ResponseWriter, r *http.Request) {
+		responder(w, http.StatusInternalServerError, `{"message":"disco roto"}`)
+	})
+	ctx := context.Background()
+
+	if _, err := c.Archivos(ctx, time.Now(), time.Now()); !errors.Is(err, ErrNoDisponible) {
+		t.Errorf("Archivos() error = %v, want ErrNoDisponible", err)
+	}
+	if _, err := c.Faltan(ctx, []string{"a.jpg"}); !errors.Is(err, ErrNoDisponible) {
+		t.Errorf("Faltan() error = %v, want ErrNoDisponible", err)
+	}
+	if err := c.Cuarentena(ctx, "a.jpg"); !errors.Is(err, ErrNoDisponible) {
+		t.Errorf("Cuarentena() error = %v, want ErrNoDisponible", err)
+	}
+	if _, err := c.PurgarCuarentena(ctx, time.Now()); !errors.Is(err, ErrNoDisponible) {
+		t.Errorf("PurgarCuarentena() error = %v, want ErrNoDisponible", err)
 	}
 }

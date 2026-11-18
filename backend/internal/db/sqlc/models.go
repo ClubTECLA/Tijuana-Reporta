@@ -184,6 +184,11 @@ type Log struct {
 	FinishedAt  time.Time `json:"finished_at"`
 }
 
+type MantenimientoEstado struct {
+	Nombre      string    `json:"nombre"`
+	UltimoCorte time.Time `json:"ultimo_corte"`
+}
+
 type Multimedia struct {
 	ID        int       `json:"id"`
 	ReporteID uuid.UUID `json:"reporte_id"`

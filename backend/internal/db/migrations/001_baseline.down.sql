@@ -11,6 +11,7 @@ DROP TABLE
     incidentes,
     location,
     logs,
+    mantenimiento_estado,
     notificaciones,
     notificaciones_counts,
     puntos_origen,

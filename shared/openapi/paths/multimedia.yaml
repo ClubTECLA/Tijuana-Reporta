@@ -2,10 +2,19 @@ subirMultimedia:
   post:
     operationId: subirMultimedia
     description: >
-      Adjunta una imagen JPEG ya reducida al reporte indicado. Solo el creador
-      del reporte puede subirla y se permite una imagen por usuario y reporte.
-      El backend valida el formato y las dimensiones, elimina los metadatos EXIF
-      y devuelve la ruta pública del archivo.
+      Sube la foto o el video del reporte. Solo lo puede subir su creador, y un
+      solo archivo (foto o video, no los dos) por usuario por reporte. La foto
+      debe ser un JPEG ya reducido por la app. El video debe ser un MP4 (H.264)
+      ya comprimido por la app, de unos 5 segundos (por defecto el servidor acepta
+      hasta 6; el despliegue puede cambiarlo con MAX_VIDEO_SEGUNDOS); los .mov de
+      QuickTime se rechazan. El backend detecta el tipo por el contenido, no por
+      el nombre ni el Content-Type, valida el tamaño y las dimensiones de la foto
+      o la duración del video, y le quita los metadatos: el EXIF de la foto y, en
+      el video, los del contenedor (las cajas udta, meta y uuid). No analiza los
+      datos del video, así que la información que el códec lleve dentro de sus
+      muestras (por ejemplo mensajes SEI de H.264) se conserva. El servicio
+      multimedia lo guarda; el path de la respuesta se sirve en /multimedia/{path}
+      y termina en .jpg o .mp4.
     tags: [Multimedia]
     parameters:
       - name: reporteId
@@ -22,13 +31,13 @@ subirMultimedia:
             $ref: '#/components/schemas/SubirMultimediaRequest'
     responses:
       '201':
-        description: Foto guardada
+        description: Foto o video guardado
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Multimedia'
       '400':
-        description: Archivo faltante, multipart inválido o formato de imagen no soportado
+        description: Archivo faltante, multipart inválido o formato no soportado (solo JPEG o MP4)
         content:
           application/json:
             schema:
@@ -52,13 +61,13 @@ subirMultimedia:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '413':
-        description: El archivo es demasiado grande
+        description: El archivo es demasiado grande para su tipo (la foto, 3 MiB; el video, 8 MiB por defecto)
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '422':
-        description: La imagen excede las dimensiones permitidas
+        description: La imagen excede las dimensiones permitidas, o el video dura más de lo permitido
         content:
           application/json:
             schema:

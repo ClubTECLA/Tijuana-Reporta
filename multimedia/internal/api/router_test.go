@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ClubTECLA/tijuana-reporta/multimedia/internal/almacenamiento"
 	"github.com/gin-gonic/gin"
@@ -17,11 +18,16 @@ import (
 const (
 	// limiteTest es el máximo de bytes por archivo en los tests.
 	limiteTest = 1024
+	// limiteFoto es el tamaño a partir del cual un archivo es demasiado grande al revisarlo.
+	limiteFoto = 512
+	// limiteVideo es lo mismo para un video.
+	limiteVideo = 768
 )
 
 // almacenFalso guarda en memoria lo que recibe.
 type almacenFalso struct {
 	carpeta   string
+	extension string
 	contenido []byte
 	llamadas  int
 	err       error
@@ -29,16 +35,28 @@ type almacenFalso struct {
 	borrada    string
 	borradas   int
 	errBorrado error
+
+	archivos      []almacenamiento.Archivo
+	desde, hasta  time.Time
+	limites       almacenamiento.Limites
+	faltan        []string
+	consultadas   []string
+	cuarentena    string
+	errCuarentena error
+	purgadoAntes  time.Time
+	purgados      int
+	errListar     error
 }
 
-func (a *almacenFalso) Guardar(carpeta string, contenido []byte) (string, error) {
+func (a *almacenFalso) Guardar(carpeta, extension string, contenido []byte) (string, error) {
 	a.llamadas++
 	if a.err != nil {
 		return "", a.err
 	}
 	a.carpeta = carpeta
+	a.extension = extension
 	a.contenido = contenido
-	return carpeta + "/falso.jpg", nil
+	return carpeta + "/falso." + extension, nil
 }
 
 func (a *almacenFalso) Borrar(ruta string) error {
@@ -47,12 +65,34 @@ func (a *almacenFalso) Borrar(ruta string) error {
 	return a.errBorrado
 }
 
+func (a *almacenFalso) Listar(desde, hasta time.Time, limites almacenamiento.Limites) ([]almacenamiento.Archivo, error) {
+	a.desde, a.hasta, a.limites = desde, hasta, limites
+	return a.archivos, a.errListar
+}
+
+func (a *almacenFalso) Faltan(rutas []string) ([]string, error) {
+	a.consultadas = rutas
+	return a.faltan, nil
+}
+
+func (a *almacenFalso) Cuarentena(ruta string) error {
+	a.cuarentena = ruta
+	return a.errCuarentena
+}
+
+func (a *almacenFalso) PurgarCuarentena(antes time.Time) (int, error) {
+	a.purgadoAntes = antes
+	return a.purgados, nil
+}
+
 // nuevoRouterTest arma el router con los límites de los tests y un almacén falso.
 func nuevoRouterTest() (*gin.Engine, *almacenFalso) {
 	gin.SetMode(gin.TestMode)
 	almacen := &almacenFalso{}
 	return NewRouter(Opciones{
 		MaxArchivoBytes: limiteTest,
+		MaxFotoBytes:    limiteFoto,
+		MaxVideoBytes:   limiteVideo,
 		Almacen:         almacen,
 	}), almacen
 }
@@ -92,7 +132,7 @@ func multipartConArchivo(t *testing.T, campo string, contenido []byte, texto cam
 // subirArchivo hace POST /upload con el archivo en el campo "file" y la carpeta "reportes/abc".
 func subirArchivo(t *testing.T, r *gin.Engine, contenido []byte) *httptest.ResponseRecorder {
 	t.Helper()
-	return subirConCampos(t, r, "file", contenido, campos{"carpeta": "reportes/abc"})
+	return subirConCampos(t, r, "file", contenido, campos{"carpeta": "reportes/abc", "extension": "jpg"})
 }
 
 func subirConCampos(t *testing.T, r *gin.Engine, campo string, contenido []byte, texto campos) *httptest.ResponseRecorder {
@@ -178,12 +218,12 @@ func TestSubir_Campos(t *testing.T) {
 		texto campos
 		want  int
 	}{
-		{name: "falta el campo file", campo: "otro", texto: campos{"carpeta": "reportes/abc"}, want: http.StatusBadRequest},
-		{name: "falta la carpeta", campo: "file", texto: campos{}, want: http.StatusBadRequest},
-		{name: "carpeta vacía", campo: "file", texto: campos{"carpeta": ""}, want: http.StatusBadRequest},
-		{name: "carpeta con ..", campo: "file", texto: campos{"carpeta": "../fuera"}, want: http.StatusBadRequest},
-		{name: "carpeta absoluta", campo: "file", texto: campos{"carpeta": "/etc"}, want: http.StatusBadRequest},
-		{name: "carpeta con espacios", campo: "file", texto: campos{"carpeta": "a b"}, want: http.StatusBadRequest},
+		{name: "falta el campo file", campo: "otro", texto: campos{"carpeta": "reportes/abc", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "falta la carpeta", campo: "file", texto: campos{"extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta vacía", campo: "file", texto: campos{"carpeta": "", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta con ..", campo: "file", texto: campos{"carpeta": "../fuera", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta absoluta", campo: "file", texto: campos{"carpeta": "/etc", "extension": "jpg"}, want: http.StatusBadRequest},
+		{name: "carpeta con espacios", campo: "file", texto: campos{"carpeta": "a b", "extension": "jpg"}, want: http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
@@ -200,6 +240,55 @@ func TestSubir_Campos(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSubir_Extension(t *testing.T) {
+	validas := []struct{ extension, path string }{
+		{"jpg", "reportes/abc/falso.jpg"},
+		{"mp4", "reportes/abc/falso.mp4"},
+	}
+	for _, tt := range validas {
+		t.Run(tt.extension, func(t *testing.T) {
+			r, almacen := nuevoRouterTest()
+
+			rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc", "extension": tt.extension})
+
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("POST /upload status = %d, want %d (body: %s)", rec.Code, http.StatusCreated, rec.Body.String())
+			}
+			if almacen.extension != tt.extension {
+				t.Errorf("extensión guardada = %q, want %q", almacen.extension, tt.extension)
+			}
+			if !strings.Contains(rec.Body.String(), tt.path) {
+				t.Errorf("body = %s, want el path %q", rec.Body.String(), tt.path)
+			}
+		})
+	}
+
+	for _, extension := range []string{"", "png", "mov", "JPG", ".mp4", "mp4 "} {
+		t.Run("rechaza "+extension, func(t *testing.T) {
+			r, almacen := nuevoRouterTest()
+
+			rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc", "extension": extension})
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("POST /upload status = %d, want %d (body: %s)", rec.Code, http.StatusBadRequest, rec.Body.String())
+			}
+			if almacen.llamadas != 0 {
+				t.Errorf("Guardar se llamó %d veces, want 0", almacen.llamadas)
+			}
+		})
+	}
+
+	t.Run("falta el campo", func(t *testing.T) {
+		r, almacen := nuevoRouterTest()
+
+		rec := subirConCampos(t, r, "file", contenidoDe(10), campos{"carpeta": "reportes/abc"})
+
+		if rec.Code != http.StatusBadRequest || almacen.llamadas != 0 {
+			t.Errorf("POST /upload status = %d con %d llamadas, want %d y 0", rec.Code, almacen.llamadas, http.StatusBadRequest)
+		}
+	})
 }
 
 func TestSubir_BodyNoMultipart(t *testing.T) {
@@ -291,5 +380,193 @@ func TestBorrar_SinRuta(t *testing.T) {
 	}
 	if almacen.borradas != 0 {
 		t.Errorf("Borrar se llamó %d veces, want 0", almacen.borradas)
+	}
+}
+
+func TestListar_PasaLaVentanaYDevuelveLosArchivos(t *testing.T) {
+	r, almacen := nuevoRouterTest()
+	almacen.archivos = []almacenamiento.Archivo{
+		{Ruta: "reportes/a/ok.jpg", Bytes: 10},
+		{Ruta: "reportes/a/mal.jpg", Bytes: 20, Motivo: almacenamiento.MotivoNoEsJPEG},
+	}
+	desde := time.Date(2026, 11, 4, 3, 0, 0, 0, time.UTC)
+	hasta := desde.Add(24 * time.Hour)
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet,
+		"/archivos?desde="+desde.Format(time.RFC3339)+"&hasta="+hasta.Format(time.RFC3339), nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /archivos status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got struct {
+		Archivos []struct {
+			Path   string `json:"path"`
+			Bytes  int64  `json:"bytes"`
+			Motivo string `json:"motivo"`
+		} `json:"archivos"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("Unmarshal(%s) = %v, want nil", rec.Body.String(), err)
+	}
+	if len(got.Archivos) != 2 || got.Archivos[0].Motivo != "" || got.Archivos[1].Motivo != almacenamiento.MotivoNoEsJPEG {
+		t.Errorf("archivos = %+v, want el válido sin motivo y el inválido con motivo", got.Archivos)
+	}
+	if !almacen.desde.Equal(desde) || !almacen.hasta.Equal(hasta) {
+		t.Errorf("ventana = %v a %v, want %v a %v", almacen.desde, almacen.hasta, desde, hasta)
+	}
+	if want := (almacenamiento.Limites{FotoBytes: limiteFoto, VideoBytes: limiteVideo}); almacen.limites != want {
+		t.Errorf("limites = %+v, want %+v", almacen.limites, want)
+	}
+}
+
+func TestListar_SinArchivosDevuelveListaVacia(t *testing.T) {
+	r, _ := nuevoRouterTest()
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet,
+		"/archivos?desde=2026-11-04T03:00:00Z&hasta=2026-11-05T03:00:00Z", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /archivos status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), `"archivos":[]`) {
+		t.Errorf("body = %s, want una lista vacía y no null", rec.Body.String())
+	}
+}
+
+func TestListar_FechasInvalidas(t *testing.T) {
+	for _, query := range []string{
+		"",
+		"?desde=2026-11-04T03:00:00Z",
+		"?hasta=2026-11-04T03:00:00Z",
+		"?desde=ayer&hasta=hoy",
+	} {
+		t.Run(query, func(t *testing.T) {
+			r, _ := nuevoRouterTest()
+
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/archivos"+query, nil))
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("GET /archivos%s status = %d, want %d", query, rec.Code, http.StatusBadRequest)
+			}
+		})
+	}
+}
+
+func TestListar_ErrorDelAlmacen(t *testing.T) {
+	r, almacen := nuevoRouterTest()
+	almacen.errListar = errors.New("disco roto")
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet,
+		"/archivos?desde=2026-11-04T03:00:00Z&hasta=2026-11-05T03:00:00Z", nil))
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("GET /archivos status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestExisten_DevuelveLasQueFaltan(t *testing.T) {
+	r, almacen := nuevoRouterTest()
+	almacen.faltan = []string{"reportes/a/falta.jpg"}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/existen",
+		strings.NewReader(`{"paths":["reportes/a/esta.jpg","reportes/a/falta.jpg"]}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /existen status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if want := `{"faltan":["reportes/a/falta.jpg"]}`; rec.Body.String() != want {
+		t.Errorf("body = %s, want %s", rec.Body.String(), want)
+	}
+	if len(almacen.consultadas) != 2 {
+		t.Errorf("rutas consultadas = %v, want 2", almacen.consultadas)
+	}
+}
+
+func TestExisten_CuerpoInvalido(t *testing.T) {
+	r, _ := nuevoRouterTest()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/existen", strings.NewReader(`no es json`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("POST /existen status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestCuarentena_MueveElArchivo(t *testing.T) {
+	r, almacen := nuevoRouterTest()
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/cuarentena/reportes/a/mal.jpg", nil))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("POST /cuarentena status = %d, want %d (body: %s)", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+	if almacen.cuarentena != "reportes/a/mal.jpg" {
+		t.Errorf("ruta en cuarentena = %q, want %q", almacen.cuarentena, "reportes/a/mal.jpg")
+	}
+}
+
+func TestCuarentena_Errores(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{name: "ruta no permitida", err: almacenamiento.ErrRutaNoPermitida, want: http.StatusBadRequest},
+		{name: "fallo del almacén", err: errors.New("disco roto"), want: http.StatusInternalServerError},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, almacen := nuevoRouterTest()
+			almacen.errCuarentena = tt.err
+
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/cuarentena/reportes/a/mal.jpg", nil))
+
+			if rec.Code != tt.want {
+				t.Errorf("POST /cuarentena status = %d, want %d", rec.Code, tt.want)
+			}
+		})
+	}
+}
+
+func TestPurgarCuarentena(t *testing.T) {
+	r, almacen := nuevoRouterTest()
+	almacen.purgados = 3
+	antes := time.Date(2026, 10, 20, 3, 0, 0, 0, time.UTC)
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/cuarentena?antes="+antes.Format(time.RFC3339), nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("DELETE /cuarentena status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if want := `{"borrados":3}`; rec.Body.String() != want {
+		t.Errorf("body = %s, want %s", rec.Body.String(), want)
+	}
+	if !almacen.purgadoAntes.Equal(antes) {
+		t.Errorf("antes = %v, want %v", almacen.purgadoAntes, antes)
+	}
+}
+
+func TestPurgarCuarentena_SinFecha(t *testing.T) {
+	r, _ := nuevoRouterTest()
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/cuarentena", nil))
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("DELETE /cuarentena status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 }

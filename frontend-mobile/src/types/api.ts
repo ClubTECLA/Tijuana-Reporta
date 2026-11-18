@@ -34,11 +34,11 @@ export interface Comentario {
   created_at: string;
 }
 
-/** Lo que la tarjeta del reporte necesita pintar: el contrato solo trae `user_id`, no el nombre
- * del autor ni si es rescatista (Figma 22). Hasta que el backend lo incluya, lo arma el mock. */
+/** Lo que la tarjeta del reporte necesita pintar (Figma 22). `autor` es "Anónimo" para un ciudadano y el
+ * nombre del rol para un rol oficial; nunca el nombre de usuario. */
 export interface ComentarioConAutor extends Comentario {
   autor: string;
-  es_rescatista?: boolean;
+  es_oficial?: boolean;
 }
 
 export interface CrearReporteRequest {

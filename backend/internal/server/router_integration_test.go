@@ -82,6 +82,9 @@ func newTestClient(t *testing.T) *testClient {
 		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(testPool(t)), almacen, multimedia.OpcionesFoto{
 			MaxBytes:   3 << 20,
 			MaxPixeles: 16_000_000,
+		}, multimedia.OpcionesVideo{
+			MaxBytes:    8 << 20,
+			MaxDuracion: 6 * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
 	}, testJWTSecret, usuarios.GetPasswordChangedAtByUserID)

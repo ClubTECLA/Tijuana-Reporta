@@ -3,6 +3,7 @@ package multimedia
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"image"
 	"image/jpeg"
@@ -45,22 +46,26 @@ func (f *fakeMultimediaStore) CreateMultimedia(_ context.Context, arg sqlc.Creat
 
 // fakeMultimedia implementa Cliente: guarda lo que recibe y lo que se borra.
 type fakeMultimedia struct {
-	subidas  []string // carpetas
-	leido    string   // contenido que recibió
-	borrados []string
+	subidas        []string // carpetas
+	extensiones    []string // extensión pedida en cada subida
+	leido          string   // contenido que recibió
+	contenidoBytes []byte
+	borrados       []string
 
 	subirErr  error
 	borrarErr error
 }
 
-func (f *fakeMultimedia) Subir(_ context.Context, carpeta string, archivo io.Reader) (string, error) {
+func (f *fakeMultimedia) Subir(_ context.Context, carpeta, extension string, archivo io.Reader) (string, error) {
 	if f.subirErr != nil {
 		return "", f.subirErr
 	}
 	contenido, _ := io.ReadAll(archivo)
 	f.leido = string(contenido)
 	f.subidas = append(f.subidas, carpeta)
-	return carpeta + "/abc.jpg", nil
+	f.extensiones = append(f.extensiones, extension)
+	f.contenidoBytes = contenido
+	return carpeta + "/abc." + extension, nil
 }
 
 func (f *fakeMultimedia) Borrar(_ context.Context, path string) error {
@@ -68,8 +73,11 @@ func (f *fakeMultimedia) Borrar(_ context.Context, path string) error {
 	return f.borrarErr
 }
 
-// opcionesFotoTest son los límites de los tests: 100 KiB y 10.000 píxeles.
+// opcionesFotoTest son los límites de foto de los tests: 100 KiB y 10.000 píxeles.
 var opcionesFotoTest = OpcionesFoto{MaxBytes: 100 << 10, MaxPixeles: 10_000}
+
+// opcionesVideoTest son los límites de video de los tests: 400 KiB y 6 segundos.
+var opcionesVideoTest = OpcionesVideo{MaxBytes: 400 << 10, MaxDuracion: 6 * time.Second}
 
 // fotoJPEG devuelve un JPEG liso de ancho x alto píxeles.
 func fotoJPEG(t *testing.T, ancho, alto int) []byte {
@@ -98,7 +106,7 @@ func nuevoMultimediaService(reporteID, userID uuid.UUID) (*Service, *fakeMultime
 		{UserID: userID, ReporteID: reporteID}: true,
 	}}
 	multimedia := &fakeMultimedia{}
-	return NewService(store, multimedia, opcionesFotoTest), store, multimedia
+	return NewService(store, multimedia, opcionesFotoTest, opcionesVideoTest), store, multimedia
 }
 
 func TestMultimediaService_Subir(t *testing.T) {
@@ -317,12 +325,115 @@ type fakeMultimediaContexto struct {
 	errContexto error
 }
 
-func (f *fakeMultimediaContexto) Subir(_ context.Context, carpeta string, _ io.Reader) (string, error) {
-	return carpeta + "/abc.jpg", nil
+func (f *fakeMultimediaContexto) Subir(_ context.Context, carpeta, extension string, _ io.Reader) (string, error) {
+	return carpeta + "/abc." + extension, nil
 }
 
 func (f *fakeMultimediaContexto) Borrar(ctx context.Context, _ string) error {
 	f.borrado = true
 	f.errContexto = ctx.Err()
 	return nil
+}
+
+// mp4De arma un MP4 mínimo válido de segundos segundos, con la ubicación en udta.
+func mp4De(segundos uint32) []byte {
+	caja := func(tipo string, partes ...[]byte) []byte {
+		cuerpo := bytes.Join(partes, nil)
+		b := binary.BigEndian.AppendUint32(nil, uint32(8+len(cuerpo)))
+		return append(append(b, tipo...), cuerpo...)
+	}
+	u32 := func(n uint32) []byte { return binary.BigEndian.AppendUint32(nil, n) }
+
+	mvhd := caja("mvhd", []byte{0, 0, 0, 0}, u32(0), u32(0), u32(1000), u32(segundos*1000), make([]byte, 80))
+	moov := caja("moov", mvhd, caja("trak", caja("tkhd", make([]byte, 84)), caja("mdia",
+		caja("hdlr", []byte{0, 0, 0, 0}, u32(0), []byte("vide"), make([]byte, 13)),
+		caja("mdhd", []byte{0, 0, 0, 0}, u32(0), u32(0), u32(1000), u32(segundos*1000), make([]byte, 4)))), caja("udta", caja("\xa9xyz", []byte(ubicacionDePrueba))))
+	return bytes.Join([][]byte{caja("ftyp", []byte("mp42"), u32(0), []byte("isom")), moov, caja("mdat", make([]byte, 64))}, nil)
+}
+
+const ubicacionDePrueba = "+32.5149-117.0382/"
+
+func TestMultimediaService_Subir_Video(t *testing.T) {
+	reporteID, userID := uuid.New(), uuid.New()
+	svc, store, multimedia := nuevoMultimediaService(reporteID, userID)
+
+	m, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(mp4De(5)))
+	if err != nil {
+		t.Fatalf("Subir() error = %v, want nil", err)
+	}
+
+	wantPath := "reportes/" + reporteID.String() + "/abc.mp4"
+	if m.Path != wantPath {
+		t.Errorf("Subir() path = %q, want %q", m.Path, wantPath)
+	}
+	if len(multimedia.extensiones) != 1 || multimedia.extensiones[0] != "mp4" {
+		t.Errorf("extensiones pedidas = %v, want [mp4]", multimedia.extensiones)
+	}
+	if strings.Contains(multimedia.leido, ubicacionDePrueba) {
+		t.Error("multimedia recibió el video con la ubicación")
+	}
+	if len(store.creados) != 1 || store.creados[0].Path != wantPath {
+		t.Errorf("filas registradas = %+v, want una con path %q", store.creados, wantPath)
+	}
+}
+
+func TestMultimediaService_Subir_FotoPideExtensionJPG(t *testing.T) {
+	reporteID, userID := uuid.New(), uuid.New()
+	svc, _, multimedia := nuevoMultimediaService(reporteID, userID)
+
+	if _, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(fotoJPEG(t, 10, 10))); err != nil {
+		t.Fatalf("Subir() error = %v, want nil", err)
+	}
+	if len(multimedia.extensiones) != 1 || multimedia.extensiones[0] != "jpg" {
+		t.Errorf("extensiones pedidas = %v, want [jpg]", multimedia.extensiones)
+	}
+}
+
+// Un video inválido se rechaza sin llegar a multimedia ni a la base.
+func TestMultimediaService_Subir_VideoRechazado(t *testing.T) {
+	mov := mp4De(5)
+	copy(mov[8:12], "qt  ")
+	grande := append(mp4De(5), make([]byte, opcionesVideoTest.MaxBytes)...)
+
+	tests := []struct {
+		name    string
+		archivo []byte
+		want    error
+	}{
+		{name: "dura más del máximo", archivo: mp4De(7), want: ErrVideoMuyLargo},
+		{name: "pesa más del máximo", archivo: grande, want: ErrArchivoMuyGrande},
+		{name: "QuickTime (.mov)", archivo: mov, want: ErrArchivoInvalido},
+		{name: "MP4 cortado", archivo: mp4De(5)[:40], want: ErrArchivoInvalido},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reporteID, userID := uuid.New(), uuid.New()
+			svc, store, multimedia := nuevoMultimediaService(reporteID, userID)
+
+			_, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(tt.archivo))
+
+			if !errors.Is(err, tt.want) {
+				t.Errorf("Subir() error = %v, want %v", err, tt.want)
+			}
+			if len(multimedia.subidas) != 0 || len(store.creados) != 0 {
+				t.Errorf("se subió %v y se registró %v, want nada", multimedia.subidas, store.creados)
+			}
+		})
+	}
+}
+
+// El límite de la foto no se relaja por el del video, que es más grande.
+func TestMultimediaService_Subir_FotoNoUsaElLimiteDelVideo(t *testing.T) {
+	reporteID, userID := uuid.New(), uuid.New()
+	svc, _, _ := nuevoMultimediaService(reporteID, userID)
+	foto := append([]byte{0xFF, 0xD8, 0xFF}, make([]byte, opcionesFotoTest.MaxBytes)...)
+	if int64(len(foto)) >= opcionesVideoTest.MaxBytes {
+		t.Fatal("el test necesita que el límite del video sea mayor que el de la foto")
+	}
+
+	_, err := svc.Subir(context.Background(), reporteID, userID, bytes.NewReader(foto))
+
+	if !errors.Is(err, ErrArchivoMuyGrande) {
+		t.Errorf("Subir() error = %v, want %v", err, ErrArchivoMuyGrande)
+	}
 }

@@ -49,6 +49,9 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 		Multimedia: multimedia.NewHandler(multimedia.NewService(sqlc.New(pool), archivos, multimedia.OpcionesFoto{
 			MaxBytes:   cfg.MaxFotoBytes,
 			MaxPixeles: cfg.MaxFotoPixeles,
+		}, multimedia.OpcionesVideo{
+			MaxBytes:    cfg.MaxVideoBytes,
+			MaxDuracion: time.Duration(cfg.MaxVideoSegundos) * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(pool))),
 	}, cfg.JWTSecret, usuarios.GetPasswordChangedAtByUserID, WithMaxMultimediaBytes(cfg.MaxMultimediaBytes)), nil
