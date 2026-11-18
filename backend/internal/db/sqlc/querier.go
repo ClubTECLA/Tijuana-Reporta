@@ -102,9 +102,9 @@ type Querier interface {
 	LockTagsUsuario(ctx context.Context, arg LockTagsUsuarioParams) error
 	// Serializa por cuenta la emisión de PIN: la segunda petición espera aquí hasta que la primera termine.
 	LockUserByID(ctx context.Context, id uuid.UUID) error
+	SetCorteMantenimiento(ctx context.Context, arg SetCorteMantenimientoParams) error
 	SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error
 	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error)
-	SetCorteMantenimiento(ctx context.Context, arg SetCorteMantenimientoParams) error
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }
