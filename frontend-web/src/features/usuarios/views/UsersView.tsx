@@ -25,6 +25,16 @@ const roleColors: Record<string, ColorBadgeColor> = {
     ciudadano: "gray",
 };
 
+function getRoleOptions(roleNames: string[]): OptionTileProps[] {
+    return [
+        { id: "all", title: "Todos" },
+        ...Array.from(new Set(roleNames), (role) => ({
+            id: role,
+            title: roleLabel(role),
+        })),
+    ];
+}
+
 export default function UserView() {
     const [ users, setUsers ] = useState<ApiListarUsuariosResponse>([]);
     const [ searchQuery, setSearchQuery ] = useState("");
@@ -36,13 +46,13 @@ export default function UserView() {
             user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const [ roles, setRoles ] = useState<ApiListarRolesResponse>([]);
+    const [roles, setRoles] = useState<ApiListarRolesResponse | null>(null);
     const rolesOptions = useMemo<OptionTileProps[]>(
-        () => [
-            { id: "all", title: "Todos" },
-            ...roles.map((role) => ({ id: role.nombre, title: roleLabel(role.nombre) })),
-        ],
-        [roles],
+        () =>
+            roles
+                ? getRoleOptions(roles.map((role) => role.nombre)) // catálogo completo
+                : getRoleOptions(users.map((user) => user.rol_name)), // respaldo si /roles falla o aún no llega
+        [roles, users],
     );
 
     const roleColor = (role: string): ColorBadgeColor =>
