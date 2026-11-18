@@ -5,7 +5,6 @@ import {
     isValidElement,
     type ComponentPropsWithRef,
     type ReactNode,
-    type RefAttributes,
 } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -33,8 +32,7 @@ type SpanSubSectionProps = SharedProps
     & { as: "span" };
 
 type LinkSubSectionProps = SharedProps
-    & Omit<LinkProps, keyof SharedProps | "key">
-    & RefAttributes<HTMLAnchorElement>
+    & Omit<ComponentPropsWithRef<typeof Link>, keyof SharedProps | "key">
     & { as: "link"; to: LinkProps["to"] };
 
 export type SubSectionProps =
