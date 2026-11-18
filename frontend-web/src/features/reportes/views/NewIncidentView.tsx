@@ -170,7 +170,8 @@ function NewIncidentForm() {
         // Ancho fijo de 25vw (el mínimo del panel común) menos su relleno de 16 px. Fijo y no mínimo porque el panel
         // común es w-fit: con un mínimo, una fila larga de etiquetas lo ensancharía antes de que flex-wrap las baje.
         // El scroll se extiende sobre el relleno para quedar pegado al borde, y el contenido llena el alto del panel:
-        // los botones quedan abajo del todo, como en el Figma.
+        // los botones quedan abajo del todo, como en el Figma. Por eso NewIncidentView pasa overflow-visible a ColSection:
+        // con scroll propio, lo que el scroll ocupa del relleno le daría una barra horizontal.
         <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">¿QUÉ ESTÁ PASANDO?</span>
@@ -288,8 +289,9 @@ function NewIncidentForm() {
                         />
                     </div>
                 </div>
-                : <div className="flex gap-2.5 border-t border-line pt-3.5">
-                    <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1" />
+                // px-4: así caben en una fila en el panel de 400 px; flex-wrap: en teléfono no caben y cada uno pasa a la suya.
+                : <div className="flex flex-wrap gap-2.5 border-t border-line pt-3.5">
+                    <Button variant="subtle" size="lg" title="Guardar borrador" disabled tooltip="Próximamente" className="flex-1 px-4" />
                     <Button
                         variant="report"
                         size="lg"
@@ -297,7 +299,7 @@ function NewIncidentForm() {
                         title={publishing ? "Publicando…" : "Publicar incidente"}
                         onClick={handlePublish}
                         disabled={publishing || preparingPhoto}
-                        className="flex-1"
+                        className="flex-1 px-4"
                     />
                 </div>
             }
@@ -327,7 +329,7 @@ export default function NewIncidentView() {
             title="Nuevo incidente"
             subtitle="Se publica en la app en cuanto lo guardes"
             arrangementSubsections="toUp"
-            className="min-h-0"
+            className="min-h-0 overflow-visible"
         >
             <NewIncidentForm />
         </ColSection>
