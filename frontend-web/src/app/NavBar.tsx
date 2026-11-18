@@ -6,6 +6,7 @@ import { Link } from "react-router-dom"
 import { LuMap, LuSun, LuTent, LuTrendingUp, LuTriangleAlert, LuUsers } from "react-icons/lu"
 import type { NavItemsType } from "@/types/utils-types"
 import { useCommonPanel } from "@/panels/useCommonPanel"
+import { cn } from "@/lib/utils"
 
 
 const navItemStyle = (isActive: boolean) => `
@@ -23,14 +24,17 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
     return (
         <>
             <span className="text-lg">{icon}</span>
-            <span>{title}</span>
+            {/* Solo icono cuando el texto no cabe (por debajo de 768 px, en su propia fila; de 1024 a 1366 px, junto
+                al buscador y el perfil), con el nombre para lectores de pantalla y en el title del botón. */}
+            <span className="max-md:sr-only lg:max-[1366px]:sr-only">{title}</span>
             {!!cantNoti &&
                 <span className="rounded-full bg-report px-1.75 py-px text-2xs font-bold text-white">{cantNoti}</span>
             }
         </>
     )
 }
-export default function NavBar() {
+/** className: p. ej. la fila propia de teléfono y tablet, que la extiende a todo el ancho. */
+export default function NavBar({ className }: { className?: string }) {
     const { currentPanelView, openPanel } = useCommonPanel();
 
     const router = useRouter();
@@ -71,13 +75,14 @@ export default function NavBar() {
         ]
 
     return(
-        <section 
-            className="
-                mx-auto flex h-14 w-fit flex-row items-center gap-0.5 p-1
+        <section
+            className={cn(`
+                mx-auto flex h-14 w-fit max-w-full flex-row items-center gap-0.5 p-1
+                overflow-x-auto scrollbar-none
                 rounded-full border border-glass-line bg-white
                 font-['Plus_Jakarta_Sans',sans-serif]
                 shadow-soft
-            "
+            `, className)}
         >
                 {navItems.map((item, idx) => {
                 const panelView = item.panelView
@@ -93,6 +98,7 @@ export default function NavBar() {
                         <Link
                             className={navItemStyle(isActive)}
                             to={item.destinationPath}
+                            title={item.title}
                             aria-current={isActive ? 'page' : undefined}
                         >
                             <NavItemContent {...item} />
@@ -103,6 +109,7 @@ export default function NavBar() {
                             type="button"
                             className={navItemStyle(isActive)}
                             onClick={onClick}
+                            title={item.title}
                             aria-pressed={isActive}
                         >
                             <NavItemContent {...item} />

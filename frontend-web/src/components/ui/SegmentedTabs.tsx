@@ -22,14 +22,14 @@ export function TabItem({
             aria-selected={isActive}
             onClick={onClick}
             className={`
-                flex h-10 min-w-max shrink-0 flex-row items-center justify-center
-                gap-1.5 whitespace-nowrap rounded-full px-4
-                text-body transition-colors duration-200
+                flex h-10 min-w-max flex-auto flex-row items-center justify-center
+                gap-1.5 whitespace-nowrap rounded-full px-2 sm:px-4
+                text-body transition-colors duration-200 max-sm:text-sm
                 ${isActive
                     ? "bg-surface font-semibold text-ink drop-shadow-card"
                     : "bg-transparent font-medium text-ink-muted hover:text-icon"}
                 ${debug ? "outline-2 outline-blue-400" : ""}
-                sm:min-w-0 sm:flex-auto
+                sm:min-w-0
             `}
         >
             {tabIcon}
@@ -75,7 +75,7 @@ export function SegmentedTabs({
             role="tablist"
             className={`
                 flex max-w-full gap-1 rounded-full bg-canvas p-1
-                ${format === "row" ? "h-fit w-full flex-row overflow-x-auto" : "h-fit w-fit flex-col"}
+                ${format === "row" ? "h-fit w-full flex-row overflow-x-auto scrollbar-none" : "h-fit w-fit flex-col"}
                 ${className ?? ""}
                 ${debug ? "outline-2 outline-blue-400" : ""}
             `}

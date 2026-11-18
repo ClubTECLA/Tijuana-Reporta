@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { canPublishIncidents } from "@/features/sesion/users";
 
 // Paneles con los que el Figma quita el botón y deja solo "En vivo" (21. NuevoIncidente, 11-12 detalle).
-const PANELS_WITHOUT_BUTTON = ["Nuevo Incidente", "Detalle Incidente"];
+const PANELS_WITHOUT_BUTTON = ["Nuevo Incidente", "Detalle Incidente", "Usuarios", "Capas y filtros", "Ajustes"];
 
 function sinceLabel(lastSync: number, now: number) {
     const seconds = Math.max(0, Math.round((now - lastSync) / 1000));
@@ -43,28 +43,31 @@ export default function ActionDock() {
 
     return (
         <div
-            // En móvil el panel ocupa toda la pantalla y el dock queda centrado.
+            // En móvil el panel ocupa toda la pantalla y el dock queda centrado. Sin pasar del mapa libre: en tablet, con
+            // un panel abierto y el botón, "En vivo" queda solo como punto (el texto, para lectores de pantalla y en el
+            // title); sin el botón (Nuevo incidente, detalle) el texto sí cabe.
             style={{ "--panel-right": `${panelRight}px` } as CSSProperties}
             className={`
-                absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 py-2 font-ui
-                sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)]
+                absolute bottom-5 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 py-2 font-ui
+                sm:left-[calc(var(--panel-right)+(100%-var(--panel-right))/2)] sm:max-w-[calc(100%-var(--panel-right)-2rem)]
                 rounded-full border border-glass-line bg-glass backdrop-blur-glass drop-shadow-floating
                 ${showButton ? "pl-4.5 pr-2" : "px-4.5"}
             `}
         >
-            <div className="flex items-center gap-2.5 pr-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 pr-2.5">
                 <span
                     aria-hidden
+                    title={`${title} · ${subtitle}`}
                     className={`flex size-3.5 shrink-0 items-center justify-center rounded-full
                         ${live ? "bg-success/20" : error ? "bg-danger/20" : "bg-ink-muted/20"}`}
                 >
                     <span className={`size-2 rounded-full ${live ? "bg-success" : error ? "bg-danger" : "bg-ink-muted"}`} />
                 </span>
-                <div className="flex flex-col whitespace-nowrap">
+                <div className={`flex min-w-0 flex-col ${panelRight && showButton ? "sm:max-lg:sr-only" : ""}`}>
                     {/* role="status" solo en el título: anuncia los cambios de estado, no cada segundo del contador. */}
-                    <span role="status" className="text-caption font-bold text-ink-strong">{title}</span>
+                    <span role="status" className="truncate text-caption font-bold text-ink-strong">{title}</span>
                     {/* En móvil no cabe junto al botón. */}
-                    <span className="text-2xs font-medium text-ink-muted max-sm:hidden">{subtitle}</span>
+                    <span className="truncate text-2xs font-medium text-ink-muted max-sm:hidden">{subtitle}</span>
                 </div>
             </div>
 

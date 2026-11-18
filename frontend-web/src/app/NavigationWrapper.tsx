@@ -142,33 +142,38 @@ export default function NavigationWrapper() {
 
     return (
         <section className="pointer-events-none fixed inset-0 z-50">
-            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 sm:flex sm:justify-end">
-                <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
-                    <div className="min-w-0 flex-1 sm:flex-1/3">
+            {/* Por debajo de 1024 px, dos filas: el buscador (con la campana y el perfil) y debajo las secciones a todo el
+                ancho. En teléfono, como en el Figma móvil y Google Maps, el buscador ocupa toda su fila con el perfil
+                dentro, y la campana pasa a los botones flotantes del mapa (MapContainer). */}
+            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 lg:flex lg:justify-end">
+                <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 max-sm:col-span-2 lg:flex-5/6">
+                    <div className="min-w-0 flex-1 lg:flex-1/3">
                         <SearchBar
                             onSubmit={handleSearchAddress}
                             onChangeQuery={handleChangeQuery}
                             value={shouldShowMapAddress && !isEditingSearchQuery ? address : searchQuery}
                             onFocus={handleOnFocusSearchBar}
+                            className="max-lg:max-w-none max-sm:pr-14"
                         />
-                    </div> 
-                    <div className="hidden min-w-0 sm:flex sm:flex-2/3">
+                    </div>
+                    <div className="hidden min-w-0 lg:flex lg:flex-2/3">
                         <NavBar />
                     </div>
                 </div>
-                <div className="col-start-2 row-start-1 flex items-center justify-end gap-1 sm:flex-1/6 sm:gap-2">
-                    <BellButton 
+                <div className="col-start-2 row-start-1 flex items-center justify-end gap-1 max-sm:absolute max-sm:right-1.5 max-sm:top-1.5 sm:gap-2 lg:flex-1/6">
+                    <BellButton
+                        className="max-sm:hidden"
                         onClick={() => currentModal === 'Menu de Notificaciones'
                             ? closeModal()
                             : openModal('Menu de Notificaciones')}
                     />
-                    <UserProfileWidget 
-                        className="" 
+                    <UserProfileWidget
+                        className="max-sm:h-11 max-sm:border-0 max-sm:p-0.5 max-sm:shadow-none"
                         onClick={() => openModal('Menu de Usuario')}
-                    />    
+                    />
                 </div>
-                <div className="col-span-2 row-start-2 w-full sm:hidden">
-                    <NavBar />
+                <div className="col-span-2 row-start-2 w-full lg:hidden">
+                    <NavBar className="w-full *:flex-1 *:justify-center" />
                 </div>
             </div>
         </section>

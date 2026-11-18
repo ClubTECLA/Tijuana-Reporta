@@ -111,9 +111,11 @@ export default function SearchView () {
     }, [isLoading, searchRequestId])
 
     return (
+        // overflow-visible: la lista de resultados extiende su scroll sobre el relleno del panel (-mr-3); con scroll
+        // propio, ColSection mostraría ese sobrante como una barra horizontal.
         <ColSection
             arrangementSubsections="between"
-            className="h-full min-h-0 gap-7 p-2"
+            className="h-full min-h-0 gap-7 overflow-visible p-2"
             title="Busqueda"
         >
             <SegmentedTabs format='row'>

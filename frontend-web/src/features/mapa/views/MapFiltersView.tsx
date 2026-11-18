@@ -45,9 +45,11 @@ export default function MapFiltersView() {
             title="Filtros del mapa"
             subtitle="Elige qué se muestra en el mapa"
             arrangementSubsections="toUp"
-            className="min-h-0"
+            className="min-h-0 overflow-visible"
         >
-            {/* Mismo ancho fijo que el resto de paneles; el scroll llega al borde y el pie queda abajo, como en el Figma. */}
+            {/* Mismo ancho fijo que el resto de paneles; el scroll llega al borde y el pie queda abajo, como en el Figma.
+                ColSection va con overflow-visible: con scroll propio, lo que el scroll ocupa del relleno le daría una
+                barra horizontal. */}
             <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
                 <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                     <span className={sectionTitleStyle}>CATEGORÍAS</span>
@@ -102,14 +104,15 @@ export default function MapFiltersView() {
                     </fieldset>
                 </div>
 
-                <div className="flex gap-2.5 border-t border-line pt-3.5">
-                    <Button variant="subtle" size="lg" title="Restablecer" onClick={() => setDraft(DEFAULT_FILTERS)} className="flex-1" />
+                {/* flex-wrap: en los teléfonos más estrechos los dos botones no caben en una fila y cada uno pasa a la suya. */}
+                <div className="flex flex-wrap gap-2.5 border-t border-line pt-3.5">
+                    <Button variant="subtle" size="lg" title="Restablecer" onClick={() => setDraft(DEFAULT_FILTERS)} className="flex-1 max-sm:px-4" />
                     <Button
                         variant="primary"
                         size="lg"
                         title={count === null ? "Mostrar resultados" : `Mostrar ${count} ${count === 1 ? "resultado" : "resultados"}`}
                         onClick={apply}
-                        className="flex-1 drop-shadow-button-brand"
+                        className="flex-1 drop-shadow-button-brand max-sm:px-4"
                     />
                 </div>
             </div>
