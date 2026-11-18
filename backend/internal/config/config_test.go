@@ -148,7 +148,9 @@ func TestLoad_MailDriver(t *testing.T) {
 	t.Setenv("MAIL_DRIVER", "smtp")
 	if _, err := Load(); err == nil {
 		t.Fatal("Load() con MAIL_DRIVER desconocido: error = nil, se esperaba error")
-    
+	}
+}
+
 func TestLoad_MantenimientoPorDefecto(t *testing.T) {
 	entornoMinimo(t)
 
