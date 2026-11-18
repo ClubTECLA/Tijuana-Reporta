@@ -146,7 +146,7 @@ export default function FilterSelected({
                 aria-controls={dropdownOpen ? menuId : undefined}
                 onClick={() => setDropdownOpen((open) => !open)}
                 className={cn(
-                    "flex h-[50px] w-40 max-w-full items-center gap-2 rounded-full border-2 border-line",
+                    "flex h-[50px] max-w-full items-center gap-2 rounded-full border-2 border-line",
                     "bg-surface px-5 font-ui transition-colors hover:border-line-strong",
                     "focus-visible:outline-2 focus-visible:outline-brand",
                     "disabled:cursor-not-allowed disabled:opacity-50",
@@ -163,7 +163,7 @@ export default function FilterSelected({
                     as="span"
                     debug={debug}
                     ref={selectedTrackRef}
-                    className="min-w-0 flex-1 overflow-hidden whitespace-nowrap"
+                    className="w-10 shrink-0 overflow-hidden whitespace-nowrap"
                 >
                     <span
                         ref={selectedTextRef}
