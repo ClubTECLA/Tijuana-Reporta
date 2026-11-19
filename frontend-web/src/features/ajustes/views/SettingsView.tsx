@@ -2,7 +2,7 @@ import { FiLayers } from "react-icons/fi";
 import ColSection from "@/components/layout/ColSection";
 import RowSection from "@/components/layout/RowSection";
 import { SideNav, SideNavItem } from "@/components/ui/SideNav";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { LuShieldCheck } from "react-icons/lu";
 import SubsectionTitle from "@/components/ui/SubsectionTitle";
 import Button from "@/components/ui/Button";
@@ -25,6 +25,16 @@ function CategoriesSection({debug} : subsectionProps) {
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
     const [ loadCategories, setLoadCategories ] = useState(true);
+    const editorSessionRef = useRef(0);
+    const [ editorSession, setEditorSession ] = useState(0);
+
+    const openCategoryForm = (category: ApiIncidente | null) => {
+        const nextSession = editorSessionRef.current + 1;
+        editorSessionRef.current = nextSession;
+        setEditorSession(nextSession);
+        setSelectedCategory(category);
+        setOpenForm(true);
+    };
 
     useEffect(() => {
         if(!loadCategories) return;
@@ -66,10 +76,7 @@ function CategoriesSection({debug} : subsectionProps) {
                     variant="primary"
                     format='both-fit'
                     icon=<BiPlus/>
-                    onClick={() => {
-                        setSelectedCategory(null);
-                        setOpenForm(true);
-                    }}
+                    onClick={() => openCategoryForm(null)}
                 />
             </SubSection>
             <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
@@ -122,8 +129,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                             icon: <GoPencil/>,
                                         }}
                                         onClick={() => {
-                                            setSelectedCategory(c)
-                                            setOpenForm(true);
+                                            openCategoryForm(c);
                                         }}
                                     />
                                     <TdButton
@@ -152,9 +158,16 @@ function CategoriesSection({debug} : subsectionProps) {
                 </SubSection>
                 {openForm && 
                     <CategoryForm
+                        key={selectedCategory ? `edit-${selectedCategory.id}` : "create"}
                         format='col'
                         category={selectedCategory}
-                        onClose={() => setOpenForm(false)}
+                        onClose={() => {
+                            if (editorSession !== editorSessionRef.current) return;
+                            const nextSession = editorSessionRef.current + 1;
+                            editorSessionRef.current = nextSession;
+                            setEditorSession(nextSession);
+                            setOpenForm(false);
+                        }}
                         onSaveCategory={() => setLoadCategories(true)}
                     />
                 }

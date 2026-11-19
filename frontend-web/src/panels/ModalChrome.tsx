@@ -1,4 +1,4 @@
-import { createElement, useRef, useState, type ComponentType } from "react";
+import { createElement, useEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { modalRegistry } from "./modalRegistry";
@@ -19,7 +19,101 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStartPos = useRef({ x: 0, y: 0 });
     const modalPosAtStart = useRef({ x: 0, y: 0 });
+    const modalRef = useRef<HTMLElement>(null);
+    const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+    const previousFocusContextRef = useRef<HTMLElement[]>([]);
+    const wasFullFocusRef = useRef(false);
     const shouldFullFocus = fullFocus ?? modal?.fullFocus ?? false;
+
+    useEffect(() => {
+        const getFocusableElements = (container: ParentNode) =>
+            Array.from(container.querySelectorAll<HTMLElement>(
+                'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable="true"]',
+            )).filter((element) => {
+                const style = window.getComputedStyle(element);
+                return (
+                    element.tabIndex >= 0
+                    && !element.matches(":disabled")
+                    && !element.hasAttribute("hidden")
+                    && element.getAttribute("aria-hidden") !== "true"
+                    && style.display !== "none"
+                    && style.visibility !== "hidden"
+                    && element.getClientRects().length > 0
+                );
+            });
+
+        if (!shouldFullFocus || !modal) {
+            if (wasFullFocusRef.current) {
+                wasFullFocusRef.current = false;
+                const previouslyFocused = previouslyFocusedRef.current;
+                previouslyFocusedRef.current = null;
+                const previousFocusContext = previousFocusContextRef.current;
+                previousFocusContextRef.current = [];
+                const focusTarget = previouslyFocused?.isConnected
+                    && getFocusableElements(document).includes(previouslyFocused)
+                    ? previouslyFocused
+                    : previousFocusContext
+                        .filter((container) => container.isConnected)
+                        .flatMap(getFocusableElements)
+                        .find((element) => !modalRef.current?.contains(element))
+                        ?? getFocusableElements(document).find((element) => !modalRef.current?.contains(element));
+                focusTarget?.focus();
+            }
+            return;
+        }
+
+        if (!wasFullFocusRef.current) {
+            const activeElement = document.activeElement;
+            previouslyFocusedRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+            previousFocusContextRef.current = [];
+            for (
+                let parent = activeElement instanceof HTMLElement ? activeElement.parentElement : null;
+                parent;
+                parent = parent.parentElement
+            ) {
+                previousFocusContextRef.current.push(parent);
+            }
+            wasFullFocusRef.current = true;
+        }
+
+        const modalElement = modalRef.current;
+        if (!modalElement) return;
+
+        const focusableElements = getFocusableElements(modalElement);
+        (focusableElements[0] ?? modalElement).focus();
+
+        const containTabFocus = (event: KeyboardEvent) => {
+            if (event.key !== "Tab") return;
+
+            const currentModal = modalRef.current;
+            if (!currentModal) return;
+
+            const currentFocusableElements = getFocusableElements(currentModal);
+            const first = currentFocusableElements[0];
+            const last = currentFocusableElements[currentFocusableElements.length - 1];
+            const activeElement = document.activeElement;
+            const isWithinModal = currentModal.contains(activeElement);
+            const isFocusable = activeElement instanceof HTMLElement
+                && currentFocusableElements.includes(activeElement);
+
+            if (!first || !last) {
+                event.preventDefault();
+                currentModal.focus();
+            } else if (!isWithinModal || !isFocusable) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus();
+            } else if (event.shiftKey && (activeElement === first || activeElement === currentModal)) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener("keydown", containTabFocus, true);
+        return () => document.removeEventListener("keydown", containTabFocus, true);
+    }, [modal, shouldFullFocus]);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button !== 0) return;
@@ -60,6 +154,8 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
                 />
             )}
             <section
+                ref={modalRef}
+                tabIndex={shouldFullFocus ? -1 : undefined}
                 style={{
                     transform: shouldFullFocus
                         ? `translate3d(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px), 0)`

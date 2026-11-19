@@ -49,10 +49,13 @@ export default function DeleteIncidentConfirmation({
     return (
         <SubSection
             as="div"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-incident-title"
             className="w-[min(26rem,calc(100vw-2rem))] gap-4 p-5 flex-col"
         >
             <div className="flex flex-col gap-2">
-                <h2 className="text-lg font-bold text-ink">Eliminar incidente</h2>
+                <h2 id="delete-incident-title" className="text-lg font-bold text-ink">Eliminar incidente</h2>
                 <p className="text-sm text-ink-muted">
                     ¿Seguro que quieres eliminar “{incident.nombre}”? Esta acción no se puede deshacer.
                 </p>
