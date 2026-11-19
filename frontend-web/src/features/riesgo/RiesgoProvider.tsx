@@ -17,13 +17,11 @@ export function RiesgoProvider({ children }: { children: ReactNode }) {
     const [panelAbierto, setPanelAbierto] = useState(false);
     const [modoMapa, setModoMapa] = useState(false);
     const activo = puedeVer && (panelAbierto || modoMapa);
-    // Abrir el panel termina el modo mapa: el panel vuelve a mandar.
-    const cambiarPanelAbierto = useCallback((abierto: boolean) => {
-        setPanelAbierto(abierto);
-        if (abierto) setModoMapa(false);
-    }, []);
     const verEnMapa = useCallback(() => setModoMapa(true), []);
     const salirModoMapa = useCallback(() => setModoMapa(false), []);
+    // Último valor de modoMapa, para cambiarPanelAbierto (que no debe recrearse con él).
+    const modoMapaRef = useRef(modoMapa);
+    useEffect(() => { modoMapaRef.current = modoMapa });
 
     const [resumen, setResumen] = useState<ApiResumenRiesgo | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -47,6 +45,16 @@ export function RiesgoProvider({ children }: { children: ReactNode }) {
             setError(err instanceof Error ? err.message : "No se pudo cargar el riesgo.");
         }
     }, []);
+
+    // Abrir el panel termina el modo mapa: el panel vuelve a mandar. Cada apertura recarga el resumen (puede haber
+    // nuevos históricos): si activo pasa de false a true lo hace el efecto de abajo; viniendo del modo mapa activo ya
+    // era true y el efecto no corre, así que se recarga aquí (sin pedirlo dos veces).
+    const cambiarPanelAbierto = useCallback((abierto: boolean) => {
+        setPanelAbierto(abierto);
+        if (!abierto) return;
+        if (modoMapaRef.current) void refresh();
+        setModoMapa(false);
+    }, [refresh]);
 
     const cargarMapaCalor = useCallback((vista: VistaMapa) => {
         mapaAbortRef.current?.abort();
