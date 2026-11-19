@@ -94,7 +94,9 @@ por celda, la suma de los pesos y cuántos reportes cayeron en ella.
   exactamente 180° PostGIS falla ("Antipodal edge"). Pasa con el mapa muy alejado.
   Por eso el servicio parte el área en tramos de a lo más 90° (`PartirArea`), hace
   una consulta por tramo y junta por su centro las celdas que salen en dos tramos.
-  El área de la ciudad queda en un solo tramo.
+  Como `&&` incluye el borde, cada tramo filtra además la longitud exacta como
+  `[min, max)` (el último, `[min, max]`): un reporte justo en el borde cuenta una
+  sola vez. El área de la ciudad queda en un solo tramo.
 - El área llega siempre en longitudes de -180 a 180 (lo exige el contrato). El web
   convierte las de las copias del mundo que repite MapLibre al desplazarse, y si la
   vista cruza el antimeridiano pide todas las longitudes.

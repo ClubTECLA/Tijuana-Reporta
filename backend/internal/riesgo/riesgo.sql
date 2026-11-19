@@ -20,6 +20,13 @@ FROM (
     FROM reporte_historico_peso h
     WHERE h.geom && ST_MakeEnvelope(sqlc.arg(min_lng)::float8, sqlc.arg(min_lat)::float8,
                                     sqlc.arg(max_lng)::float8, sqlc.arg(max_lat)::float8, 4326)::geography
+    -- && compara cajas e incluye el borde: un área ancha se pide en tramos
+    -- contiguos (riesgo.PartirArea) y un reporte justo en el borde entre dos
+    -- saldría en ambos. La longitud exacta es [min, max), y solo el último
+    -- tramo incluye max (max_inclusivo).
+    AND ST_X(h.geom::geometry) >= sqlc.arg(min_lng)::float8
+    AND (ST_X(h.geom::geometry) < sqlc.arg(max_lng)::float8
+         OR (sqlc.arg(max_inclusivo)::bool AND ST_X(h.geom::geometry) = sqlc.arg(max_lng)::float8))
     AND (sqlc.narg(incidente_ids)::int[] IS NULL OR h.incidente_id = ANY(sqlc.narg(incidente_ids)::int[]))
     AND (sqlc.narg(desde)::timestamptz IS NULL OR h.created_at >= sqlc.narg(desde)::timestamptz)
     AND (sqlc.narg(hasta)::timestamptz IS NULL OR h.created_at <= sqlc.narg(hasta)::timestamptz)

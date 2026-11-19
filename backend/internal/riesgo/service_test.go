@@ -126,6 +126,7 @@ func TestService_ObtenerMapaCalor(t *testing.T) {
 	want := sqlc.ListCeldasCalorParams{
 		TamanoCeldaM: TamanoCelda(13),
 		MinLng:       -117.2, MinLat: 32.4, MaxLng: -116.8, MaxLat: 32.6,
+		MaxInclusivo: true, // un solo tramo: incluye todo el área
 		IncidenteIds: []int{1, 6},
 		Desde:        filtro.Desde,
 		Hasta:        filtro.Hasta,
@@ -176,6 +177,12 @@ func TestService_ObtenerMapaCalor_AreaAncha(t *testing.T) {
 	}
 	if len(f.llamadasCeldas) != 4 {
 		t.Fatalf("ListCeldasCalor llamado %d veces, want 4 (un tramo de 90° cada una)", len(f.llamadasCeldas))
+	}
+	// Los tramos no se solapan: solo el último incluye su borde derecho.
+	for i, arg := range f.llamadasCeldas {
+		if want := i == 3; arg.MaxInclusivo != want {
+			t.Errorf("tramo %d: MaxInclusivo = %v, want %v", i, arg.MaxInclusivo, want)
+		}
 	}
 	if len(mapa.Celdas) != 2 || mapa.Celdas[0].Reportes != 12 || mapa.Celdas[1].Peso != 28 {
 		t.Errorf("Celdas = %+v, want 2 celdas con los 4 tramos sumados", mapa.Celdas)

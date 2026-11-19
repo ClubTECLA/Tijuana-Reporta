@@ -39,15 +39,20 @@ func (s *Service) ObtenerMapaCalor(ctx context.Context, area Area, zoom float64,
 	mapa := MapaCalor{TamanoCeldaM: tamano, Celdas: []CeldaCalor{}}
 	// Una celda puede salir en dos tramos vecinos (sus reportes caen a ambos
 	// lados del borde): se junta por su centro, que es el mismo nodo de la
-	// cuadrícula en los dos.
+	// cuadrícula en los dos. Cada reporte cuenta en un solo tramo (ver
+	// MaxInclusivo), así que sumar no lo duplica.
 	indice := map[[2]float64]int{}
-	for _, tramo := range PartirArea(area) {
+	tramos := PartirArea(area)
+	for i, tramo := range tramos {
 		filas, err := s.store.ListCeldasCalor(ctx, sqlc.ListCeldasCalorParams{
 			TamanoCeldaM: tamano,
 			MinLng:       tramo.MinLng,
 			MinLat:       tramo.MinLat,
 			MaxLng:       tramo.MaxLng,
 			MaxLat:       tramo.MaxLat,
+			// Los tramos no se solapan: cada uno excluye su borde derecho,
+			// salvo el último, que cierra el área pedida.
+			MaxInclusivo: i == len(tramos)-1,
 			IncidenteIds: idsONil(filtro.IncidenteIDs),
 			Desde:        filtro.Desde,
 			Hasta:        filtro.Hasta,

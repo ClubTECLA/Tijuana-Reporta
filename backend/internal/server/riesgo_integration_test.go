@@ -152,6 +152,30 @@ func TestRiesgo(t *testing.T) {
 		}
 	})
 
+	// [-177, -57] se pide en dos tramos de 60° que comparten -117: un reporte
+	// justo en ese borde debe contar una sola vez.
+	t.Run("reporte en el borde entre tramos", func(t *testing.T) {
+		tc := *admin
+		tc.t = t
+		borde := tc.crearIncidente(map[string]any{"nombre": nombreIncidente(), "color": "#33AA66", "esta_activo": true})
+		r := decode[httpapi.Reporte](t, tc.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+			"incidente_id": borde.Id, "latitude": 32.5, "longitude": -117.0,
+		}))
+		tc.expect(http.StatusOK, http.MethodPut, "/v1/reportes/"+r.Id.String()+"/historico", nil)
+
+		for _, lng := range []string{"min_lng=-177&max_lng=-57", "min_lng=-120&max_lng=-117"} {
+			mapa := decode[httpapi.MapaCalor](t, tc.expect(http.StatusOK, http.MethodGet,
+				fmt.Sprintf("/v1/riesgo/mapa-calor?min_lat=30&max_lat=35&%s&zoom=3&incidente_id=%d", lng, borde.Id), nil))
+			total := 0
+			for _, c := range mapa.Celdas {
+				total += c.Reportes
+			}
+			if total != 1 {
+				t.Errorf("%s: reportes en las celdas = %d, quería 1", lng, total)
+			}
+		}
+	})
+
 	t.Run("validaciones", func(t *testing.T) {
 		tc := *admin
 		tc.t = t

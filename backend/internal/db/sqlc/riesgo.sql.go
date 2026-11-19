@@ -22,9 +22,16 @@ FROM (
     FROM reporte_historico_peso h
     WHERE h.geom && ST_MakeEnvelope($2::float8, $3::float8,
                                     $4::float8, $5::float8, 4326)::geography
-    AND ($6::int[] IS NULL OR h.incidente_id = ANY($6::int[]))
-    AND ($7::timestamptz IS NULL OR h.created_at >= $7::timestamptz)
-    AND ($8::timestamptz IS NULL OR h.created_at <= $8::timestamptz)
+    -- && compara cajas e incluye el borde: un área ancha se pide en tramos
+    -- contiguos (riesgo.PartirArea) y un reporte justo en el borde entre dos
+    -- saldría en ambos. La longitud exacta es [min, max), y solo el último
+    -- tramo incluye max (max_inclusivo).
+    AND ST_X(h.geom::geometry) >= $2::float8
+    AND (ST_X(h.geom::geometry) < $4::float8
+         OR ($6::bool AND ST_X(h.geom::geometry) = $4::float8))
+    AND ($7::int[] IS NULL OR h.incidente_id = ANY($7::int[]))
+    AND ($8::timestamptz IS NULL OR h.created_at >= $8::timestamptz)
+    AND ($9::timestamptz IS NULL OR h.created_at <= $9::timestamptz)
 ) c
 GROUP BY c.centro
 `
@@ -35,6 +42,7 @@ type ListCeldasCalorParams struct {
 	MinLat       float64    `json:"min_lat"`
 	MaxLng       float64    `json:"max_lng"`
 	MaxLat       float64    `json:"max_lat"`
+	MaxInclusivo bool       `json:"max_inclusivo"`
 	IncidenteIds []int      `json:"incidente_ids"`
 	Desde        *time.Time `json:"desde"`
 	Hasta        *time.Time `json:"hasta"`
@@ -64,6 +72,7 @@ func (q *Queries) ListCeldasCalor(ctx context.Context, arg ListCeldasCalorParams
 		arg.MinLat,
 		arg.MaxLng,
 		arg.MaxLat,
+		arg.MaxInclusivo,
 		arg.IncidenteIds,
 		arg.Desde,
 		arg.Hasta,
