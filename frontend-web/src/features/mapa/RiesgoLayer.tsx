@@ -4,6 +4,7 @@ import { Marker, type GeoJSONSource } from "maplibre-gl";
 import { LuTriangleAlert } from "react-icons/lu";
 import { useRiesgo } from "@/features/riesgo/useRiesgo";
 import { formatScore, NIVEL_COLORS } from "@/features/riesgo/riesgo";
+import { freeMapPadding } from "./freeMapPadding";
 import { setupMapLayers } from "./mapLayers";
 import { useMap } from "./useMap";
 import { areaCanonica, celdasGeoJSON, zonaBounds, zonasGeoJSON } from "./riesgoGeo";
@@ -135,10 +136,11 @@ export default function RiesgoLayer() {
         };
     }, [map, etiquetas]);
 
-    // Zona elegida en la lista o en el mapa: se centra con su círculo completo a la vista.
+    // Zona elegida en la lista o en el mapa: se centra con su círculo completo a la vista, en el espacio que dejan
+    // libre el panel y los controles (si no, quedaría detrás del panel).
     useEffect(() => {
         if (!map || !activo || !zonaEnfocada) return;
-        map.fitBounds(zonaBounds(zonaEnfocada), { padding: 120, maxZoom: 16 });
+        map.fitBounds(zonaBounds(zonaEnfocada), { padding: freeMapPadding(map), maxZoom: 16 });
     }, [map, activo, zonaEnfocada]);
 
     if (!activo) return null;
