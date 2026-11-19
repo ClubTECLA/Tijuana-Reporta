@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"testing"
@@ -54,4 +55,103 @@ func TestMarcarReporteHistorico(t *testing.T) {
 	}
 
 	admin.expect(http.StatusNotFound, http.MethodPut, "/v1/reportes/"+uuid.NewString()+"/historico", nil)
+}
+
+func TestRiesgo(t *testing.T) {
+	admin := newTestClient(t)
+	admin.loginComo("admin")
+
+	// Un tipo de incidente propio del test: filtrando por él, el resultado
+	// no depende de lo que hayan creado otros tests.
+	inc := admin.crearIncidente(map[string]any{"nombre": nombreIncidente(), "color": "#3366FF", "esta_activo": true})
+
+	// 5 reportes a menos de 100 m entre sí (una zona) y 1 lejos (ruido).
+	puntos := [][2]float64{
+		{32.4500, -116.9000}, {32.4503, -116.9002}, {32.4498, -116.8997},
+		{32.4502, -116.9004}, {32.4499, -116.9003}, {32.6000, -117.1000},
+	}
+	for i, p := range puntos {
+		r := decode[httpapi.Reporte](t, admin.expect(http.StatusCreated, http.MethodPost, "/v1/reportes", map[string]any{
+			"incidente_id": inc.Id, "latitude": p[0], "longitude": p[1],
+			"direccion": fmt.Sprintf("Calle %d · Colonia Prueba Riesgo", i),
+		}))
+		// Los activos no cuentan: solo se marca histórico al final.
+		if i == 0 {
+			res := decode[httpapi.ResumenRiesgo](t, admin.expect(http.StatusOK, http.MethodGet,
+				fmt.Sprintf("/v1/riesgo/resumen?incidente_id=%d", inc.Id), nil))
+			if res.TotalHistoricos != 0 {
+				t.Fatalf("total_historicos = %d con un reporte activo, quería 0", res.TotalHistoricos)
+			}
+		}
+		admin.expect(http.StatusOK, http.MethodPut, "/v1/reportes/"+r.Id.String()+"/historico", nil)
+	}
+
+	t.Run("resumen", func(t *testing.T) {
+		tc := *admin
+		tc.t = t
+		res := decode[httpapi.ResumenRiesgo](t, tc.expect(http.StatusOK, http.MethodGet,
+			fmt.Sprintf("/v1/riesgo/resumen?incidente_id=%d", inc.Id), nil))
+
+		if res.TotalHistoricos != 6 {
+			t.Errorf("total_historicos = %d, quería 6", res.TotalHistoricos)
+		}
+		if len(res.Categorias) != 1 || res.Categorias[0].IncidenteId != inc.Id || res.Categorias[0].Total != 6 {
+			t.Errorf("categorias = %+v, quería [{%d 6}]", res.Categorias, inc.Id)
+		}
+		if len(res.Zonas) != 1 {
+			t.Fatalf("zonas = %+v, quería 1 (el punto lejano es ruido)", res.Zonas)
+		}
+		z := res.Zonas[0]
+		if z.Reportes != 5 || z.Nombre != "Colonia Prueba Riesgo" || z.Nivel != httpapi.Alto || z.Score != 1 {
+			t.Errorf("zona = %+v, quería 5 reportes, Colonia Prueba Riesgo, Alto, score 1", z)
+		}
+		if res.ZonasAltoRiesgo != 1 {
+			t.Errorf("zonas_alto_riesgo = %d, quería 1", res.ZonasAltoRiesgo)
+		}
+		if len(res.Colonias) != 1 || res.Colonias[0].Nombre != "Colonia Prueba Riesgo" || res.Colonias[0].Reportes != 6 {
+			t.Errorf("colonias = %+v, quería [Colonia Prueba Riesgo, 6]", res.Colonias)
+		}
+		if res.VersionModelo != 1 {
+			t.Errorf("version_modelo = %d, quería 1", res.VersionModelo)
+		}
+	})
+
+	t.Run("mapa de calor", func(t *testing.T) {
+		tc := *admin
+		tc.t = t
+		mapa := decode[httpapi.MapaCalor](t, tc.expect(http.StatusOK, http.MethodGet,
+			fmt.Sprintf("/v1/riesgo/mapa-calor?min_lat=32.44&max_lat=32.46&min_lng=-116.91&max_lng=-116.89&zoom=13&incidente_id=%d", inc.Id), nil))
+
+		total := 0
+		for _, c := range mapa.Celdas {
+			total += c.Reportes
+		}
+		if total != 5 {
+			t.Errorf("reportes en las celdas = %d, quería 5 (el lejano queda fuera del área)", total)
+		}
+		if mapa.TamanoCeldaM < 500 || mapa.TamanoCeldaM > 530 || mapa.PesoMaximo <= 0 {
+			t.Errorf("tamano_celda_m = %v, peso_maximo = %v, quería ≈ 516 y > 0", mapa.TamanoCeldaM, mapa.PesoMaximo)
+		}
+	})
+
+	t.Run("validaciones", func(t *testing.T) {
+		tc := *admin
+		tc.t = t
+		tc.expect(http.StatusBadRequest, http.MethodGet, "/v1/riesgo/mapa-calor?min_lat=32.6&max_lat=32.4&min_lng=-117&max_lng=-116&zoom=12", nil)
+		tc.expect(http.StatusBadRequest, http.MethodGet, "/v1/riesgo/resumen?desde=2026-02-01T00:00:00Z&hasta=2026-01-01T00:00:00Z", nil)
+		tc.expect(http.StatusBadRequest, http.MethodGet, "/v1/riesgo/mapa-calor?min_lat=32.4&max_lat=32.6&min_lng=-117&max_lng=-116", nil) // falta zoom
+	})
+
+	t.Run("roles", func(t *testing.T) {
+		ciudadano := newTestClient(t)
+		ciudadano.login()
+		ciudadano.expect(http.StatusForbidden, http.MethodGet, "/v1/riesgo/resumen", nil)
+		for _, rol := range []string{"moderador", "analista", "proteccion_civil", "rescatista"} {
+			c := newTestClient(t)
+			c.loginComo(rol)
+			c.expect(http.StatusOK, http.MethodGet, "/v1/riesgo/resumen", nil)
+		}
+		anonimo := newTestClient(t)
+		anonimo.expect(http.StatusUnauthorized, http.MethodGet, "/v1/riesgo/resumen", nil)
+	})
 }

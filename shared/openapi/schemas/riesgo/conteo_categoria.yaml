@@ -1,0 +1,8 @@
+type: object
+description: Cuántos reportes históricos hay de un tipo de incidente; el nombre y el color salen del catálogo (GET /incidentes).
+required: [incidente_id, total]
+properties:
+  incidente_id:
+    type: integer
+  total:
+    type: integer

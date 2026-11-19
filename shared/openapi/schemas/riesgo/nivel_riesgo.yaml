@@ -1,0 +1,3 @@
+type: string
+description: Nivel de riesgo derivado del score (los umbrales están en backend/GUIA_RIESGO.md).
+enum: [Alto, Medio, Bajo]

@@ -1,0 +1,31 @@
+type: object
+description: >-
+  Zona de riesgo estimada por el sistema: un grupo de reportes históricos cercanos entre sí (DBSCAN).
+  No lleva id porque los grupos se recalculan en cada consulta.
+required: [nombre, latitude, longitude, radio_m, score, nivel, reportes]
+properties:
+  nombre:
+    type: string
+    description: Colonia de la zona, tomada de la dirección de sus reportes.
+    example: Cañón del Sáinz
+  latitude:
+    type: number
+    format: double
+    description: Centro de la zona.
+  longitude:
+    type: number
+    format: double
+    description: Centro de la zona.
+  radio_m:
+    type: number
+    format: double
+    description: Radio del círculo que cubre los reportes de la zona, en metros.
+  score:
+    type: number
+    format: double
+    minimum: 0
+    maximum: 1
+  nivel:
+    $ref: '../../openapi.yaml#/components/schemas/NivelRiesgo'
+  reportes:
+    type: integer

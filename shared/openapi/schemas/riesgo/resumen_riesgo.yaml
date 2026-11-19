@@ -1,0 +1,33 @@
+type: object
+description: >-
+  Resumen de riesgo de toda la ciudad para el panel "Riesgo e histórico". Todo sale de los reportes
+  históricos (es_historico); los reportes activos son de Incidentes.
+required: [generado_en, version_modelo, total_historicos, zonas_alto_riesgo, zonas, colonias, categorias]
+properties:
+  generado_en:
+    type: string
+    format: date-time
+    description: Momento en que se calculó el resumen.
+  version_modelo:
+    type: integer
+    description: Versión de la fórmula de riesgo; cambia cuando cambian sus pesos o umbrales.
+  total_historicos:
+    type: integer
+    description: Reportes históricos del periodo que cuentan para el riesgo (sin los descartados).
+  zonas_alto_riesgo:
+    type: integer
+  zonas:
+    type: array
+    description: Zonas de mayor riesgo (grupos de reportes históricos cercanos entre sí), de mayor a menor score.
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/ZonaRiesgo'
+  colonias:
+    type: array
+    description: Colonias con más reportes históricos en el periodo, de mayor a menor.
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/ColoniaRiesgo'
+  categorias:
+    type: array
+    description: Reportes históricos del periodo por tipo de incidente, de mayor a menor.
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/ConteoCategoria'

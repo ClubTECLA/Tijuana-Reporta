@@ -442,6 +442,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/riesgo/mapa-calor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Peso de los reportes históricos agrupado en una cuadrícula sobre el área visible; el tamaño de celda depende del zoom. Solo lectura: no registra nada en el historial. */
+        get: operations["obtenerMapaCalor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/riesgo/resumen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Zonas de mayor riesgo, colonias con más incidentes y conteo por tipo de incidente de toda la ciudad, a partir de los reportes históricos. Solo lectura: no registra nada en el historial. */
+        get: operations["obtenerResumenRiesgo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -479,6 +513,13 @@ export interface components {
         CrearTipoCentroRequest: components["schemas"]["crear_tipo_centro_request"];
         Centro: components["schemas"]["centro"];
         CrearCentroRequest: components["schemas"]["crear_centro_request"];
+        NivelRiesgo: components["schemas"]["nivel_riesgo"];
+        CeldaCalor: components["schemas"]["celda_calor"];
+        MapaCalor: components["schemas"]["mapa_calor"];
+        ZonaRiesgo: components["schemas"]["zona_riesgo"];
+        ColoniaRiesgo: components["schemas"]["colonia_riesgo"];
+        ConteoCategoria: components["schemas"]["conteo_categoria"];
+        ResumenRiesgo: components["schemas"]["resumen_riesgo"];
         /**
          * @description Derivado, no almacenado: etiqueta del incidente + " en " + direccion (p. ej. "Socavón en Calle Flores Magón 8267 · Zona Centro"). Sin dirección, solo la etiqueta.
          * @example Socavón en Calle Flores Magón 8267 · Zona Centro
@@ -767,6 +808,99 @@ export interface components {
             cantidad?: number;
             /** @default true */
             activo?: boolean;
+        };
+        /** @description Celda de la cuadrícula del mapa de calor; su punto es el centro de la celda. */
+        celda_calor: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /**
+             * Format: double
+             * @description Suma del peso de los reportes históricos de la celda (ver backend/GUIA_RIESGO.md).
+             */
+            peso: number;
+            /** @description Cuántos reportes cayeron en la celda. */
+            reportes: number;
+        };
+        /** @description Peso de los reportes históricos del área visible, agrupado en una cuadrícula cuyo tamaño depende del zoom. */
+        mapa_calor: {
+            /**
+             * Format: double
+             * @description Lado de cada celda, en metros.
+             */
+            tamano_celda_m: number;
+            /**
+             * Format: double
+             * @description Mayor peso entre las celdas devueltas (0 si no hay celdas); sirve para normalizar la intensidad.
+             */
+            peso_maximo: number;
+            celdas: components["schemas"]["celda_calor"][];
+        };
+        /**
+         * @description Nivel de riesgo derivado del score (los umbrales están en backend/GUIA_RIESGO.md).
+         * @enum {string}
+         */
+        nivel_riesgo: "Alto" | "Medio" | "Bajo";
+        /** @description Zona de riesgo estimada por el sistema: un grupo de reportes históricos cercanos entre sí (DBSCAN). No lleva id porque los grupos se recalculan en cada consulta. */
+        zona_riesgo: {
+            /**
+             * @description Colonia de la zona, tomada de la dirección de sus reportes.
+             * @example Cañón del Sáinz
+             */
+            nombre: string;
+            /**
+             * Format: double
+             * @description Centro de la zona.
+             */
+            latitude: number;
+            /**
+             * Format: double
+             * @description Centro de la zona.
+             */
+            longitude: number;
+            /**
+             * Format: double
+             * @description Radio del círculo que cubre los reportes de la zona, en metros.
+             */
+            radio_m: number;
+            /** Format: double */
+            score: number;
+            nivel: components["schemas"]["nivel_riesgo"];
+            reportes: number;
+        };
+        /** @description Colonia con su conteo de reportes históricos en el periodo (pestaña Histórico). */
+        colonia_riesgo: {
+            /** @example Col. Obrera */
+            nombre: string;
+            reportes: number;
+            /** Format: double */
+            score: number;
+            nivel: components["schemas"]["nivel_riesgo"];
+        };
+        /** @description Cuántos reportes históricos hay de un tipo de incidente; el nombre y el color salen del catálogo (GET /incidentes). */
+        conteo_categoria: {
+            incidente_id: number;
+            total: number;
+        };
+        /** @description Resumen de riesgo de toda la ciudad para el panel "Riesgo e histórico". Todo sale de los reportes históricos (es_historico); los reportes activos son de Incidentes. */
+        resumen_riesgo: {
+            /**
+             * Format: date-time
+             * @description Momento en que se calculó el resumen.
+             */
+            generado_en: string;
+            /** @description Versión de la fórmula de riesgo; cambia cuando cambian sus pesos o umbrales. */
+            version_modelo: number;
+            /** @description Reportes históricos del periodo que cuentan para el riesgo (sin los descartados). */
+            total_historicos: number;
+            zonas_alto_riesgo: number;
+            /** @description Zonas de mayor riesgo (grupos de reportes históricos cercanos entre sí), de mayor a menor score. */
+            zonas: components["schemas"]["zona_riesgo"][];
+            /** @description Colonias con más reportes históricos en el periodo, de mayor a menor. */
+            colonias: components["schemas"]["colonia_riesgo"][];
+            /** @description Reportes históricos del periodo por tipo de incidente, de mayor a menor. */
+            categorias: components["schemas"]["conteo_categoria"][];
         };
     };
     responses: never;
@@ -2340,6 +2474,113 @@ export interface operations {
             };
             /** @description Error interno del servidor */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    obtenerMapaCalor: {
+        parameters: {
+            query: {
+                min_lat: number;
+                max_lat: number;
+                min_lng: number;
+                max_lng: number;
+                zoom: number;
+                incidente_id?: number[];
+                desde?: string;
+                hasta?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Celdas del mapa de calor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mapa_calor"];
+                };
+            };
+            /** @description Datos inválidos (área invertida o desde posterior a hasta) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El rol del usuario no tiene acceso a riesgo */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+        };
+    };
+    obtenerResumenRiesgo: {
+        parameters: {
+            query?: {
+                incidente_id?: number[];
+                desde?: string;
+                hasta?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resumen de riesgo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["resumen_riesgo"];
+                };
+            };
+            /** @description Datos inválidos (desde posterior a hasta) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["error_response"];
+                };
+            };
+            /** @description El rol del usuario no tiene acceso a riesgo */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

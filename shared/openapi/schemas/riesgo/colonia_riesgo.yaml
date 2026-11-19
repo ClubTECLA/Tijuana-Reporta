@@ -1,0 +1,16 @@
+type: object
+description: Colonia con su conteo de reportes históricos en el periodo (pestaña Histórico).
+required: [nombre, reportes, score, nivel]
+properties:
+  nombre:
+    type: string
+    example: Col. Obrera
+  reportes:
+    type: integer
+  score:
+    type: number
+    format: double
+    minimum: 0
+    maximum: 1
+  nivel:
+    $ref: '../../openapi.yaml#/components/schemas/NivelRiesgo'

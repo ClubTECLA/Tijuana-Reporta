@@ -36,6 +36,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/riesgo"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
@@ -92,6 +93,7 @@ func newTestClient(t *testing.T) *testClient {
 			MaxDuracion: 6 * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(testPool(t)))),
+		Riesgo:  riesgo.NewHandler(riesgo.NewService(sqlc.New(testPool(t)))),
 	}, testJWTSecret, usuarios.GetPasswordChangedAtByUserID, server.WithRateLimitRafaga(testRateLimitRafaga))
 
 	return &testClient{t: t, router: router, multimedia: almacen, mailer: mailer}
