@@ -166,6 +166,7 @@ function CategoriesSection({debug} : subsectionProps) {
                                                     incident: { id: c.id, nombre: c.nombre },
                                                     onDeleted: (incidentId) => {
                                                         setCategories((prev) => prev.filter((category) => category.id !== incidentId));
+                                                        requestCategoryReload();
                                                     },
                                                 },
                                                 { fullFocus: true },
