@@ -16,6 +16,7 @@ import useModals from '@/panels/useModals';
 import BellButton from '@/features/notificaciones/components/BellButton';
 import IncidentsLayer from './IncidentsLayer';
 import LayersPill from './LayersPill';
+import RiesgoLayer from './RiesgoLayer';
 
 setWorkerUrl(workerUrl);
 
@@ -141,6 +142,7 @@ export default function MapContainer() {
       <ActiveFiltersBadge />
       <LayersPill />
       <IncidentsLayer />
+      <RiesgoLayer />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { cambiarEstadoReporte, crearComentario, obtenerReporte } from "./reportes.services";
+import { cambiarEstadoReporte, cambiarHistoricoReporte, crearComentario, obtenerReporte } from "./reportes.services";
 import { useReportes } from "./useReportes";
 import type { ApiEstadoReporte, ApiReporte } from "@/types/api-types";
 
@@ -46,5 +46,15 @@ export function useReporteDetalle(reporteId: string) {
         void refresh();
     }, [reporteId, refresh]);
 
-    return { reporte, error, comentar, cambiarEstado };
+    /**
+     * Pasa el reporte a histórico (sale de Incidentes y cuenta para el riesgo) o lo devuelve a activo. Solo roles
+     * oficiales; si falla, lanza el error para que la vista lo muestre.
+     */
+    const cambiarHistorico = useCallback(async (esHistorico: boolean) => {
+        setReporte(await cambiarHistoricoReporte(reporteId, esHistorico));
+        // La lista y el mapa de Incidentes solo muestran los activos.
+        void refresh();
+    }, [reporteId, refresh]);
+
+    return { reporte, error, comentar, cambiarEstado, cambiarHistorico };
 }

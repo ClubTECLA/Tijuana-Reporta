@@ -9,6 +9,7 @@ import IncidentsView from "@/features/reportes/views/IncidentsView";
 import IncidentDetailView from "@/features/reportes/views/IncidentDetailView";
 import SummaryView from "@/features/resumen/views/SummaryView";
 import UsersView from "@/features/usuarios/views/UsersView";
+import RiesgoView from "@/features/riesgo/views/RiesgoView";
 import type { PanelViewKey, PanelViewPropsMap } from "./panelTypes";
 import SearchView from "@/features/busqueda/views/SearchView";
 
@@ -29,4 +30,5 @@ export const panelRegistry = {
     "Usuarios": UsersView,
     "Capas y filtros": MapFiltersView,
     "Busqueda": SearchView,
+    "Riesgo": RiesgoView,
 } satisfies PanelRegistry;
