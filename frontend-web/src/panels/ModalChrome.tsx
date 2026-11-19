@@ -3,6 +3,8 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
+  useLayoutEffect,
   type ComponentType,
 } from "react";
 import { createPortal } from "react-dom";
@@ -34,6 +36,7 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
   const wasFullFocusRef = useRef(false);
   const shouldFullFocus = fullFocus ?? modal?.fullFocus ?? false;
   const draggable = !shouldFullFocus;
+  const handleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getFocusableElements = (container: ParentNode) =>
@@ -149,31 +152,15 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const VISIBLE_MARGIN = 48;
+  const VISIBLE_MARGIN = 8;
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
 
-    const next = {
+    setPosition({
       x: modalPosAtStart.current.x + e.clientX - dragStartPos.current.x,
       y: modalPosAtStart.current.y + e.clientY - dragStartPos.current.y,
-    };
-    const rect = modalRef.current?.getBoundingClientRect();
-    if (rect) {
-      const left = rect.left + (next.x - position.x);
-      const top = rect.top + (next.y - position.y);
-      const clampedLeft = Math.min(
-        Math.max(left, VISIBLE_MARGIN - rect.width),
-        window.innerWidth - VISIBLE_MARGIN,
-      );
-      const clampedTop = Math.min(
-        Math.max(top, 0),
-        window.innerHeight - VISIBLE_MARGIN,
-      );
-      next.x += clampedLeft - left;
-      next.y += clampedTop - top;
-    }
-    setPosition(next);
+    });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -184,6 +171,39 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
   };
+
+  const clampToViewport = useCallback(() => {
+    const handle = handleRef.current;
+    if (!handle) return;
+
+    const rect = handle.getBoundingClientRect();
+    let dx = 0;
+    let dy = 0;
+
+    if (rect.left < VISIBLE_MARGIN) dx = VISIBLE_MARGIN - rect.left;
+    else if (rect.right > window.innerWidth - VISIBLE_MARGIN)
+      dx = window.innerWidth - VISIBLE_MARGIN - rect.right;
+
+    if (rect.top < VISIBLE_MARGIN) dy = VISIBLE_MARGIN - rect.top;
+    else if (rect.bottom > window.innerHeight - VISIBLE_MARGIN)
+      dy = window.innerHeight - VISIBLE_MARGIN - rect.bottom;
+
+    if (dx !== 0 || dy !== 0) {
+      setPosition({ x: position.x + dx, y: position.y + dy });
+    }
+  }, [position, setPosition]);
+
+  // Tras cada cambio de posición, antes de pintar: evita un parpadeo fuera de pantalla.
+  useLayoutEffect(() => {
+    if (!modal || shouldFullFocus) return;
+    clampToViewport();
+  }, [modal, shouldFullFocus, clampToViewport]);
+
+  useEffect(() => {
+    if (!modal || shouldFullFocus) return;
+    window.addEventListener("resize", clampToViewport);
+    return () => window.removeEventListener("resize", clampToViewport);
+  }, [modal, shouldFullFocus, clampToViewport]);
 
   if (!modal) return null;
 
@@ -216,6 +236,7 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
       >
         {draggable && (
           <div
+            ref={handleRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
