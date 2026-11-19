@@ -192,6 +192,7 @@ function CategoriesSection({ debug }: subsectionProps) {
                                 (category) => category.id !== incidentId,
                               ),
                             );
+                            requestCategoryReload();
                           },
                         },
                         { fullFocus: true },
