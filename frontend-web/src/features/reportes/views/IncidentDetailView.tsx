@@ -45,6 +45,8 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const [stateMenuOpen, setStateMenuOpen] = useState(false);
     const [changingState, setChangingState] = useState(false);
     const [changingHistorico, setChangingHistorico] = useState(false);
+    // Un cambio a la vez: el de estado y el de histórico se bloquean entre sí (useReporteDetalle además los encola).
+    const busy = changingState || changingHistorico;
     // Estado final (Resuelto o Descartado) pendiente de confirmar: después ya no se puede cambiar.
     const [confirming, setConfirming] = useState<ApiEstadoReporte | null>(null);
 
@@ -61,12 +63,12 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     // Las mismas reglas para la fila de acciones y para "Más acciones" (teléfono).
     const stateDisabled = !reporte || !canChangeState || isFinal;
     const stateTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined;
-    const discardDisabled = !reporte || !canChangeState || changingState || !nextStates.includes("Descartado");
+    const discardDisabled = !reporte || !canChangeState || busy || !nextStates.includes("Descartado");
     const discardTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)";
     const toggleStateMenu = () => { setConfirming(null); setStateMenuOpen((open) => !open) };
 
     const handleChangeState = async (estado: ApiEstadoReporte) => {
-        if (changingState) return;
+        if (busy) return;
         setChangingState(true);
         try {
             await cambiarEstado(estado);
@@ -81,7 +83,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
 
     // Pasar a histórico se puede deshacer, así que no se pide confirmación.
     const handleHistorico = async () => {
-        if (!reporte || changingHistorico) return;
+        if (!reporte || busy) return;
         const esHistorico = !reporte.es_historico;
         setChangingHistorico(true);
         try {
@@ -195,7 +197,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                                 title: reporte.es_historico ? "Volver a activos" : "Pasar a histórico",
                                 icon: reporte.es_historico ? <LuArchiveRestore /> : <LuArchive />,
                                 onClick: () => { void handleHistorico() },
-                                disabled: changingHistorico,
+                                disabled: busy,
                             }] : []),
                             { id: "descartar", title: "Descartar incidente", icon: <LuTrash2 />, variant: "danger", onClick: () => requestState("Descartado"), disabled: discardDisabled, tooltip: discardTooltip },
                         ]}
@@ -218,7 +220,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                                         ? "Vuelve a Incidentes y deja de contar para el riesgo"
                                         : "Sale de Incidentes y pasa a contar para el mapa de riesgo"}
                                     onClick={() => { void handleHistorico() }}
-                                    disabled={changingHistorico}
+                                    disabled={busy}
                                 />
                             </span>
                         }
@@ -252,13 +254,13 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             ¿Marcar este incidente como <span className="font-semibold text-ink">{confirming}</span>? Es un estado final: después ya no se podrá cambiar.
                         </p>
                         <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={changingState} />
+                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={busy} />
                             <Button
                                 size="sm"
                                 variant={confirming === "Descartado" ? "danger" : "primary"}
                                 title={`Marcar como ${confirming}`}
                                 onClick={() => { void handleChangeState(confirming) }}
-                                disabled={changingState}
+                                disabled={busy}
                             />
                         </div>
                     </div>
@@ -269,7 +271,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             <button
                                 key={estado}
                                 type="button"
-                                disabled={changingState}
+                                disabled={busy}
                                 onClick={() => requestState(estado)}
                                 className="rounded-full border border-line bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-subtle disabled:cursor-wait disabled:opacity-60"
                             >

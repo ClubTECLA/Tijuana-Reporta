@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { crearColaSerial } from "./colaSerial";
 import { cambiarEstadoReporte, cambiarHistoricoReporte, crearComentario, obtenerReporte } from "./reportes.services";
 import { useReportes } from "./useReportes";
 import type { ApiEstadoReporte, ApiReporte } from "@/types/api-types";
@@ -11,6 +12,9 @@ export function useReporteDetalle(reporteId: string) {
     const { refresh } = useReportes();
     const [reporte, setReporte] = useState<ApiReporte | null>(null);
     const [error, setError] = useState<string | null>(null);
+    // El cambio de estado y el de histórico reemplazan el reporte entero con la respuesta: van en la misma cola para
+    // que una respuesta lenta no pise a otra más nueva (p. ej. devolver es_historico: false tras pasarlo a histórico).
+    const [enCola] = useState(crearColaSerial);
 
     useEffect(() => {
         let cancelled = false;
@@ -31,7 +35,7 @@ export function useReporteDetalle(reporteId: string) {
     }, [reporteId]);
 
     /** Cambia el estado (solo roles oficiales); si falla, lanza el error para que la vista lo muestre. */
-    const cambiarEstado = useCallback(async (estado: ApiEstadoReporte) => {
+    const cambiarEstado = useCallback((estado: ApiEstadoReporte) => enCola(async () => {
         try {
             setReporte(await cambiarEstadoReporte(reporteId, estado));
         } catch (err) {
@@ -44,17 +48,17 @@ export function useReporteDetalle(reporteId: string) {
         }
         // La lista y el pin del mapa también muestran el estado.
         void refresh();
-    }, [reporteId, refresh]);
+    }), [enCola, reporteId, refresh]);
 
     /**
      * Pasa el reporte a histórico (sale de Incidentes y cuenta para el riesgo) o lo devuelve a activo. Solo roles
      * oficiales; si falla, lanza el error para que la vista lo muestre.
      */
-    const cambiarHistorico = useCallback(async (esHistorico: boolean) => {
+    const cambiarHistorico = useCallback((esHistorico: boolean) => enCola(async () => {
         setReporte(await cambiarHistoricoReporte(reporteId, esHistorico));
         // La lista y el mapa de Incidentes solo muestran los activos.
         void refresh();
-    }, [reporteId, refresh]);
+    }), [enCola, reporteId, refresh]);
 
     return { reporte, error, comentar, cambiarEstado, cambiarHistorico };
 }
