@@ -248,6 +248,15 @@ type Reporte struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+type ReporteHistoricoPeso struct {
+	ReporteID   uuid.UUID   `json:"reporte_id"`
+	IncidenteID int         `json:"incidente_id"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Geom        interface{} `json:"geom"`
+	Colonia     string      `json:"colonia"`
+	Peso        float64     `json:"peso"`
+}
+
 type ReporteTagCount struct {
 	ReporteID uuid.UUID `json:"reporte_id"`
 	TagID     int       `json:"tag_id"`
