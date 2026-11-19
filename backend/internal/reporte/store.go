@@ -59,6 +59,32 @@ func (s *Store) CreateReporte(ctx context.Context, arg CreateTxParams) (sqlc.Rep
 	return reporte, nil
 }
 
+// CambiarHistorico marca o desmarca el reporte como histórico y lo registra
+// en el historial, en la misma transacción. Si el reporte ya tenía ese valor
+// no cambia nada ni deja historial (idempotente).
+func (s *Store) CambiarHistorico(ctx context.Context, arg CambiarHistoricoTxParams) error {
+	return db.ExecTx(ctx, s.pool, func(q *sqlc.Queries) error {
+		anterior, err := q.GetHistoricoReporteForUpdate(ctx, arg.ID)
+		if err != nil {
+			return err // pgx.ErrNoRows, lo mapea IsNotFound en el service
+		}
+		if anterior == arg.EsHistorico {
+			return nil
+		}
+		if err := q.UpdateHistoricoReporte(ctx, sqlc.UpdateHistoricoReporteParams{
+			ID:          arg.ID,
+			EsHistorico: arg.EsHistorico,
+		}); err != nil {
+			return err
+		}
+		accion := "reporte.desmarcar_historico"
+		if arg.EsHistorico {
+			accion = "reporte.marcar_historico"
+		}
+		return historial.Registrar(ctx, q, arg.ActorID, accion, "reporte", arg.ID.String(), nil)
+	})
+}
+
 // CambiarEstadoReporte actualiza el estado del reporte y registra el cambio
 // (estado anterior y nuevo) en el historial, en la misma transacción.
 // Devuelve ErrTransicionInvalida si el reporte no puede pasar de su

@@ -55,6 +55,7 @@ type Querier interface {
 	GetCorteMantenimiento(ctx context.Context, nombre string) (time.Time, error)
 	GetDefaultRole(ctx context.Context) (Role, error)
 	GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (Estado, error)
+	GetHistoricoReporteForUpdate(ctx context.Context, id uuid.UUID) (bool, error)
 	GetIncidenteById(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteByIdForUpdate(ctx context.Context, id int) (Incidente, error)
 	GetIncidenteIdByReporteId(ctx context.Context, id uuid.UUID) (int, error)
@@ -129,6 +130,7 @@ type Querier interface {
 	SetNewPasswordByUserID(ctx context.Context, arg SetNewPasswordByUserIDParams) error
 	SetPinAsUsedByID(ctx context.Context, id uuid.UUID) (int64, error)
 	UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoReporteParams) (Reporte, error)
+	UpdateHistoricoReporte(ctx context.Context, arg UpdateHistoricoReporteParams) error
 	UpdateIncidente(ctx context.Context, arg UpdateIncidenteParams) (Incidente, error)
 }
 

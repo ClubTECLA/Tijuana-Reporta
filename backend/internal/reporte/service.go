@@ -28,6 +28,7 @@ type store interface {
 	ListReportesPorUbicacion(ctx context.Context, arg sqlc.ListReportesPorUbicacionParams) ([]sqlc.ListReportesPorUbicacionRow, error)
 	ListReportesByUserId(ctx context.Context, arg sqlc.ListReportesByUserIdParams) ([]sqlc.ListReportesByUserIdRow, error)
 	CambiarEstadoReporte(ctx context.Context, arg CambiarEstadoTxParams) (sqlc.Reporte, error)
+	CambiarHistorico(ctx context.Context, arg CambiarHistoricoTxParams) error
 	ActualizarTags(ctx context.Context, arg ActualizarTagsTxParams) error
 	EliminarReporte(ctx context.Context, id, actorID uuid.UUID) error
 }
@@ -289,6 +290,26 @@ func (s *Service) CambiarEstado(ctx context.Context, rol string, userID, id uuid
 		ID: id, Estado: estado, ActorID: userID,
 	})
 
+	if db.IsNotFound(err) {
+		return Detalle{}, ErrNotFound
+	}
+	if err != nil {
+		return Detalle{}, err
+	}
+	return s.Obtener(ctx, id)
+}
+
+// CambiarHistorico marca (true) o desmarca (false) el reporte como
+// histórico. Solo los roles distintos de ciudadano pueden hacerlo. Un
+// reporte histórico sale de Incidentes y cuenta para el riesgo.
+func (s *Service) CambiarHistorico(ctx context.Context, rol string, userID, id uuid.UUID, esHistorico bool) (Detalle, error) {
+	if !PuedeGestionar(rol) {
+		return Detalle{}, ErrHistoricoNoPermitido
+	}
+
+	err := s.store.CambiarHistorico(ctx, CambiarHistoricoTxParams{
+		ID: id, EsHistorico: esHistorico, ActorID: userID,
+	})
 	if db.IsNotFound(err) {
 		return Detalle{}, ErrNotFound
 	}

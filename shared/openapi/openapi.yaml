@@ -49,6 +49,8 @@ paths:
     $ref: './paths/reportes.yaml#/estadoReporte'
   /reportes/{reporteId}/tags:
     $ref: './paths/reportes.yaml#/tagsReporte'
+  /reportes/{reporteId}/historico:
+    $ref: './paths/reportes.yaml#/historicoReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:

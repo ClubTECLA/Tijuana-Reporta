@@ -137,6 +137,15 @@ type CambiarEstadoTxParams struct {
 	ActorID uuid.UUID
 }
 
+// CambiarHistoricoTxParams es lo que necesita marcar o desmarcar un reporte
+// como histórico: el reporte, el valor nuevo y quién lo cambia, para el
+// historial.
+type CambiarHistoricoTxParams struct {
+	ID          uuid.UUID
+	EsHistorico bool
+	ActorID     uuid.UUID
+}
+
 // MaxTagsPorPeticion es cuántos tags puede mandar un usuario en
 // ActualizarTags (el maxItems de ActualizarTagsReporteRequest).
 const MaxTagsPorPeticion = 20

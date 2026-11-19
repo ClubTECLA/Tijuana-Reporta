@@ -235,6 +235,17 @@ func (q *Queries) GetEstadoReporteForUpdate(ctx context.Context, id uuid.UUID) (
 	return estado_actual, err
 }
 
+const getHistoricoReporteForUpdate = `-- name: GetHistoricoReporteForUpdate :one
+SELECT es_historico FROM reporte WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetHistoricoReporteForUpdate(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, getHistoricoReporteForUpdate, id)
+	var es_historico bool
+	err := row.Scan(&es_historico)
+	return es_historico, err
+}
+
 const getIncidenteIdByReporteId = `-- name: GetIncidenteIdByReporteId :one
 SELECT incidente_id FROM reporte WHERE id = $1
 `
@@ -711,4 +722,21 @@ func (q *Queries) UpdateEstadoReporte(ctx context.Context, arg UpdateEstadoRepor
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateHistoricoReporte = `-- name: UpdateHistoricoReporte :exec
+UPDATE reporte
+SET es_historico = $2,
+    updated_at = now()
+WHERE id = $1
+`
+
+type UpdateHistoricoReporteParams struct {
+	ID          uuid.UUID `json:"id"`
+	EsHistorico bool      `json:"es_historico"`
+}
+
+func (q *Queries) UpdateHistoricoReporte(ctx context.Context, arg UpdateHistoricoReporteParams) error {
+	_, err := q.db.Exec(ctx, updateHistoricoReporte, arg.ID, arg.EsHistorico)
+	return err
 }
