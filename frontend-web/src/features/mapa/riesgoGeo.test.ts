@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ApiZonaRiesgo } from "@/types/api-types";
-import { celdasGeoJSON, zonaBounds, zonasGeoJSON } from "./riesgoGeo";
+import { areaCanonica, celdasGeoJSON, zonaBounds, zonasGeoJSON } from "./riesgoGeo";
 
 const zona = (nivel: ApiZonaRiesgo["nivel"], radio_m = 300): ApiZonaRiesgo => ({
     nombre: "Zona", latitude: 32.5, longitude: -117, radio_m, score: 0.5, nivel, reportes: 5,
@@ -37,5 +37,29 @@ describe("riesgoGeo", () => {
         expect(n - s).toBeCloseTo(0.02, 3);
         expect(w).toBeLessThan(-117);
         expect(e).toBeGreaterThan(-117);
+    });
+
+    describe("areaCanonica", () => {
+        it("deja igual una vista normal", () => {
+            expect(areaCanonica(-117.2, 32.4, -116.8, 32.6)).toEqual({ min_lat: 32.4, max_lat: 32.6, min_lng: -117.2, max_lng: -116.8 });
+        });
+
+        it("lleva a -180..180 una copia del mundo desplazada", () => {
+            const derecha = areaCanonica(242, 32.4, 244, 32.6);
+            expect(derecha.min_lng).toBeCloseTo(-118, 9);
+            expect(derecha.max_lng).toBeCloseTo(-116, 9);
+            const izquierda = areaCanonica(-478, 32.4, -476, 32.6);
+            expect(izquierda.min_lng).toBeCloseTo(-118, 9);
+            expect(izquierda.max_lng).toBeCloseTo(-116, 9);
+        });
+
+        it("pide todas las longitudes si cruza el antimeridiano o ve el mundo entero", () => {
+            expect(areaCanonica(170, 0, 190, 10)).toMatchObject({ min_lng: -180, max_lng: 180 });
+            expect(areaCanonica(-200, -80, 300, 80)).toMatchObject({ min_lng: -180, max_lng: 180 });
+        });
+
+        it("limita la latitud al rango del contrato", () => {
+            expect(areaCanonica(-10, -95, 10, 95)).toMatchObject({ min_lat: -90, max_lat: 90 });
+        });
     });
 });

@@ -60,6 +60,27 @@ type Area struct {
 	MinLng, MaxLng float64
 }
 
+// AnchoMaxTramoGrados es el ancho máximo, en longitud, de cada tramo en que se
+// parte el área del mapa de calor. ListCeldasCalor filtra con geography, donde
+// los bordes del rectángulo son arcos de círculo máximo: con 180° o más de
+// ancho el rectángulo se interpreta al revés (devuelve 0 filas) o la consulta
+// falla ("Antipodal edge"), algo que pasa con el mapa muy alejado.
+const AnchoMaxTramoGrados = 90.0
+
+// PartirArea divide el área en tramos de longitud contiguos de a lo más
+// AnchoMaxTramoGrados. Un área normal (la ciudad) queda en un solo tramo.
+func PartirArea(a Area) []Area {
+	n := max(1, int(math.Ceil((a.MaxLng-a.MinLng)/AnchoMaxTramoGrados)))
+	ancho := (a.MaxLng - a.MinLng) / float64(n)
+	tramos := make([]Area, n)
+	for i := range tramos {
+		tramos[i] = Area{MinLat: a.MinLat, MaxLat: a.MaxLat, MinLng: a.MinLng + float64(i)*ancho, MaxLng: a.MinLng + float64(i+1)*ancho}
+	}
+	// El último cierra exactamente en el borde pedido, sin error de redondeo.
+	tramos[n-1].MaxLng = a.MaxLng
+	return tramos
+}
+
 type CeldaCalor struct {
 	Latitude  float64
 	Longitude float64

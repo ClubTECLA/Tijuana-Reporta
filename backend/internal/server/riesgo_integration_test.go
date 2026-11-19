@@ -134,6 +134,24 @@ func TestRiesgo(t *testing.T) {
 		}
 	})
 
+	// Con el mapa muy alejado la caja abarca 180° o más de longitud: sin partirla, PostGIS devolvía 0 celdas (o
+	// fallaba con exactamente 180°).
+	t.Run("mapa de calor con el mundo entero", func(t *testing.T) {
+		tc := *admin
+		tc.t = t
+		for _, lng := range []string{"min_lng=-180&max_lng=180", "min_lng=-180&max_lng=0"} {
+			mapa := decode[httpapi.MapaCalor](t, tc.expect(http.StatusOK, http.MethodGet,
+				fmt.Sprintf("/v1/riesgo/mapa-calor?min_lat=-85&max_lat=85&%s&zoom=0&incidente_id=%d", lng, inc.Id), nil))
+			total := 0
+			for _, c := range mapa.Celdas {
+				total += c.Reportes
+			}
+			if total != 6 {
+				t.Errorf("%s: reportes en las celdas = %d, quería 6", lng, total)
+			}
+		}
+	})
+
 	t.Run("validaciones", func(t *testing.T) {
 		tc := *admin
 		tc.t = t

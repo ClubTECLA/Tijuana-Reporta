@@ -6,7 +6,7 @@ import { useRiesgo } from "@/features/riesgo/useRiesgo";
 import { formatScore, NIVEL_COLORS } from "@/features/riesgo/riesgo";
 import { setupMapLayers } from "./mapLayers";
 import { useMap } from "./useMap";
-import { celdasGeoJSON, zonaBounds, zonasGeoJSON } from "./riesgoGeo";
+import { areaCanonica, celdasGeoJSON, zonaBounds, zonasGeoJSON } from "./riesgoGeo";
 
 // Capa de riesgo del mapa (pantalla "28. Riesgo" del Figma): mapa de calor de los reportes históricos y las zonas de
 // riesgo como círculos punteados con su nombre e índice. Solo existe mientras el panel "Riesgo" está abierto.
@@ -47,11 +47,8 @@ export default function RiesgoLayer() {
             timeoutId = setTimeout(() => {
                 const bounds = map.getBounds();
                 cargarMapaCalor({
-                    min_lat: bounds.getSouth(),
-                    max_lat: bounds.getNorth(),
-                    // Con el mapa girado o muy alejado la caja puede salirse de ±180.
-                    min_lng: Math.max(-180, bounds.getWest()),
-                    max_lng: Math.min(180, bounds.getEast()),
+                    // Al desplazarse por las copias del mundo las longitudes pasan de ±180: se llevan a -180..180.
+                    ...areaCanonica(bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()),
                     zoom: Math.min(22, Math.max(0, map.getZoom())),
                 });
             }, DEBOUNCE_MS);

@@ -20,14 +20,16 @@ type fakeStore struct {
 	categorias []sqlc.ListConteoCategoriasRow
 	err        error
 
-	argCeldas     *sqlc.ListCeldasCalorParams
-	argZonas      *sqlc.ListZonasRiesgoParams
-	argColonias   *sqlc.ListColoniasHistoricoParams
-	argCategorias *sqlc.ListConteoCategoriasParams
+	argCeldas      *sqlc.ListCeldasCalorParams
+	llamadasCeldas []sqlc.ListCeldasCalorParams
+	argZonas       *sqlc.ListZonasRiesgoParams
+	argColonias    *sqlc.ListColoniasHistoricoParams
+	argCategorias  *sqlc.ListConteoCategoriasParams
 }
 
 func (f *fakeStore) ListCeldasCalor(ctx context.Context, arg sqlc.ListCeldasCalorParams) ([]sqlc.ListCeldasCalorRow, error) {
 	f.argCeldas = &arg
+	f.llamadasCeldas = append(f.llamadasCeldas, arg)
 	return f.celdas, f.err
 }
 
@@ -130,6 +132,56 @@ func TestService_ObtenerMapaCalor(t *testing.T) {
 	}
 	if !reflect.DeepEqual(*f.argCeldas, want) {
 		t.Errorf("ListCeldasCalor() arg = %+v, want %+v", *f.argCeldas, want)
+	}
+}
+
+func TestPartirArea(t *testing.T) {
+	if got := PartirArea(areaTijuana); !reflect.DeepEqual(got, []Area{areaTijuana}) {
+		t.Errorf("PartirArea(Tijuana) = %+v, want el área sin partir", got)
+	}
+
+	// Con el mapa muy alejado: el mundo entero en 4 tramos de 90°, contiguos.
+	mundo := Area{MinLat: -85, MaxLat: 85, MinLng: -180, MaxLng: 180}
+	tramos := PartirArea(mundo)
+	if len(tramos) != 4 {
+		t.Fatalf("PartirArea(mundo) = %d tramos, want 4", len(tramos))
+	}
+	for i, tr := range tramos {
+		if tr.MaxLng-tr.MinLng > AnchoMaxTramoGrados || tr.MinLat != -85 || tr.MaxLat != 85 {
+			t.Errorf("tramo %d = %+v, want ≤ %v° y la latitud completa", i, tr, AnchoMaxTramoGrados)
+		}
+		if i > 0 && tr.MinLng != tramos[i-1].MaxLng {
+			t.Errorf("tramo %d empieza en %v, want %v (contiguo)", i, tr.MinLng, tramos[i-1].MaxLng)
+		}
+	}
+	if tramos[0].MinLng != -180 || tramos[3].MaxLng != 180 {
+		t.Errorf("tramos = %+v, want de -180 a 180", tramos)
+	}
+
+	// Exactamente 180° ya da "Antipodal edge" en PostGIS: debe partirse.
+	if n := len(PartirArea(Area{MinLng: -180, MaxLng: 0})); n != 2 {
+		t.Errorf("PartirArea(180°) = %d tramos, want 2", n)
+	}
+}
+
+func TestService_ObtenerMapaCalor_AreaAncha(t *testing.T) {
+	// El store devuelve las mismas celdas en cada tramo: deben juntarse por su centro.
+	f := &fakeStore{celdas: []sqlc.ListCeldasCalorRow{
+		{Latitude: 32.5, Longitude: -117, Peso: 2.5, Reportes: 3},
+		{Latitude: 32.51, Longitude: -117.01, Peso: 7, Reportes: 7},
+	}}
+	mapa, err := NewService(f).ObtenerMapaCalor(t.Context(), Area{MinLat: -85, MaxLat: 85, MinLng: -180, MaxLng: 180}, 0, Filtro{})
+	if err != nil {
+		t.Fatalf("ObtenerMapaCalor() error = %v", err)
+	}
+	if len(f.llamadasCeldas) != 4 {
+		t.Fatalf("ListCeldasCalor llamado %d veces, want 4 (un tramo de 90° cada una)", len(f.llamadasCeldas))
+	}
+	if len(mapa.Celdas) != 2 || mapa.Celdas[0].Reportes != 12 || mapa.Celdas[1].Peso != 28 {
+		t.Errorf("Celdas = %+v, want 2 celdas con los 4 tramos sumados", mapa.Celdas)
+	}
+	if mapa.PesoMaximo != 28 {
+		t.Errorf("PesoMaximo = %v, want 28", mapa.PesoMaximo)
 	}
 }
 

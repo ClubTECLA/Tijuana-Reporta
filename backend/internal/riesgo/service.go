@@ -36,31 +36,43 @@ func (s *Service) ObtenerMapaCalor(ctx context.Context, area Area, zoom float64,
 	}
 
 	tamano := TamanoCelda(zoom)
-	filas, err := s.store.ListCeldasCalor(ctx, sqlc.ListCeldasCalorParams{
-		TamanoCeldaM: tamano,
-		MinLng:       area.MinLng,
-		MinLat:       area.MinLat,
-		MaxLng:       area.MaxLng,
-		MaxLat:       area.MaxLat,
-		IncidenteIds: idsONil(filtro.IncidenteIDs),
-		Desde:        filtro.Desde,
-		Hasta:        filtro.Hasta,
-	})
-	if err != nil {
-		return MapaCalor{}, err
-	}
-
-	mapa := MapaCalor{TamanoCeldaM: tamano, Celdas: make([]CeldaCalor, 0, len(filas))}
-	for _, f := range filas {
-		mapa.Celdas = append(mapa.Celdas, CeldaCalor{
-			Latitude:  f.Latitude,
-			Longitude: f.Longitude,
-			Peso:      f.Peso,
-			Reportes:  f.Reportes,
+	mapa := MapaCalor{TamanoCeldaM: tamano, Celdas: []CeldaCalor{}}
+	// Una celda puede salir en dos tramos vecinos (sus reportes caen a ambos
+	// lados del borde): se junta por su centro, que es el mismo nodo de la
+	// cuadrícula en los dos.
+	indice := map[[2]float64]int{}
+	for _, tramo := range PartirArea(area) {
+		filas, err := s.store.ListCeldasCalor(ctx, sqlc.ListCeldasCalorParams{
+			TamanoCeldaM: tamano,
+			MinLng:       tramo.MinLng,
+			MinLat:       tramo.MinLat,
+			MaxLng:       tramo.MaxLng,
+			MaxLat:       tramo.MaxLat,
+			IncidenteIds: idsONil(filtro.IncidenteIDs),
+			Desde:        filtro.Desde,
+			Hasta:        filtro.Hasta,
 		})
-		if f.Peso > mapa.PesoMaximo {
-			mapa.PesoMaximo = f.Peso
+		if err != nil {
+			return MapaCalor{}, err
 		}
+		for _, f := range filas {
+			clave := [2]float64{f.Latitude, f.Longitude}
+			if i, ok := indice[clave]; ok {
+				mapa.Celdas[i].Peso += f.Peso
+				mapa.Celdas[i].Reportes += f.Reportes
+				continue
+			}
+			indice[clave] = len(mapa.Celdas)
+			mapa.Celdas = append(mapa.Celdas, CeldaCalor{
+				Latitude:  f.Latitude,
+				Longitude: f.Longitude,
+				Peso:      f.Peso,
+				Reportes:  f.Reportes,
+			})
+		}
+	}
+	for _, c := range mapa.Celdas {
+		mapa.PesoMaximo = max(mapa.PesoMaximo, c.Peso)
 	}
 	return mapa, nil
 }

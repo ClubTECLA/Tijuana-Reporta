@@ -89,6 +89,15 @@ por celda, la suma de los pesos y cuántos reportes cayeron en ella.
   como el centro de la celda.
 - El filtro por área (`&&` sobre `geography`) usa el índice GiST de
   `puntos_origen.geom`.
+- **Áreas anchas:** en `geography` los bordes del rectángulo son arcos de círculo
+  máximo. Con 180° o más de longitud se interpreta al revés (0 filas), y con
+  exactamente 180° PostGIS falla ("Antipodal edge"). Pasa con el mapa muy alejado.
+  Por eso el servicio parte el área en tramos de a lo más 90° (`PartirArea`), hace
+  una consulta por tramo y junta por su centro las celdas que salen en dos tramos.
+  El área de la ciudad queda en un solo tramo.
+- El área llega siempre en longitudes de -180 a 180 (lo exige el contrato). El web
+  convierte las de las copias del mundo que repite MapLibre al desplazarse, y si la
+  vista cruza el antimeridiano pide todas las longitudes.
 - **Tamaño de celda según el zoom:** unos 32 px en pantalla. A la latitud de Tijuana
   un píxel mide ≈ 132 030 / 2^zoom metros, así que la celda es
   `132 030 / 2^zoom × 32` m, limitada a [50 m, 5 km]: ≈ 4.1 km en zoom 10, 516 m en
