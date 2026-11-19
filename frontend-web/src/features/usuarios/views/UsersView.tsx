@@ -186,7 +186,7 @@ export default function UserView() {
                 </SegmentedTabs>
                 <SearchBar
                     onChangeQuery={handleChangeSearch}
-                    placeholder="Buscar por nombre, telefono o folio"
+                    placeholder="Buscar por nombre o correo electrónico"
                 />
                 <FilterSelected
                     label="Rol"

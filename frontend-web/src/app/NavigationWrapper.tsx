@@ -142,8 +142,8 @@ export default function NavigationWrapper() {
 
     return (
         <section className="pointer-events-none fixed inset-0 z-50">
-            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 sm:flex sm:justify-end">
-                <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
+            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 sm:inset-x-4 sm:flex sm:justify-end sm:gap-2">
+                <div className="relative z-10 col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:flex-5/6">
                     <div className="min-w-0 flex-1 sm:flex-1/3">
                         <SearchBar
                             onSubmit={handleSearchAddress}
