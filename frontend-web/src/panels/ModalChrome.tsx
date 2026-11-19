@@ -1,4 +1,10 @@
-import { createElement, useEffect, useRef, useState, type ComponentType } from "react";
+import {
+  createElement,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { modalRegistry } from "./modalRegistry";
@@ -6,182 +12,222 @@ import type { ModalViewKey, ModalViewProps } from "./modalTypes";
 import useModals from "./useModals";
 
 interface ModalChromeProps {
-    fullFocus?: boolean;
+  fullFocus?: boolean;
 }
 
-function renderModal<K extends ModalViewKey>(view: K, props: ModalViewProps<K>) {
-    const ModalView = modalRegistry[view] as ComponentType<object>;
-    return createElement(ModalView, props);
+function renderModal<K extends ModalViewKey>(
+  view: K,
+  props: ModalViewProps<K>,
+) {
+  const ModalView = modalRegistry[view] as ComponentType<object>;
+  return createElement(ModalView, props);
 }
 
 export default function ModalChrome({ fullFocus }: ModalChromeProps) {
-    const { modal, position, setPosition } = useModals();
-    const [isDragging, setIsDragging] = useState(false);
-    const dragStartPos = useRef({ x: 0, y: 0 });
-    const modalPosAtStart = useRef({ x: 0, y: 0 });
-    const modalRef = useRef<HTMLElement>(null);
-    const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-    const previousFocusContextRef = useRef<HTMLElement[]>([]);
-    const wasFullFocusRef = useRef(false);
-    const shouldFullFocus = fullFocus ?? modal?.fullFocus ?? false;
+  const { modal, position, setPosition } = useModals();
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const modalPosAtStart = useRef({ x: 0, y: 0 });
+  const modalRef = useRef<HTMLElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const previousFocusContextRef = useRef<HTMLElement[]>([]);
+  const wasFullFocusRef = useRef(false);
+  const shouldFullFocus = fullFocus ?? modal?.fullFocus ?? false;
+  const draggable = !shouldFullFocus;
 
-    useEffect(() => {
-        const getFocusableElements = (container: ParentNode) =>
-            Array.from(container.querySelectorAll<HTMLElement>(
-                'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable="true"]',
-            )).filter((element) => {
-                const style = window.getComputedStyle(element);
-                return (
-                    element.tabIndex >= 0
-                    && !element.matches(":disabled")
-                    && !element.hasAttribute("hidden")
-                    && element.getAttribute("aria-hidden") !== "true"
-                    && style.display !== "none"
-                    && style.visibility !== "hidden"
-                    && element.getClientRects().length > 0
-                );
-            });
+  useEffect(() => {
+    const getFocusableElements = (container: ParentNode) =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable="true"]',
+        ),
+      ).filter((element) => {
+        const style = window.getComputedStyle(element);
+        return (
+          element.tabIndex >= 0 &&
+          !element.matches(":disabled") &&
+          !element.hasAttribute("hidden") &&
+          element.getAttribute("aria-hidden") !== "true" &&
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          element.getClientRects().length > 0
+        );
+      });
 
-        if (!shouldFullFocus || !modal) {
-            if (wasFullFocusRef.current) {
-                wasFullFocusRef.current = false;
-                const previouslyFocused = previouslyFocusedRef.current;
-                previouslyFocusedRef.current = null;
-                const previousFocusContext = previousFocusContextRef.current;
-                previousFocusContextRef.current = [];
-                const focusTarget = previouslyFocused?.isConnected
-                    && getFocusableElements(document).includes(previouslyFocused)
-                    ? previouslyFocused
-                    : previousFocusContext
-                        .filter((container) => container.isConnected)
-                        .flatMap(getFocusableElements)
-                        .find((element) => !modalRef.current?.contains(element))
-                        ?? getFocusableElements(document).find((element) => !modalRef.current?.contains(element));
-                focusTarget?.focus();
-            }
-            return;
-        }
+    if (!shouldFullFocus || !modal) {
+      if (wasFullFocusRef.current) {
+        wasFullFocusRef.current = false;
+        const previouslyFocused = previouslyFocusedRef.current;
+        previouslyFocusedRef.current = null;
+        const previousFocusContext = previousFocusContextRef.current;
+        previousFocusContextRef.current = [];
+        const focusTarget =
+          previouslyFocused?.isConnected &&
+          getFocusableElements(document).includes(previouslyFocused)
+            ? previouslyFocused
+            : (previousFocusContext
+                .filter((container) => container.isConnected)
+                .flatMap(getFocusableElements)
+                .find((element) => !modalRef.current?.contains(element)) ??
+              getFocusableElements(document).find(
+                (element) => !modalRef.current?.contains(element),
+              ));
+        focusTarget?.focus();
+      }
+      return;
+    }
 
-        if (!wasFullFocusRef.current) {
-            const activeElement = document.activeElement;
-            previouslyFocusedRef.current = activeElement instanceof HTMLElement ? activeElement : null;
-            previousFocusContextRef.current = [];
-            for (
-                let parent = activeElement instanceof HTMLElement ? activeElement.parentElement : null;
-                parent;
-                parent = parent.parentElement
-            ) {
-                previousFocusContextRef.current.push(parent);
-            }
-            wasFullFocusRef.current = true;
-        }
+    if (!wasFullFocusRef.current) {
+      const activeElement = document.activeElement;
+      previouslyFocusedRef.current =
+        activeElement instanceof HTMLElement ? activeElement : null;
+      previousFocusContextRef.current = [];
+      for (
+        let parent =
+          activeElement instanceof HTMLElement
+            ? activeElement.parentElement
+            : null;
+        parent;
+        parent = parent.parentElement
+      ) {
+        previousFocusContextRef.current.push(parent);
+      }
+      wasFullFocusRef.current = true;
+    }
 
-        const modalElement = modalRef.current;
-        if (!modalElement) return;
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
 
-        const focusableElements = getFocusableElements(modalElement);
-        (focusableElements[0] ?? modalElement).focus();
+    const focusableElements = getFocusableElements(modalElement);
+    (focusableElements[0] ?? modalElement).focus();
 
-        const containTabFocus = (event: KeyboardEvent) => {
-            if (event.key !== "Tab") return;
+    const containTabFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
 
-            const currentModal = modalRef.current;
-            if (!currentModal) return;
+      const currentModal = modalRef.current;
+      if (!currentModal) return;
 
-            const currentFocusableElements = getFocusableElements(currentModal);
-            const first = currentFocusableElements[0];
-            const last = currentFocusableElements[currentFocusableElements.length - 1];
-            const activeElement = document.activeElement;
-            const isWithinModal = currentModal.contains(activeElement);
-            const isFocusable = activeElement instanceof HTMLElement
-                && currentFocusableElements.includes(activeElement);
+      const currentFocusableElements = getFocusableElements(currentModal);
+      const first = currentFocusableElements[0];
+      const last =
+        currentFocusableElements[currentFocusableElements.length - 1];
+      const activeElement = document.activeElement;
+      const isWithinModal = currentModal.contains(activeElement);
+      const isFocusable =
+        activeElement instanceof HTMLElement &&
+        currentFocusableElements.includes(activeElement);
 
-            if (!first || !last) {
-                event.preventDefault();
-                currentModal.focus();
-            } else if (!isWithinModal || !isFocusable) {
-                event.preventDefault();
-                (event.shiftKey ? last : first).focus();
-            } else if (event.shiftKey && (activeElement === first || activeElement === currentModal)) {
-                event.preventDefault();
-                last.focus();
-            } else if (!event.shiftKey && activeElement === last) {
-                event.preventDefault();
-                first.focus();
-            }
-        };
-
-        document.addEventListener("keydown", containTabFocus, true);
-        return () => document.removeEventListener("keydown", containTabFocus, true);
-    }, [modal, shouldFullFocus]);
-
-    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (e.button !== 0) return;
-
-        // Capturar el puntero permite continuar el arrastre aunque el cursor salga del control.
-        setIsDragging(true);
-        dragStartPos.current = { x: e.clientX, y: e.clientY };
-        modalPosAtStart.current = { ...position };
-        e.currentTarget.setPointerCapture(e.pointerId);
+      if (!first || !last) {
+        event.preventDefault();
+        currentModal.focus();
+      } else if (!isWithinModal || !isFocusable) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (
+        event.shiftKey &&
+        (activeElement === first || activeElement === currentModal)
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
-    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!isDragging) return;
+    document.addEventListener("keydown", containTabFocus, true);
+    return () => document.removeEventListener("keydown", containTabFocus, true);
+  }, [modal, shouldFullFocus]);
 
-        setPosition({
-            x: modalPosAtStart.current.x + e.clientX - dragStartPos.current.x,
-            y: modalPosAtStart.current.y + e.clientY - dragStartPos.current.y,
-        });
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+
+    // Capturar el puntero permite continuar el arrastre aunque el cursor salga del control.
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    modalPosAtStart.current = { ...position };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const VISIBLE_MARGIN = 48;
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+
+    const next = {
+      x: modalPosAtStart.current.x + e.clientX - dragStartPos.current.x,
+      y: modalPosAtStart.current.y + e.clientY - dragStartPos.current.y,
     };
+    const rect = modalRef.current?.getBoundingClientRect();
+    if (rect) {
+      const left = rect.left + (next.x - position.x);
+      const top = rect.top + (next.y - position.y);
+      const clampedLeft = Math.min(
+        Math.max(left, VISIBLE_MARGIN - rect.width),
+        window.innerWidth - VISIBLE_MARGIN,
+      );
+      const clampedTop = Math.min(
+        Math.max(top, 0),
+        window.innerHeight - VISIBLE_MARGIN,
+      );
+      next.x += clampedLeft - left;
+      next.y += clampedTop - top;
+    }
+    setPosition(next);
+  };
 
-    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!isDragging) return;
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
 
-        setIsDragging(false);
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-            e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-    };
+    setIsDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
 
-    if (!modal) return null;
+  if (!modal) return null;
 
-    return createPortal(
-        <>
-            {shouldFullFocus && (
-                <div
-                    aria-hidden="true"
-                    className="fixed inset-0 z-[59] bg-black/20 backdrop-blur-sm"
-                />
-            )}
-            <section
-                ref={modalRef}
-                tabIndex={shouldFullFocus ? -1 : undefined}
-                style={{
-                    transform: shouldFullFocus
-                        ? `translate3d(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px), 0)`
-                        : `translate3d(${position.x}px, ${position.y}px, 0)`,
-                }}
-                className={`
+  return createPortal(
+    <>
+      {shouldFullFocus && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-[59] bg-black/20 backdrop-blur-sm"
+        />
+      )}
+      <section
+        ref={modalRef}
+        tabIndex={shouldFullFocus ? -1 : undefined}
+        style={{
+          transform: shouldFullFocus
+            ? `translate3d(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px), 0)`
+            : `translate3d(${position.x}px, ${position.y}px, 0)`,
+        }}
+        className={`
                     fixed z-[60] w-fit pointer-events-auto
                     flex flex-col items-center justify-center
                     rounded-xl bg-white shadow-float
-                    ${shouldFullFocus
+                    ${
+                      shouldFullFocus
                         ? "left-1/2 top-1/2 max-w-[calc(100vw-2rem)]"
-                        : "right-3 top-34 max-w-[calc(100vw-1.5rem)] sm:right-5 sm:max-w-[calc(100vw-2.5rem)] lg:top-20"}
+                        : "right-3 top-34 max-w-[calc(100vw-1.5rem)] sm:right-5 sm:max-w-[calc(100vw-2.5rem)] lg:top-20"
+                    }
                 `}
-            >
-                <div
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerCancel={handlePointerUp}
-                    className={`touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-                >
-                    <HiOutlineDotsHorizontal />
-                </div>
-                {renderModal(modal.view, modal.props)}
-            </section>
-        </>,
-        document.body,
-    );
+      >
+        {draggable && (
+          <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className={`touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+          >
+            <HiOutlineDotsHorizontal />
+          </div>
+        )}
+        {renderModal(modal.view, modal.props)}
+      </section>
+    </>,
+    document.body,
+  );
 }
