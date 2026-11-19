@@ -145,7 +145,7 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
             border-l-4 ${currentStyle.barClass} rounded-2xl shadow-float
             w-max max-w-[90vw] bg-surface
             transition-all duration-300 ease-out font-sn-pro
-            ${animate ? "top-20 opacity-100 scale-100" : "top-0 opacity-0 scale-95 pointer-events-none"}
+            ${animate ? "top-34 opacity-100 scale-100 lg:top-20" : "top-0 opacity-0 scale-95 pointer-events-none"}
         `}>
             {currentStyle.icon}
             <div className={`flex flex-col break-words whitespace-normal`}>

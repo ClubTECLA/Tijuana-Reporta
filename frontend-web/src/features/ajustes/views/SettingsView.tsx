@@ -75,7 +75,7 @@ function CategoriesSection({debug} : subsectionProps) {
             <RowSection className="min-h-0 min-w-0 max-w-full flex-col items-stretch gap-2 overflow-y-auto sm:min-h-130 sm:flex-row sm:items-start sm:overflow-x-auto">
                 <SubSection
                     format={'nothing'}
-                    className="min-w-0 w-fit overflow-x-hidden"
+                    className="min-w-0 w-fit max-w-full overflow-x-hidden"
                 >
                     <Table
                         format='col'

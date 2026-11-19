@@ -16,7 +16,7 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                 relative flex h-14 shrink-0
                 flex-row items-center gap-2.5
                 rounded-full border border-white bg-white
-                py-1.5 pl-1.5 ${open ? 'pr-4.5' : 'pr-1.5'}
+                py-1.5 pl-1.5 ${open ? 'pr-4.5' : 'pr-1.5'} max-sm:pr-1.5
                 font-ui
                 shadow-raised
                 transition-[padding] duration-700 ease-out
@@ -38,8 +38,9 @@ export default function UserProfileWidget({className, onClick} : componentProps)
                 }
             </div>
 
+            {/* En móvil solo el avatar, para dejar sitio al buscador; el nombre sigue para lectores de pantalla. */}
             <div
-                className={`flex shrink-0 flex-col items-start overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-700 ease-out ${
+                className={`flex shrink-0 flex-col items-start overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-700 ease-out max-sm:sr-only ${
                     open
                     ? "max-w-48 opacity-100"
                     : "pointer-events-none max-w-0 opacity-0"

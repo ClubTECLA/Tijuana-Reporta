@@ -71,7 +71,7 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
                     rounded-xl bg-white shadow-float
                     ${shouldFullFocus
                         ? "left-1/2 top-1/2 max-w-[calc(100vw-2rem)]"
-                        : "right-3 top-[6.5rem] max-w-1/2 sm:right-5 sm:top-20"}
+                        : "right-3 top-34 max-w-[calc(100vw-1.5rem)] sm:right-5 sm:max-w-[calc(100vw-2.5rem)] lg:top-20"}
                 `}
             >
                 <div
