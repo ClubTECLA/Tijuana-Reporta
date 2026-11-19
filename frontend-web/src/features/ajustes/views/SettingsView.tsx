@@ -16,9 +16,11 @@ import type { subsectionProps } from "@/types/utils-types";
 import { listarIncidentes } from "@/features/categorias/incidentes.services";
 import { useSysMessage } from "@/components/ui/SysMessageContext";
 import { MdDeleteForever } from "react-icons/md";
+import useModals from "@/panels/useModals";
 
 function CategoriesSection({debug} : subsectionProps) {
     const { showMessage } = useSysMessage();
+    const { openModal } = useModals();
     const [categories, setCategories] = useState<ApiIncidente[]>([]);
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
@@ -130,7 +132,16 @@ function CategoriesSection({debug} : subsectionProps) {
                                             icon: <MdDeleteForever/>,
                                         }}
                                         onClick={() => {
-                                            setOpenForm(true);
+                                            openModal(
+                                                "Confirmar eliminación de incidente",
+                                                {
+                                                    incident: { id: c.id, nombre: c.nombre },
+                                                    onDeleted: (incidentId) => {
+                                                        setCategories((prev) => prev.filter((category) => category.id !== incidentId));
+                                                    },
+                                                },
+                                                { fullFocus: true },
+                                            );
                                         }}
                                     />
                                 </TCell>
@@ -144,7 +155,7 @@ function CategoriesSection({debug} : subsectionProps) {
                         format='col'
                         category={selectedCategory}
                         onClose={() => setOpenForm(false)}
-                        onCreateCategory={() => setLoadCategories(true)}
+                        onSaveCategory={() => setLoadCategories(true)}
                     />
                 }
             </RowSection>

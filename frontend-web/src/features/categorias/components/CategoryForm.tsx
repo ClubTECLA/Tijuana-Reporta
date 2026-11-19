@@ -1,41 +1,27 @@
-import type { ApiCrearIncidenteRequest, ApiIncidente } from "@/types/api-types";
+import type { ApiActualizarIncidenteRequest, ApiCrearIncidenteRequest, ApiIncidente } from "@/types/api-types";
 import type { HexColor, subsectionProps } from "@/types/utils-types";
 import SubSection from "@/components/layout/SubSection";
 import { FiPlus, FiUpload } from "react-icons/fi";
 import Input from "@/components/ui/Input";
 import { ColorSwatchSelector, CustomColorPickerButton, SwatchItem } from "@/components/ui/ColorSwatchSelector";
-import { useState, useEffect, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { CreateTagButton, Tag, TagPicker } from "@/components/ui/TagPicker";
 import Button from "@/components/ui/Button";
 import { useSysMessage, SysMessage } from "@/components/ui/SysMessageContext";
-import { crearIncidente } from "@/features/categorias/incidentes.services";
+import { actualizarIncidente, crearIncidente } from "@/features/categorias/incidentes.services";
 
 interface CategoryFormProp extends subsectionProps {
     category?: ApiIncidente | null
     onClose?: () => void
-    onCreateCategory?: () => void
+    onSaveCategory?: () => void
 }
 
-export default function CategoryForm({format, debug, category, onClose, onCreateCategory } : CategoryFormProp) {
+export default function CategoryForm({format, debug, category, onClose, onSaveCategory } : CategoryFormProp) {
     const {showMessage} = useSysMessage();
     const isEdit = !!category;
     const [ submitting, setSubmitting ] = useState(false);
-    const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>({
-        id: 0,
-        nombre: "",
-        etiqueta: "",
-        color: '#066ed6',
-        tiempo_limite: 0,
-        radio: 0,
-        tags: [],
-        esta_activo: false
-    })
-
-    useEffect(() => {
-        if(category)
-            setCategoryForEdit(category);
-        else{
-            setCategoryForEdit({
+    const [ categoryForEdit, setCategoryForEdit] = useState<ApiIncidente>(
+        () => category ?? {
                 id: 0,
                 nombre: "",
                 etiqueta: "",
@@ -44,10 +30,8 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                 radio: 0,
                 tags: [],
                 esta_activo: false
-            })
-            
-        }
-    }, [category])
+            },
+    );
 
     const handleChangeInputs = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -79,80 +63,78 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
         }));
     }
 
-    const handleSubmitForm = () => {
-        if(categoryForEdit.nombre === ""){
+    const handleSubmitForm = async () => {
+        const nombre = categoryForEdit.nombre.trim();
+        if(nombre === ""){
             showMessage("Es necesario que ingreses un nombre para la categoria", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
             return;
         }
-        try{
-            if (categoryForEdit.nombre.length > 100) {
-                showMessage("El nombre debe tener máximo 100 caracteres", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
-                return;
-            }
-            if (categoryForEdit.radio != null && (!Number.isFinite(categoryForEdit.radio) || categoryForEdit.radio < 0)) {
-                showMessage("El radio debe ser un número mayor o igual a 0", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
-                return;
-            }
-            
-            const tags = categoryForEdit.tags.map(({ nombre, peso }) => ({
-                nombre: nombre.trim(),
-                peso
-            }));
-            const tagNames = tags.map(({ nombre }) => nombre.toLowerCase());
-            if (
-                tags.some(({ nombre }) => nombre === "") ||
+        if (nombre.length > 100) {
+            showMessage("El nombre debe tener máximo 100 caracteres", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+            return;
+        }
+        if (categoryForEdit.radio != null && (!Number.isFinite(categoryForEdit.radio) || categoryForEdit.radio < 0)) {
+            showMessage("El radio debe ser un número mayor o igual a 0", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+            return;
+        }
+
+        const tags = categoryForEdit.tags.map(({ nombre: tagName, peso }) => ({
+            nombre: tagName.trim(),
+            peso
+        }));
+        const tagNames = tags.map(({ nombre: tagName }) => tagName.toLowerCase());
+        if (
+            !isEdit &&
+            (
+                tags.some(({ nombre: tagName }) => tagName === "") ||
                 new Set(tagNames).size !== tagNames.length
-            ) {
-                showMessage("Las etiquetas deben tener nombres únicos y no vacíos", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
-                return;
+            )
+        ) {
+            showMessage("Las etiquetas deben tener nombres únicos y no vacíos", {'color': 'red', 'showTime': 3000, 'type': 'inline'});
+            return;
+        }
+
+        const incidentRequest: ApiCrearIncidenteRequest = {
+            nombre,
+            etiqueta: categoryForEdit.etiqueta.length === 0 ? undefined : (categoryForEdit.etiqueta[0].toUpperCase() + categoryForEdit.etiqueta.slice(1).toLowerCase()),
+            tiempo_limite: categoryForEdit.tiempo_limite ?? undefined,
+            radio: categoryForEdit.radio ?? undefined,
+            esta_activo: isEdit ? categoryForEdit.esta_activo : true,
+            color: categoryForEdit.color,
+            tags
+        };
+
+        setSubmitting(true);
+        try {
+            if (isEdit) {
+                const updateRequest: ApiActualizarIncidenteRequest = {
+                    nombre,
+                    etiqueta: categoryForEdit.etiqueta.trim() || nombre,
+                    tiempo_limite: categoryForEdit.tiempo_limite,
+                    radio: categoryForEdit.radio,
+                    color: categoryForEdit.color,
+                    esta_activo: categoryForEdit.esta_activo,
+                };
+                await actualizarIncidente(categoryForEdit.id, updateRequest);
+            } else {
+                await crearIncidente(incidentRequest);
             }
 
-            const incidentRequest: ApiCrearIncidenteRequest = {
-                nombre: categoryForEdit.nombre,
-                etiqueta: categoryForEdit.etiqueta.length === 0 ? undefined : (categoryForEdit.etiqueta[0].toUpperCase() + categoryForEdit.etiqueta.slice(1).toLowerCase()),
-                tiempo_limite: categoryForEdit.tiempo_limite ?? undefined,
-                radio: categoryForEdit.radio ?? undefined,
-                esta_activo: isEdit ? categoryForEdit.esta_activo : true,
-                color: categoryForEdit.color,
-                tags
-            };
-
-            if(!isEdit){
-                setSubmitting(true);
-                crearIncidente(incidentRequest)
-                .then(() => {
-                    showMessage(
-                        isEdit ? "Categoria editada exitosamente!!" :
-                        "Categoria de incidente creada exitosamente!!",
-                        {'color': 'green', 'showTime': 3000, 'type': 'float'});
-                    onCreateCategory?.();
-                    onClose?.();
-                })
-                .catch((err) => {
-                    console.log('Error al crear incidente: ', err);
-                    showMessage(
-                        isEdit ? 
-                        "Error al editar la categoria" : 
-                        "Error al crear categoria", 
-                        {'color': 'red', 'showTime': 3000, 'type': 'inline'}
-                    );
-                })
-                .finally(() => {
-                    setSubmitting(false);
-                });
-                
-            }else{
-
-            }
-        }catch(err){
-            console.log('Error al crear incidente: ', err);
-            setSubmitting(false);
             showMessage(
-                isEdit ? 
-                "Error al editar la categoria" : 
-                "Error al crear categoria", 
+                isEdit ? "Categoría editada exitosamente." : "Categoría de incidente creada exitosamente.",
+                {'color': 'green', 'showTime': 3000, 'type': 'float'}
+            );
+            onSaveCategory?.();
+            onClose?.();
+        } catch (error) {
+            console.error(isEdit ? "Error al actualizar incidente:" : "Error al crear incidente:", error);
+            showMessage(
+                isEdit ? "Error al editar la categoría." : "Error al crear la categoría.",
                 {'color': 'red', 'showTime': 3000, 'type': 'inline'}
             );
+            return;
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -250,15 +232,16 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
             <TagPicker
                 format={format}
                 title="Etiquetas sugeridas"
-                onCreateTag={handleAddTag}
+                onCreateTag={isEdit ? undefined : handleAddTag}
             >
-                {categoryForEdit.tags.map((tag) => 
+                {categoryForEdit.tags.map((tag) =>
                     <Tag
                         key={tag.id}
                         value={tag.nombre}
                         badge={tag.peso}
                         color={categoryForEdit.color as HexColor}
-                        onChangeValue={(event) => {
+                        readOnly={isEdit}
+                        onChangeValue={isEdit ? undefined : (event) => {
                             const nombre = event.currentTarget.value;
                             setCategoryForEdit((previous) => ({
                                 ...previous,
@@ -269,7 +252,7 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                                 ))
                             }));
                         }}
-                        onChangeBadge={(event) => {
+                        onChangeBadge={isEdit ? undefined : (event) => {
                             const peso = event.currentTarget.valueAsNumber;
                             if (!Number.isInteger(peso) || peso < 1) return;
 
@@ -282,12 +265,10 @@ export default function CategoryForm({format, debug, category, onClose, onCreate
                                 ))
                             }));
                         }}
-                        onRemove={() => handleRemoveTag(tag.id)}
+                        onRemove={isEdit ? undefined : () => handleRemoveTag(tag.id)}
                     />
                 )}
-                <CreateTagButton
-                        
-                />
+                {!isEdit && <CreateTagButton />}
             </TagPicker>
             <Input
                 format={format}

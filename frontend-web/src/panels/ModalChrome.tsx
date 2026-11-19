@@ -5,16 +5,21 @@ import { modalRegistry } from "./modalRegistry";
 import type { ModalViewKey, ModalViewProps } from "./modalTypes";
 import useModals from "./useModals";
 
+interface ModalChromeProps {
+    fullFocus?: boolean;
+}
+
 function renderModal<K extends ModalViewKey>(view: K, props: ModalViewProps<K>) {
     const ModalView = modalRegistry[view] as ComponentType<object>;
     return createElement(ModalView, props);
 }
 
-export default function ModalChrome() {
+export default function ModalChrome({ fullFocus }: ModalChromeProps) {
     const { modal, position, setPosition } = useModals();
     const [isDragging, setIsDragging] = useState(false);
     const dragStartPos = useRef({ x: 0, y: 0 });
     const modalPosAtStart = useRef({ x: 0, y: 0 });
+    const shouldFullFocus = fullFocus ?? modal?.fullFocus ?? false;
 
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button !== 0) return;
@@ -47,28 +52,40 @@ export default function ModalChrome() {
     if (!modal) return null;
 
     return createPortal(
-        <section
-            style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
-            className="
-                fixed right-3 top-[6.5rem] z-[60]
-                sm:right-5 sm:top-20
-                w-fit max-w-1/2
-                pointer-events-auto
-                flex flex-col items-center justify-center
-                rounded-xl bg-white shadow-float
-            "
-        >
-            <div
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                className={`touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        <>
+            {shouldFullFocus && (
+                <div
+                    aria-hidden="true"
+                    className="fixed inset-0 z-[59] bg-black/20 backdrop-blur-sm"
+                />
+            )}
+            <section
+                style={{
+                    transform: shouldFullFocus
+                        ? `translate3d(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px), 0)`
+                        : `translate3d(${position.x}px, ${position.y}px, 0)`,
+                }}
+                className={`
+                    fixed z-[60] w-fit pointer-events-auto
+                    flex flex-col items-center justify-center
+                    rounded-xl bg-white shadow-float
+                    ${shouldFullFocus
+                        ? "left-1/2 top-1/2 max-w-[calc(100vw-2rem)]"
+                        : "right-3 top-[6.5rem] max-w-1/2 sm:right-5 sm:top-20"}
+                `}
             >
-                <HiOutlineDotsHorizontal />
-            </div>
-            {renderModal(modal.view, modal.props)}
-        </section>,
+                <div
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    className={`touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                >
+                    <HiOutlineDotsHorizontal />
+                </div>
+                {renderModal(modal.view, modal.props)}
+            </section>
+        </>,
         document.body,
     );
 }
