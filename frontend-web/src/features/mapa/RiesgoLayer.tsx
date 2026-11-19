@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Marker, type GeoJSONSource } from "maplibre-gl";
-import { LuTriangleAlert } from "react-icons/lu";
+import { LuTriangleAlert, LuX } from "react-icons/lu";
+import Button from "@/components/ui/Button";
+import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useRiesgo } from "@/features/riesgo/useRiesgo";
 import { formatScore, NIVEL_COLORS } from "@/features/riesgo/riesgo";
 import { freeMapPadding } from "./freeMapPadding";
@@ -27,7 +29,8 @@ const stopMapEvent = (event: Event) => event.stopPropagation();
 
 export default function RiesgoLayer() {
     const { map } = useMap();
-    const { activo, mapaCalor, resumen, cargarMapaCalor, zonaEnfocada, enfocarZona } = useRiesgo();
+    const { activo, modoMapa, salirModoMapa, mapaCalor, resumen, cargarMapaCalor, zonaEnfocada, enfocarZona } = useRiesgo();
+    const { currentPanel, openPanel } = useCommonPanel();
     const enfocarRef = useRef(enfocarZona);
     // Últimos datos: si el estilo del mapa termina de cargar después que ellos, las fuentes se crean ya con ellos.
     const calorRef = useRef(mapaCalor);
@@ -37,6 +40,11 @@ export default function RiesgoLayer() {
         calorRef.current = mapaCalor;
         zonasRef.current = resumen?.zonas ?? [];
     });
+
+    // Abrir cualquier panel termina el modo mapa (el de "Riesgo" vuelve a mostrarlo con su panel).
+    useEffect(() => {
+        if (modoMapa && currentPanel) salirModoMapa();
+    }, [modoMapa, currentPanel, salirModoMapa]);
 
     // Fuentes y capas, y la recarga del calor al mover el mapa.
     useEffect(() => {
@@ -160,8 +168,31 @@ export default function RiesgoLayer() {
                 `${zona.latitude},${zona.longitude}`,
             ))}
 
-            {/* "Densidad de incidentes" del Figma, arriba a la derecha bajo el perfil. */}
-            <div className="absolute right-4 top-20 z-10 hidden w-44 flex-col gap-1.5 rounded-2xl border border-glass-line bg-white px-3.5 py-2.5 font-ui shadow-soft sm:flex">
+            {/* Modo mapa (teléfono): el panel está cerrado y esta píldora dice qué muestra el mapa, con la leyenda, y
+                permite volver al panel o salir. Centrada debajo de la atribución del mapa, sin taparla. */}
+            {modoMapa && !currentPanel &&
+                <div
+                    role="group"
+                    aria-label="Mapa de riesgo"
+                    className="absolute left-1/2 top-46 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-glass-line bg-white py-1.5 pl-4 pr-1.5 font-ui shadow-soft lg:top-32"
+                >
+                    <span className="flex flex-col gap-1">
+                        <span className="whitespace-nowrap text-xs font-bold text-ink">Mapa de riesgo</span>
+                        <span
+                            className="h-1.5 w-24 rounded-full"
+                            role="img"
+                            aria-label="Densidad de incidentes, de baja a alta"
+                            style={{ background: `linear-gradient(to right, ${HEAT_COLORS.slice(1).join(", ")})` }}
+                        />
+                    </span>
+                    <Button size="sm" variant="subtle" title="Ver panel" onClick={() => openPanel("Riesgo")} />
+                    <Button size="sm" variant="subtle" icon={<LuX />} ariaLabel="Salir del mapa de riesgo" tooltip="Salir del mapa de riesgo" onClick={salirModoMapa} />
+                </div>
+            }
+
+            {/* "Densidad de incidentes" del Figma, arriba a la derecha, debajo de la atribución del mapa (que empieza
+                bajo la cabecera: dos filas por debajo de 1024 px, una desde ahí; ver MapContainer). */}
+            <div className="absolute right-4 top-46 z-10 lg:top-32 hidden w-44 flex-col gap-1.5 rounded-2xl border border-glass-line bg-white px-3.5 py-2.5 font-ui shadow-soft sm:flex">
                 <span className="text-xs font-bold text-ink">Densidad de incidentes</span>
                 <span className="h-1.5 rounded-full" style={{ background: `linear-gradient(to right, ${HEAT_COLORS.slice(1).join(", ")})` }} />
                 <span className="flex justify-between text-2xs text-ink-muted"><span>Baja</span><span>Alta</span></span>

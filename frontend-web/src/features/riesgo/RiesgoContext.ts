@@ -15,8 +15,18 @@ export interface VistaMapa {
 export interface RiesgoContextType {
     /** El usuario puede ver el riesgo: cualquier rol menos ciudadano (misma regla que el backend). */
     puedeVer: boolean
-    /** El panel "Riesgo" está abierto: solo entonces se piden datos y el mapa muestra el calor y las zonas. */
+    /**
+     * El mapa muestra el riesgo (calor y zonas) y se piden sus datos: con el panel "Riesgo" abierto o en el modo mapa.
+     */
     activo: boolean
+    /**
+     * Modo mapa: el riesgo sigue en el mapa con el panel cerrado. En teléfono el panel tapa el mapa entero, así que
+     * es la forma de recorrerlo. Termina al salir o al abrir cualquier panel.
+     */
+    modoMapa: boolean
+    /** Entra al modo mapa; quien lo llama cierra el panel. */
+    verEnMapa: () => void
+    salirModoMapa: () => void
     /** null mientras llega la primera carga. */
     resumen: ApiResumenRiesgo | null
     /** Último fallo al cargar el resumen; null si la última carga fue bien. */

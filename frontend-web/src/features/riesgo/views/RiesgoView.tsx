@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { LuDownload, LuInfo } from "react-icons/lu";
+import { LuDownload, LuInfo, LuMap } from "react-icons/lu";
 import ColSection from "@/components/layout/ColSection";
 import Button from "@/components/ui/Button";
 import { SegmentedTabs, TabItem } from "@/components/ui/SegmentedTabs";
 import { useReportes } from "@/features/reportes/useReportes";
+import { useCommonPanel } from "@/panels/useCommonPanel";
 import { useRiesgo } from "../useRiesgo";
 import { barrasCategorias, formatCount, subtituloModelo } from "../riesgo";
 import RiesgoRow from "../components/RiesgoRow";
@@ -25,7 +26,8 @@ function Metric({ value, label, color }: { value: string; label: string; color: 
 // los reportes históricos. El mapa (RiesgoLayer) muestra a la vez el calor y las zonas.
 // shortcut: sin "Exportar", filtros ni el detalle de zona del Figma; quedan para cuando existan en el backend.
 export default function RiesgoView() {
-    const { resumen, error, enfocarZona, setPanelAbierto } = useRiesgo();
+    const { resumen, error, enfocarZona, setPanelAbierto, verEnMapa } = useRiesgo();
+    const { closePanel } = useCommonPanel();
     const { categories } = useReportes();
     const [tab, setTab] = useState(0);
     // El subtítulo dice "hoy 14:20": se recalcula cada minuto por si el panel queda abierto al cambiar de día.
@@ -53,12 +55,25 @@ export default function RiesgoView() {
         <ColSection
             title="Riesgo e histórico"
             subtitle={resumen ? subtituloModelo(resumen.generado_en, resumen.version_modelo, now) : "Cargando modelo…"}
-            headerActions={<Button size="md" variant="subtle" icon={<LuDownload />} title="Exportar" disabled tooltip="Próximamente" />}
+            headerActions={<>
+                <Button size="md" variant="subtle" icon={<LuDownload />} ariaLabel="Exportar" tooltip="Exportar (próximamente)" disabled className="sm:hidden" />
+                <Button size="md" variant="subtle" icon={<LuDownload />} title="Exportar" disabled tooltip="Próximamente" className="max-sm:hidden" />
+            </>}
             arrangementSubsections="toDown"
             className="min-h-0"
         >
             {/* Mismo ancho fijo que los demás paneles. */}
             <div className="flex min-h-0 w-full flex-1 flex-col gap-4 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
+                {/* En teléfono el panel tapa el mapa entero: se cierra y el riesgo sigue en el mapa (modo mapa). */}
+                <Button
+                    size="md"
+                    variant="primary"
+                    icon={<LuMap />}
+                    title="Ver en el mapa"
+                    className="w-full justify-center sm:hidden"
+                    onClick={() => { verEnMapa(); closePanel() }}
+                />
+
                 <SegmentedTabs format="row" activeTab={tab} onChange={setTab}>
                     <TabItem tabTitle="Zonas" />
                     <TabItem tabTitle="Histórico" />

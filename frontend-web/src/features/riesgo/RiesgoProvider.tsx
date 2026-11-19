@@ -15,7 +15,15 @@ export function RiesgoProvider({ children }: { children: ReactNode }) {
     // El panel "Riesgo" avisa al abrirse y al cerrarse (ver RiesgoView): este provider está por encima del router de
     // paneles porque el panel se dibuja dentro de él.
     const [panelAbierto, setPanelAbierto] = useState(false);
-    const activo = puedeVer && panelAbierto;
+    const [modoMapa, setModoMapa] = useState(false);
+    const activo = puedeVer && (panelAbierto || modoMapa);
+    // Abrir el panel termina el modo mapa: el panel vuelve a mandar.
+    const cambiarPanelAbierto = useCallback((abierto: boolean) => {
+        setPanelAbierto(abierto);
+        if (abierto) setModoMapa(false);
+    }, []);
+    const verEnMapa = useCallback(() => setModoMapa(true), []);
+    const salirModoMapa = useCallback(() => setModoMapa(false), []);
 
     const [resumen, setResumen] = useState<ApiResumenRiesgo | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -68,21 +76,25 @@ export function RiesgoProvider({ children }: { children: ReactNode }) {
             setMapaCalor(null);
             setError(null);
             setZonaEnfocada(null);
+            setModoMapa(false);
         };
     }, [user?.id]);
 
     const value = useMemo<RiesgoContextType>(() => ({
         puedeVer,
         activo,
+        modoMapa,
+        verEnMapa,
+        salirModoMapa,
         resumen,
         error,
         mapaCalor,
         cargarMapaCalor,
         zonaEnfocada,
         enfocarZona: setZonaEnfocada,
-        setPanelAbierto,
+        setPanelAbierto: cambiarPanelAbierto,
         refresh,
-    }), [puedeVer, activo, resumen, error, mapaCalor, cargarMapaCalor, zonaEnfocada, refresh]);
+    }), [puedeVer, activo, modoMapa, verEnMapa, salirModoMapa, resumen, error, mapaCalor, cargarMapaCalor, zonaEnfocada, cambiarPanelAbierto, refresh]);
 
     return (
         <RiesgoContext.Provider value={value}>
