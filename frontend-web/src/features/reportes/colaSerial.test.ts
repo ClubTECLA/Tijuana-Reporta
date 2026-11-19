@@ -32,6 +32,22 @@ describe("crearColaSerial", () => {
         expect(reporte).toEqual({ es_historico: true, estado: "Probable" });
     });
 
+    it("un comentario publicado durante otro cambio no se pierde", async () => {
+        const enCola = crearColaSerial();
+        type Reporte = { es_historico: boolean; comentarios: string[] };
+        let reporte: Reporte = { es_historico: false, comentarios: [] };
+        const historico = diferida<Reporte>();
+
+        // Pasar a histórico (respuesta lenta, sin el comentario) y, mientras, publicar un comentario.
+        const a = enCola(async () => { reporte = await historico.promesa });
+        const b = enCola(async () => { reporte = { ...reporte, comentarios: [...reporte.comentarios, "nuevo"] } });
+
+        historico.resolver({ es_historico: true, comentarios: [] });
+        await Promise.all([a, b]);
+
+        expect(reporte).toEqual({ es_historico: true, comentarios: ["nuevo"] });
+    });
+
     it("un fallo llega a quien lo pidió y no detiene la cola", async () => {
         const enCola = crearColaSerial();
         const orden: string[] = [];

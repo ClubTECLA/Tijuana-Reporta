@@ -12,8 +12,9 @@ export function useReporteDetalle(reporteId: string) {
     const { refresh } = useReportes();
     const [reporte, setReporte] = useState<ApiReporte | null>(null);
     const [error, setError] = useState<string | null>(null);
-    // El cambio de estado y el de histórico reemplazan el reporte entero con la respuesta: van en la misma cola para
-    // que una respuesta lenta no pise a otra más nueva (p. ej. devolver es_historico: false tras pasarlo a histórico).
+    // El cambio de estado y el de histórico reemplazan el reporte entero con la respuesta: van en la misma cola, junto
+    // con los comentarios, para que una respuesta lenta no pise a otra más nueva (p. ej. devolver es_historico: false
+    // tras pasarlo a histórico, o una lista de comentarios sin el que se acaba de publicar).
     const [enCola] = useState(crearColaSerial);
 
     useEffect(() => {
@@ -29,10 +30,10 @@ export function useReporteDetalle(reporteId: string) {
     }, [reporteId]);
 
     /** Publica un comentario y lo añade al detalle; si falla, lanza el error para que la vista lo muestre. */
-    const comentar = useCallback(async (texto: string) => {
+    const comentar = useCallback((texto: string) => enCola(async () => {
         const created = await crearComentario(reporteId, texto);
         setReporte((prev) => prev && { ...prev, comentarios: [...prev.comentarios, created] });
-    }, [reporteId]);
+    }), [enCola, reporteId]);
 
     /** Cambia el estado (solo roles oficiales); si falla, lanza el error para que la vista lo muestre. */
     const cambiarEstado = useCallback((estado: ApiEstadoReporte) => enCola(async () => {
