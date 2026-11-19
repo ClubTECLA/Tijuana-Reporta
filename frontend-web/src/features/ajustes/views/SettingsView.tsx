@@ -24,9 +24,18 @@ function CategoriesSection({debug} : subsectionProps) {
     const [categories, setCategories] = useState<ApiIncidente[]>([]);
     const [openForm, setOpenForm ] = useState(false);
     const [ selectedCategory, setSelectedCategory ] = useState<ApiIncidente | null >(null);
-    const [ loadCategories, setLoadCategories ] = useState(true);
+    const [categoryReloadGeneration, setCategoryReloadGeneration] = useState(0);
+    const categoryReloadGenerationRef = useRef(0);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
     const editorSessionRef = useRef(0);
     const [ editorSession, setEditorSession ] = useState(0);
+
+    const requestCategoryReload = () => {
+        const nextGeneration = categoryReloadGenerationRef.current + 1;
+        categoryReloadGenerationRef.current = nextGeneration;
+        setCategoryReloadGeneration(nextGeneration);
+        setIsLoadingCategories(true);
+    };
 
     const openCategoryForm = (category: ApiIncidente | null) => {
         const nextSession = editorSessionRef.current + 1;
@@ -37,19 +46,31 @@ function CategoriesSection({debug} : subsectionProps) {
     };
 
     useEffect(() => {
-        if(!loadCategories) return;
+        const generation = categoryReloadGeneration;
+        let isCurrentRequest = true;
+
+        const isLatestRequest = () =>
+            isCurrentRequest && generation === categoryReloadGenerationRef.current;
+
         const fetchCategories = async () => {
             try{
                 const res = await listarIncidentes({ incluir_inactivos: true });
+                if (!isLatestRequest()) return;
                 setCategories(res);
             }catch(err){
+                if (!isLatestRequest()) return;
                 console.error(err);
                 showMessage("Error al cargar las categorias",{'color': 'red', 'showTime': 3000, 'title': 'Error'});
+            } finally {
+                if (isLatestRequest()) setIsLoadingCategories(false);
             }
         }
-        fetchCategories()
-        .finally(() => setLoadCategories(false));
-    }, [loadCategories]);
+        void fetchCategories();
+
+        return () => {
+            isCurrentRequest = false;
+        };
+    }, [categoryReloadGeneration, showMessage]);
 
     const handleChangeIsActive = (e: ChangeEvent<HTMLInputElement>) => {
         setCategories(prev => prev.map(
@@ -83,6 +104,7 @@ function CategoriesSection({debug} : subsectionProps) {
                 <SubSection
                     format={'nothing'}
                     className="min-w-0 w-fit max-w-full overflow-x-hidden"
+                    aria-busy={isLoadingCategories}
                 >
                     <Table
                         format='col'
@@ -158,7 +180,7 @@ function CategoriesSection({debug} : subsectionProps) {
                 </SubSection>
                 {openForm && 
                     <CategoryForm
-                        key={selectedCategory ? `edit-${selectedCategory.id}` : "create"}
+                        key={`${selectedCategory ? `edit-${selectedCategory.id}` : "create"}-${editorSession}`}
                         format='col'
                         category={selectedCategory}
                         onClose={() => {
@@ -168,7 +190,7 @@ function CategoriesSection({debug} : subsectionProps) {
                             setEditorSession(nextSession);
                             setOpenForm(false);
                         }}
-                        onSaveCategory={() => setLoadCategories(true)}
+                        onSaveCategory={requestCategoryReload}
                     />
                 }
             </RowSection>
