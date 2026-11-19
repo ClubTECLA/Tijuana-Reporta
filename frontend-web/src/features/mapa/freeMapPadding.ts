@@ -11,9 +11,12 @@ export interface Padding {
 /** Margen alrededor de lo que se encuadra, en px: deja ver el borde del círculo y no lo pega a la cabecera ni al dock. */
 const MARGEN = 120;
 /** Separación del panel y de los controles, en px. */
-const SEPARACION = 40;
-/** Ancho libre mínimo, en px: con menos, el padding asimétrico no deja sitio y se usa el simétrico. */
-const MIN_LIBRE = 160;
+const SEPARACION = 16;
+/**
+ * Ancho libre mínimo, en px: con menos, el padding asimétrico no deja sitio y se usa el simétrico. A 768 px (tablet)
+ * entre el panel y los controles quedan ~180 px.
+ */
+const MIN_LIBRE = 80;
 
 /**
  * Padding para fitBounds que deja lo encuadrado en el espacio libre entre el panel (a la izquierda) y los controles
