@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LuCircleCheckBig, LuMapPin, LuShield } from "react-icons/lu"
 import { SysMessage, useSysMessage } from '@/components/ui/SysMessageContext'
 import { useAuth } from '@/features/sesion/useAuth'
 import { useCommonPanel } from '@/panels/useCommonPanel'
 import useModals from '@/panels/useModals'
 import { IoChevronBack } from 'react-icons/io5'
-import { useRouter } from '@/lib/useRouter'
 import { FiInfo, FiLock, FiMail } from 'react-icons/fi'
 import { GoPaperAirplane } from 'react-icons/go'
 import { FaRegQuestionCircle } from 'react-icons/fa'
 import { IoIosArrowBack } from 'react-icons/io'
+import { solicitarRecuperacion, verificarRecuperacion } from '@/features/sesion/recovery.service'
 
 
 const formsInputsDivsStyle = `
@@ -40,21 +40,17 @@ const formsStyle = `
 const titleStyle = `text-2xl font-bold text-ink sm:text-[28px]`
 const subtitleStyle = `text-body leading-5.5 text-ink-secondary`
 
-interface recoveryProps {
-    onSubmit:  () => void 
+interface RecoveryEmailProps {
+    email: string
+    onChangeEmail: (event: ChangeEvent<HTMLInputElement>) => void
+    onSubmit: (email: string) => Promise<void>
+    submitting: boolean
 }
 
-function Recovery_email({onSubmit}: recoveryProps) {
-    const [ email, setEmail ] = useState("");
-
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setEmail(e.target.value);
-    }
-
+function Recovery_email({ email, onChangeEmail, onSubmit, submitting }: RecoveryEmailProps) {
     const handleSubmit = ( e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
-        //send email to backend
-        onSubmit();
+        void onSubmit(email);
     }
 
     return(
@@ -70,7 +66,8 @@ function Recovery_email({onSubmit}: recoveryProps) {
                     id="email"
                     type='email'
                     className={inputsStyle}
-                    onChange={handleChange}
+                    autoComplete="email"
+                    onChange={onChangeEmail}
                     value={email}
                     required
                 />    
@@ -78,9 +75,10 @@ function Recovery_email({onSubmit}: recoveryProps) {
             <button
                 className={`${submitButtonStyle} mt-4 flex flex-row items-center justify-center gap-2`}
                 type='submit'
+                disabled={submitting}
             >
                 <GoPaperAirplane className="-rotate-45 text-xl"/>
-                <span>Enviar código</span>
+                <span>{submitting ? 'Enviando…' : 'Enviar código'}</span>
             </button>
             <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3 mt-4">
                 <FaRegQuestionCircle className="size-4.5 shrink-0 text-ink-secondary" />
@@ -90,36 +88,35 @@ function Recovery_email({onSubmit}: recoveryProps) {
     )
 }
 
-function Recovery_code({onSubmit}: recoveryProps) {
-    const [code, setCode] = useState<string[]>(() => Array(6).fill(""));
+interface RecoveryCodeProps {
+    code: string
+    onChangeCode: (code: string) => void
+    onSubmit: (code: string) => void
+    onResend: () => Promise<boolean>
+    submitting: boolean
+}
+
+function Recovery_code({code, onChangeCode, onSubmit, onResend, submitting}: RecoveryCodeProps) {
     const [secondsRemaining, setSecondsRemaining] = useState(45);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-    const isCodeComplete = code.every((digit) => /^\d$/.test(digit));
-
-    const resendCode = useCallback(() => {
-        //resend code
-    }, []);
+    const digits = Array.from({ length: 6 }, (_, index) => code[index] ?? "");
+    const isCodeComplete = /^\d{6}$/.test(code);
 
     useEffect(() => {
-        if (secondsRemaining === 0) {
-            resendCode();
-            return;
-        }
+        if (secondsRemaining === 0) return;
 
         const timeout = window.setTimeout(() => {
-            setSecondsRemaining(secondsRemaining - 1);
+            setSecondsRemaining((remaining) => Math.max(remaining - 1, 0));
         }, 1000);
 
         return () => window.clearTimeout(timeout);
-    }, [secondsRemaining, resendCode]);
+    }, [secondsRemaining]);
 
     const handleChange = (index: number, value: string) => {
         const digit = value.replace(/\D/g, "").slice(-1);
-        setCode((currentCode) =>
-            currentCode.map((currentDigit, currentIndex) =>
-                currentIndex === index ? digit : currentDigit
-            )
-        );
+        const nextCode = [...digits];
+        nextCode[index] = digit;
+        onChangeCode(nextCode.join(""));
 
         if (digit && index < 5) {
             inputRefs.current[index + 1]?.focus();
@@ -141,13 +138,20 @@ function Recovery_code({onSubmit}: recoveryProps) {
         if (!pastedCode) return;
 
         event.preventDefault();
-        setCode(Array.from({ length: 6 }, (_, index) => pastedCode[index] ?? ""));
+        onChangeCode(pastedCode);
         inputRefs.current[Math.min(pastedCode.length, 5)]?.focus();
     }
 
     const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (isCodeComplete) onSubmit();
+        if (isCodeComplete) onSubmit(code);
+    }
+
+    const handleResend = async () => {
+        if (await onResend()) {
+            onChangeCode("");
+            setSecondsRemaining(45);
+        }
     }
 
     return(
@@ -170,9 +174,10 @@ function Recovery_code({onSubmit}: recoveryProps) {
                         aria-label={`Dígito ${index + 1} del código`}
                         autoComplete={index === 0 ? "one-time-code" : "off"}
                         inputMode="numeric"
+                        disabled={submitting}
                         maxLength={1}
                         type="text"
-                        value={code[index]}
+                        value={digits[index]}
                         onChange={(event) => handleChange(index, event.target.value)}
                         onKeyDown={(event) => handleKeyDown(index, event)}
                         className="
@@ -189,19 +194,36 @@ function Recovery_code({onSubmit}: recoveryProps) {
             </div>
             <span
                 className="text-sm text-gray-500 block mt-4"
-            >¿No llegó? Reenviar en {`${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, "0")}`}</span>
+            >
+                ¿No llegó? {secondsRemaining > 0
+                    ? `Puedes reenviar en ${`${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, "0")}`}.`
+                    : "Puedes solicitar un nuevo código."}
+            </span>
+            <button
+                className="mt-2 text-sm font-semibold text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={secondsRemaining > 0 || submitting}
+                onClick={() => void handleResend()}
+            >
+                Reenviar código
+            </button>
             <button
                 className={`${submitButtonStyle} mt-5`}
                 type="submit"
-                disabled={!isCodeComplete}
+                disabled={!isCodeComplete || submitting}
             >
-                Verificar código
+                Continuar
             </button>
         </form>
     )
 }
 
-function Recovery_changePassword({onSubmit}: recoveryProps) {
+interface RecoveryPasswordProps {
+    onSubmit: (password: string) => Promise<void>
+    submitting: boolean
+}
+
+function Recovery_changePassword({onSubmit, submitting}: RecoveryPasswordProps) {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -212,13 +234,14 @@ function Recovery_changePassword({onSubmit}: recoveryProps) {
             met: /[A-Z]/.test(password) && /\d/.test(password),
         },
         { label: "Un símbolo (!, #, $)", met: /[!#$]/.test(password) },
+        { label: "Máximo 72 bytes", met: new TextEncoder().encode(password).length <= 72 },
     ];
     const isPasswordValid = requirements.every(({met}) => met);
     const passwordsMatch = password.length > 0 && password === confirmPassword;
 
     const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (isPasswordValid && passwordsMatch) onSubmit();
+        if (isPasswordValid && passwordsMatch) void onSubmit(password);
     }
 
     return(
@@ -227,7 +250,7 @@ function Recovery_changePassword({onSubmit}: recoveryProps) {
             onSubmit={handleSubmit}
         >
             <h1 className={titleStyle}>Crea una nueva contraseña</h1>
-            <span className={subtitleStyle}>Código verificado. Elige una contraseña que no hayas usado antes.</span>
+            <span className={subtitleStyle}>Elige una contraseña nueva. Confirmaremos el código al guardarla.</span>
             <div className={`${formsInputsDivsStyle} mt-4`}>
                 <label htmlFor="recovery-new-password" className={inputsLabelsStyle}>Nueva contraseña</label>
                 <input
@@ -237,6 +260,7 @@ function Recovery_changePassword({onSubmit}: recoveryProps) {
                     className={inputsStyle}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    disabled={submitting}
                     required
                 />
             </div>
@@ -265,6 +289,7 @@ function Recovery_changePassword({onSubmit}: recoveryProps) {
                     }`}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
+                    disabled={submitting}
                     aria-invalid={confirmPassword.length > 0 && !passwordsMatch}
                     required
                 />
@@ -275,54 +300,125 @@ function Recovery_changePassword({onSubmit}: recoveryProps) {
             <button
                 className={`${submitButtonStyle} mt-5`}
                 type="submit"
-                disabled={!isPasswordValid || !passwordsMatch}
+                disabled={!isPasswordValid || !passwordsMatch || submitting}
             >
-                Guardar y entrar
+                {submitting ? 'Guardando…' : 'Actualizar contraseña'}
             </button>
         </form>
     )
 }
 
-function RecoveryPasswordForm() {
-    const [ step, setStep ] = useState(1);
+interface RecoveryPasswordFormProps {
+    onBackToLogin: () => void
+    onComplete: () => void
+}
 
-    const next = () => {
-        const next = (step + 1) % 4;
-        setStep(next === 0 ? 1 : next);
-    }
+function RecoveryPasswordForm({ onBackToLogin, onComplete }: RecoveryPasswordFormProps) {
+    const { showMessage, cleanMessage } = useSysMessage();
+    const [step, setStep] = useState(1);
+    const [email, setEmail] = useState("");
+    const [code, setCode] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
 
-    const back = () => {
-        const back = (step - 1);
-        setStep(back < 1 ? 1 : back);
-    }
+    const requestRecovery = async (targetEmail: string, advanceToCode: boolean) => {
+        if (submittingRef.current) return false;
+        submittingRef.current = true;
+        setSubmitting(true);
+        cleanMessage();
+
+        try {
+            await solicitarRecuperacion({ email: targetEmail });
+            if (advanceToCode) {
+                setEmail(targetEmail);
+                setCode("");
+                setStep(2);
+            }
+            showMessage(
+                "Si hay una cuenta que pueda recuperarse con ese correo, recibirás un código. Revisa también la carpeta de spam.",
+                { color: "blue", type: "inline", showTime: null, title: "Solicitud recibida" },
+            );
+            return true;
+        } catch (error) {
+            const status = error instanceof Error && "status" in error ? error.status : undefined;
+            showMessage(
+                status === 429
+                    ? "Se realizaron demasiadas solicitudes. Espera un momento antes de volver a intentarlo."
+                    : error instanceof Error
+                        ? error.message
+                        : "No se pudo solicitar el código. Inténtalo de nuevo.",
+                { color: "red", type: "inline", showTime: null, title: "No se pudo enviar el código" },
+            );
+            return false;
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
+        }
+    };
+
+    const verifyRecovery = async (newPassword: string) => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
+        cleanMessage();
+
+        try {
+            await verificarRecuperacion({ email, pin: code, new_password: newPassword });
+            showMessage(
+                "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión.",
+                { color: "green", type: "inline", showTime: null, title: "Contraseña actualizada" },
+            );
+            onComplete();
+        } catch (error) {
+            const status = error instanceof Error && "status" in error ? error.status : undefined;
+            showMessage(
+                status === 400
+                    ? "El código es inválido o expiró. Revisa los seis dígitos o solicita uno nuevo."
+                    : status === 429
+                        ? "Se realizaron demasiados intentos. Espera un momento antes de volver a intentarlo."
+                        : error instanceof Error
+                            ? error.message
+                            : "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
+                { color: "red", type: "inline", showTime: null, title: "No se pudo actualizar la contraseña" },
+            );
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
+        }
+    };
 
     return(
         <section
             className={formsStyle}
         >
-            {step === 2 && 
+            {step > 1 &&
                 <button
+                    type="button"
                     className="flex flex-row items-center justify-star gap-2 text-sm
                         text-blue-600 font-bold hover:bg-blue-100 transition-all duration-300
                         rounded-lg pr-2 py-2
                     "
-                    onClick={back}
+                    onClick={() => {
+                        cleanMessage();
+                        setStep(step - 1);
+                    }}
                 >
                     <IoChevronBack/>
-                    Volver a recuperar contraseña
+                    {step === 2 ? "Cambiar correo" : "Cambiar código"}
                 </button> 
             }
             {step === 1 && 
-                <Link
+                <button
+                    type="button"
                     className="flex flex-row items-center justify-start gap-2 text-sm
                         text-blue-600 font-bold hover:bg-blue-100 transition-all duration-300
                         rounded-lg pr-2 py-2
                     "
-                    to="?tab=login"
+                    onClick={onBackToLogin}
                 >
                     <IoChevronBack/>
                     Volver a iniciar sesión
-                </Link>
+                </button>
             }
             {[1,2].includes(step) ? 
                 <div className="
@@ -341,21 +437,40 @@ function RecoveryPasswordForm() {
                     <LuCircleCheckBig/>
                 </div>
             }
+            <SysMessage />
             {step === 1 &&
-                <Recovery_email onSubmit={next}/>
+                <Recovery_email
+                    email={email}
+                    onChangeEmail={(event) => {
+                        setEmail(event.target.value);
+                        cleanMessage();
+                    }}
+                    onSubmit={(value) => requestRecovery(value, true).then(() => undefined)}
+                    submitting={submitting}
+                />
             }
             {step === 2 &&
-                <Recovery_code onSubmit={next}/>
+                <Recovery_code
+                    code={code}
+                    onChangeCode={setCode}
+                    onSubmit={(value) => {
+                        setCode(value);
+                        cleanMessage();
+                        setStep(3);
+                    }}
+                    onResend={() => requestRecovery(email, false)}
+                    submitting={submitting}
+                />
             }
             {step === 3 &&
-                <Recovery_changePassword onSubmit={next}/>
+                <Recovery_changePassword onSubmit={verifyRecovery} submitting={submitting}/>
             }
         </section>
     )
 }
 
 /** Formulario de inicio de sesión: valida los campos, llama al backend y limita los intentos fallidos. */
-function SignInForm() {
+function SignInForm({ onForgotPassword }: { onForgotPassword: () => void }) {
     const { showMessage, cleanMessage } = useSysMessage();
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -458,11 +573,12 @@ function SignInForm() {
                 <label className="flex flex-1 cursor-not-allowed items-center gap-2 whitespace-nowrap opacity-60" title="Próximamente">
                     <input type="checkbox" disabled className="size-4.5 cursor-not-allowed accent-brand"/> Recordar este equipo
                 </label>
-                {/* La recuperación de contraseña (frames 4-5 del Figma) aún no existe: las cuentas las gestiona un administrador. */}
-                <Link
-                    to="?tab=recovery"
+                {/* Las cuentas web las gestiona un administrador; este enlace permite recuperar su contraseña. */}
+                <button
+                    type="button"
+                    onClick={onForgotPassword}
                     className="text-right text-blue-600 hover:underline decoration-blue-600 underline-offset-3"
-                >¿Olvidaste tu contraseña?</Link>
+                >¿Olvidaste tu contraseña?</button>
             </div>
             <button
                 type="submit"
@@ -502,20 +618,24 @@ function SignInForm() {
 export default function AuthPage() {
     const {closePanel} = useCommonPanel();
     const {closeModal} = useModals();
-    const {query} = useRouter();
-    const [ form, setForm ] = useState<"login" | "recovery">("login");
+    const {search} = useLocation();
+    const navigate = useNavigate();
+    const [form, setForm] = useState<"login" | "recovery">(
+        () => new URLSearchParams(search).get("tab") === "recovery" ? "recovery" : "login",
+    );
+
+    const showForm = (nextForm: "login" | "recovery", replace = false) => {
+        setForm(nextForm);
+        navigate(`?tab=${nextForm}`, { replace });
+    };
 
     const trendLineChartDivStyle = `
         flex flex-1 flex-col gap-0.5 rounded-2xl bg-white/12 px-4 py-3 lg:flex-none
     `
     useEffect(() => {
-        setForm(query.tab === "recovery" ? "recovery" : "login");
-    }, [query]);
-
-    useEffect(() => {
         closeModal()
         closePanel()
-    }, []);
+    }, [closeModal, closePanel]);
 
     return(
         <div className="relative min-h-screen w-full font-ui">
@@ -563,7 +683,14 @@ export default function AuthPage() {
                     </div>
 
                     <div className="flex justify-center [grid-area:card] lg:items-center lg:justify-end">
-                        {form === "login" ? <SignInForm /> : <RecoveryPasswordForm/>}
+                        {form === "login"
+                            ? <SignInForm onForgotPassword={() => showForm("recovery")} />
+                            : (
+                                <RecoveryPasswordForm
+                                    onBackToLogin={() => showForm("login")}
+                                    onComplete={() => showForm("login", true)}
+                                />
+                            )}
                     </div>
 
                     <div className="flex flex-row gap-3 whitespace-nowrap [grid-area:stats] lg:self-start">
