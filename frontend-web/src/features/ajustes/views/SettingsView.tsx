@@ -26,6 +26,9 @@ import { useSysMessage } from "@/components/ui/SysMessageContext";
 import { MdDeleteForever } from "react-icons/md";
 import useModals from "@/panels/useModals";
 
+// Cambiar a true cuando exista DELETE /incidentes/{id}
+const CAN_DELETE_INCIDENTS = false;
+
 function CategoriesSection({ debug }: subsectionProps) {
   const { showMessage } = useSysMessage();
   const { openModal } = useModals();
@@ -176,29 +179,31 @@ function CategoriesSection({ debug }: subsectionProps) {
                       openCategoryForm(c);
                     }}
                   />
-                  <TdButton
-                    ariaLabel={`Eliminar ${c.nombre}`}
-                    content={{
-                      icon: <MdDeleteForever />,
-                    }}
-                    onClick={() => {
-                      openModal(
-                        "Confirmar eliminación de incidente",
-                        {
-                          incident: { id: c.id, nombre: c.nombre },
-                          onDeleted: (incidentId) => {
-                            setCategories((prev) =>
-                              prev.filter(
-                                (category) => category.id !== incidentId,
-                              ),
-                            );
-                            requestCategoryReload();
+                  {CAN_DELETE_INCIDENTS && (
+                    <TdButton
+                      ariaLabel={`Eliminar ${c.nombre}`}
+                      content={{
+                        icon: <MdDeleteForever />,
+                      }}
+                      onClick={() => {
+                        openModal(
+                          "Confirmar eliminación de incidente",
+                          {
+                            incident: { id: c.id, nombre: c.nombre },
+                            onDeleted: (incidentId) => {
+                              setCategories((prev) =>
+                                prev.filter(
+                                  (category) => category.id !== incidentId,
+                                ),
+                              );
+                              requestCategoryReload();
+                            },
                           },
-                        },
-                        { fullFocus: true },
-                      );
-                    }}
-                  />
+                          { fullFocus: true },
+                        );
+                      }}
+                    />
+                  )}
                 </TCell>
               </TRow>
             ))}
