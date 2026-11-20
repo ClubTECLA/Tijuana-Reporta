@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/usuario"
 	"github.com/google/uuid"
 )
 

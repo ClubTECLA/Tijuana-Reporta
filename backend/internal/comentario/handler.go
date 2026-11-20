@@ -3,9 +3,9 @@ package comentario
 import (
 	"context"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/middleware"
 )
 
 // Handler implementa las operaciones de comentarios del contrato; el

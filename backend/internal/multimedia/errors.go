@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/almacen"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
 )
 
 var (

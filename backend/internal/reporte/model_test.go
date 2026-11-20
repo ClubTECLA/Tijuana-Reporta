@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
 )
 
 func TestTitulo(t *testing.T) {

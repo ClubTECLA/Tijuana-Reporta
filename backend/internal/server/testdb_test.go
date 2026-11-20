@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
