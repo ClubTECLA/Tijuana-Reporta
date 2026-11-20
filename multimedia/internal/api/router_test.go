@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/multimedia/internal/almacenamiento"
+	"github.com/ClubTECLA/cimalert/multimedia/internal/almacenamiento"
 	"github.com/gin-gonic/gin"
 )
 
