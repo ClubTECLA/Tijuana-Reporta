@@ -142,8 +142,10 @@ export default function NavigationWrapper() {
 
     return (
         <section className="pointer-events-none fixed inset-0 z-50">
-            {/* En teléfono el perfil queda al lado del buscador, mientras la campana pasa a los controles del mapa. */}
-            <div className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 lg:flex lg:justify-end">
+            {/* En teléfono el perfil queda al lado del buscador, mientras la campana pasa a los controles del mapa.
+                data-app-header: el mapa mide su borde inferior para no encuadrar nada debajo de la cabecera
+                (freeMapPadding). */}
+            <div data-app-header className="pointer-events-auto fixed inset-x-2 top-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:inset-x-4 lg:flex lg:justify-end">
                 <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 max-sm:col-span-2 max-sm:pr-16 lg:flex-5/6">
                     <div className="min-w-0 flex-1 lg:flex-1/3">
                         <SearchBar

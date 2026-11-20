@@ -49,6 +49,8 @@ paths:
     $ref: './paths/reportes.yaml#/estadoReporte'
   /reportes/{reporteId}/tags:
     $ref: './paths/reportes.yaml#/tagsReporte'
+  /reportes/{reporteId}/historico:
+    $ref: './paths/reportes.yaml#/historicoReporte'
   /auth/register:
     $ref: './paths/auth.yaml#/register'
   /auth/login:
@@ -79,6 +81,10 @@ paths:
     $ref: './paths/centros.yaml#/coleccionCentros'
   /centro/{centroId}:
     $ref: './paths/centros.yaml#/centrosPorId'
+  /riesgo/mapa-calor:
+    $ref: './paths/riesgo.yaml#/obtenerMapaCalor'
+  /riesgo/resumen:
+    $ref: './paths/riesgo.yaml#/obtenerResumenRiesgo'
 
 components:
   schemas:
@@ -148,6 +154,20 @@ components:
       $ref: './schemas/centros/centro.yaml'
     CrearCentroRequest:
       $ref: './schemas/centros/crear_centro_request.yaml'
+    NivelRiesgo:
+      $ref: './schemas/riesgo/nivel_riesgo.yaml'
+    CeldaCalor:
+      $ref: './schemas/riesgo/celda_calor.yaml'
+    MapaCalor:
+      $ref: './schemas/riesgo/mapa_calor.yaml'
+    ZonaRiesgo:
+      $ref: './schemas/riesgo/zona_riesgo.yaml'
+    ColoniaRiesgo:
+      $ref: './schemas/riesgo/colonia_riesgo.yaml'
+    ConteoCategoria:
+      $ref: './schemas/riesgo/conteo_categoria.yaml'
+    ResumenRiesgo:
+      $ref: './schemas/riesgo/resumen_riesgo.yaml'
   securitySchemes:
     bearerAuth:
       type: http

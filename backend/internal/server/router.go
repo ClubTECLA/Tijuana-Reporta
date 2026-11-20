@@ -14,6 +14,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/riesgo"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -63,6 +64,7 @@ type Handlers struct {
 	Usuarios    *usuario.Handler
 	Multimedia  *multimedia.Handler
 	Centros     *centro.Handler
+	Riesgo      *riesgo.Handler
 }
 
 // Cada funcionalidad llama Handler a su handler, y dos campos embebidos no
@@ -75,6 +77,7 @@ type (
 	usuarios    = usuario.Handler
 	multimedias = multimedia.Handler
 	centros     = centro.Handler
+	riesgos     = riesgo.Handler
 )
 
 // api junta los handlers de cada funcionalidad en la interfaz que genera
@@ -87,6 +90,7 @@ type api struct {
 	*usuarios
 	*multimedias
 	*centros
+	*riesgos
 }
 
 // Assertion en tiempo de compilación: si el contrato gana un endpoint y
@@ -110,7 +114,7 @@ func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.Passwo
 
 	// Una sola tabla con las reglas de todos los errores que pueden devolver
 	// los handlers.
-	tabla := httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP, centro.ReglasHTTP)
+	tabla := httperr.NewTabla(reporte.ReglasHTTP, incidente.ReglasHTTP, comentario.ReglasHTTP, usuario.ReglasHTTP, multimedia.ReglasHTTP, centro.ReglasHTTP, riesgo.ReglasHTTP)
 
 	// Registra acciones con el RequestLogger
 	// El logger debe ser lo primero en utilizarse para que se registren los panics con su request_id
@@ -156,7 +160,7 @@ func NewRouter(h Handlers, jwtSecret string, passwordChangedAt middleware.Passwo
 	// Los manejadores de error por defecto de oapi-codegen responden {"msg": ...};
 	// se reemplazan para que coincidan con ErrorResponse ({"message": ...}).
 	strict := httpapi.NewStrictHandlerWithOptions(
-		api{reportes: h.Reportes, incidentes: h.Incidentes, comentarios: h.Comentarios, usuarios: h.Usuarios, multimedias: h.Multimedia, centros: h.Centros},
+		api{reportes: h.Reportes, incidentes: h.Incidentes, comentarios: h.Comentarios, usuarios: h.Usuarios, multimedias: h.Multimedia, centros: h.Centros, riesgos: h.Riesgo},
 		nil,
 		httpapi.StrictGinServerOptions{
 			RequestErrorHandlerFunc: func(c *gin.Context, err error) {

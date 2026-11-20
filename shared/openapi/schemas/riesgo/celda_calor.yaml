@@ -1,0 +1,17 @@
+type: object
+description: Celda de la cuadrícula del mapa de calor; su punto es el centro de la celda.
+required: [latitude, longitude, peso, reportes]
+properties:
+  latitude:
+    type: number
+    format: double
+  longitude:
+    type: number
+    format: double
+  peso:
+    type: number
+    format: double
+    description: Suma del peso de los reportes históricos de la celda (ver backend/GUIA_RIESGO.md).
+  reportes:
+    type: integer
+    description: Cuántos reportes cayeron en la celda.

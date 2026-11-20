@@ -12,6 +12,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
+	"github.com/ClubTECLA/tijuana-reporta/backend/internal/riesgo"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -54,5 +55,6 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (*gin.Engin
 			MaxDuracion: time.Duration(cfg.MaxVideoSegundos) * time.Second,
 		})),
 		Centros: centro.NewHandler(centro.NewService(centro.NewStore(pool))),
+		Riesgo:  riesgo.NewHandler(riesgo.NewService(sqlc.New(pool))),
 	}, cfg.JWTSecret, usuarios.GetPasswordChangedAtByUserID, WithMaxMultimediaBytes(cfg.MaxMultimediaBytes)), nil
 }

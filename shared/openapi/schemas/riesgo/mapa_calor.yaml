@@ -1,0 +1,16 @@
+type: object
+description: Peso de los reportes históricos del área visible, agrupado en una cuadrícula cuyo tamaño depende del zoom.
+required: [tamano_celda_m, peso_maximo, celdas]
+properties:
+  tamano_celda_m:
+    type: number
+    format: double
+    description: Lado de cada celda, en metros.
+  peso_maximo:
+    type: number
+    format: double
+    description: Mayor peso entre las celdas devueltas (0 si no hay celdas); sirve para normalizar la intensidad.
+  celdas:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/CeldaCalor'

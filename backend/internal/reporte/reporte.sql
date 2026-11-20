@@ -97,6 +97,15 @@ LIMIT sqlc.arg(limite)::int;
 -- name: GetEstadoReporteForUpdate :one
 SELECT estado_actual FROM reporte WHERE id = $1 FOR UPDATE;
 
+-- name: GetHistoricoReporteForUpdate :one
+SELECT es_historico FROM reporte WHERE id = $1 FOR UPDATE;
+
+-- name: UpdateHistoricoReporte :exec
+UPDATE reporte
+SET es_historico = $2,
+    updated_at = now()
+WHERE id = $1;
+
 -- name: ListComentariosByReporteId :many
 SELECT
     c.id,

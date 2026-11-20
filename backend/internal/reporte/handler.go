@@ -8,6 +8,7 @@ import (
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/google/uuid"
 )
 
 // Handler implementa las operaciones de reportes del contrato; el servidor
@@ -243,6 +244,34 @@ func (h *Handler) CambiarEstadoReporte(ctx context.Context, request httpapi.Camb
 		return nil, err
 	}
 	return httpapi.CambiarEstadoReporte200JSONResponse(toReporte(r)), nil
+}
+
+// MarcarReporteHistorico marca el reporte como histórico. Qué rol puede lo
+// decide el servicio.
+func (h *Handler) MarcarReporteHistorico(ctx context.Context, request httpapi.MarcarReporteHistoricoRequestObject) (httpapi.MarcarReporteHistoricoResponseObject, error) {
+	r, err := h.cambiarHistorico(ctx, request.ReporteId, true)
+	if err != nil {
+		return nil, err
+	}
+	return httpapi.MarcarReporteHistorico200JSONResponse(toReporte(r)), nil
+}
+
+// DesmarcarReporteHistorico devuelve el reporte a Incidentes.
+func (h *Handler) DesmarcarReporteHistorico(ctx context.Context, request httpapi.DesmarcarReporteHistoricoRequestObject) (httpapi.DesmarcarReporteHistoricoResponseObject, error) {
+	r, err := h.cambiarHistorico(ctx, request.ReporteId, false)
+	if err != nil {
+		return nil, err
+	}
+	return httpapi.DesmarcarReporteHistorico200JSONResponse(toReporte(r)), nil
+}
+
+func (h *Handler) cambiarHistorico(ctx context.Context, id uuid.UUID, esHistorico bool) (Detalle, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return Detalle{}, httperr.ErrNoAutenticado
+	}
+	rol, _ := middleware.RolFromContext(ctx)
+	return h.svc.CambiarHistorico(ctx, rol, userID, id, esHistorico)
 }
 
 // ActualizarTagsReporte reemplaza los tags que el usuario autenticado

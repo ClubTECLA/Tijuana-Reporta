@@ -7,6 +7,7 @@ import { LuMap, LuSun, LuTent, LuTrendingUp, LuTriangleAlert, LuUsers } from "re
 import type { NavItemsType } from "@/types/utils-types"
 import { useCommonPanel } from "@/panels/useCommonPanel"
 import { cn } from "@/lib/utils"
+import { useRiesgo } from "@/features/riesgo/useRiesgo"
 
 
 const navItemStyle = (isActive: boolean) => `
@@ -36,6 +37,7 @@ function NavItemContent({ icon, title, cantNoti }: { icon: ReactNode, title: str
 /** className: p. ej. la fila propia de teléfono y tablet, que la extiende a todo el ancho. */
 export default function NavBar({ className }: { className?: string }) {
     const { currentPanelView, openPanel } = useCommonPanel();
+    const { puedeVer: puedeVerRiesgo } = useRiesgo();
 
     const router = useRouter();
     const currentPath = router.pathname;
@@ -57,11 +59,12 @@ export default function NavBar({ className }: { className?: string }) {
                 title: "Refugios",
                 onClick: () => {}
             },
-            {
+            // Solo los roles oficiales ven el riesgo (el backend responde 403 a los ciudadanos).
+            ...(puedeVerRiesgo ? [{
                 icon: <LuTrendingUp />,
                 title: "Riesgo",
-                onClick: () => {}
-            },
+                panelView: 'Riesgo' as const,
+            }] : []),
             {
                 icon: <LuUsers />,
                 title: "Usuarios",

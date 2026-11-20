@@ -1,5 +1,5 @@
 import { createElement, useState, type SubmitEvent } from "react";
-import { LuBell, LuCheck, LuClock, LuDownload, LuImage, LuInfo, LuMapPin, LuPencil, LuSend, LuShare, LuTrash2, LuUser, LuUsers } from "react-icons/lu";
+import { LuArchive, LuArchiveRestore, LuBell, LuCheck, LuClock, LuDownload, LuImage, LuInfo, LuMapPin, LuPencil, LuSend, LuShare, LuTrash2, LuUser, LuUsers } from "react-icons/lu";
 import DetailHero from "@/features/reportes/components/DetailHero";
 import IncidentAction from "@/features/reportes/components/IncidentAction";
 import IncidentMoreActions from "@/features/reportes/components/IncidentMoreActions";
@@ -36,7 +36,7 @@ interface IncidentDetailViewProps {
 export default function IncidentDetailView({ reporteId }: IncidentDetailViewProps) {
     const { user } = useAuth();
     const { reportes, categories } = useReportes();
-    const { reporte, error, comentar, cambiarEstado } = useReporteDetalle(reporteId);
+    const { reporte, error, comentar, cambiarEstado, cambiarHistorico } = useReporteDetalle(reporteId);
     const { showMessage } = useSysMessage();
 
     const [tab, setTab] = useState(0);
@@ -44,6 +44,9 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     const [sending, setSending] = useState(false);
     const [stateMenuOpen, setStateMenuOpen] = useState(false);
     const [changingState, setChangingState] = useState(false);
+    const [changingHistorico, setChangingHistorico] = useState(false);
+    // Un cambio a la vez: el de estado y el de histórico se bloquean entre sí (useReporteDetalle además los encola).
+    const busy = changingState || changingHistorico;
     // Estado final (Resuelto o Descartado) pendiente de confirmar: después ya no se puede cambiar.
     const [confirming, setConfirming] = useState<ApiEstadoReporte | null>(null);
 
@@ -60,12 +63,12 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
     // Las mismas reglas para la fila de acciones y para "Más acciones" (teléfono).
     const stateDisabled = !reporte || !canChangeState || isFinal;
     const stateTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : undefined;
-    const discardDisabled = !reporte || !canChangeState || changingState || !nextStates.includes("Descartado");
+    const discardDisabled = !reporte || !canChangeState || busy || !nextStates.includes("Descartado");
     const discardTooltip = !canChangeState ? STATE_FORBIDDEN : isFinal ? stateFinal(reporte.estado_actual) : "Marcar como descartado (no se puede deshacer)";
     const toggleStateMenu = () => { setConfirming(null); setStateMenuOpen((open) => !open) };
 
     const handleChangeState = async (estado: ApiEstadoReporte) => {
-        if (changingState) return;
+        if (busy) return;
         setChangingState(true);
         try {
             await cambiarEstado(estado);
@@ -75,6 +78,23 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
         } finally {
             setChangingState(false);
             setConfirming(null);
+        }
+    };
+
+    // Pasar a histórico se puede deshacer, así que no se pide confirmación.
+    const handleHistorico = async () => {
+        if (!reporte || busy) return;
+        const esHistorico = !reporte.es_historico;
+        setChangingHistorico(true);
+        try {
+            await cambiarHistorico(esHistorico);
+            showMessage(esHistorico
+                ? "El incidente pasó a histórico: ya no aparece en Incidentes y cuenta para el riesgo."
+                : "El incidente volvió a Incidentes y dejó de contar para el riesgo.", { color: "green", type: "float", title: "Histórico" });
+        } catch (err) {
+            showMessage(err instanceof Error ? err.message : "No se pudo cambiar el incidente.", { color: "red", type: "float", title: "Histórico" });
+        } finally {
+            setChangingHistorico(false);
         }
     };
 
@@ -157,7 +177,10 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                         para la información de abajo. */}
                     {base &&
                         <div className="flex shrink-0 flex-col items-end gap-1 sm:hidden">
-                            <StatusBadge estado={base.estado_actual} />
+                            <span className="flex items-center gap-1">
+                                {reporte?.es_historico && <Badge tone="info">Histórico</Badge>}
+                                <StatusBadge estado={base.estado_actual} />
+                            </span>
                             <span className="font-mono text-xs font-medium text-ink-muted">{folio(base.id)}</span>
                         </div>
                     }
@@ -168,6 +191,14 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             { id: "editar", title: "Editar incidente", icon: <LuPencil />, disabled: true, tooltip: SOON },
                             { id: "compartir", title: "Compartir enlace", icon: <LuShare />, disabled: true, tooltip: SOON },
                             { id: "exportar", title: "Exportar ficha (PDF)", icon: <LuDownload />, disabled: true, tooltip: SOON },
+                            // Igual que el botón de pantallas grandes: cualquier rol menos ciudadano.
+                            ...(reporte && canChangeState ? [{
+                                id: "historico",
+                                title: reporte.es_historico ? "Volver a activos" : "Pasar a histórico",
+                                icon: reporte.es_historico ? <LuArchiveRestore /> : <LuArchive />,
+                                onClick: () => { void handleHistorico() },
+                                disabled: busy,
+                            }] : []),
                             { id: "descartar", title: "Descartar incidente", icon: <LuTrash2 />, variant: "danger", onClick: () => requestState("Descartado"), disabled: discardDisabled, tooltip: discardTooltip },
                         ]}
                     />
@@ -175,7 +206,24 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                 {base &&
                     <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
                         <StatusBadge estado={base.estado_actual} />
+                        {reporte?.es_historico && <Badge tone="info">Histórico</Badge>}
                         <span className="font-mono text-xs font-medium text-ink-muted">{folio(base.id)}</span>
+                        {/* Misma regla que el backend (PUT/DELETE /reportes/{id}/historico): cualquier rol menos ciudadano. */}
+                        {reporte && canChangeState &&
+                            <span className="ml-auto">
+                                <Button
+                                    size="sm"
+                                    variant="subtle"
+                                    icon={reporte.es_historico ? <LuArchiveRestore /> : <LuArchive />}
+                                    title={reporte.es_historico ? "Volver a activos" : "Pasar a histórico"}
+                                    tooltip={reporte.es_historico
+                                        ? "Vuelve a Incidentes y deja de contar para el riesgo"
+                                        : "Sale de Incidentes y pasa a contar para el mapa de riesgo"}
+                                    onClick={() => { void handleHistorico() }}
+                                    disabled={busy}
+                                />
+                            </span>
+                        }
                     </div>
                 }
                 <div className="flex justify-between pt-1 max-sm:hidden">
@@ -206,13 +254,13 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             ¿Marcar este incidente como <span className="font-semibold text-ink">{confirming}</span>? Es un estado final: después ya no se podrá cambiar.
                         </p>
                         <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={changingState} />
+                            <Button size="sm" variant="secondary" title="Cancelar" onClick={() => setConfirming(null)} disabled={busy} />
                             <Button
                                 size="sm"
                                 variant={confirming === "Descartado" ? "danger" : "primary"}
                                 title={`Marcar como ${confirming}`}
                                 onClick={() => { void handleChangeState(confirming) }}
-                                disabled={changingState}
+                                disabled={busy}
                             />
                         </div>
                     </div>
@@ -223,7 +271,7 @@ export default function IncidentDetailView({ reporteId }: IncidentDetailViewProp
                             <button
                                 key={estado}
                                 type="button"
-                                disabled={changingState}
+                                disabled={busy}
                                 onClick={() => requestState(estado)}
                                 className="rounded-full border border-line bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-subtle disabled:cursor-wait disabled:opacity-60"
                             >

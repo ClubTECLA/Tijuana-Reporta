@@ -41,6 +41,9 @@ type fakeReporteStore struct {
 	lastCambiarEstadoArg CambiarEstadoTxParams
 	cambiarEstadoCalled  bool
 
+	lastCambiarHistoricoArg CambiarHistoricoTxParams
+	cambiarHistoricoCalled  bool
+
 	lastActualizarTagsArg ActualizarTagsTxParams
 	actualizarTagsCalled  bool
 
@@ -164,6 +167,18 @@ func (f *fakeReporteStore) CambiarEstadoReporte(_ context.Context, arg CambiarEs
 	r.EstadoActual = arg.Estado
 	f.byID[arg.ID] = r
 	return r, nil
+}
+
+func (f *fakeReporteStore) CambiarHistorico(_ context.Context, arg CambiarHistoricoTxParams) error {
+	f.cambiarHistoricoCalled = true
+	f.lastCambiarHistoricoArg = arg
+	r, ok := f.byID[arg.ID]
+	if !ok {
+		return pgx.ErrNoRows
+	}
+	r.EsHistorico = arg.EsHistorico
+	f.byID[arg.ID] = r
+	return nil
 }
 
 func TestReporteService_Crear(t *testing.T) {
@@ -863,5 +878,64 @@ func TestReporteService_ActualizarTags_FueraDeRango(t *testing.T) {
 		if store.actualizarTagsCalled {
 			t.Fatalf("ActualizarTags(%d) llegó a la store con un id fuera de int4", id)
 		}
+	}
+}
+
+func TestReporteService_CambiarHistorico(t *testing.T) {
+	tests := []struct {
+		rol     string
+		wantErr error
+	}{
+		{"", ErrHistoricoNoPermitido},
+		{RolCiudadano, ErrHistoricoNoPermitido},
+		{"admin", nil},
+		{"moderador", nil},
+		{"analista", nil},
+		{"proteccion_civil", nil},
+		{"rescatista", nil},
+	}
+	for _, tt := range tests {
+		t.Run("rol "+tt.rol, func(t *testing.T) {
+			store := newFakeReporteStore()
+			svc := NewService(store, &fakeArchivos{})
+			creado, err := svc.Crear(context.Background(), Nuevo{
+				UserID: uuid.New(), Rol: RolCiudadano, IncidenteID: 42, Latitude: 32.5, Longitude: -117,
+			})
+			if err != nil {
+				t.Fatalf("Crear() error = %v", err)
+			}
+
+			actorID := uuid.New()
+			r, err := svc.CambiarHistorico(context.Background(), tt.rol, actorID, creado.Reporte.ID, true)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("CambiarHistorico() error = %v, want %v", err, tt.wantErr)
+			}
+			if store.cambiarHistoricoCalled != (tt.wantErr == nil) {
+				t.Fatalf("CambiarHistorico llamado en la store = %v, want %v", store.cambiarHistoricoCalled, tt.wantErr == nil)
+			}
+			if tt.wantErr != nil {
+				return
+			}
+			want := CambiarHistoricoTxParams{ID: creado.Reporte.ID, EsHistorico: true, ActorID: actorID}
+			if store.lastCambiarHistoricoArg != want {
+				t.Fatalf("CambiarHistorico recibió %+v, want %+v", store.lastCambiarHistoricoArg, want)
+			}
+			if !r.Reporte.EsHistorico {
+				t.Fatalf("EsHistorico = false, want true")
+			}
+
+			r, err = svc.CambiarHistorico(context.Background(), tt.rol, actorID, creado.Reporte.ID, false)
+			if err != nil || r.Reporte.EsHistorico {
+				t.Fatalf("desmarcar: EsHistorico = %v, err = %v, want false, nil", r.Reporte.EsHistorico, err)
+			}
+		})
+	}
+}
+
+func TestReporteService_CambiarHistorico_NoEncontrado(t *testing.T) {
+	svc := NewService(newFakeReporteStore(), &fakeArchivos{})
+	_, err := svc.CambiarHistorico(context.Background(), "admin", uuid.New(), uuid.New(), true)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("CambiarHistorico() error = %v, want ErrNotFound", err)
 	}
 }

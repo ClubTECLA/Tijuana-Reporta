@@ -313,6 +313,90 @@ tagsReporte:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+historicoReporte:
+  put:
+    operationId: marcarReporteHistorico
+    description: >-
+      Marca el reporte como histórico: deja de aparecer en Incidentes (reportes
+      activos) y pasa a contar para el riesgo. Solo pueden hacerlo los roles
+      distintos de ciudadano. Es idempotente y queda en el historial.
+    tags: [Reportes]
+    security:
+    - bearerAuth: []
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Reporte marcado como histórico
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario es ciudadano
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+  delete:
+    operationId: desmarcarReporteHistorico
+    description: >-
+      Quita la marca de histórico: el reporte vuelve a Incidentes y deja de
+      contar para el riesgo. Solo pueden hacerlo los roles distintos de
+      ciudadano. Es idempotente y queda en el historial.
+    tags: [Reportes]
+    security:
+    - bearerAuth: []
+    parameters:
+      - name: reporteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Reporte de vuelta como activo
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reporte'
+      '401':
+        description: No autenticado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: El usuario es ciudadano
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Reporte no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 listarReportesCercanos:
   get:
     operationId: listarReportesCercanos

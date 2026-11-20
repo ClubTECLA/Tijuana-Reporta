@@ -87,3 +87,14 @@ export type ApiAgregarTagsRequest =
     operations['agregarTags']['requestBody']['content']['application/json']
 export type ApiAgregarTagsResponse =
     operations['agregarTags']['responses'][201]['content']['application/json']
+
+// Riesgo e histórico: mapa de calor, zonas, colonias y conteo por categoría (solo reportes históricos)
+export type ApiNivelRiesgo = components['schemas']['nivel_riesgo']
+export type ApiCeldaCalor = components['schemas']['celda_calor']
+export type ApiMapaCalor = components['schemas']['mapa_calor']
+export type ApiZonaRiesgo = components['schemas']['zona_riesgo']
+export type ApiColoniaRiesgo = components['schemas']['colonia_riesgo']
+export type ApiConteoCategoria = components['schemas']['conteo_categoria']
+export type ApiResumenRiesgo = components['schemas']['resumen_riesgo']
+export type ApiObtenerMapaCalorQuery = operations['obtenerMapaCalor']['parameters']['query']
+export type ApiObtenerResumenRiesgoQuery = NonNullable<operations['obtenerResumenRiesgo']['parameters']['query']>

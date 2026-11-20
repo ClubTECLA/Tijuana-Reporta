@@ -52,6 +52,12 @@ export async function cambiarEstadoReporte(
     return apiRequest(`${reportePath(reporteId)}/estado`, { method: 'PATCH', json: { estado } })
 }
 
+// PUT /reportes/{reporteId}/historico (marcar) y DELETE (desmarcar), cualquier rol menos ciudadano.
+// Un reporte histórico sale de Incidentes y pasa a contar para el riesgo.
+export async function cambiarHistoricoReporte(reporteId: string, esHistorico: boolean): Promise<ApiReporte> {
+    return apiRequest(`${reportePath(reporteId)}/historico`, { method: esHistorico ? 'PUT' : 'DELETE' })
+}
+
 // PUT /reportes/{reporteId}/tags: reemplaza las etiquetas que el usuario confirmó; deben ser del catálogo de su categoría.
 export async function actualizarTagsReporte(reporteId: string, tagIds: number[]): Promise<ApiReporte> {
     return apiRequest(`${reportePath(reporteId)}/tags`, { method: 'PUT', json: { tag_ids: tagIds } })
