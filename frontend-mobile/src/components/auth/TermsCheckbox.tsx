@@ -12,7 +12,7 @@ export function TermsCheckbox({ checked, onChange }: Props) {
     <Pressable style={styles.row} onPress={() => onChange(!checked)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
       <View style={[styles.box, checked && styles.boxChecked]} />
       <Text style={styles.label}>
-        Acepto los Términos de servicio y el Aviso de privacidad de Tijuana Reporta.
+        Acepto los Términos de servicio y el Aviso de privacidad de CimAlert.
       </Text>
     </Pressable>
   );

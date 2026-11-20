@@ -7,7 +7,7 @@ FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY shared/package.json ./shared/package.json
 COPY frontend-web/package.json ./frontend-web/package.json
-RUN pnpm install --filter @tijuana-reporta/frontend-web... --frozen-lockfile
+RUN pnpm install --filter @cimalert/frontend-web... --frozen-lockfile
 
 # --- Etapa 2: build ---
 FROM base AS build
@@ -16,7 +16,7 @@ ENV VITE_API_URL=$VITE_API_URL
 COPY --from=deps /app /app
 COPY shared ./shared
 COPY frontend-web ./frontend-web
-RUN pnpm --filter @tijuana-reporta/frontend-web build
+RUN pnpm --filter @cimalert/frontend-web build
 
 # --- Etapa 3: imagen final ---
 FROM nginx:alpine

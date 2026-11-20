@@ -1,4 +1,4 @@
-import type { components, operations } from '@tijuana-reporta/shared'
+import type { components, operations } from '@cimalert/shared'
 
 // Shared API schemas
 export type ApiComentario = components['schemas']['comentario']
