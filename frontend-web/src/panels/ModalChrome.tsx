@@ -218,21 +218,21 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
       <section
         ref={modalRef}
         tabIndex={shouldFullFocus ? -1 : undefined}
-        style={{
-          transform: shouldFullFocus
-            ? `translate3d(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px), 0)`
-            : `translate3d(${position.x}px, ${position.y}px, 0)`,
-        }}
+        style={
+          shouldFullFocus
+            ? undefined // centrada por CSS: no usa `position`
+            : { transform: `translate3d(${position.x}px, ${position.y}px, 0)` }
+        }
         className={`
-                    fixed z-[60] w-fit pointer-events-auto
-                    flex flex-col items-center justify-center
-                    rounded-xl bg-white shadow-float
-                    ${
-                      shouldFullFocus
-                        ? "left-1/2 top-1/2 max-w-[calc(100vw-2rem)]"
-                        : "right-3 top-34 max-w-[calc(100vw-1.5rem)] sm:right-5 sm:max-w-[calc(100vw-2.5rem)] lg:top-20"
-                    }
-                `}
+    fixed z-[60] w-fit pointer-events-auto
+    flex flex-col items-center
+    rounded-xl bg-white shadow-float
+    ${
+      shouldFullFocus
+        ? "inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)]"
+        : "right-3 top-34 max-w-[calc(100vw-1.5rem)] sm:right-5 sm:max-w-[calc(100vw-2.5rem)] lg:top-20"
+    }
+  `}
       >
         {draggable && (
           <div
@@ -241,12 +241,14 @@ export default function ModalChrome({ fullFocus }: ModalChromeProps) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className={`touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+            className={`touch-none select-none p-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           >
-            <HiOutlineDotsHorizontal />
+            <HiOutlineDotsHorizontal aria-hidden="true" />
           </div>
         )}
-        {renderModal(modal.view, modal.props)}
+        <div className="min-h-0 w-full overflow-y-auto overscroll-contain">
+          {renderModal(modal.view, modal.props)}
+        </div>
       </section>
     </>,
     document.body,
