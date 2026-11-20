@@ -129,7 +129,8 @@ type Resumen struct {
 // TamanoCelda devuelve el lado de la celda en metros para un zoom: unos
 // PixelesPorCelda en pantalla, limitado a [CeldaMinM, CeldaMaxM].
 func TamanoCelda(zoom float64) float64 {
-	m := metrosPorPixelZoom0 / math.Pow(2, zoom) * PixelesPorCelda
+	z := math.Round(zoom)
+	m := metrosPorPixelZoom0 / math.Pow(2, z) * PixelesPorCelda
 	return math.Min(CeldaMaxM, math.Max(CeldaMinM, m))
 }
 

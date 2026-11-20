@@ -17,8 +17,14 @@ SELECT ST_Y(c.centro)::float8 AS latitude,
        sum(c.peso)::float8 AS peso,
        count(*)::int AS reportes
 FROM (
-    SELECT ST_Transform(ST_SnapToGrid(ST_Transform(h.geom::geometry, 32611), $1::float8), 4326) AS centro,
-           h.peso
+    SELECT ST_Transform(
+            ST_SnapToGrid(ST_Transform(h.geom::geometry, 32611),
+                            $1::float8 / 2,
+                            $1::float8 / 2,
+                            $1::float8,
+                            $1::float8),
+            4326) AS centro,
+        h.peso
     FROM reporte_historico_peso h
     WHERE h.geom && ST_MakeEnvelope($2::float8, $3::float8,
                                     $4::float8, $5::float8, 4326)::geography

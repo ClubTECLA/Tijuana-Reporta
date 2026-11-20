@@ -6,7 +6,7 @@
 -- incidente y de periodo son opcionales: NULL = sin filtro.
 
 -- name: ListCeldasCalor :many
--- Agrupa en metros reales: geom pasa a UTM 11N (EPSG:32611, la zona de
+-- Agrupa en metros reales: geom pasa a UTM 11N (proyección métrica de a_metros, la zona de
 -- Tijuana) y ST_SnapToGrid lleva cada punto al nodo más cercano de la
 -- cuadrícula, que queda como el centro de su celda. && sobre geography usa el
 -- índice GiST de puntos_origen.geom.
@@ -15,8 +15,14 @@ SELECT ST_Y(c.centro)::float8 AS latitude,
        sum(c.peso)::float8 AS peso,
        count(*)::int AS reportes
 FROM (
-    SELECT ST_Transform(ST_SnapToGrid(ST_Transform(h.geom::geometry, 32611), sqlc.arg(tamano_celda_m)::float8), 4326) AS centro,
-           h.peso
+    SELECT ST_Transform(
+            ST_SnapToGrid(a_metros(h.geom::geometry),
+                            sqlc.arg(tamano_celda_m)::float8 / 2,
+                            sqlc.arg(tamano_celda_m)::float8 / 2,
+                            sqlc.arg(tamano_celda_m)::float8,
+                            sqlc.arg(tamano_celda_m)::float8),
+            4326) AS centro,
+        h.peso
     FROM reporte_historico_peso h
     WHERE h.geom && ST_MakeEnvelope(sqlc.arg(min_lng)::float8, sqlc.arg(min_lat)::float8,
                                     sqlc.arg(max_lng)::float8, sqlc.arg(max_lat)::float8, 4326)::geography
@@ -38,10 +44,10 @@ GROUP BY c.centro;
 -- forma zona si tiene al menos min_puntos reportes a menos de eps_m metros
 -- (contándose a sí mismo); los demás quedan como ruido (zona NULL) y no se
 -- devuelven. ST_ClusterDBSCAN solo acepta geometry: se trabaja en UTM 11N
--- (EPSG:32611) para que eps_m y radio_m sean metros reales. Los argumentos van
+-- (proyección métrica de a_metros) para que eps_m y radio_m sean metros reales. Los argumentos van
 -- por posición porque sqlc no entiende la notación eps := ...
 WITH puntos AS (
-    SELECT h.colonia, h.peso, ST_Transform(h.geom::geometry, 32611) AS g
+    SELECT h.colonia, h.peso, a_metros(h.geom::geometry) AS g
     FROM reporte_historico_peso h
     WHERE (sqlc.narg(incidente_ids)::int[] IS NULL OR h.incidente_id = ANY(sqlc.narg(incidente_ids)::int[]))
     AND (sqlc.narg(desde)::timestamptz IS NULL OR h.created_at >= sqlc.narg(desde)::timestamptz)

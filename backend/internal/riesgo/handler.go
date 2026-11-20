@@ -2,6 +2,7 @@ package riesgo
 
 import (
 	"context"
+	"math"
 
 	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
 )
@@ -16,13 +17,31 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+func normalizarArea(a Area, zoom float64) (Area, float64, error) {
+	for _, v := range []float64{a.MinLat, a.MaxLat, a.MinLng, a.MaxLng, zoom} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return Area{}, 0, ErrAreaInvalida
+		}
+	}
+	a.MinLat, a.MaxLat = max(a.MinLat, -90), min(a.MaxLat, 90)
+	a.MinLng, a.MaxLng = max(a.MinLng, -180), min(a.MaxLng, 180)
+	if a.MinLat > a.MaxLat || a.MinLng > a.MaxLng {
+		return Area{}, 0, ErrAreaInvalida
+	}
+	return a, min(max(zoom, 0), 24), nil
+}
+
 // ObtenerMapaCalor devuelve el peso de los reportes del área visible,
 // agrupado en celdas según el zoom.
 func (h *Handler) ObtenerMapaCalor(ctx context.Context, request httpapi.ObtenerMapaCalorRequestObject) (httpapi.ObtenerMapaCalorResponseObject, error) {
 	p := request.Params
+	a, z, err := normalizarArea(Area{MinLat: p.MinLat, MaxLat: p.MaxLat, MinLng: p.MinLng, MaxLng: p.MaxLng}, p.Zoom)
+	if err != nil {
+		return nil, err
+	}
 	mapa, err := h.svc.ObtenerMapaCalor(ctx,
-		Area{MinLat: p.MinLat, MaxLat: p.MaxLat, MinLng: p.MinLng, MaxLng: p.MaxLng},
-		p.Zoom,
+		a,
+		z,
 		Filtro{IncidenteIDs: deref(p.IncidenteId), Desde: p.Desde, Hasta: p.Hasta},
 	)
 	if err != nil {

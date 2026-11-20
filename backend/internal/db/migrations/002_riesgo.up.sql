@@ -3,7 +3,11 @@
 -- riesgo:
 -- - Solo históricos (es_historico): los activos son de Incidentes.
 -- - Sin descartados: el riesgo usa solo información válida (requerimiento R-10).
---
+
+CREATE OR REPLACE FUNCTION a_metros(g geometry) RETURNS geometry
+LANGUAGE sql IMMUTABLE PARALLEL SAFE
+AS $$ SELECT ST_Transform(g, 32611) $$;
+
 -- Vista y no tabla: se calcula al consultarla, así que refleja el estado y los
 -- avistamientos actuales de cada reporte. Cambiar la fórmula es una migración
 -- nueva con CREATE OR REPLACE VIEW, y subir riesgo.VersionModelo.
