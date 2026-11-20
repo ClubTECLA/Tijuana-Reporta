@@ -2,7 +2,9 @@ import { createContext, type Dispatch, type SetStateAction } from "react";
 import type { ModalViewKey, ModalViewProps, OpenModal } from "./modalTypes";
 
 export type Position = { x: number; y: number };
-export type ModalEntry = { [K in ModalViewKey]: { view: K; props: ModalViewProps<K> } }[ModalViewKey];
+export type ModalEntry = {
+    [K in ModalViewKey]: { view: K; props: ModalViewProps<K>; fullFocus: boolean }
+}[ModalViewKey];
 
 // Separa la declaración del contexto del Provider y evita mezclar contratos con presentación.
 export type ModalsContextType = {

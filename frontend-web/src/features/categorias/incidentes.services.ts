@@ -1,6 +1,8 @@
 import type {
     ApiAgregarTagsRequest,
     ApiAgregarTagsResponse,
+    ApiActualizarIncidenteRequest,
+    ApiActualizarIncidenteResponse,
     ApiCrearIncidenteRequest,
     ApiCrearIncidenteResponse,
     ApiListarIncidentesQuery,
@@ -23,11 +25,24 @@ export async function crearIncidente(
     return apiRequest('/incidentes', { method: 'POST', json: body })
 }
 
+// PUT /incidentes/{incidenteId} (administradores)
+export async function actualizarIncidente(
+    incidenteId: number,
+    body: ApiActualizarIncidenteRequest,
+): Promise<ApiActualizarIncidenteResponse> {
+    return apiRequest(`/incidentes/${incidenteId}`, { method: 'PUT', json: body })
+}
+
 // GET /incidentes/{incidenteId}
 export async function obtenerIncidente(
     incidenteId: number,
 ): Promise<ApiObtenerIncidenteResponse> {
     return apiRequest(`/incidentes/${incidenteId}`)
+}
+
+// DELETE /incidentes/{incidenteId} (administradores)
+export async function eliminarIncidente(incidenteId: number): Promise<void> {
+    return apiRequest(`/incidentes/${incidenteId}`, { method: 'DELETE' })
 }
 
 // POST /incidentes/{incidenteId}/tags (administradores)

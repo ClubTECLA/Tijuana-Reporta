@@ -1,4 +1,4 @@
-import { Children, isValidElement, useId, type ChangeEventHandler, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useId, type ChangeEventHandler, type ReactNode } from "react";
 import SubSection from "@/components/layout/SubSection";
 import { cn } from "@/lib/utils";
 import type { subsectionProps } from "@/types/utils-types";
@@ -25,9 +25,9 @@ interface SimpleStatisticsProps {
 
 export function SimpleStatistics({ statistics }: SimpleStatisticsProps) {
     return (
-        <div className="flex flex-row items-center justify-center gap-2 p-2">
-            <span className="font-medium">{statistics}</span>
-        </div>
+        <SubSection className="flex flex-row items-center justify-center gap-2 p-2">
+            <SubSection as='span' className="font-medium">{statistics}</SubSection>
+        </SubSection>
     );
 }
 
@@ -100,7 +100,8 @@ export function TdButton({ color = "transparent", content, ariaLabel, onClick }:
     const hasTitle = isRenderable(content.title) && content.title !== "";
 
     return (
-        <button
+        <SubSection
+            as="button"
             type="button"
             onClick={onClick}
             aria-label={ariaLabel}
@@ -114,26 +115,28 @@ export function TdButton({ color = "transparent", content, ariaLabel, onClick }:
         >
             {isRenderable(content.icon) && <span className="text-2xl">{content.icon}</span>}
             {hasTitle && <span className="text-body font-bold whitespace-nowrap">{content.title}</span>}
-        </button>
+        </SubSection>
     );
 }
 
 interface TCellProps {
     className?: string;
     children: ReactNode;
+    debug?: boolean;
 }
 
-export function TCell({ className, children }: TCellProps) {
-    return <div className={className}>{children}</div>;
+export function TCell({ className, children, debug = false }: TCellProps) {
+    return <SubSection className={className} debug={debug}>{children}</SubSection>;
 }
 
 const allowedCellTypes = [SimpleText, SimpleStatistics, Checkbox, TdButton, TCell];
 
 interface TRowProps {
     children: ReactNode;
+    debug?: boolean;
 }
 
-export function TRow({ children }: TRowProps) {
+export function TRow({ children, debug = false }: TRowProps) {
     const cells = Children.toArray(children);
 
     return (
@@ -146,12 +149,17 @@ export function TRow({ children }: TRowProps) {
                     console.warn(`TRow: unexpected cell at position ${index + 1}.`);
                 }
 
+                const content =
+                    isValidElement<TCellProps>(cell) && cell.type === TCell
+                        ? cloneElement(cell, { debug: debug || cell.props.debug })
+                        : cell;
+
                 return (
                     <td
                         key={isValidElement(cell) ? (cell.key ?? index) : index}
                         className="border-t border-line bg-surface"
                     >
-                        {cell}
+                        {content}
                     </td>
                 );
             })}
@@ -245,7 +253,13 @@ export function Table({ format, debug, headers, caption, children, maxh, maxw }:
                             </tr>
                         </thead>
                     )}
-                    <tbody>{rows}</tbody>
+                    <tbody>
+                        {rows.map((row) =>
+                            isValidElement<TRowProps>(row) && row.type === TRow
+                                ? cloneElement(row, { debug: debug || row.props.debug })
+                                : row,
+                        )}
+                    </tbody>
                 </table>
             </div>
         </SubSection>

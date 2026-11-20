@@ -20,6 +20,7 @@ export type ApiUsuario = components['schemas']['usuario']
 export type ApiUsuarioMeResponse = components['schemas']['usuario_me_response']
 export type ApiIncidente = components['schemas']['incidente']
 export type ApiCrearIncidenteRequest = components['schemas']['crear_incidente_request']
+export type ApiActualizarIncidenteRequest = components['schemas']['actualizar_incidente_request']
 
 // Report endpoint query, path, and response types
 export type ApiListarReportesQuery = operations['listarReportes']['parameters']['query']
@@ -79,6 +80,8 @@ export type ApiListarRolesResponse =
     operations['listarRoles']['responses'][200]['content']['application/json']
 export type ApiCrearIncidenteResponse =
     operations['crearIncidente']['responses'][201]['content']['application/json']
+export type ApiActualizarIncidenteResponse =
+    operations['actualizarIncidente']['responses'][200]['content']['application/json']
 export type ApiObtenerIncidenteParams =
     operations['obtenerIncidente']['parameters']['path']
 export type ApiObtenerIncidenteResponse =
