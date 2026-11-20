@@ -20,6 +20,7 @@ export type ApiUsuario = components['schemas']['usuario']
 export type ApiUsuarioMeResponse = components['schemas']['usuario_me_response']
 export type ApiIncidente = components['schemas']['incidente']
 export type ApiCrearIncidenteRequest = components['schemas']['crear_incidente_request']
+export type ApiActualizarIncidenteRequest = components['schemas']['actualizar_incidente_request']
 
 // Report endpoint query, path, and response types
 export type ApiListarReportesQuery = operations['listarReportes']['parameters']['query']
@@ -46,8 +47,8 @@ export type ApiSubirMultimediaResponse =
     operations['subirMultimedia']['responses'][201]['content']['application/json']
 
 // Authentication endpoint request and response types
-export type LoginResponse = operations['inicioDeSesion']['responses'][200]['content']['application/json']
-export type RegisterResponse = operations['registrarUsuario']['responses'][201]['content']['application/json']
+export type LoginResponse = operations['login']['responses'][200]['content']['application/json']
+export type RegisterResponse = operations['register']['responses'][201]['content']['application/json']
 export type MeResponse = operations['me']['responses'][200]['content']['application/json']
 export type AuthResponse = LoginResponse | RegisterResponse
 export type AuthEndpoint = 'login' | 'register'
@@ -62,7 +63,7 @@ export type ApiErrorResponse = components['schemas']['error_response']
 export type ApiLoginResponse = LoginResponse
 export type ApiRegisterResponse = RegisterResponse
 export type ApiMeResponse = MeResponse
-export type ApiLogoutResponse = operations['cerrarSesion']['responses'][204]
+export type ApiLogoutResponse = operations['logout']['responses'][204]
 
 // Incident endpoint query, path, and response types
 export type ApiListarIncidentesQuery =
@@ -75,6 +76,8 @@ export type ApiListarRolesResponse =
     operations['listarRoles']['responses'][200]['content']['application/json']
 export type ApiCrearIncidenteResponse =
     operations['crearIncidente']['responses'][201]['content']['application/json']
+export type ApiActualizarIncidenteResponse =
+    operations['actualizarIncidente']['responses'][200]['content']['application/json']
 export type ApiObtenerIncidenteParams =
     operations['obtenerIncidente']['parameters']['path']
 export type ApiObtenerIncidenteResponse =
