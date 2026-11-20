@@ -29,6 +29,7 @@ interface TagProps extends Omit<subsectionProps, 'format'>{
     value: string;
     badge?: string | number;
     color?: HexColor;
+    readOnly?: boolean;
     editValue?: boolean;
     editBadge?: boolean;
     autoFocus?: boolean;
@@ -47,6 +48,7 @@ export function Tag(
         value, 
         badge = 0, 
         color = '#FFF', 
+        readOnly = false,
         editValue = false, 
         editBadge = false, 
         autoFocus = false, 
@@ -97,7 +99,7 @@ export function Tag(
                 as='div'
                 className="flex flex-row justify-between w-full"
             >
-                {stateEditValue ? (
+                {stateEditValue && !readOnly ? (
                     <input
                         ref={inputRef}
                         type="text"
@@ -119,34 +121,34 @@ export function Tag(
                 ) : (
                     <span
                         className={`text-md ${value ? "text-ink" : "text-ink-muted"} min-w-1/2`}
-                        onDoubleClick={() => setStateEditValue(true)}
-                        onKeyDown={(event) => {
+                        onDoubleClick={readOnly ? undefined : () => setStateEditValue(true)}
+                        onKeyDown={readOnly ? undefined : (event) => {
                             if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 setStateEditValue(true);
                             }
                         }}
-                        role="button"
-                        tabIndex={0}
+                        role={readOnly ? undefined : "button"}
+                        tabIndex={readOnly ? undefined : 0}
                     >
                         {value || "sin valor"}
                     </span>
                 )}
                 {badge !== undefined && badge !== null && badge !== "" &&
                     <>
-                    {!stateEditBadge ?
+                    {!stateEditBadge || readOnly ?
                         <span
-                            role="button"
-                            tabIndex={0}
+                            role={readOnly ? undefined : "button"}
+                            tabIndex={readOnly ? undefined : 0}
                             className="text-md ml-2 text-ink"
-                            onKeyDown={(event) => {
+                            onKeyDown={readOnly ? undefined : (event) => {
                                 if (event.key === "Enter" || event.key === " ") {
                                     event.preventDefault();
                                     setBadgeValue(String(badge));
                                     setStateEditBadge(true);
                                 }
                             }}
-                            onDoubleClick={() => {
+                            onDoubleClick={readOnly ? undefined : () => {
                                 setBadgeValue(String(badge));
                                 setStateEditBadge(true);
                             }}

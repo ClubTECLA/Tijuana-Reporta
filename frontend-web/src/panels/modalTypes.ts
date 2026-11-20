@@ -11,4 +11,11 @@ type OpenModalArgs<K extends ModalViewKey> = keyof ModalViewProps<K> extends nev
     ? [props?: ModalViewProps<K>]
     : [props: ModalViewProps<K>];
 
-export type OpenModal = <K extends ModalViewKey>(view: K, ...args: OpenModalArgs<K>) => void;
+export interface ModalOptions {
+    fullFocus?: boolean;
+}
+
+export type OpenModal = <K extends ModalViewKey>(
+    view: K,
+    ...args: [...OpenModalArgs<K>, options?: ModalOptions]
+) => void;
