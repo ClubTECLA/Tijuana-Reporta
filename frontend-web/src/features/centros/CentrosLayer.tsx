@@ -67,6 +67,26 @@ function useCentroMarkers(centros: ApiCentro[], onOpenDetail: (centroId: string)
         return () => cancelAnimationFrame(frameId);
     }, [map, centros]);
 
+    // Como useIncidentMarkers: solo los pines dentro de la vista entran en el orden de Tab. Se recalcula al terminar de
+    // mover el mapa, al cambiar su tamaño y cuando cambian los centros (el efecto de arriba ya creó sus marcadores).
+    useEffect(() => {
+        if (!map) return;
+        const updateTabIndex = () => {
+            const { clientWidth: width, clientHeight: height } = map.getContainer();
+            for (const { marker, element } of markersRef.current.values()) {
+                const { x, y } = map.project(marker.getLngLat());
+                element.tabIndex = x >= 0 && y >= 0 && x <= width && y <= height ? 0 : -1;
+            }
+        };
+        updateTabIndex();
+        map.on("moveend", updateTabIndex);
+        map.on("resize", updateTabIndex);
+        return () => {
+            map.off("moveend", updateTabIndex);
+            map.off("resize", updateTabIndex);
+        };
+    }, [map, centros]);
+
     // Al cambiar de mapa o desmontar, fuera todos los marcadores.
     useEffect(() => {
         const markers = markersRef.current;
