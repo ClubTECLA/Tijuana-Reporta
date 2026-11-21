@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuBuilding2, LuMapPin, LuSend } from "react-icons/lu";
 import ColSection from "@/components/layout/ColSection";
@@ -61,6 +61,8 @@ function NewCentroForm() {
     // Buscando una dirección escrita: el marcador aún no está en ella, así que publicar ahora guardaría la ubicación
     // anterior. search() termina siempre (encontrada, no encontrada, error o cancelada al mover el marcador o salir).
     const [searching, setSearching] = useState(false);
+    // Cada búsqueda nueva cancela la anterior; solo la última puede quitar el "buscando".
+    const searchSeqRef = useRef(0);
 
     const tipoList = [...tipos.values()];
     const selectedTipo = tipoId === null ? undefined : tipos.get(tipoId);
@@ -76,6 +78,7 @@ function NewCentroForm() {
     }, [reset]);
 
     const handleSearchAddress = async (query: string) => {
+        const seq = ++searchSeqRef.current;
         setSearching(true);
         try {
             if (await search(query) === "not-found") {
@@ -84,7 +87,7 @@ function NewCentroForm() {
         } catch {
             showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
         } finally {
-            setSearching(false);
+            if (seq === searchSeqRef.current) setSearching(false);
         }
     };
 
