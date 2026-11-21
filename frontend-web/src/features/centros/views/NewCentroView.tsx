@@ -58,6 +58,9 @@ function NewCentroForm() {
     // Texto y no número: el campo puede quedar vacío (sin capacidad registrada).
     const [capacidad, setCapacidad] = useState("");
     const [publishing, setPublishing] = useState(false);
+    // Buscando una dirección escrita: el marcador aún no está en ella, así que publicar ahora guardaría la ubicación
+    // anterior. search() termina siempre (encontrada, no encontrada, error o cancelada al mover el marcador o salir).
+    const [searching, setSearching] = useState(false);
 
     const tipoList = [...tipos.values()];
     const selectedTipo = tipoId === null ? undefined : tipos.get(tipoId);
@@ -73,12 +76,15 @@ function NewCentroForm() {
     }, [reset]);
 
     const handleSearchAddress = async (query: string) => {
+        setSearching(true);
         try {
             if (await search(query) === "not-found") {
                 showMessage("No encontramos esa dirección en Tijuana.", { color: "yellow", type: "float", title: "Ubicación" });
             }
         } catch {
             showMessage("No se pudo buscar la dirección. Intenta de nuevo.", { color: "red", type: "float", title: "Ubicación" });
+        } finally {
+            setSearching(false);
         }
     };
 
@@ -218,7 +224,8 @@ function NewCentroForm() {
                     icon={<LuSend />}
                     title={publishing ? "Publicando…" : "Publicar centro"}
                     onClick={handlePublish}
-                    disabled={publishing}
+                    disabled={publishing || searching}
+                    tooltip={searching ? "Buscando la dirección…" : undefined}
                     className="flex-1 px-4"
                 />
             </div>
