@@ -10,7 +10,8 @@ const variants = {
     subtle: "bg-subtle text-ink hover:bg-brand-subtle hover:text-brand-text",
     danger: "border border-danger-line bg-surface text-danger hover:bg-danger-subtle",
     report: "bg-report text-white drop-shadow-button-report hover:brightness-90",
-    mint: "bg-mint text-white drop-shadow-button-brand hover:brightness-95",
+    // Texto oscuro y no blanco: blanco sobre menta da 2,1:1 y no llega al 4,5:1 de WCAG AA; ink-strong da ~8,9:1.
+    mint: "bg-mint text-ink-strong drop-shadow-button-brand hover:brightness-95",
 } as const satisfies Record<string, string>;
 
 // sm y md son los tamaños de "Web/Botón"; lg es el botón en píldora de 48 px de las pantallas.
