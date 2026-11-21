@@ -59,7 +59,7 @@ interface CentroDetailViewProps {
     centroId: string
 }
 
-// "9. Refugio - RefugioResumen" del Figma. Usa el centro que ya tiene CentrosContext (el listado trae todos sus campos).
+// "Usa el centro que ya tiene CentrosContext (el listado trae todos sus campos).
 // Sin la fila "Creador": el API aún no devuelve quién lo creó.
 export default function CentroDetailView({ centroId }: CentroDetailViewProps) {
     const { centros, tipos } = useCentros();
