@@ -1,5 +1,7 @@
-// Política de contraseña nueva. El backend valida la misma regla al verificar
-// la recuperación, para que no se pueda evadir llamando directo a la API.
+// Política de contraseña nueva del frontend: mínimo 10 caracteres, mayúscula,
+// número y símbolo. El límite de 72 bytes (bcrypt) también se valida aquí, pero
+// no se muestra en la lista de requisitos. El backend no aplica las reglas de
+// mayúscula/número/símbolo: solo exige 8 caracteres mínimo y 72 bytes máximo.
 
 export const PASSWORD_MIN_LENGTH = 10
 export const PASSWORD_MAX_BYTES = 72
@@ -23,13 +25,10 @@ export function getPasswordRequirements(password: string): PasswordRequirement[]
             label: "Un símbolo (!, #, $)",
             met: /[!#$]/.test(password),
         },
-        {
-            label: `Máximo ${PASSWORD_MAX_BYTES} bytes`,
-            met: new TextEncoder().encode(password).length <= PASSWORD_MAX_BYTES,
-        },
     ]
 }
 
 export function isPasswordValid(password: string): boolean {
-    return getPasswordRequirements(password).every(({ met }) => met)
+    return new TextEncoder().encode(password).length <= PASSWORD_MAX_BYTES
+        && getPasswordRequirements(password).every(({ met }) => met)
 }

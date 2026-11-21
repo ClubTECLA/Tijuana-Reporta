@@ -111,8 +111,14 @@ export function RecoveryCodeForm({
         if (!pasted) return
 
         event.preventDefault()
-        onChangeDigits(writeDigits(digits, pasted))
-        focusInput(Math.min(pasted.length, CODE_LENGTH - 1))
+
+        // Un código completo siempre se escribe desde el primer slot; un paste
+        // parcial se escribe desde el input que tenga el foco.
+        const focusedIndex = inputRefs.current.findIndex((input) => input === document.activeElement)
+        const startIndex = pasted.length >= CODE_LENGTH ? 0 : Math.max(focusedIndex, 0)
+
+        onChangeDigits(writeDigits(digits, pasted, startIndex))
+        focusInput(Math.min(startIndex + pasted.length, CODE_LENGTH - 1))
     }
 
     const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {

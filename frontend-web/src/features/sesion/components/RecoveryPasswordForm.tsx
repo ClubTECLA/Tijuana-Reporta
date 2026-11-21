@@ -62,6 +62,7 @@ export function RecoveryPasswordForm({ onSubmit, submitting }: RecoveryPasswordF
                             ? <LuCircleCheckBig className="size-4 shrink-0" aria-hidden="true" />
                             : <FiInfo className="size-4 shrink-0" aria-hidden="true" />}
                         {label}
+                        <span className="sr-only"> · {met ? 'Cumplido' : 'Pendiente'}</span>
                     </li>
                 ))}
             </ul>

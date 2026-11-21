@@ -53,6 +53,12 @@ describe('codeInput', () => {
         expect(writeDigits(code, '123')).toEqual(['1', '2', '3', '', '', ''])
     })
 
+    it('writeDigits escribe desde la posición indicada al pegar un fragmento', () => {
+        const code = ['1', '2', '3', '4', '5', '6']
+
+        expect(writeDigits(code, '99', 2)).toEqual(['1', '2', '9', '9', '5', '6'])
+    })
+
     it('isCodeComplete exige las seis posiciones con dígito', () => {
         expect(isCodeComplete(['1', '2', '3', '4', '5', '6'])).toBe(true)
         expect(isCodeComplete(['1', '2', '3', '4', '5', ''])).toBe(false)

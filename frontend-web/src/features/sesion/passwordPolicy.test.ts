@@ -30,13 +30,12 @@ describe('passwordPolicy', () => {
     it('expone cada requisito con su estado', () => {
         const requirements = getPasswordRequirements('Password-123!')
 
-        expect(requirements).toHaveLength(4)
+        expect(requirements).toHaveLength(3)
         expect(requirements.every(({ met }) => met)).toBe(true)
         expect(requirements.map(({ label }) => label)).toEqual([
             'Al menos 10 caracteres',
             'Una mayúscula y un número',
             'Un símbolo (!, #, $)',
-            'Máximo 72 bytes',
         ])
     })
 })

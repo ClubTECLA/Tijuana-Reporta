@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, SubmitEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LuShield } from 'react-icons/lu'
@@ -13,9 +13,6 @@ import {
     subtitleStyle,
     titleStyle,
 } from './authStyles'
-
-// El contador es solo cosmético: el backend es quien limita los intentos.
-const MAX_LOGIN_ATTEMPTS = 3
 
 interface SignInFormProps {
     onForgotPassword: () => void
@@ -55,29 +52,33 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
     const { showMessage, cleanMessage } = useSysMessage()
     const { login } = useAuth()
     const navigate = useNavigate()
-    const [remainingAttempts, setRemainingAttempts] = useState(MAX_LOGIN_ATTEMPTS)
     // Evita un segundo envío mientras el primero sigue esperando respuesta. La ref corta al instante
     // (dos envíos en el mismo evento); el estado deshabilita el botón en pantalla.
     const submittingRef = useRef(false)
     const [submitting, setSubmitting] = useState(false)
+    // El formulario puede desmontarse mientras la petición sigue en vuelo (por
+    // ejemplo al pasar a recuperación). En ese caso se ignoran navigate y mensajes.
+    const activeRef = useRef(true)
     const [form, setForm] = useState({
         email: '',
         password: '',
     })
 
+    useEffect(() => {
+        activeRef.current = true
+        return () => {
+            activeRef.current = false
+        }
+    }, [])
+
     const handleChangeInput = (event: ChangeEvent<HTMLInputElement>) => {
-        if (remainingAttempts > 0) cleanMessage()
+        cleanMessage()
         const { name, value } = event.target
         setForm((current) => ({ ...current, [name]: value }))
     }
 
     const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
-
-        if (remainingAttempts === 0) {
-            showMessage('Vuelve a intentar ingresar más tarde.', 'red', 'Sin intentos')
-            return
-        }
 
         if (form.email.length === 0 || form.password.length === 0) {
             showMessage(
@@ -93,24 +94,15 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
 
         try {
             await login(form.email, form.password)
+            if (!activeRef.current) return
             navigate('/')
         } catch (error) {
-            const status = error instanceof Error && 'status' in error ? error.status : undefined
-            const invalidCredentials = status === 401
-            const attemptsAfterFailure = invalidCredentials
-                ? Math.max(remainingAttempts - 1, 0)
-                : remainingAttempts
+            if (!activeRef.current) return
             const copy = loginErrorCopy(error)
-
-            showMessage(
-                copy.message,
-                'red',
-                invalidCredentials && attemptsAfterFailure === 0 ? 'Sin intentos' : copy.title,
-            )
-            setRemainingAttempts(attemptsAfterFailure)
+            showMessage(copy.message, 'red', copy.title)
         } finally {
             submittingRef.current = false
-            setSubmitting(false)
+            if (activeRef.current) setSubmitting(false)
         }
     }
 
@@ -159,13 +151,14 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
                 <button
                     type="button"
                     onClick={onForgotPassword}
-                    className="text-right text-blue-600 hover:underline decoration-blue-600 underline-offset-3"
+                    disabled={submitting}
+                    className="text-right text-blue-600 hover:underline decoration-blue-600 underline-offset-3 disabled:cursor-not-allowed disabled:opacity-60"
                 >¿Olvidaste tu contraseña?</button>
             </div>
             <button
                 type="submit"
                 className={submitButtonStyle}
-                disabled={remainingAttempts === 0 || submitting}
+                disabled={submitting}
             >{submitting ? 'Ingresando…' : 'Iniciar sesión'}</button>
             <div className="flex w-full items-center gap-4.75">
                 <span className="h-px flex-1 bg-line-soft" />
