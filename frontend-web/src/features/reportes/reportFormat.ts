@@ -41,10 +41,10 @@ export function incidentIconColor(estado: ApiEstadoReporte, categoryColor = "") 
 }
 
 /** Folio corto derivado del id, con la misma fórmula que codigoReporte() de mobile. Solo presentación. */
-export function folio(id: string) {
+export function folio(id: string, prefix = "INC") {
     let hash = 0;
     for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 9000;
-    return `INC-${hash + 1000}`;
+    return `${prefix}-${hash + 1000}`;
 }
 
 /** "1 confirmación", "3 confirmaciones". */
