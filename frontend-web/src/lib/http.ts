@@ -100,7 +100,7 @@ export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
     auth?: boolean
 }
 
-/** Petición a la API: `path` es relativo a apiUrl (p. ej. "/reportes"). Devuelve el JSON, o undefined con 204. */
+/** Petición a la API: `path` es relativo a apiUrl (p. ej. "/reportes"). Devuelve el JSON, o undefined con 202/204/205. */
 export async function apiRequest<T>(path: string, { json, body, query, auth = true, headers, ...init }: ApiRequestInit = {}): Promise<T> {
     const token = auth ? sessionToken.get() : null
     if (auth && !token) {
@@ -131,7 +131,7 @@ export async function apiRequest<T>(path: string, { json, body, query, auth = tr
         return throwApiError(response)
     }
 
-    if (response.status === 204) {
+    if ([202, 204, 205].includes(response.status)) {
         return undefined as T
     }
 

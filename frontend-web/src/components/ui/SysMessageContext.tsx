@@ -115,7 +115,9 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
     // Aviso en línea con el diseño de "Error de acceso" del Figma (iniciar sesión).
     if (type === "inline") {
         return (
-            <div className={`
+            <div
+                role={color === "red" ? "alert" : "status"}
+                className={`
                 flex flex-row items-center gap-3 px-3.5 py-3 w-full
                 rounded-[14px] transition-all duration-300 ease-out
                 ${currentStyle.wrapped}
@@ -139,7 +141,9 @@ function MessageBox({ message, title, color,justify, type,isVisible, animate, on
     }
 
     return (
-        <div className={`
+        <div
+            role={color === "red" ? "alert" : "status"}
+            className={`
             fixed ${justifyM[justify]} z-[100]
             flex items-center gap-3 px-5 py-3.5
             border-l-4 ${currentStyle.barClass} rounded-2xl shadow-float

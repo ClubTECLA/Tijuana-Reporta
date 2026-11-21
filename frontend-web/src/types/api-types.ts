@@ -50,6 +50,10 @@ export type ApiSubirMultimediaResponse =
 export type LoginResponse = operations['login']['responses'][200]['content']['application/json']
 export type RegisterResponse = operations['register']['responses'][201]['content']['application/json']
 export type MeResponse = operations['me']['responses'][200]['content']['application/json']
+export type ApiRecoveryRequest =
+    operations['solicitarRecuperacion']['requestBody']['content']['application/json']
+export type ApiVerifyRecoveryRequest =
+    operations['verificarRecuperacion']['requestBody']['content']['application/json']
 export type AuthResponse = LoginResponse | RegisterResponse
 export type AuthEndpoint = 'login' | 'register'
 export type AuthRequest<T extends AuthEndpoint> =
