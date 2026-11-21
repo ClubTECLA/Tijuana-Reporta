@@ -54,8 +54,9 @@ export default function NavBar({ className }: { className?: string }) {
             },
             {
                 icon: <LuTent />,
-                title: "Refugios",
-                onClick: () => {}
+                title: "Centros",
+                panelView: 'Centros',
+                activeOnPanelViews: ['Detalle Centro', 'Nuevo Centro']
             },
             {
                 icon: <LuTrendingUp />,
