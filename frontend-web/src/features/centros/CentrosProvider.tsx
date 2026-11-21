@@ -43,6 +43,9 @@ export function CentrosProvider({ children }: { children: ReactNode }) {
 
     const crear = useCallback(async (nuevo: ApiCrearCentroRequest) => {
         const centro = await crearCentro(nuevo);
+        // Se añade ya el que devolvió el POST: si la recarga falla, su detalle (que se abre al publicar) lo encuentra
+        // igual. Si la recarga sale bien, la lista del servidor lo sustituye.
+        setCentros((prev) => [...(prev ?? []).filter((item) => item.id !== centro.id), centro]);
         // Sin filtros, para que la lista y el mapa muestren el centro nuevo.
         setFilters(DEFAULT_CENTRO_FILTERS);
         await refresh();
