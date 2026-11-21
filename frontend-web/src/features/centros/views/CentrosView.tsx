@@ -54,8 +54,10 @@ export default function CentrosView() {
             className="min-h-0 overflow-visible"
         >
             {/* Mismo ancho fijo que el resto de paneles: con solo un mínimo, el panel (w-fit) crecería hasta el nombre
-                más largo en vez de recortarlo con "…". */}
-            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
+                más largo en vez de recortarlo con "…". En teléfono, el interior del panel (100vw menos left-2, right-2 y
+                p-3 de PanelChrome) y no w-full: dentro del w-fit de ColSection, w-full se ajusta al contenido y las
+                filas cortas de centros dejaban un hueco a la derecha. */}
+            <div className="flex min-h-0 w-[calc(100vw-2.5rem)] flex-1 flex-col gap-3.5 font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
                 <SegmentedTabs
                     format="row"
                     activeTab={tabs.findIndex(({ key }) => key === filters.tab)}

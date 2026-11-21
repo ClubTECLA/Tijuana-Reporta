@@ -19,7 +19,6 @@ const sectionTitleStyle = "text-sm font-semibold text-ink";
 const pendingNoteStyle = "text-xs text-ink-muted";
 const fieldStyle = "w-full rounded-full border border-line bg-white px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand";
 
-// "Tarjeta de categoría" del Figma con el color e icono del tipo de centro; elegida, toma el color del tipo.
 function TipoCentroCard({ tipo, selected, onClick }: { tipo: ApiTipoCentro; selected: boolean; onClick: () => void }) {
     const { color, icon } = tipoStyle(tipo);
     return (
@@ -44,7 +43,7 @@ function TipoCentroCard({ tipo, selected, onClick }: { tipo: ApiTipoCentro; sele
     );
 }
 
-// "21. Refugio - Nuevo Refugio" del Figma. Crea un centro con su tipo, nombre, descripción, ubicación del marcador y
+// "Crea un centro con su tipo, nombre, descripción, ubicación del marcador y
 // lugares. shortcut: sin fotos ni borrador; las fotos esperan un endpoint de subida para centros y el borrador,
 // soporte del backend (como en "Nuevo incidente").
 function NewCentroForm() {
@@ -130,8 +129,9 @@ function NewCentroForm() {
 
     return (
         // Mismo ancho y estructura que "Nuevo incidente": el scroll se extiende sobre el relleno para quedar pegado al
-        // borde y los botones quedan abajo del todo. Por eso NewCentroView pasa overflow-visible a ColSection.
-        <div className="flex min-h-0 w-full flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
+        // borde y los botones quedan abajo del todo. Por eso NewCentroView pasa overflow-visible a ColSection. En teléfono,
+        // el interior del panel y no w-full, por el mismo motivo que en CentrosView.
+        <div className="flex min-h-0 w-[calc(100vw-2.5rem)] flex-1 flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
             <div className="-mr-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-5 pr-3 sm:-mr-4 sm:pr-4">
                 <span className="text-xs font-semibold tracking-[0.72px] text-ink-muted">ESCOGE EL CENTRO A CREAR</span>
                 {tipoList.length === 0
