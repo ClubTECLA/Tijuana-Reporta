@@ -1,5 +1,5 @@
 {
-  "name": "@tijuana-reporta/frontend-web",
+  "name": "@cimalert/frontend-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tijuana-reporta/shared": "workspace:*",
+    "@cimalert/shared": "workspace:*",
     "clsx": "^2.1.1",
     "maplibre-gl": "^6.10.0",
     "react": "^19.2.8",

@@ -1,4 +1,4 @@
-module github.com/ClubTECLA/tijuana-reporta/multimedia
+module github.com/ClubTECLA/cimalert/multimedia
 
 go 1.27.0
 

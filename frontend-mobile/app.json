@@ -3,7 +3,7 @@
     "name": "CimAlert",
     "slug": "CimAlert",
     "version": "1.0.0",
-    "scheme": "tijuanareporta",
+    "scheme": "cimalert",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

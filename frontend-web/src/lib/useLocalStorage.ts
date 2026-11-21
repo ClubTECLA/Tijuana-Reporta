@@ -11,7 +11,7 @@ import type { localStorageKeys, localStorageValues } from '@/types/localStorage-
 import { localStorageBaseRegistry } from '@/lib/LocalStorageRegistry';
 
 /** Nombre del evento interno que notifica cambios de preferencias en esta pestaña. */
-const localStorageChangeEvent = 'climAlert:local-storage-change';
+const localStorageChangeEvent = 'cimAlert:local-storage-change';
 
 /** Datos compartidos al sincronizar una clave entre instancias del hook en la misma pestaña. */
 type LocalStorageChangeDetail = {

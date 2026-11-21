@@ -1,6 +1,6 @@
 {
   "main": "expo-router/entry",
-  "name": "@tijuana-reporta/frontend-mobile",
+  "name": "@cimalert/frontend-mobile",
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -11,7 +11,7 @@
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-community/slider": "5.2.0",
     "@tanstack/react-query": "^5.103.1",
-    "@tijuana-reporta/shared": "workspace:*",
+    "@cimalert/shared": "workspace:*",
     "expo": "~57.0.23",
     "expo-auth-session": "~57.0.12",
     "expo-constants": "~57.0.18",

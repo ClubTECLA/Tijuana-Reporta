@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/almacen"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
 	"github.com/jackc/pgx/v5"
 )
 

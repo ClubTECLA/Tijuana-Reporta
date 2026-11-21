@@ -20,8 +20,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/almacen"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
 )
 
 // multimediaFalso hace de servicio multimedia: guarda lo que recibe y anota lo que se borra.

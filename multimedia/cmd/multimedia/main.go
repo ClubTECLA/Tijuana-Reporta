@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/ClubTECLA/tijuana-reporta/multimedia/internal/almacenamiento"
-	"github.com/ClubTECLA/tijuana-reporta/multimedia/internal/api"
-	"github.com/ClubTECLA/tijuana-reporta/multimedia/internal/config"
+	"github.com/ClubTECLA/cimalert/multimedia/internal/almacenamiento"
+	"github.com/ClubTECLA/cimalert/multimedia/internal/api"
+	"github.com/ClubTECLA/cimalert/multimedia/internal/config"
 )
 
 func main() {
