@@ -291,6 +291,7 @@ func (q *Queries) GetUserWithRolByID(ctx context.Context, id uuid.UUID) (GetUser
 
 const listAllUsers = `-- name: ListAllUsers :many
 SELECT
+    u.id,
     u.username,
     u.email,
     r.nombre AS rol_name,
@@ -307,10 +308,11 @@ ORDER BY
 `
 
 type ListAllUsersRow struct {
-	Username      string  `json:"username"`
-	Email         *string `json:"email"`
-	RolName       string  `json:"rol_name"`
-	ReportesCount int     `json:"reportes_count"`
+	ID            uuid.UUID `json:"id"`
+	Username      string    `json:"username"`
+	Email         *string   `json:"email"`
+	RolName       string    `json:"rol_name"`
+	ReportesCount int       `json:"reportes_count"`
 }
 
 func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
@@ -323,6 +325,7 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
 	for rows.Next() {
 		var i ListAllUsersRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.Username,
 			&i.Email,
 			&i.RolName,

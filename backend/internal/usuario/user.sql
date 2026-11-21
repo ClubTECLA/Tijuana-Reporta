@@ -41,6 +41,7 @@ WHERE
 
 -- name: ListAllUsers :many
 SELECT
+    u.id,
     u.username,
     u.email,
     r.nombre AS rol_name,

@@ -701,6 +701,8 @@ export interface components {
         };
         /** @description Un usuario del sistema. */
         usuario_resumen: {
+            /** Format: uuid */
+            id: string;
             username: string;
             /** Format: email */
             email: string | null;
