@@ -9,9 +9,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia/procesamiento"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/multimedia/procesamiento"
 	"github.com/google/uuid"
 )
 

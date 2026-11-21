@@ -1,5 +1,5 @@
 {
-    "name": "@tijuana-reporta/shared",
+    "name": "@cimalert/shared",
     "version": "0.0.1",
     "private": true,
     "main": "types/api-types.ts"

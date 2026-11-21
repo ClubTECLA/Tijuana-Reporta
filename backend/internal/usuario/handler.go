@@ -3,8 +3,8 @@ package usuario
 import (
 	"context"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 

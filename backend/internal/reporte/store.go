@@ -3,9 +3,9 @@ package reporte
 import (
 	"context"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/historial"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/historial"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

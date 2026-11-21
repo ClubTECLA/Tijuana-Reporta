@@ -5,10 +5,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/middleware"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Tijuana Reporta API
+  title: CimAlert API
   version: 1.0.0
   description: |
     Las rutas con candado requieren autenticación: haz `POST /auth/login` y pega el `access_token` en **Authorize**.

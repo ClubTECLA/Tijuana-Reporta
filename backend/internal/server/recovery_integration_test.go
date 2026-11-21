@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
 )
 
 const (

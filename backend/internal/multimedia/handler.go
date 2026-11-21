@@ -6,10 +6,10 @@ import (
 	"io"
 	"mime/multipart"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/middleware"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/middleware"
 )
 
 // campoArchivo es el campo del multipart que lleva el archivo.

@@ -3,7 +3,7 @@ package usuario
 import (
 	"context"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
 )
 
 // store es lo que Service necesita de Store.

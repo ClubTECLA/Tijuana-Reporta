@@ -7,14 +7,14 @@ import (
 	"time"
 	_ "time/tzdata" // zonas horarias dentro del binario: la imagen no las trae y TZ las necesita
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/bootstrap"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/config"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/mantenimiento"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/server"
+	"github.com/ClubTECLA/cimalert/backend/internal/almacen"
+	"github.com/ClubTECLA/cimalert/backend/internal/bootstrap"
+	"github.com/ClubTECLA/cimalert/backend/internal/config"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/logging"
+	"github.com/ClubTECLA/cimalert/backend/internal/mantenimiento"
+	"github.com/ClubTECLA/cimalert/backend/internal/server"
 	"github.com/gin-gonic/gin"
 )
 
