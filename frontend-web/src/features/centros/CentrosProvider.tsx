@@ -42,7 +42,11 @@ export function CentrosProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const crear = useCallback(async (nuevo: ApiCrearCentroRequest) => {
+        const session = sessionRef.current;
         const centro = await crearCentro(nuevo);
+        // Si se cerró sesión mientras tanto, el centro ya existe en el servidor pero no se toca el estado (ya vacío):
+        // se devuelve igual, como cualquier alta que terminó bien, sin añadirlo ni recargar.
+        if (session !== sessionRef.current) return centro;
         // Se añade ya el que devolvió el POST: si la recarga falla, su detalle (que se abre al publicar) lo encuentra
         // igual. Si la recarga sale bien, la lista del servidor lo sustituye.
         setCentros((prev) => [...(prev ?? []).filter((item) => item.id !== centro.id), centro]);
