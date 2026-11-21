@@ -28,6 +28,11 @@ export function canPublishIncidents(rol?: string | null) {
     return isOfficialRole(rol) && rol !== "analista";
 }
 
+/** Puede crear centros: el backend solo lo permite al administrador (POST /centro responde 403 al resto). */
+export function canManageCentros(rol?: string | null) {
+    return rol === "admin";
+}
+
 /** "Bruce Cervantes" → "BC"; con una sola palabra, sus dos primeras letras. */
 export function initials(username: string) {
     const [first = "", second = ""] = username.trim().split(/\s+/);

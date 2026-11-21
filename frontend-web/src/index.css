@@ -56,6 +56,13 @@
   --color-alert: #ff383c;         /* Accents/Red */
   --color-mint: #00c8b3;          /* Accents/Mint */
 
+  /* Tipos de centro ("19. Refugio - ListaCompleta" del Figma). Los usa tiposCentro.ts; el API aún no da color. */
+  --color-centro-refugios: #7c3aed;
+  --color-centro-rescate: #d34e09;
+  --color-centro-salud: #65a30d;
+  --color-centro-seguridad: #db0564;
+  --color-centro-otro: #475569;   /* tipo sin diseño propio */
+
   /* Vidrio (estilo Pulso: NavBar y paneles flotantes) */
   --color-glass: #ffffffdb;       /* pulso/vidrio */
   --color-glass-line: #ffffffb2;  /* pulso/borde-vidrio */

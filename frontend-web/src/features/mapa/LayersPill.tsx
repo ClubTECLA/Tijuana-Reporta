@@ -7,7 +7,7 @@ import { useReportes } from "@/features/reportes/useReportes";
 
 // Puntos de color que caben en la píldora (Figma: 4).
 const MAX_DOTS = 4;
-// Vistas en las que el mapa trata de incidentes; en las demás (perfil, ajustes y futuros módulos como Refugios) el
+// Vistas en las que el mapa trata de incidentes; en las demás (perfil, ajustes, centros) el
 // filtro no tiene que ver con lo que se hace y la píldora no se muestra. Sin panel abierto sí se muestra.
 const PANELS_WITH_INCIDENTS: PanelViewKey[] = ["Resumen", "Incidentes", "Detalle Incidente", "Nuevo Incidente", "Capas y filtros"];
 

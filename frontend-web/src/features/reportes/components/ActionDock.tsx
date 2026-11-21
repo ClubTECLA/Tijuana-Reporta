@@ -6,7 +6,8 @@ import { usePanelRight } from "@/panels/usePanelRight";
 import { useReportes } from "@/features/reportes/useReportes";
 import { timeAgo } from "@/features/reportes/reportFormat";
 import Button from "@/components/ui/Button";
-import { canPublishIncidents } from "@/features/sesion/users";
+import { canManageCentros, canPublishIncidents } from "@/features/sesion/users";
+import { isCentroPanel } from "@/features/centros/centrosPanels";
 
 // Paneles con los que el Figma quita el botón y deja solo "En vivo" (21. NuevoIncidente, 11-12 detalle).
 const PANELS_WITHOUT_BUTTON = ["Nuevo Incidente", "Detalle Incidente", "Usuarios", "Capas y filtros", "Ajustes"];
@@ -33,7 +34,13 @@ export default function ActionDock() {
 
     if (!isAuthenticated) return null;
 
-    const showButton = canPublishIncidents(user?.rol_name) && !PANELS_WITHOUT_BUTTON.includes(currentPanelView ?? "");
+    // En el módulo de centros el botón es "Agregar centro" (solo en su lista y para el administrador), como en el Figma.
+    const button = isCentroPanel(currentPanelView)
+        ? currentPanelView === "Centros" && canManageCentros(user?.rol_name)
+            && { title: "Agregar centro", variant: "mint" as const, panel: "Nuevo Centro" as const }
+        : canPublishIncidents(user?.rol_name) && !PANELS_WITHOUT_BUTTON.includes(currentPanelView ?? "")
+            && { title: "Nuevo incidente", variant: "report" as const, panel: "Nuevo Incidente" as const };
+    const showButton = !!button;
     const live = lastSync !== null && !error;
     const [title, subtitle] = live
         ? ["En vivo", `Sincronizado con la app ${sinceLabel(lastSync, now)}`]
@@ -71,14 +78,14 @@ export default function ActionDock() {
                 </div>
             </div>
 
-            {showButton && <>
+            {button && <>
                 <div className="h-7 w-px shrink-0 bg-line-soft" />
                 <Button
-                    variant="report"
+                    variant={button.variant}
                     size="lg"
                     icon={<LuPlus />}
-                    title="Nuevo incidente"
-                    onClick={() => openPanel("Nuevo Incidente")}
+                    title={button.title}
+                    onClick={() => openPanel(button.panel)}
                 />
             </>}
         </div>

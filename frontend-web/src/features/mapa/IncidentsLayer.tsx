@@ -8,6 +8,11 @@ import { useMap } from "./useMap";
 import { useLocationPicker } from "./useLocationPicker";
 import { useReportes } from "@/features/reportes/useReportes";
 import { useCommonPanel } from "@/panels/useCommonPanel";
+import { isCentroPanel } from "@/features/centros/centrosPanels";
+import type { ApiReporteResumen } from "@/types/api-types";
+
+// Sin incidentes que pintar: lista estable para no recrear la fuente en cada render.
+const NO_REPORTES: ApiReporteResumen[] = [];
 
 // Capa de incidentes del mapa. useIncidentMarkers crea y recoloca los marcadores y useOpenIncident se ocupa del
 // incidente abierto en el panel; aquí se pinta el contenido de cada marcador (diseño del Figma) y se centra el
@@ -31,12 +36,16 @@ export default function IncidentsLayer() {
     const reportesById = useMemo(() => new Map(visibleReportes.map((reporte) => [reporte.id, reporte])), [visibleReportes]);
     const active = activeId ? reportesById.get(activeId) : undefined;
 
-    const items = useIncidentMarkers(visibleReportes, categories, (reporteId) => openPanel("Detalle Incidente", { reporteId }));
+    // Con un panel de centros abierto, el mapa muestra solo los centros (CentrosLayer), como en el Figma.
+    const hidden = isCentroPanel(currentPanel?.view);
+    const items = useIncidentMarkers(hidden ? NO_REPORTES : visibleReportes, categories, (reporteId) => openPanel("Detalle Incidente", { reporteId }));
     useOpenIncident(activeId, active, active ? categories.get(active.incidente_id) : undefined);
 
-    // Incidente recién publicado: centra el mapa en él una sola vez, con zoom suficiente para ver su pin.
+    // Incidente recién publicado: centra el mapa en él una sola vez, con zoom suficiente para ver su pin. No con un
+    // panel de centros abierto: searchCoordinates movería el marcador compartido (el de "Nuevo centro"); se centra al
+    // volver a mostrarse los incidentes.
     useEffect(() => {
-        if (!map || !createdId || flownToRef.current === createdId) return;
+        if (!map || hidden || !createdId || flownToRef.current === createdId) return;
         const reporte = reportesById.get(createdId);
         if (!reporte) return;
         const result = searchCoordinates(
@@ -44,7 +53,7 @@ export default function IncidentsLayer() {
             Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1),
         );
         if (result !== "ignored") flownToRef.current = createdId;
-    }, [map, createdId, reportesById, searchCoordinates]);
+    }, [map, hidden, createdId, reportesById, searchCoordinates]);
 
     return (
         <>

@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 import { addRecentSearch } from '@/lib/utils';
 
 const SEARCH_DEBOUNCE_MS = 400;
+// Formularios con su propio campo de ubicación: la barra no repite la dirección del marcador.
+const FORM_PANELS = ["Nuevo Incidente", "Nuevo Centro"];
 
 export default function NavigationWrapper() {
     const [ generalPreferences ] = useLocalStorage('Preferencias generales');
@@ -23,7 +25,7 @@ export default function NavigationWrapper() {
     const { showMessage } = useSysMessage();
     // La preferencia muestra la dirección fuera de la búsqueda; al abrir Busqueda se muestra siempre.
     const shouldShowLocation =
-        currentPanelView !== "Nuevo Incidente" &&
+        !FORM_PANELS.includes(currentPanelView ?? "") &&
         (generalPreferences.show_location_in_searchBar || currentPanelView === "Busqueda");
     // Consulta escrita o elegida mientras se edita, y texto alternativo cuando no se muestra la dirección.
     const [ searchQuery, setSearchQuery ] = useState("");
@@ -37,7 +39,7 @@ export default function NavigationWrapper() {
         focusedAtLocationFlightVersion === locationFlightVersion;
     const shouldShowMapAddress =
         shouldShowLocation ||
-        (currentPanelView !== "Nuevo Incidente" && locationFlightVersion > 0);
+        (!FORM_PANELS.includes(currentPanelView ?? "") && locationFlightVersion > 0);
 
     if (previousPanelView !== currentPanelView) {
         setPreviousPanelView(currentPanelView);

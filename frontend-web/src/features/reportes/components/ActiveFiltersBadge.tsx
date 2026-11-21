@@ -4,12 +4,14 @@ import { useCommonPanel } from "@/panels/useCommonPanel";
 import { usePanelRight } from "@/panels/usePanelRight";
 import { useReportes } from "@/features/reportes/useReportes";
 import { activeFilterLabels } from "@/features/reportes/reportFilters";
+import { isCentroPanel } from "@/features/centros/centrosPanels";
 
 // Aviso sobre el mapa de que los pines están filtrados: el filtro sigue aplicándose al cerrar los paneles. Con el estilo
 // de "Capas activas" del Figma, justo encima del dock y en su mismo eje (el mapa libre a la derecha del panel); la
 // píldora de capas, si se muestra, va en la fila del dock. Por debajo de 1024 px, con un panel abierto, no cabe en el
 // mapa libre: se oculta.
-// No se muestra sin filtros ni con los paneles que ya enseñan el filtro ("Incidentes" y "Capas y filtros").
+// No se muestra sin filtros, con los paneles que ya enseñan el filtro ("Incidentes" y "Capas y filtros") ni con los de
+// centros, que ocultan los incidentes del mapa.
 const PANELS_SHOWING_FILTERS = ["Incidentes", "Capas y filtros"];
 
 export default function ActiveFiltersBadge() {
@@ -18,7 +20,7 @@ export default function ActiveFiltersBadge() {
     const panelRight = usePanelRight();
     const labels = activeFilterLabels(filters);
 
-    if (!reportes || !labels.length || PANELS_SHOWING_FILTERS.includes(currentPanelView ?? "")) return null;
+    if (!reportes || !labels.length || PANELS_SHOWING_FILTERS.includes(currentPanelView ?? "") || isCentroPanel(currentPanelView)) return null;
 
     return (
         <div

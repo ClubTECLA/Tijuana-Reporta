@@ -2,9 +2,12 @@ import { createElement } from "react";
 import { panelRegistry } from "./panelRegistry";
 import type { PanelEntry } from "./panelTypes";
 
-// El registro tiene componentes sin props y una vista con props requeridas; el discriminante las estrecha.
+// El registro tiene componentes sin props y vistas con props requeridas (los detalles); el discriminante las estrecha.
 function renderPanel(entry: PanelEntry, key: string) {
     if (entry.view === "Detalle Incidente") {
+        return createElement(panelRegistry[entry.view], { ...entry.props, key });
+    }
+    if (entry.view === "Detalle Centro") {
         return createElement(panelRegistry[entry.view], { ...entry.props, key });
     }
 
