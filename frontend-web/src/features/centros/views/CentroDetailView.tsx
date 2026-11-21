@@ -12,6 +12,7 @@ import { useCentros } from "@/features/centros/useCentros";
 import { tipoStyle } from "@/features/centros/tiposCentro";
 import { estaOcupado, lugaresDisponibles, lugaresTexto } from "@/features/centros/centroFormat";
 import CentroIcon from "@/features/centros/components/CentroIcon";
+import PanelNavButton from "@/components/layout/PanelNavButton";
 
 // shortcut: editar, cambiar el estado (ocupación) y descartar esperan PATCH /centro/{id}, que el backend aún no tiene;
 // conectarlas cuando exista.
@@ -70,6 +71,11 @@ export default function CentroDetailView({ centroId }: CentroDetailViewProps) {
     if (!centro) {
         return (
             <div className="flex w-full flex-col font-ui sm:w-[max(25rem,calc(25vw-2rem))]">
+                {/* Sin DetailHero no hay regresar ni cerrar: los mismos botones, con el estilo de PanelHeader. */}
+                <div className="flex items-center gap-3">
+                    <PanelNavButton kind="back" className="bg-subtle hover:bg-line-soft" />
+                    <PanelNavButton kind="close" className="ml-auto bg-subtle hover:bg-line-soft" />
+                </div>
                 <span className={noteStyle}>{centros ? "Este centro ya no está disponible." : "Cargando centro…"}</span>
             </div>
         );
@@ -118,10 +124,12 @@ export default function CentroDetailView({ centroId }: CentroDetailViewProps) {
                             ({ id, title, icon, onClick, disabled, tooltip, variant: tone === "danger" ? "danger" : "default" }))}
                     />
                 </div>
-                <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
-                    {estadoBadge}
+                {/* En teléfono el estado y el folio ya van junto al título: aquí queda solo la cuenta de lugares (si no
+                    la hay, la fila se oculta para no dejar un hueco). */}
+                <div className={`flex flex-wrap items-center gap-2 ${lugares === null ? "max-sm:hidden" : ""}`}>
+                    <span className="flex max-sm:hidden">{estadoBadge}</span>
                     {lugares !== null && <Badge tone="info">{lugaresTexto(lugares)}</Badge>}
-                    {folioCentro}
+                    <span className="flex max-sm:hidden">{folioCentro}</span>
                 </div>
                 <div className="flex justify-between pt-1 max-sm:hidden">
                     {ACCIONES.map(({ id, label, icon, tone, onClick, disabled, tooltip }) =>
