@@ -12,6 +12,7 @@ import ModalChrome from './panels/ModalChrome.tsx'
 import { MapProvider } from './features/mapa/MapProvider.tsx'
 import { LocationPickerProvider } from './features/mapa/useLocationPicker.ts'
 import { ReportesProvider } from './features/reportes/ReportesProvider.tsx'
+import { CentrosProvider } from './features/centros/CentrosProvider.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -22,12 +23,14 @@ createRoot(document.getElementById('root')!).render(
             <MapProvider>
               <LocationPickerProvider>
                 <ReportesProvider>
-                  <CommonPanelProvider>
-                    {/* Chrome vive en el nivel raíz para superponerse al contenido de navegación. */}
-                    <ModalChrome />
-                    <NavigationWrapper />
-                    <App />
-                  </CommonPanelProvider>
+                  <CentrosProvider>
+                    <CommonPanelProvider>
+                      {/* Chrome vive en el nivel raíz para superponerse al contenido de navegación. */}
+                      <ModalChrome />
+                      <NavigationWrapper />
+                      <App />
+                    </CommonPanelProvider>
+                  </CentrosProvider>
                 </ReportesProvider>
               </LocationPickerProvider>
             </MapProvider>
