@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db/sqlc"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/db/sqlc"
 	"github.com/google/uuid"
 )
 

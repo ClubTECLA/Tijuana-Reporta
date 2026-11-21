@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "frontend-mobile",
-    "slug": "frontend-mobile",
+    "name": "CimAlert",
+    "slug": "CimAlert",
     "version": "1.0.0",
-    "scheme": "tijuanareporta",
+    "scheme": "cimalert",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tecla.cimalert"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.andreglez2000.frontendmobile"
+      "package": "com.tecla.cimalert"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,16 +34,16 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Tijuana Reporta usa la cámara para que tomes una foto del incidente que reportas.",
-          "photosPermission": "Tijuana Reporta accede a tus fotos para que adjuntes una imagen del incidente que reportas.",
+          "cameraPermission": "CimAlert usa la cámara para que tomes una foto del incidente que reportas.",
+          "photosPermission": "CimAlert accede a tus fotos para que adjuntes una imagen del incidente que reportas.",
           "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Tijuana Reporta usa tu ubicación para ubicar el incidente que reportas.",
-          "locationAlwaysAndWhenInUsePermission": "Tijuana Reporta usa tu ubicación en segundo plano para avisarte cuando pases cerca de un incidente reportado.",
+          "locationWhenInUsePermission": "CimAlert usa tu ubicación para ubicar el incidente que reportas.",
+          "locationAlwaysAndWhenInUsePermission": "CimAlert usa tu ubicación en segundo plano para avisarte cuando pases cerca de un incidente reportado.",
           "isAndroidBackgroundLocationEnabled": true,
           "isIosBackgroundLocationEnabled": true
         }

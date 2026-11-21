@@ -189,7 +189,7 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
             </button>
             <div className="flex w-full items-center gap-2.5 rounded-[14px] bg-subtle px-3.5 py-3">
                 <LuShield className="size-4.5 shrink-0 text-ink-secondary" />
-                <span className="text-caption text-ink-secondary">¿Eres ciudadano? Descarga la app Tijuana Reporta para reportar incidentes.</span>
+                <span className="text-caption text-ink-secondary">¿Eres ciudadano? Descarga la app CimAlert para reportar incidentes.</span>
             </div>
         </form>
     )

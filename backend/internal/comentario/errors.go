@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
 )
 
 var ErrReporteNotFound = errors.New("reporte not found")

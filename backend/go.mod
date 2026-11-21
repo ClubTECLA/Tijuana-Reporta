@@ -1,4 +1,4 @@
-module github.com/ClubTECLA/tijuana-reporta/backend
+module github.com/ClubTECLA/cimalert/backend
 
 go 1.27.0
 

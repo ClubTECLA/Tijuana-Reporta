@@ -11,7 +11,7 @@ type Props = {
    * pantallas de formulario (más chicas, mapa arriba nomás) usan un valor
    * más alto por defecto; Bienvenida (mapa a pantalla completa) necesita que
    * ya esté blanco bastante antes de donde cae el título, si no el texto
-   * "Tijuana Reporta" queda compitiendo visualmente con el mapa.
+   * "CimAlert" queda compitiendo visualmente con el mapa.
    */
   fadeToWhiteAt?: number;
 };

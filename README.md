@@ -1,11 +1,11 @@
-# Tijuana Reporta
+# CimAlert
 
-Plataforma para reportar incidencias en Tijuana. Monorepo con backend en Go, frontend web en React + Vite, y app móvil en Expo.
+Plataforma para reportar incidencias en Baja California. Monorepo con backend en Go, frontend web en React + Vite, y app móvil en Expo.
 
 ## Estructura del proyecto
 
 ```
-tijuana-reporta/
+cimalert/
 ├── backend/          # API en Go
 ├── frontend-web/      # App web en React + Vite (pnpm workspace)
 ├── frontend-mobile/   # App móvil en Expo / React Native
@@ -26,8 +26,8 @@ tijuana-reporta/
 
 1. Clona el repo:
    ```bash
-   git clone https://github.com/ClubTECLA/Tijuana-Reporta.git
-   cd tijuana-reporta
+   git clone https://github.com/ClubTECLA/CimAlert.git
+   cd cimalert
    ```
 
 2. Copia el archivo de variables de entorno de ejemplo y llena tus propios valores:
@@ -223,7 +223,7 @@ El `docker-compose.yml` monta esa carpeta en `/seeds` dentro del contenedor de P
 | `pnpm db:seed:check` | Compara los conteos esperados contra los actuales (cada tabla debe decir `OK`) y muestra un resumen por reporte y por usuario |
 | `pnpm db:psql` | Abre una consola `psql` dentro de la base del contenedor |
 
-> Los scripts usan el usuario `tijuana` y la base `tijuana_reporta` (los valores de `.env.example`). Si cambiaste `POSTGRES_USER` o `POSTGRES_DB` en tu `.env`, ajústalos en los scripts del `package.json`.
+> Los scripts usan el usuario `cimarron` y la base `cimalert` (los valores de `.env.example`). Si cambiaste `POSTGRES_USER` o `POSTGRES_DB` en tu `.env`, ajústalos en los scripts del `package.json`.
 
 **Flujo normal:**
 
@@ -283,7 +283,7 @@ También puedes conectar un cliente gráfico (DBeaver, pgAdmin, TablePlus) a `lo
 
 **Problemas comunes:**
 
-- *`database "..." does not exist`:* el nombre que pasa `-d` en el script no coincide con `POSTGRES_DB` de tu `.env`. Revisa que esté bien escrito en el `package.json` (por defecto, `tijuana_reporta`).
+- *`database "..." does not exist`:* el nombre que pasa `-d` en el script no coincide con `POSTGRES_DB` de tu `.env`. Revisa que esté bien escrito en el `package.json` (por defecto, `cimalert`).
 - *El seed dice que una tabla no existe (`relation ... does not exist`):* `migrate` todavía no termina. Corre `docker compose ps -a`; `migrate` debe aparecer como `Exited (0)`.
 - *`dbcheck` falla con `set: Illegal option -`:* el `.sh` tiene saltos de línea de Windows (CRLF). Conviértelo a LF; un `.gitattributes` con `*.sh text eol=lf` evita que vuelva a pasar.
 

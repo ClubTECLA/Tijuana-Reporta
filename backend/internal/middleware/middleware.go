@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/db"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/logging"
+	"github.com/ClubTECLA/cimalert/backend/internal/db"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

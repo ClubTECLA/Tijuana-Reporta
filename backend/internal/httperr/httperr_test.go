@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/almacen"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/centro"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/comentario"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httperr"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/incidente"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/multimedia"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/reporte"
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/usuario"
+	"github.com/ClubTECLA/cimalert/backend/internal/almacen"
+	"github.com/ClubTECLA/cimalert/backend/internal/centro"
+	"github.com/ClubTECLA/cimalert/backend/internal/comentario"
+	"github.com/ClubTECLA/cimalert/backend/internal/httperr"
+	"github.com/ClubTECLA/cimalert/backend/internal/incidente"
+	"github.com/ClubTECLA/cimalert/backend/internal/multimedia"
+	"github.com/ClubTECLA/cimalert/backend/internal/reporte"
+	"github.com/ClubTECLA/cimalert/backend/internal/usuario"
 )
 
 // tabla es la que arma el servidor: las reglas de dominio y las de transporte.

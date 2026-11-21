@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ClubTECLA/tijuana-reporta/backend/internal/httpapi"
+	"github.com/ClubTECLA/cimalert/backend/internal/httpapi"
 	"github.com/google/uuid"
 )
 
