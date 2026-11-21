@@ -41,9 +41,11 @@ export default function IncidentsLayer() {
     const items = useIncidentMarkers(hidden ? NO_REPORTES : visibleReportes, categories, (reporteId) => openPanel("Detalle Incidente", { reporteId }));
     useOpenIncident(activeId, active, active ? categories.get(active.incidente_id) : undefined);
 
-    // Incidente recién publicado: centra el mapa en él una sola vez, con zoom suficiente para ver su pin.
+    // Incidente recién publicado: centra el mapa en él una sola vez, con zoom suficiente para ver su pin. No con un
+    // panel de centros abierto: searchCoordinates movería el marcador compartido (el de "Nuevo centro"); se centra al
+    // volver a mostrarse los incidentes.
     useEffect(() => {
-        if (!map || !createdId || flownToRef.current === createdId) return;
+        if (!map || hidden || !createdId || flownToRef.current === createdId) return;
         const reporte = reportesById.get(createdId);
         if (!reporte) return;
         const result = searchCoordinates(
@@ -51,7 +53,7 @@ export default function IncidentsLayer() {
             Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1),
         );
         if (result !== "ignored") flownToRef.current = createdId;
-    }, [map, createdId, reportesById, searchCoordinates]);
+    }, [map, hidden, createdId, reportesById, searchCoordinates]);
 
     return (
         <>
