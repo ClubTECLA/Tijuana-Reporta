@@ -30,6 +30,7 @@ func toUsuarioResumen(u sqlc.ListAllUsersRow) httpapi.UsuarioResumen {
 	}
 
 	return httpapi.UsuarioResumen{
+		Id:            u.ID,
 		Username:      u.Username,
 		Email:         email,
 		RolName:       u.RolName,
