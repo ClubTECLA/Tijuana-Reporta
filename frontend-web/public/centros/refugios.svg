@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="19.3463" height="19.8333" viewBox="0 0 19.3463 19.8333" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="campping">
+<path id="Union" d="M7.38165 4.38104C7.38165 4.53121 7.36204 4.67756 7.32502 4.81798C7.36181 4.92272 7.38165 5.03423 7.38165 5.14991C7.38165 5.75741 6.83444 6.24989 6.15943 6.24989H1.88165C1.20664 6.24989 0.964836 5.75741 0.964836 5.14991C0.964836 4.54241 1.20664 3.5 1.88165 3.5C2.55666 3.5 3.16739 4.9041 3.34055 4.04994C3.5137 3.19578 4.34808 2.58322 5.34782 2.58322C6.4726 2.58322 7.38165 3.35859 7.38165 4.38104Z" stroke-width="1.5" stroke="white"/>
+<g id="tree">
+<path id="Vector" d="M14.7142 0.75C14.7142 1.95799 12.7022 3.04167 11.5065 3.04167" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+<path id="Vector_2" d="M14.7148 3.95831C14.7148 5.1663 13.1606 5.79165 11.9648 5.79165" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+<path id="Vector_3" d="M14.7147 0.75C14.7147 1.95799 16.7276 3.04167 17.9234 3.04167" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+<path id="Vector_4" d="M14.715 3.95831C14.715 5.1663 16.2693 5.79165 17.465 5.79165" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+<path id="Vector 3" d="M14.7148 9V0.75" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+</g>
+<g id="camp">
+<path id="Vector 1" d="M3.71484 19.0833H1.25127C0.895867 19.0833 0.653929 18.723 0.788496 18.394L4.50441 9.31068C4.58128 9.12277 4.76415 9 4.96718 9H14.3792C14.5822 9 14.7651 9.12277 14.8419 9.31068L18.5578 18.394C18.6924 18.723 18.4505 19.0833 18.0951 19.0833H7.3815H3.71484Z" stroke-width="1.5" stroke="white"/>
+<path id="Vector 2" d="M3.71484 19.0833H1.25127C0.895867 19.0833 0.653929 18.723 0.788496 18.394L4.14129 10.1983C4.3144 9.77515 4.91771 9.78708 5.07396 10.2167L8.05422 18.4125C8.17279 18.7386 7.9313 19.0833 7.58432 19.0833H3.71484Z" stroke-width="1.5" stroke="white"/>
+<path id="Vector_5" d="M4.6315 18.625L4.6315 10.8333" stroke-width="1.5" stroke-linecap="round" stroke="white"/>
+</g>
+</g>
+</svg>

@@ -21,6 +21,9 @@ export type ApiUsuarioMeResponse = components['schemas']['usuario_me_response']
 export type ApiIncidente = components['schemas']['incidente']
 export type ApiCrearIncidenteRequest = components['schemas']['crear_incidente_request']
 export type ApiActualizarIncidenteRequest = components['schemas']['actualizar_incidente_request']
+export type ApiCentro = components['schemas']['centro']
+export type ApiTipoCentro = components['schemas']['tipos_centro']
+export type ApiCrearCentroRequest = components['schemas']['crear_centro_request']
 
 // Report endpoint query, path, and response types
 export type ApiListarReportesQuery = operations['listarReportes']['parameters']['query']
